@@ -102,7 +102,7 @@ const ComponentsAuthLoginForm = () => {
                     </span>
                 </div>
                 {errors.password && <span className="text-red-500 text-sm mt-1">{errors.password}</span>}
-            </div>
+            </div> 
             <div className="flex justify-between">
                 <label className="flex cursor-pointer items-center">
                     <input type="checkbox" className="form-checkbox bg-white dark:bg-black" />
