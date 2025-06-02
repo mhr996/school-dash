@@ -6,8 +6,8 @@ import { Almarai } from 'next/font/google';
 
 export const metadata: Metadata = {
     title: {
-        template: '%s | VRISTO',
-        default: 'VRISTO',
+        template: '%s | Car Dash',
+        default: 'Car Dash',
     },
 };
 const almarai = Almarai({
