@@ -105,10 +105,12 @@ const AddShopPage = () => {
             // If work_hours already exists, update only the day names with current translations
             setForm((prev) => ({
                 ...prev,
-                work_hours: prev.work_hours ? prev.work_hours.map((workHour, index) => ({
-                    ...workHour,
-                    day: defaultWorkHours[index].day, // Update day with current translation
-                })) : null,
+                work_hours: prev.work_hours
+                    ? prev.work_hours.map((workHour, index) => ({
+                          ...workHour,
+                          day: defaultWorkHours[index].day, // Update day with current translation
+                      }))
+                    : null,
             }));
         }
     }, [t]); // Re-run when the translation function changes (language changes)
@@ -126,7 +128,7 @@ const AddShopPage = () => {
                 }
 
                 // Fetch all users
-                const { data: profiles, error } = await supabase.from('profiles').select('id, full_name, avatar_url');
+                const { data: profiles, error } = await supabase.from('users').select('id, full_name, avatar_url');
 
                 if (error) throw error;
                 setUsers(profiles || []);

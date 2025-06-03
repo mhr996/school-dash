@@ -44,7 +44,7 @@ const ComponentsUsersAccountSettingsTabs = () => {
                 data: { user },
             } = await supabase.auth.getUser();
             if (user) {
-                const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+                const { data, error } = await supabase.from('users').select('*').eq('id', user.id).single();
 
                 if (data && !error) {
                     setProfileData({
@@ -89,7 +89,7 @@ const ComponentsUsersAccountSettingsTabs = () => {
             }
 
             // Update all profile data including email and country
-            const { error: profileError } = await supabase.from('profiles').upsert({
+            const { error: profileError } = await supabase.from('users').upsert({
                 id: user.id,
                 ...profileData, // Include all profile data
                 updated_at: new Date().toISOString(),
@@ -129,7 +129,7 @@ const ComponentsUsersAccountSettingsTabs = () => {
             } = await supabase.auth.getUser();
             if (!user) throw new Error('No user');
 
-            const { error } = await supabase.from('profiles').upsert({
+            const { error } = await supabase.from('users').upsert({
                 id: user.id,
                 avatar_url: url,
                 updated_at: new Date().toISOString(),
@@ -191,7 +191,7 @@ const ComponentsUsersAccountSettingsTabs = () => {
             if (!user) throw new Error('No user found');
 
             // Delete profile first (due to foreign key constraint)
-            const { error: profileError } = await supabase.from('profiles').delete().eq('id', user.id);
+            const { error: profileError } = await supabase.from('users').delete().eq('id', user.id);
 
             if (profileError) throw profileError;
 

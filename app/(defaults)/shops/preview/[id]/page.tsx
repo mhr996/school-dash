@@ -167,7 +167,7 @@ const ShopPreview = () => {
                 if (userError) throw userError;
 
                 // Get user's role from profiles table
-                const { data: profileData, error: profileError } = await supabase.from('profiles').select('role').eq('id', userData?.user?.id).single();
+                const { data: profileData, error: profileError } = await supabase.from('users').select('role').eq('id', userData?.user?.id).single();
 
                 if (profileError) throw profileError;
 

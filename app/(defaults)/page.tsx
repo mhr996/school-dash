@@ -98,7 +98,7 @@ const HomePage = () => {
                 const [{ data: currentShops }, { data: currentProducts }, { data: currentUsers }, { data: currentOrders }] = await Promise.all([
                     supabase.from('shops').select('count'),
                     supabase.from('products').select('count'),
-                    supabase.from('profiles').select('count'),
+                    supabase.from('users').select('count'),
                     supabase.from('orders').select('count'),
                 ]);
 
@@ -106,7 +106,7 @@ const HomePage = () => {
                 const [{ data: previousShops }, { data: previousProducts }, { data: previousUsers }, { data: previousOrders }] = await Promise.all([
                     supabase.from('shops').select('count').lt('created_at', previousMonth),
                     supabase.from('products').select('count').lt('created_at', previousMonth),
-                    supabase.from('profiles').select('count').lt('registration_date', previousMonth),
+                    supabase.from('users').select('count').lt('registration_date', previousMonth),
                     supabase.from('orders').select('count').lt('created_at', previousMonth),
                 ]);
 
@@ -138,7 +138,7 @@ const HomePage = () => {
                 // Get recent activity (newest 5 items from any category)
                 const [{ data: recentOrders }, { data: recentUsers }, { data: recentProducts }, { data: recentShops }] = await Promise.all([
                     supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(3),
-                    supabase.from('profiles').select('*').order('registration_date', { ascending: false }).limit(3),
+                    supabase.from('users').select('*').order('registration_date', { ascending: false }).limit(3),
                     supabase.from('products').select('*').order('created_at', { ascending: false }).limit(3),
                     supabase.from('shops').select('*').order('created_at', { ascending: false }).limit(3),
                 ]);

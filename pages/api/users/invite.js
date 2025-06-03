@@ -71,43 +71,24 @@ export default async function handler(req, res) {
         }
 
         // Check if profile exists already
-        const { data: existingProfile } = await supabaseAdmin.from('profiles').select('*').eq('id', userId).single();
-
-        // Prepare profile data with all fields matching the profiles table structure
+        const { data: existingProfile } = await supabaseAdmin.from('users').select('*').eq('id', userId).single(); // Prepare profile data with all fields matching the users table structure
         const profilePayload = {
             id: userId,
             email: email,
             full_name: profileData.full_name || '',
-            profession: profileData.profession || null,
             country: profileData.country || null,
             address: profileData.address || null,
-            location: profileData.location || null,
             phone: profileData.phone || null,
-            website: profileData.website || null,
-            avatar_url: profileData.avatar_url || null,
             status: profileData.status || 'Active',
-            is_default_address: false,
-            linkedin_username: null,
-            twitter_username: null,
-            facebook_username: null,
-            github_username: null,
-            theme: 'light',
-            public_profile: false,
-            show_email: false,
-            enable_shortcuts: false,
-            hide_navigation: false,
-            show_advertisements: false,
-            enable_social: false,
-            registration_date: new Date().toISOString().split('T')[0],
-            updated_at: new Date().toISOString(),
+            avatar_url: null,
         };
 
         let profileOperation;
         // If profile already exists, update it - otherwise insert new one
         if (existingProfile) {
-            profileOperation = await supabaseAdmin.from('profiles').update(profilePayload).eq('id', userId);
+            profileOperation = await supabaseAdmin.from('users').update(profilePayload).eq('id', userId);
         } else {
-            profileOperation = await supabaseAdmin.from('profiles').insert([profilePayload]);
+            profileOperation = await supabaseAdmin.from('users').insert([profilePayload]);
         }
 
         if (profileOperation.error) {

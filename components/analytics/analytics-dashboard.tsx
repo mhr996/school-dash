@@ -263,7 +263,7 @@ const AnalyticsDashboard = () => {
                 // Fetch current period data
                 const [{ data: currentShops }, { data: currentUsers }, { data: currentProducts }, { data: currentOrders }] = await Promise.all([
                     supabase.from('shops').select('*').gte('created_at', startDate),
-                    supabase.from('profiles').select('*').gte('registration_date', startDate),
+                    supabase.from('users').select('*').gte('registration_date', startDate),
                     supabase.from('products').select('*').gte('created_at', startDate),
                     supabase.from('orders').select('*').gte('created_at', startDate),
                 ]);
@@ -271,7 +271,7 @@ const AnalyticsDashboard = () => {
                 // Fetch previous period data for growth calculation
                 const [{ data: previousShops }, { data: previousUsers }, { data: previousProducts }, { data: previousOrders }] = await Promise.all([
                     supabase.from('shops').select('*').gte('created_at', previousStartDate).lt('created_at', startDate),
-                    supabase.from('profiles').select('*').gte('registration_date', previousStartDate).lt('registration_date', startDate),
+                    supabase.from('users').select('*').gte('registration_date', previousStartDate).lt('registration_date', startDate),
                     supabase.from('products').select('*').gte('created_at', previousStartDate).lt('created_at', startDate),
                     supabase.from('orders').select('*').gte('created_at', previousStartDate).lt('created_at', startDate),
                 ]);
