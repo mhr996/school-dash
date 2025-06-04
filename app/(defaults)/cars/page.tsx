@@ -251,31 +251,10 @@ const CarsList = () => {
                                 ),
                             },
                             {
-                                accessor: 'kilometers',
-                                title: t('kilometers'),
-                                sortable: true,
-                                render: ({ kilometers }) => (
-                                    <span>
-                                        {formatNumber(kilometers)} {t('km')}
-                                    </span>
-                                ),
-                            },
-                            {
-                                accessor: 'market_price',
-                                title: t('market_price'),
+                                accessor: 'sale_price',
+                                title: t('sale_price'),
                                 sortable: true,
                                 render: ({ market_price }) => <span>{formatCurrency(market_price)}</span>,
-                            },
-                            {
-                                accessor: 'value_price',
-                                title: t('value_price'),
-                                sortable: true,
-                                render: ({ value_price }) => <span>{formatCurrency(value_price)}</span>,
-                            },
-                            {
-                                accessor: 'provider',
-                                title: t('provider'),
-                                sortable: true,
                             },
                             {
                                 accessor: 'created_at',
