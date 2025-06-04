@@ -44,7 +44,8 @@ const EditCar = () => {
         sale_price: '',
     });
     const [images, setImages] = useState<File[]>([]);
-    const [existingImages, setExistingImages] = useState<string[]>([]);
+    const [existingImages, setExistingImages] = useState<string[]>([]); // Display URLs
+    const [existingImagePaths, setExistingImagePaths] = useState<string[]>([]); // Original relative paths
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +54,6 @@ const EditCar = () => {
         message: '',
         type: 'success',
     });
-
     useEffect(() => {
         const fetchCar = async () => {
             try {
@@ -74,7 +74,15 @@ const EditCar = () => {
                         value_price: data.value_price?.toString() || '',
                         sale_price: data.sale_price?.toString() || '',
                     });
-                    setExistingImages(data.images || []);
+                    // Convert relative paths to full URLs for display and keep original paths
+                    if (data.images && data.images.length > 0) {
+                        setExistingImagePaths(data.images); // Store original relative paths
+                        const imageUrls = data.images.map((imagePath: string) => {
+                            const { data: urlData } = supabase.storage.from('cars').getPublicUrl(imagePath);
+                            return urlData.publicUrl;
+                        });
+                        setExistingImages(imageUrls); // Store full URLs for display
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching car:', error);
@@ -119,9 +127,9 @@ const EditCar = () => {
         setImages((prev) => prev.filter((_, i) => i !== index));
         setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
     };
-
     const removeExistingImage = (index: number) => {
         setExistingImages((prev) => prev.filter((_, i) => i !== index));
+        setExistingImagePaths((prev) => prev.filter((_, i) => i !== index));
     };
 
     const validateForm = () => {
@@ -191,10 +199,8 @@ const EditCar = () => {
         setSaving(true);
         try {
             // Upload new images if any
-            const newImageUrls = await uploadNewImages(form.title);
-
-            // Combine existing and new images
-            const allImageUrls = [...existingImages, ...newImageUrls];
+            const newImageUrls = await uploadNewImages(form.title); // Combine existing image paths and new images
+            const allImageUrls = [...existingImagePaths, ...newImageUrls];
 
             // Prepare car data
             const carData = {

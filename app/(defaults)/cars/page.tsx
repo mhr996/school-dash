@@ -197,10 +197,21 @@ const CarsList = () => {
                                     let imageList = [];
                                     imageList = typeof images === 'string' ? JSON.parse(images || '[]') : images || [];
 
+                                    // Convert relative path to full Supabase URL
+                                    const getImageUrl = (imagePath: string) => {
+                                        if (!imagePath) return `/assets/images/product-placeholder.jpg`;
+                                        const { data } = supabase.storage.from('cars').getPublicUrl(imagePath);
+                                        return data.publicUrl;
+                                    };
+
                                     return (
                                         <div className="flex items-center font-semibold">
                                             <div className="w-max rounded-full ltr:mr-2 rtl:ml-2">
-                                                <img className="h-8 w-8 rounded-md object-cover" src={imageList[0] || `/assets/images/product-placeholder.jpg`} alt={title} />
+                                                <img
+                                                    className="h-8 w-8 rounded-md object-cover"
+                                                    src={imageList[0] ? getImageUrl(imageList[0]) : `/assets/images/product-placeholder.jpg`}
+                                                    alt={title}
+                                                />
                                             </div>
                                             <div>{title}</div>
                                         </div>

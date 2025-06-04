@@ -5,7 +5,9 @@ const nextConfig = {
     eslint: {
         ignoreDuringBuilds: true,
     },
-    
+    images: {
+        domains: ['xwhfmajsgogcrwrvnmhs.supabase.co'],
+    },
 };
 
 module.exports = nextConfig;
