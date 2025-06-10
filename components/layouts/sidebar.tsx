@@ -122,30 +122,7 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
-                                    {/* <li className="nav-item">
-                                        <Link href="/analytics" className="group">
-                                            <div className="flex items-center">
-                                                <IconMenuCharts className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('analytics')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <Link href="/shops" className="group">
-                                            <div className="flex items-center">
-                                                <IconMenuWidgets className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('shops')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <Link href="/products" className="group">
-                                            <div className="flex items-center">
-                                                <IconMenuComponents className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('products')}</span>
-                                            </div>
-                                        </Link>
-                                    </li> */}
+
                                     <li className="nav-item">
                                         <Link href="/cars" className="group">
                                             <div className="flex items-center">
@@ -154,30 +131,14 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
-                                    {/* <li className="nav-item">
-                                        <Link href="/categories" className="group">
+                                    <li className="nav-item">
+                                        <Link href="/providers" className="group">
                                             <div className="flex items-center">
-                                                <IconMenuTables className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('categories')}</span>
+                                                <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('providers')}</span>
                                             </div>
                                         </Link>
                                     </li>
-                                    <li className="nav-item">
-                                        <Link href="/orders" className="group">
-                                            <div className="flex items-center">
-                                                <IconMenuNotes className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('orders')}</span>
-                                            </div>
-                                        </Link>
-                                    </li>
-                                    <li className="nav-item">
-                                        <Link href="/revenue" className="group">
-                                            <div className="flex items-center">
-                                                <IconMenuCharts className="shrink-0 group-hover:!text-primary" />
-                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('revenue')}</span>
-                                            </div>
-                                        </Link>
-                                    </li> */}
                                 </ul>
                             </li>
 
@@ -199,39 +160,6 @@ const Sidebar = () => {
                                 <IconMinus className="hidden h-5 w-4 flex-none" />
                                 <span>{t('settings')}</span>
                             </h2>
-
-                            {/* <li className="nav-item">
-                                <Link href="/settings" className="group">
-                                    <div className="flex items-center">
-                                        <IconSettings fill className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('general_settings')}</span>
-                                    </div>
-                                </Link>
-                            </li> */}
-                            {/* <li className="nav-item">
-                                <Link href="/account-settings" className="group">
-                                    <div className="flex items-center">
-                                        <IconUser fill className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('account_settings')}</span>
-                                    </div>
-                                </Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link href="/licenses" className="group">
-                                    <div className="flex items-center">
-                                        <IconMenuDragAndDrop className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('licenses')}</span>
-                                    </div>
-                                </Link>
-                            </li>
-                            <li className="nav-item">
-                                <Link href="/subscriptions" className="group">
-                                    <div className="flex items-center">
-                                        <IconMenuDatatables className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('subscriptions')}</span>
-                                    </div>
-                                </Link>
-                            </li> */}
                         </ul>
                     </PerfectScrollbar>
                 </div>
