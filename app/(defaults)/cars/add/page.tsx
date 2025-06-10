@@ -7,6 +7,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import IconX from '@/components/icon/icon-x';
 import IconUpload from '@/components/icon/icon-camera';
+import BrandSelect from '@/components/brand-select/brand-select';
 
 const AddCar = () => {
     const { t } = getTranslation();
@@ -227,7 +228,6 @@ const AddCar = () => {
                             </label>
                             <input type="text" id="title" name="title" value={form.title} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_title')} required />
                         </div>
-
                         {/* Year */}
                         <div>
                             <label htmlFor="year" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -245,16 +245,14 @@ const AddCar = () => {
                                 placeholder={t('enter_year')}
                                 required
                             />
-                        </div>
-
+                        </div>{' '}
                         {/* Brand */}
                         <div>
                             <label htmlFor="brand" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('brand')} <span className="text-red-500">*</span>
                             </label>
-                            <input type="text" id="brand" name="brand" value={form.brand} onChange={handleInputChange} className="form-input" placeholder={t('enter_brand')} required />
+                            <BrandSelect defaultValue={form.brand} className="form-input" onChange={handleInputChange} />
                         </div>
-
                         {/* Status */}
                         <div>
                             <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -270,7 +268,6 @@ const AddCar = () => {
                                 <option value="poor">{t('poor')}</option>
                             </select>
                         </div>
-
                         {/* Provider */}
                         <div>
                             <label htmlFor="provider" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -278,7 +275,6 @@ const AddCar = () => {
                             </label>
                             <input type="text" id="provider" name="provider" value={form.provider} onChange={handleInputChange} className="form-input" placeholder={t('enter_provider')} />
                         </div>
-
                         {/* Kilometers */}
                         <div>
                             <label htmlFor="kilometers" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -295,7 +291,6 @@ const AddCar = () => {
                                 placeholder={t('enter_kilometers')}
                             />
                         </div>
-
                         {/* Market Price */}
                         <div>
                             <label htmlFor="market_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -318,7 +313,6 @@ const AddCar = () => {
                                 />
                             </div>
                         </div>
-
                         {/* Value Price */}
                         <div>
                             <label htmlFor="value_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -341,7 +335,6 @@ const AddCar = () => {
                                 />
                             </div>
                         </div>
-
                         {/* Sale Price */}
                         <div>
                             <label htmlFor="sale_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">

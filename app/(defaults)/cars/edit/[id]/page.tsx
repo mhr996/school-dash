@@ -7,6 +7,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import IconX from '@/components/icon/icon-x';
 import IconUpload from '@/components/icon/icon-camera';
+import BrandSelect from '@/components/brand-select/brand-select';
 
 interface Car {
     id: string;
@@ -331,13 +332,13 @@ const EditCar = () => {
                                 placeholder={t('enter_year')}
                                 required
                             />
-                        </div>
+                        </div>{' '}
                         {/* Brand */}
                         <div>
                             <label htmlFor="brand" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('brand')} <span className="text-red-500">*</span>
                             </label>
-                            <input type="text" id="brand" name="brand" value={form.brand} onChange={handleInputChange} className="form-input" placeholder={t('enter_brand')} required />
+                            <BrandSelect defaultValue={form.brand} className="form-input" onChange={handleInputChange} />
                         </div>
                         {/* Status */}
                         <div>
