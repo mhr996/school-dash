@@ -1,3 +1,4 @@
+import { getTranslation } from '@/i18n';
 import React, { useState, useEffect, useRef } from 'react';
 
 interface CountrySelectProps {
@@ -7,6 +8,8 @@ interface CountrySelectProps {
     className?: string;
     onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
+
+const { t } = getTranslation();
 
 const CountrySelect = ({ defaultValue, className = 'form-select text-white-dark', onChange }: CountrySelectProps) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -243,7 +246,7 @@ const CountrySelect = ({ defaultValue, className = 'form-select text-white-dark'
     return (
         <div ref={wrapperRef} className="relative">
             <div className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#191e3a]`} onClick={() => setIsOpen(!isOpen)}>
-                {selectedCountry || 'Select a country'} {/* Add fallback text */}
+                {selectedCountry || t('select_country')} {/* Add fallback text */}
             </div>
             {isOpen && (
                 <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg dark:bg-black dark:border-[#191e3a]">
