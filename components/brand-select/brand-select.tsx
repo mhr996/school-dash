@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import IconCaretDown from '@/components/icon/icon-caret-down';
+import { getTranslation } from '@/i18n';
 
 interface BrandSelectProps {
     id?: string;
@@ -9,7 +10,8 @@ interface BrandSelectProps {
     onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }
 
-const BrandSelect = ({ defaultValue, className = 'form-select text-white-dark', onChange }: BrandSelectProps) => {
+const BrandSelect = ({ defaultValue, className = 'form-select text-white-dark', onChange, name = 'brand', id }: BrandSelectProps) => {
+    const { t } = getTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedBrand, setSelectedBrand] = useState(defaultValue);
@@ -235,14 +237,13 @@ const BrandSelect = ({ defaultValue, className = 'form-select text-white-dark', 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
     const handleBrandSelect = (brand: string) => {
         setSelectedBrand(brand);
         setIsOpen(false);
         setSearchTerm('');
         if (onChange) {
             const event = {
-                target: { value: brand },
+                target: { value: brand, name: name },
             } as React.ChangeEvent<HTMLSelectElement>;
             onChange(event);
         }
@@ -250,7 +251,7 @@ const BrandSelect = ({ defaultValue, className = 'form-select text-white-dark', 
     return (
         <div ref={wrapperRef} className="relative">
             <div className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#191e3a] flex items-center justify-between`} onClick={() => setIsOpen(!isOpen)}>
-                <span>{selectedBrand || 'Select a brand'}</span>
+                <span>{selectedBrand || t('select_brand')}</span>
                 <IconCaretDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
             {isOpen && (
@@ -259,7 +260,7 @@ const BrandSelect = ({ defaultValue, className = 'form-select text-white-dark', 
                         <input
                             type="text"
                             className="w-full rounded border border-gray-300 p-2 focus:border-primary focus:outline-none dark:bg-black dark:border-[#191e3a] dark:text-white-dark"
-                            placeholder="Search brand..."
+                            placeholder={t('search_brands')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             autoFocus
@@ -273,7 +274,7 @@ const BrandSelect = ({ defaultValue, className = 'form-select text-white-dark', 
                                 </div>
                             ))
                         ) : (
-                            <div className="px-4 py-2 text-gray-500 dark:text-gray-400 text-center">No brands found</div>
+                            <div className="px-4 py-2 text-gray-500 dark:text-gray-400 text-center">{t('no_brands_found')}</div>
                         )}
                     </div>
                 </div>

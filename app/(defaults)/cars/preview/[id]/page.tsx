@@ -20,6 +20,7 @@ interface Car {
     title: string;
     year: number;
     status: string;
+    type?: string;
     market_price: number;
     value_price: number;
     sale_price: number;
@@ -27,6 +28,12 @@ interface Car {
     provider: string;
     brand: string;
     images: string[];
+    providers?: {
+        id: string;
+        name: string;
+        address: string;
+        phone: string;
+    };
 }
 
 const CarPreview = () => {
@@ -43,7 +50,7 @@ const CarPreview = () => {
             if (!params?.id) return;
 
             try {
-                const { data, error } = await supabase.from('cars').select('*').eq('id', params.id).single();
+                const { data, error } = await supabase.from('cars').select('*, providers(id, name, address, phone)').eq('id', params.id).single();
 
                 if (error) {
                     console.error('Error fetching car:', error);
@@ -226,24 +233,38 @@ const CarPreview = () => {
                                         <IconBox className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('brand')}:</span>
                                         <span className="font-medium">{car.brand}</span>
-                                    </div>
-
+                                    </div>{' '}
                                     <div className="flex items-center">
                                         <IconCalendar className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('year')}:</span>
                                         <span className="font-medium">{car.year}</span>
                                     </div>
-
+                                    {car.type && (
+                                        <div className="flex items-center">
+                                            <IconBox className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
+                                            <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('car_type')}:</span>
+                                            <span className="font-medium">{car.type}</span>
+                                        </div>
+                                    )}
                                     <div className="flex items-center">
                                         <IconMapPin className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('kilometers')}:</span>
                                         <span className="font-medium">{formatKilometers(car.kilometers)}</span>
-                                    </div>
-
+                                    </div>{' '}
                                     <div className="flex items-center">
                                         <IconUser className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('provider')}:</span>
-                                        <span className="font-medium">{car.provider}</span>
+                                        <div className="font-medium">
+                                            {car.providers ? (
+                                                <div>
+                                                    <div>{car.providers.name}</div>
+                                                    <div className="text-xs text-gray-500">{car.providers.address}</div>
+                                                    <div className="text-xs text-gray-500">{car.providers.phone}</div>
+                                                </div>
+                                            ) : (
+                                                <span>{car.provider || '-'}</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

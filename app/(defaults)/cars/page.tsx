@@ -25,6 +25,12 @@ interface Car {
     provider: string;
     brand: string;
     images: string[];
+    providers?: {
+        id: string;
+        name: string;
+        address: string;
+        phone: string;
+    };
 }
 
 const CarsList = () => {
@@ -53,11 +59,10 @@ const CarsList = () => {
         message: '',
         type: 'success',
     });
-
     useEffect(() => {
         const fetchCars = async () => {
             try {
-                const { data, error } = await supabase.from('cars').select('*').order('created_at', { ascending: false });
+                const { data, error } = await supabase.from('cars').select('*, providers(id, name, address, phone)').order('created_at', { ascending: false });
                 if (error) throw error;
 
                 setItems(data as Car[]);
@@ -80,7 +85,6 @@ const CarsList = () => {
         const to = from + pageSize;
         setRecords([...initialRecords.slice(from, to)]);
     }, [page, pageSize, initialRecords]);
-
     useEffect(() => {
         setInitialRecords(
             items.filter((item) => {
@@ -88,6 +92,7 @@ const CarsList = () => {
                     item.title.toLowerCase().includes(search.toLowerCase()) ||
                     item.brand.toLowerCase().includes(search.toLowerCase()) ||
                     item.status.toLowerCase().includes(search.toLowerCase()) ||
+                    item.providers?.name.toLowerCase().includes(search.toLowerCase()) ||
                     item.provider.toLowerCase().includes(search.toLowerCase()) ||
                     item.year.toString().includes(search.toLowerCase())
                 );
@@ -110,14 +115,17 @@ const CarsList = () => {
             }
         }
     };
-
     const confirmDeletion = async () => {
         if (!carToDelete) return;
         try {
             // Delete images from storage first
             if (carToDelete.images?.length) {
-                const folderPath = `${carToDelete.title.replace(/[^a-zA-Z0-9]/g, '_')}`;
-                await supabase.storage.from('cars').remove([folderPath]);
+                // Remove individual image files
+                const { error: storageError } = await supabase.storage.from('cars').remove(carToDelete.images);
+                if (storageError) {
+                    console.error('Error deleting images:', storageError);
+                    // Continue with car deletion even if image deletion fails
+                }
             }
 
             // Delete car record
@@ -249,6 +257,12 @@ const CarsList = () => {
                                         {t(status)}
                                     </span>
                                 ),
+                            },
+                            {
+                                accessor: 'provider',
+                                title: t('provider'),
+                                sortable: true,
+                                render: ({ providers, provider }) => <span>{providers?.name || provider || '-'}</span>,
                             },
                             {
                                 accessor: 'sale_price',

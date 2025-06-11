@@ -8,6 +8,9 @@ import { getTranslation } from '@/i18n';
 import IconX from '@/components/icon/icon-x';
 import IconUpload from '@/components/icon/icon-camera';
 import BrandSelect from '@/components/brand-select/brand-select';
+import StatusSelect from '@/components/status-select/status-select';
+import ProviderSelect from '@/components/provider-select/provider-select';
+import TypeSelect from '@/components/type-select/type-select';
 
 interface Car {
     id: string;
@@ -15,12 +18,19 @@ interface Car {
     year: number;
     brand: string;
     status: string;
+    type?: string;
     provider: string;
     kilometers: number;
     market_price: number;
     value_price: number;
     sale_price: number;
     images: string[];
+    providers?: {
+        id: string;
+        name: string;
+        address: string;
+        phone: string;
+    };
 }
 
 const EditCar = () => {
@@ -32,23 +42,26 @@ const EditCar = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [car, setCar] = useState<Car | null>(null);
-
     const [form, setForm] = useState({
         title: '',
         year: '',
         brand: '',
         status: '',
+        type: '',
         provider: '',
         kilometers: '',
         market_price: '',
         value_price: '',
         sale_price: '',
-    });
-    const [images, setImages] = useState<File[]>([]);
-    const [existingImages, setExistingImages] = useState<string[]>([]); // Display URLs
+    }); // Separate states for thumbnail and gallery images
+    const [thumbnailImage, setThumbnailImage] = useState<File | null>(null);
+    const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
+    const [galleryImages, setGalleryImages] = useState<File[]>([]);
+    const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
+    const [existingImages, setExistingImages] = useState<string[]>([]); // Display URLs for existing images
     const [existingImagePaths, setExistingImagePaths] = useState<string[]>([]); // Original relative paths
-    const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const thumbnailInputRef = useRef<HTMLInputElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
@@ -58,7 +71,7 @@ const EditCar = () => {
     useEffect(() => {
         const fetchCar = async () => {
             try {
-                const { data, error } = await supabase.from('cars').select('*').eq('id', carId).single();
+                const { data, error } = await supabase.from('cars').select('*, providers(id, name, address, phone)').eq('id', carId).single();
 
                 if (error) throw error;
 
@@ -69,7 +82,8 @@ const EditCar = () => {
                         year: data.year?.toString() || '',
                         brand: data.brand || '',
                         status: data.status || '',
-                        provider: data.provider || '',
+                        type: data.type || '',
+                        provider: data.providers?.id || data.provider || '',
                         kilometers: data.kilometers?.toString() || '',
                         market_price: data.market_price?.toString() || '',
                         value_price: data.value_price?.toString() || '',
@@ -82,6 +96,14 @@ const EditCar = () => {
                             const { data: urlData } = supabase.storage.from('cars').getPublicUrl(imagePath);
                             return urlData.publicUrl;
                         });
+
+                        // Set thumbnail (first image) and gallery (rest of images)
+                        if (imageUrls.length > 0) {
+                            setThumbnailPreview(imageUrls[0]);
+                            if (imageUrls.length > 1) {
+                                setGalleryPreviews(imageUrls.slice(1));
+                            }
+                        }
                         setExistingImages(imageUrls); // Store full URLs for display
                     }
                 }
@@ -102,32 +124,54 @@ const EditCar = () => {
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleFileSelect = () => {
-        fileInputRef.current?.click();
+    const handleThumbnailSelect = () => {
+        thumbnailInputRef.current?.click();
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleGallerySelect = () => {
+        galleryInputRef.current?.click();
+    };
+
+    const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setThumbnailImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setThumbnailPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        if (files.length + previewUrls.length + existingImages.length > 10) {
-            setAlert({ visible: true, message: 'Maximum 10 images allowed', type: 'danger' });
+        if (files.length + galleryPreviews.length > 9) {
+            setAlert({ visible: true, message: 'Maximum 9 gallery images allowed', type: 'danger' });
             return;
         }
-        setImages((prev) => [...prev, ...files]);
+        setGalleryImages((prev) => [...prev, ...files]);
 
         // Generate preview URLs
         files.forEach((file) => {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPreviewUrls((prev) => [...prev, reader.result as string]);
+                setGalleryPreviews((prev) => [...prev, reader.result as string]);
             };
             reader.readAsDataURL(file);
         });
     };
 
-    const removeNewImage = (index: number) => {
-        setImages((prev) => prev.filter((_, i) => i !== index));
-        setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
+    const removeThumbnail = () => {
+        setThumbnailImage(null);
+        setThumbnailPreview('');
     };
+
+    const removeGalleryImage = (index: number) => {
+        setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+        setGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
+    };
+
     const removeExistingImage = (index: number) => {
         setExistingImages((prev) => prev.filter((_, i) => i !== index));
         setExistingImagePaths((prev) => prev.filter((_, i) => i !== index));
@@ -168,25 +212,38 @@ const EditCar = () => {
         }
         return true;
     };
-    const uploadNewImages = async (carTitle: string) => {
-        if (images.length === 0) return [];
-
+    const uploadNewImages = async (carId: string) => {
         const imageUrls: string[] = [];
-        const folderName = carTitle.replace(/[^a-zA-Z0-9]/g, '_');
 
-        for (let i = 0; i < images.length; i++) {
-            const file = images[i];
+        // Upload new thumbnail if provided
+        if (thumbnailImage) {
+            const fileExt = thumbnailImage.name.split('.').pop();
+            const fileName = `${carId}/thumbnail.${fileExt}`;
+
+            const { data, error } = await supabase.storage.from('cars').upload(fileName, thumbnailImage);
+
+            if (error) {
+                console.error('Error uploading thumbnail:', error);
+                throw error;
+            }
+
+            imageUrls.push(fileName);
+        }
+
+        // Upload new gallery images
+        for (let i = 0; i < galleryImages.length; i++) {
+            const file = galleryImages[i];
             const fileExt = file.name.split('.').pop();
-            const fileName = `${folderName}/image_${Date.now()}_${i + 1}.${fileExt}`;
+            const fileName = `${carId}/gallery_${Date.now()}_${i + 1}.${fileExt}`;
 
             const { data, error } = await supabase.storage.from('cars').upload(fileName, file);
 
             if (error) {
-                console.error('Error uploading image:', error);
+                console.error('Error uploading gallery image:', error);
                 throw error;
             }
 
-            imageUrls.push(fileName); // Store the file path, not the public URL
+            imageUrls.push(fileName);
         }
 
         return imageUrls;
@@ -200,16 +257,15 @@ const EditCar = () => {
         setSaving(true);
         try {
             // Upload new images if any
-            const newImageUrls = await uploadNewImages(form.title); // Combine existing image paths and new images
-            const allImageUrls = [...existingImagePaths, ...newImageUrls];
-
-            // Prepare car data
+            const newImageUrls = await uploadNewImages(carId); // Combine existing image paths and new images
+            const allImageUrls = [...existingImagePaths, ...newImageUrls]; // Prepare car data
             const carData = {
                 title: form.title.trim(),
                 year: parseInt(form.year),
                 brand: form.brand.trim(),
                 status: form.status,
-                provider: form.provider.trim() || null,
+                type: form.type || null,
+                provider: form.provider || null,
                 kilometers: form.kilometers ? parseFloat(form.kilometers) : 0,
                 market_price: form.market_price ? parseFloat(form.market_price) : 0,
                 value_price: form.value_price ? parseFloat(form.value_price) : 0,
@@ -337,30 +393,29 @@ const EditCar = () => {
                         <div>
                             <label htmlFor="brand" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('brand')} <span className="text-red-500">*</span>
-                            </label>
-                            <BrandSelect defaultValue={form.brand} className="form-input" onChange={handleInputChange} />
+                            </label>{' '}
+                            <BrandSelect defaultValue={form.brand} className="form-input" name="brand" onChange={handleInputChange} />
                         </div>
                         {/* Status */}
                         <div>
                             <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('car_status')} <span className="text-red-500">*</span>
                             </label>
-                            <select id="status" name="status" value={form.status} onChange={handleInputChange} className="form-select" required>
-                                <option value="">{t('enter_car_status')}</option>
-                                <option value="new">{t('new')}</option>
-                                <option value="used">{t('used')}</option>
-                                <option value="excellent">{t('excellent')}</option>
-                                <option value="good">{t('good')}</option>
-                                <option value="fair">{t('fair')}</option>
-                                <option value="poor">{t('poor')}</option>
-                            </select>
+                            <StatusSelect defaultValue={form.status} className="form-input" name="status" onChange={handleInputChange} />
+                        </div>{' '}
+                        {/* Type */}
+                        <div>
+                            <label htmlFor="type" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                {t('car_type')}
+                            </label>
+                            <TypeSelect defaultValue={form.type} className="form-input" name="type" onChange={handleInputChange} />
                         </div>
                         {/* Provider */}
                         <div>
                             <label htmlFor="provider" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('provider')}
                             </label>
-                            <input type="text" id="provider" name="provider" value={form.provider} onChange={handleInputChange} className="form-input" placeholder={t('enter_provider')} />
+                            <ProviderSelect defaultValue={form.provider} className="form-input" name="provider" onChange={handleInputChange} />
                         </div>
                         {/* Kilometers */}
                         <div>
@@ -446,51 +501,103 @@ const EditCar = () => {
                         </div>
                     </div>{' '}
                     {/* Car Images */}
-                    <div>
-                        <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_images')}</label>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {/* Existing Images */}
-                            {existingImages.map((imageUrl, index) => (
-                                <div key={`existing-${index}`} className="group relative h-32">
-                                    <img src={imageUrl} alt={`Car image ${index + 1}`} className="h-full w-full rounded-lg object-cover" />
-                                    <button
-                                        type="button"
-                                        className="absolute right-0 top-0 hidden rounded-full bg-red-500 p-1 text-white hover:bg-red-600 group-hover:block"
-                                        onClick={() => removeExistingImage(index)}
+                    <div className="space-y-6">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-white mb-3">{t('car_images')}</label>
+
+                        {/* Thumbnail Section */}
+                        <div>
+                            <h6 className="text-sm font-medium text-gray-700 dark:text-white mb-3">{t('thumbnail_image')}</h6>
+                            <div className="flex items-center gap-4">
+                                {/* Thumbnail Preview or Upload Button */}
+                                {thumbnailPreview ? (
+                                    <div className="relative group">
+                                        <img src={thumbnailPreview} alt="Thumbnail preview" className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200" />
+                                        <button
+                                            type="button"
+                                            onClick={removeThumbnail}
+                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <IconX className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div
+                                        onClick={handleThumbnailSelect}
+                                        className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 dark:border-gray-600 dark:hover:border-primary dark:hover:bg-gray-800 transition-colors"
                                     >
-                                        <IconX className="h-4 w-4" />
+                                        <IconUpload className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('upload_thumbnail')}</p>
+                                    <p className="text-xs text-gray-500">{t('recommended_size')}: 400x300px</p>
+                                    <button type="button" onClick={handleThumbnailSelect} className="btn btn-outline-primary btn-sm mt-2">
+                                        {thumbnailPreview ? t('change_thumbnail') : t('select_thumbnail')}
                                     </button>
                                 </div>
-                            ))}
-
-                            {/* New Image Previews */}
-                            {previewUrls.map((url, index) => (
-                                <div key={`new-${index}`} className="group relative h-32">
-                                    <img src={url} alt={`Preview ${index + 1}`} className="h-full w-full rounded-lg object-cover" />
-                                    <button
-                                        type="button"
-                                        className="absolute right-0 top-0 hidden rounded-full bg-red-500 p-1 text-white hover:bg-red-600 group-hover:block"
-                                        onClick={() => removeNewImage(index)}
-                                    >
-                                        <IconX className="h-4 w-4" />
-                                    </button>
-                                </div>
-                            ))}
-
-                            {/* Add New Image Button */}
-                            {existingImages.length + previewUrls.length < 10 && (
-                                <div
-                                    onClick={handleFileSelect}
-                                    className="flex h-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b]"
-                                >
-                                    <IconUpload className="mb-2 h-6 w-6" />
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('click_to_upload')}</p>
-                                    <p className="text-[10px] text-gray-500 dark:text-gray-500">{t('image_formats')}</p>
-                                </div>
-                            )}
+                            </div>
+                            <input ref={thumbnailInputRef} type="file" accept="image/*" onChange={handleThumbnailChange} className="hidden" />
                         </div>
-                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleFileChange} />
-                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">{t('first_image_thumbnail')}</p>
+
+                        {/* Gallery Section */}
+                        <div>
+                            <h6 className="text-sm font-medium text-gray-700 dark:text-white mb-3">
+                                {t('gallery_images')} <span className="text-xs text-gray-500">({t('optional')})</span>
+                            </h6>
+
+                            {/* Gallery Grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-4">
+                                {/* Existing Gallery Images (excluding first image which is thumbnail) */}
+                                {existingImages.slice(1).map((imageUrl, index) => (
+                                    <div key={`existing-gallery-${index}`} className="relative group">
+                                        <img src={imageUrl} alt={`Gallery image ${index + 1}`} className="w-full h-20 object-cover rounded-lg border" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeExistingImage(index + 1)} // +1 because we're excluding thumbnail
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <IconX className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {/* New Gallery Images */}
+                                {galleryPreviews.map((preview, index) => (
+                                    <div key={`gallery-preview-${index}`} className="relative group">
+                                        <img src={preview} alt={`Gallery preview ${index + 1}`} className="w-full h-20 object-cover rounded-lg border" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeGalleryImage(index)}
+                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <IconX className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {/* Add More Gallery Images Button */}
+                                {existingImages.length - 1 + galleryPreviews.length < 9 && (
+                                    <div
+                                        onClick={handleGallerySelect}
+                                        className="w-full h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 dark:border-gray-600 dark:hover:border-primary dark:hover:bg-gray-800 transition-colors"
+                                    >
+                                        <IconUpload className="w-5 h-5 text-gray-400" />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <button type="button" onClick={handleGallerySelect} className="btn btn-outline-secondary btn-sm">
+                                    {t('add_gallery_images')}
+                                </button>
+                                <p className="text-xs text-gray-500">
+                                    {existingImages.length - 1 + galleryPreviews.length}/9 {t('images')}
+                                </p>
+                            </div>
+
+                            <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
+                            <p className="text-xs text-gray-500 mt-2">{t('gallery_description')}</p>
+                        </div>
                     </div>
                     {/* Submit Button */}
                     <div className="flex justify-end gap-4 mt-8">
