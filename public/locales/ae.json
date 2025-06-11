@@ -683,5 +683,7 @@
     "age": "العمر",
     "enter_age": "أدخل العمر",
     "initial_balance": "الرصيد الأولي",
-    "select_country": "اختر البلد"
+    "select_country": "اختر البلد",
+    "customer_type_new": "جديد",
+    "customer_type_existing": "حالي"
 }

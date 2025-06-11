@@ -531,5 +531,7 @@
     "customer_transaction_history": "היסטוריית עסקאות לקוח",
     "age": "גיל",
     "enter_age": "הזן גיל",
-    "select_country": "בחר מדינה"
+    "select_country": "בחר מדינה",
+    "customer_type_new": "חדש",
+    "customer_type_existing": "קיים"
 }

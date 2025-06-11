@@ -29,6 +29,7 @@ import IconMenuDatatables from '@/components/icon/menu/icon-menu-datatables';
 import IconMenuForms from '@/components/icon/menu/icon-menu-forms';
 import IconMenuUsers from '@/components/icon/menu/icon-menu-users';
 import IconUser from '@/components/icon/icon-user';
+import IconBox from '@/components/icon/icon-box';
 import IconSettings from '@/components/icon/icon-settings';
 
 import IconMenuPages from '@/components/icon/menu/icon-menu-pages';
@@ -134,7 +135,7 @@ const Sidebar = () => {
                                     <li className="nav-item">
                                         <Link href="/providers" className="group">
                                             <div className="flex items-center">
-                                                <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
+                                                <IconBox fill={true} className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('providers')}</span>
                                             </div>
                                         </Link>
@@ -142,7 +143,7 @@ const Sidebar = () => {
                                     <li className="nav-item">
                                         <Link href="/customers" className="group">
                                             <div className="flex items-center">
-                                                <IconUser className="shrink-0 group-hover:!text-primary" />
+                                                <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('customers')}</span>
                                             </div>
                                         </Link>
