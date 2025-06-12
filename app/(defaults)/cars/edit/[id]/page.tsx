@@ -7,10 +7,18 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import IconX from '@/components/icon/icon-x';
 import IconUpload from '@/components/icon/icon-camera';
+import IconPlus from '@/components/icon/icon-plus';
 import BrandSelect from '@/components/brand-select/brand-select';
 import StatusSelect from '@/components/status-select/status-select';
 import ProviderSelect from '@/components/provider-select/provider-select';
 import TypeSelect from '@/components/type-select/type-select';
+
+interface ColorVariant {
+    id: string;
+    color: string;
+    images: File[];
+    previews: string[];
+}
 
 interface Car {
     id: string;
@@ -25,6 +33,10 @@ interface Car {
     value_price: number;
     sale_price: number;
     images: string[];
+    colors?: Array<{
+        color: string;
+        images: string[];
+    }>;
     providers?: {
         id: string;
         name: string;
@@ -38,9 +50,9 @@ const EditCar = () => {
     const router = useRouter();
     const params = useParams();
     const carId = params?.id as string;
-
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState(1);
     const [car, setCar] = useState<Car | null>(null);
     const [form, setForm] = useState({
         title: '',
@@ -62,6 +74,9 @@ const EditCar = () => {
     const [existingImagePaths, setExistingImagePaths] = useState<string[]>([]); // Original relative paths
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
+
+    // Colors state
+    const [colors, setColors] = useState<ColorVariant[]>([]);
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
@@ -88,8 +103,7 @@ const EditCar = () => {
                         market_price: data.market_price?.toString() || '',
                         value_price: data.value_price?.toString() || '',
                         sale_price: data.sale_price?.toString() || '',
-                    });
-                    // Convert relative paths to full URLs for display and keep original paths
+                    }); // Convert relative paths to full URLs for display and keep original paths
                     if (data.images && data.images.length > 0) {
                         setExistingImagePaths(data.images); // Store original relative paths
                         const imageUrls = data.images.map((imagePath: string) => {
@@ -97,14 +111,36 @@ const EditCar = () => {
                             return urlData.publicUrl;
                         });
 
-                        // Set thumbnail (first image) and gallery (rest of images)
+                        // Set thumbnail (first image) only
                         if (imageUrls.length > 0) {
                             setThumbnailPreview(imageUrls[0]);
-                            if (imageUrls.length > 1) {
-                                setGalleryPreviews(imageUrls.slice(1));
-                            }
                         }
                         setExistingImages(imageUrls); // Store full URLs for display
+                    }
+
+                    // Load existing colors
+                    if (data.colors && data.colors.length > 0) {
+                        const existingColors: ColorVariant[] = await Promise.all(
+                            data.colors.map(async (colorData: any, index: number) => {
+                                const colorPreviews: string[] = [];
+
+                                if (colorData.images && colorData.images.length > 0) {
+                                    // Convert color image paths to URLs
+                                    colorData.images.forEach((imagePath: string) => {
+                                        const { data: urlData } = supabase.storage.from('cars').getPublicUrl(imagePath);
+                                        colorPreviews.push(urlData.publicUrl);
+                                    });
+                                }
+
+                                return {
+                                    id: `existing-${index}`,
+                                    color: colorData.color,
+                                    images: [], // Empty for existing colors (we only show previews)
+                                    previews: colorPreviews,
+                                };
+                            }),
+                        );
+                        setColors(existingColors);
                     }
                 }
             } catch (error) {
@@ -249,17 +285,127 @@ const EditCar = () => {
         return imageUrls;
     };
 
+    // Color management functions
+    const addColor = () => {
+        const newColor: ColorVariant = {
+            id: Date.now().toString(),
+            color: '#000000',
+            images: [],
+            previews: [],
+        };
+        setColors((prev) => [...prev, newColor]);
+    };
+
+    const removeColor = (colorId: string) => {
+        setColors((prev) => prev.filter((color) => color.id !== colorId));
+    };
+
+    const updateColorValue = (colorId: string, value: string) => {
+        setColors((prev) => prev.map((color) => (color.id === colorId ? { ...color, color: value } : color)));
+    };
+
+    const handleColorImageChange = (colorId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const color = colors.find((c) => c.id === colorId);
+        if (!color) return;
+
+        if (files.length + color.images.length > 10) {
+            setAlert({ visible: true, message: 'Maximum 10 images per color allowed', type: 'danger' });
+            return;
+        }
+
+        // Generate preview URLs
+        const newPreviews: string[] = [];
+        files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                newPreviews.push(reader.result as string);
+                if (newPreviews.length === files.length) {
+                    setColors((prev) =>
+                        prev.map((c) =>
+                            c.id === colorId
+                                ? {
+                                      ...c,
+                                      images: [...c.images, ...files],
+                                      previews: [...c.previews, ...newPreviews],
+                                  }
+                                : c,
+                        ),
+                    );
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeColorImage = (colorId: string, imageIndex: number) => {
+        setColors((prev) =>
+            prev.map((color) =>
+                color.id === colorId
+                    ? {
+                          ...color,
+                          images: color.images.filter((_, i) => i !== imageIndex),
+                          previews: color.previews.filter((_, i) => i !== imageIndex),
+                      }
+                    : color,
+            ),
+        );
+    };
+
+    const uploadColorImages = async (carId: string) => {
+        const colorData: Array<{ color: string; images: string[] }> = [];
+
+        // Upload color images - each color gets its own subfolder
+        for (const color of colors) {
+            const colorHex = color.color.replace('#', '');
+            const colorImages: string[] = [];
+
+            for (let i = 0; i < color.images.length; i++) {
+                const file = color.images[i];
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${carId}/colors/${colorHex}/image_${i + 1}.${fileExt}`;
+
+                const { data, error } = await supabase.storage.from('cars').upload(fileName, file);
+
+                if (error) {
+                    console.error('Error uploading color image:', error);
+                    throw error;
+                }
+
+                colorImages.push(fileName);
+            }
+
+            // Store color data with image paths
+            if (colorImages.length > 0) {
+                colorData.push({
+                    color: color.color,
+                    images: colorImages,
+                });
+            }
+        }
+
+        return colorData;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!validateForm()) return;
-
         setSaving(true);
         try {
             // Upload new images if any
-            const newImageUrls = await uploadNewImages(carId); // Combine existing image paths and new images
-            const allImageUrls = [...existingImagePaths, ...newImageUrls]; // Prepare car data
-            const carData = {
+            const newImageUrls = await uploadNewImages(carId);
+
+            // Upload color images if any
+            const colorData = await uploadColorImages(carId);
+
+            // Combine existing image paths and new images
+            const allImageUrls = [...existingImagePaths, ...newImageUrls];
+
+            // Prepare car data
+            const carData: any = {
                 title: form.title.trim(),
                 year: parseInt(form.year),
                 brand: form.brand.trim(),
@@ -272,6 +418,11 @@ const EditCar = () => {
                 sale_price: form.sale_price ? parseFloat(form.sale_price) : 0,
                 images: allImageUrls,
             };
+
+            // Add colors data if there are any
+            if (colorData.length > 0) {
+                carData.colors = colorData;
+            }
 
             const { error } = await supabase.from('cars').update(carData).eq('id', carId);
 
@@ -547,10 +698,11 @@ const EditCar = () => {
 
                             {/* Gallery Grid */}
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-4">
+                                {' '}
                                 {/* Existing Gallery Images (excluding first image which is thumbnail) */}
                                 {existingImages.slice(1).map((imageUrl, index) => (
-                                    <div key={`existing-gallery-${index}`} className="relative group">
-                                        <img src={imageUrl} alt={`Gallery image ${index + 1}`} className="w-full h-20 object-cover rounded-lg border" />
+                                    <div key={`existing-gallery-${index}`} className="relative group aspect-square">
+                                        <img src={imageUrl} alt={`Gallery image ${index + 1}`} className="w-full h-full object-cover rounded-lg border" />
                                         <button
                                             type="button"
                                             onClick={() => removeExistingImage(index + 1)} // +1 because we're excluding thumbnail
@@ -559,12 +711,11 @@ const EditCar = () => {
                                             <IconX className="w-3 h-3" />
                                         </button>
                                     </div>
-                                ))}
-
+                                ))}{' '}
                                 {/* New Gallery Images */}
                                 {galleryPreviews.map((preview, index) => (
-                                    <div key={`gallery-preview-${index}`} className="relative group">
-                                        <img src={preview} alt={`Gallery preview ${index + 1}`} className="w-full h-20 object-cover rounded-lg border" />
+                                    <div key={`gallery-preview-${index}`} className="relative group aspect-square">
+                                        <img src={preview} alt={`Gallery preview ${index + 1}`} className="w-full h-full object-cover rounded-lg border" />
                                         <button
                                             type="button"
                                             onClick={() => removeGalleryImage(index)}
@@ -573,13 +724,12 @@ const EditCar = () => {
                                             <IconX className="w-3 h-3" />
                                         </button>
                                     </div>
-                                ))}
-
+                                ))}{' '}
                                 {/* Add More Gallery Images Button */}
                                 {existingImages.length - 1 + galleryPreviews.length < 9 && (
                                     <div
                                         onClick={handleGallerySelect}
-                                        className="w-full h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 dark:border-gray-600 dark:hover:border-primary dark:hover:bg-gray-800 transition-colors"
+                                        className="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 dark:border-gray-600 dark:hover:border-primary dark:hover:bg-gray-800 transition-colors"
                                     >
                                         <IconUpload className="w-5 h-5 text-gray-400" />
                                     </div>
@@ -598,6 +748,96 @@ const EditCar = () => {
                             <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={handleGalleryChange} className="hidden" />
                             <p className="text-xs text-gray-500 mt-2">{t('gallery_description')}</p>
                         </div>
+                    </div>{' '}
+                    {/* Colors Section */}
+                    <div className="space-y-5">
+                        <div className="mb-5">
+                            <h5 className="text-lg font-semibold dark:text-white-light">{t('color_variants')}</h5>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{t('add_first_color')}</p>
+                        </div>
+
+                        {/* Add Color Button */}
+                        <div className="flex justify-between items-center">
+                            <button type="button" onClick={addColor} className="btn btn-primary">
+                                <IconPlus className="w-4 h-4 mr-2" />
+                                {t('add_color')}
+                            </button>
+                        </div>
+
+                        {/* Colors List */}
+                        {colors.length === 0 ? (
+                            <div className="text-center py-8">
+                                <p className="text-gray-500 dark:text-gray-400">{t('no_colors_added')}</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {colors.map((color, index) => (
+                                    <div key={color.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h6 className="text-lg font-medium">
+                                                {t('color_name')} #{index + 1}
+                                            </h6>
+                                            <button type="button" onClick={() => removeColor(color.id)} className="btn btn-outline-danger">
+                                                {t('remove_color')}
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Color Picker */}
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('color_value')}</label>
+                                                <div className="w-12 h-12 overflow-hidden flex justify-center items-center rounded-full border border-gray-300 dark:border-gray-600 cursor-pointer">
+                                                    <input
+                                                        type="color"
+                                                        value={color.color}
+                                                        onChange={(e) => updateColorValue(color.id, e.target.value)}
+                                                        className="w-14 h-14 scale-150 cursor-pointer"
+                                                    />
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">{color.color.toUpperCase()}</p>
+                                            </div>
+
+                                            {/* Color Images */}
+                                            <div>
+                                                <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('color_images')}</label>
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    {' '}
+                                                    {/* Color Image Previews */}
+                                                    {color.previews.map((preview, imgIndex) => (
+                                                        <div key={imgIndex} className="relative group aspect-square">
+                                                            <img
+                                                                src={preview}
+                                                                alt={`Color ${color.color} image ${imgIndex + 1}`}
+                                                                className="w-full h-full object-cover rounded-lg border border-gray-200 dark:border-gray-600"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeColorImage(color.id, imgIndex)}
+                                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            >
+                                                                <IconX className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    ))}{' '}
+                                                    {/* Upload Button */}
+                                                    {color.previews.length < 10 && (
+                                                        <label className="cursor-pointer aspect-square">
+                                                            <div className="w-full h-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center hover:border-primary hover:bg-gray-50 dark:hover:border-primary dark:hover:bg-gray-800 transition-colors">
+                                                                <IconUpload className="w-6 h-6 text-gray-400" />
+                                                            </div>
+                                                            <input type="file" accept="image/*" multiple onChange={(e) => handleColorImageChange(color.id, e)} className="hidden" />
+                                                        </label>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-2">
+                                                    {color.previews.length}/10 {t('images')} • {t('max_color_images')}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                     {/* Submit Button */}
                     <div className="flex justify-end gap-4 mt-8">

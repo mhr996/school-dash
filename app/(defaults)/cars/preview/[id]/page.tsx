@@ -28,6 +28,10 @@ interface Car {
     provider: string;
     brand: string;
     images: string[];
+    colors?: Array<{
+        color: string;
+        images: string[];
+    }>;
     providers?: {
         id: string;
         name: string;
@@ -44,6 +48,8 @@ const CarPreview = () => {
     const [loading, setLoading] = useState(true);
     const [imageUrls, setImageUrls] = useState<string[]>([]);
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+    const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+    const [colorImageUrls, setColorImageUrls] = useState<Record<number, string[]>>({});
 
     useEffect(() => {
         const fetchCar = async () => {
@@ -57,9 +63,7 @@ const CarPreview = () => {
                     return;
                 }
 
-                setCar(data);
-
-                // Get image URLs from Supabase storage
+                setCar(data); // Get image URLs from Supabase storage
                 if (data.images && data.images.length > 0) {
                     const urls = await Promise.all(
                         data.images.map(async (imagePath: string) => {
@@ -68,6 +72,27 @@ const CarPreview = () => {
                         }),
                     );
                     setImageUrls(urls);
+                }
+
+                // Get color image URLs from Supabase storage
+                if (data.colors && data.colors.length > 0) {
+                    const colorUrls: Record<number, string[]> = {};
+
+                    await Promise.all(
+                        data.colors.map(async (colorData: any, colorIndex: number) => {
+                            if (colorData.images && colorData.images.length > 0) {
+                                const urls = await Promise.all(
+                                    colorData.images.map(async (imagePath: string) => {
+                                        const { data: urlData } = supabase.storage.from('cars').getPublicUrl(imagePath);
+                                        return urlData.publicUrl;
+                                    }),
+                                );
+                                colorUrls[colorIndex] = urls;
+                            }
+                        }),
+                    );
+
+                    setColorImageUrls(colorUrls);
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -172,6 +197,7 @@ const CarPreview = () => {
             </div>
 
             <div className="container mx-auto p-6">
+                {' '}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Images Gallery */}
                     <div className="lg:col-span-2">
@@ -213,6 +239,64 @@ const CarPreview = () => {
                                 </div>
                             )}
                         </div>
+
+                        {/* Color Variants */}
+                        {car && car.colors && car.colors.length > 0 && (
+                            <div className="panel mt-6">
+                                <div className="mb-5">
+                                    <h3 className="text-lg font-semibold">{t('color_variants')}</h3>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {/* Color Selector */}
+                                    <div className="flex gap-3 flex-wrap">
+                                        {car.colors.map((colorData, index) => (
+                                            <button
+                                                key={index}
+                                                onClick={() => setSelectedColorIndex(index)}
+                                                className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                                                    selectedColorIndex === index ? 'border-primary bg-primary/10 text-primary' : 'border-gray-300 hover:border-primary/50'
+                                                }`}
+                                            >
+                                                <div className="w-6 h-6 rounded-full border-2 border-white shadow-md" style={{ backgroundColor: colorData.color }}></div>
+                                                <span className="text-sm font-medium">{colorData.color.toUpperCase()}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Selected Color Images */}
+                                    {colorImageUrls[selectedColorIndex] && colorImageUrls[selectedColorIndex].length > 0 && (
+                                        <div>
+                                            <h4 className="text-md font-medium mb-3">
+                                                {t('color_images')} - {car.colors[selectedColorIndex].color.toUpperCase()}
+                                            </h4>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                {colorImageUrls[selectedColorIndex].map((url, imageIndex) => (
+                                                    <div key={imageIndex} className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                                        <Image
+                                                            src={url}
+                                                            alt={`${car.title} ${car.colors![selectedColorIndex].color} ${imageIndex + 1}`}
+                                                            fill
+                                                            className="object-cover hover:scale-105 transition-transform cursor-pointer"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* No Images for Selected Color */}
+                                    {(!colorImageUrls[selectedColorIndex] || colorImageUrls[selectedColorIndex].length === 0) && (
+                                        <div className="text-center py-8">
+                                            <IconBox className="w-12 h-12 mx-auto text-gray-400 mb-2" />
+                                            <p className="text-gray-500 text-sm">
+                                                {t('no_images_available')} {t('for')} {car.colors[selectedColorIndex].color.toUpperCase()}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Car Information */}
@@ -307,8 +391,7 @@ const CarPreview = () => {
                         <div className="panel">
                             <div className="mb-5">
                                 <h3 className="text-lg font-semibold">{t('additional_information')}</h3>
-                            </div>
-
+                            </div>{' '}
                             <div className="space-y-3 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">{t('car_id')}:</span>
@@ -322,6 +405,12 @@ const CarPreview = () => {
                                     <span className="text-gray-600">{t('total_images')}:</span>
                                     <span className="font-medium">{imageUrls.length}</span>
                                 </div>
+                                {car.colors && car.colors.length > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-600">{t('available_colors')}:</span>
+                                        <span className="font-medium">{car.colors.length}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -630,6 +630,19 @@
     "thumbnail_formats": "PNG، JPG حتى 2 ميجابايت",
     "gallery_description": "قم بتحميل صور لمعرض السيارة. يمكن تحميل عدة صور، وسيتم عرضها في صفحة تفاصيل السيارة.",
     "upload_gallery_images": "تحميل صور المعرض",
+    "colors": "الألوان",
+    "color_variants": "متغيرات الألوان",
+    "add_color": "إضافة لون",
+    "remove_color": "إزالة اللون",
+    "color_name": "اسم اللون",
+    "color_value": "قيمة اللون",
+    "color_images": "صور اللون",
+    "upload_color_images": "تحميل صور اللون",
+    "max_color_images": "أقصى حد 10 صور لكل لون",
+    "select_color": "اختر اللون",
+    "no_colors_added": "لم يتم إضافة ألوان بعد",
+    "add_first_color": "أضف أول متغير لون",
+    "color_required": "مطلوب لون واحد على الأقل",
     "customers": "العملاء",
     "customer": "عميل",
     "add_new_customer": "إضافة عميل جديد",
@@ -685,5 +698,7 @@
     "initial_balance": "الرصيد الأولي",
     "select_country": "اختر البلد",
     "customer_type_new": "جديد",
-    "customer_type_existing": "حالي"
+    "customer_type_existing": "حالي",
+    "available_colors": "الألوان المتاحة",
+    "for": "لـ"
 }

@@ -7,15 +7,25 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import IconX from '@/components/icon/icon-x';
 import IconUpload from '@/components/icon/icon-camera';
+import IconPlus from '@/components/icon/icon-plus';
 import BrandSelect from '@/components/brand-select/brand-select';
 import StatusSelect from '@/components/status-select/status-select';
 import ProviderSelect from '@/components/provider-select/provider-select';
 import TypeSelect from '@/components/type-select/type-select';
 
+interface ColorVariant {
+    id: string;
+    color: string;
+    images: File[];
+    previews: string[];
+}
+
 const AddCar = () => {
     const { t } = getTranslation();
     const router = useRouter();
     const [saving, setSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState(1);
+
     const [form, setForm] = useState({
         title: '',
         year: '',
@@ -27,13 +37,18 @@ const AddCar = () => {
         market_price: '',
         value_price: '',
         sale_price: '',
-    }); // Separate states for thumbnail and gallery images
+    });
+
+    // Separate states for thumbnail and gallery images
     const [thumbnailImage, setThumbnailImage] = useState<File | null>(null);
     const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
     const [galleryImages, setGalleryImages] = useState<File[]>([]);
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
+
+    // Colors state
+    const [colors, setColors] = useState<ColorVariant[]>([]);
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
@@ -86,10 +101,78 @@ const AddCar = () => {
         setThumbnailImage(null);
         setThumbnailPreview('');
     };
-
     const removeGalleryImage = (index: number) => {
         setGalleryImages((prev) => prev.filter((_, i) => i !== index));
         setGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    // Color management functions
+    const addColor = () => {
+        const newColor: ColorVariant = {
+            id: Date.now().toString(),
+            color: '#000000',
+            images: [],
+            previews: [],
+        };
+        setColors((prev) => [...prev, newColor]);
+    };
+
+    const removeColor = (colorId: string) => {
+        setColors((prev) => prev.filter((color) => color.id !== colorId));
+    };
+
+    const updateColorValue = (colorId: string, value: string) => {
+        setColors((prev) => prev.map((color) => (color.id === colorId ? { ...color, color: value } : color)));
+    };
+
+    const handleColorImageChange = (colorId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
+
+        const color = colors.find((c) => c.id === colorId);
+        if (!color) return;
+
+        if (files.length + color.images.length > 10) {
+            setAlert({ visible: true, message: 'Maximum 10 images per color allowed', type: 'danger' });
+            return;
+        }
+
+        // Generate preview URLs
+        const newPreviews: string[] = [];
+        files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                newPreviews.push(reader.result as string);
+                if (newPreviews.length === files.length) {
+                    setColors((prev) =>
+                        prev.map((c) =>
+                            c.id === colorId
+                                ? {
+                                      ...c,
+                                      images: [...c.images, ...files],
+                                      previews: [...c.previews, ...newPreviews],
+                                  }
+                                : c,
+                        ),
+                    );
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const removeColorImage = (colorId: string, imageIndex: number) => {
+        setColors((prev) =>
+            prev.map((color) =>
+                color.id === colorId
+                    ? {
+                          ...color,
+                          images: color.images.filter((_, i) => i !== imageIndex),
+                          previews: color.previews.filter((_, i) => i !== imageIndex),
+                      }
+                    : color,
+            ),
+        );
     };
 
     const validateForm = () => {
@@ -129,6 +212,7 @@ const AddCar = () => {
     };
     const uploadImages = async (carId: string) => {
         const imageUrls: string[] = [];
+        const colorData: Array<{ color: string; images: string[] }> = [];
 
         // Upload thumbnail first (it will be at index 0)
         if (thumbnailImage) {
@@ -161,7 +245,36 @@ const AddCar = () => {
             imageUrls.push(fileName);
         }
 
-        return imageUrls;
+        // Upload color images - each color gets its own subfolder
+        for (const color of colors) {
+            const colorHex = color.color.replace('#', '');
+            const colorImages: string[] = [];
+
+            for (let i = 0; i < color.images.length; i++) {
+                const file = color.images[i];
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${carId}/colors/${colorHex}/image_${i + 1}.${fileExt}`;
+
+                const { data, error } = await supabase.storage.from('cars').upload(fileName, file);
+
+                if (error) {
+                    console.error('Error uploading color image:', error);
+                    throw error;
+                }
+
+                colorImages.push(fileName);
+            }
+
+            // Store color data with image paths
+            if (colorImages.length > 0) {
+                colorData.push({
+                    color: color.color,
+                    images: colorImages,
+                });
+            }
+        }
+
+        return { imageUrls, colorData };
     };
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -183,6 +296,7 @@ const AddCar = () => {
                 value_price: form.value_price ? parseFloat(form.value_price) : 0,
                 sale_price: form.sale_price ? parseFloat(form.sale_price) : 0,
                 images: [], // Initially empty
+                colors: [], // Initially empty, will be updated after upload
             };
 
             const { data, error } = await supabase.from('cars').insert([carData]).select();
@@ -192,15 +306,22 @@ const AddCar = () => {
             if (!data || data.length === 0) {
                 throw new Error('Failed to create car record');
             }
-
             const newCarId = data[0].id;
 
             // Now upload images using the car ID as folder name
-            const imageUrls = await uploadImages(newCarId);
+            const { imageUrls, colorData } = await uploadImages(newCarId);
 
-            // Update the car record with image paths if there are any images
+            // Update the car record with image paths and color data
+            const updateData: any = {};
             if (imageUrls.length > 0) {
-                const { error: updateError } = await supabase.from('cars').update({ images: imageUrls }).eq('id', newCarId);
+                updateData.images = imageUrls;
+            }
+            if (colorData.length > 0) {
+                updateData.colors = colorData;
+            }
+
+            if (Object.keys(updateData).length > 0) {
+                const { error: updateError } = await supabase.from('cars').update(updateData).eq('id', newCarId);
 
                 if (updateError) throw updateError;
             }
@@ -248,12 +369,10 @@ const AddCar = () => {
                     </li>
                 </ul>
             </div>
-
             <div className="mb-6">
                 <h1 className="text-2xl font-bold">{t('add_new_car')}</h1>
                 <p className="text-gray-500">{t('create_car_listing')}</p>
             </div>
-
             {alert.visible && (
                 <div className="mb-6">
                     <Alert
@@ -263,219 +382,359 @@ const AddCar = () => {
                         onClose={() => setAlert({ visible: false, message: '', type: 'success' })}
                     />
                 </div>
-            )}
-
+            )}{' '}
             <div className="panel">
+                {/* Tabs Navigation */}
                 <div className="mb-5">
-                    <h5 className="text-lg font-semibold dark:text-white-light">{t('car_information')}</h5>
+                    <div className="flex border-b border-gray-200 dark:border-gray-700">
+                        <button
+                            type="button"
+                            className={`px-6 py-3 border-b-2 font-medium text-sm ${
+                                activeTab === 1 ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                            onClick={() => setActiveTab(1)}
+                        >
+                            {t('car_details')}
+                        </button>
+                        <button
+                            type="button"
+                            className={`px-6 py-3 border-b-2 font-medium text-sm ${
+                                activeTab === 2 ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                            onClick={() => setActiveTab(2)}
+                        >
+                            {t('colors')}
+                        </button>
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {/* Car Title */}
-                        <div>
-                            <label htmlFor="title" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('car_title')} <span className="text-red-500">*</span>
-                            </label>
-                            <input type="text" id="title" name="title" value={form.title} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_title')} required />
-                        </div>
-                        {/* Year */}
-                        <div>
-                            <label htmlFor="year" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('year')} <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                id="year"
-                                name="year"
-                                min="1900"
-                                max={new Date().getFullYear() + 1}
-                                value={form.year}
-                                onChange={handleInputChange}
-                                className="form-input"
-                                placeholder={t('enter_year')}
-                                required
-                            />
-                        </div>{' '}
-                        {/* Brand */}
-                        <div>
-                            <label htmlFor="brand" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('brand')} <span className="text-red-500">*</span>
-                            </label>
-                            <BrandSelect defaultValue={form.brand} className="form-input" name="brand" onChange={handleInputChange} />
-                        </div>{' '}
-                        {/* Status */}
-                        <div>
-                            <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('car_status')} <span className="text-red-500">*</span>
-                            </label>
-                            <StatusSelect defaultValue={form.status} className="form-input" name="status" onChange={handleInputChange} />
-                        </div>
-                        {/* Type */}
-                        <div>
-                            <label htmlFor="type" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('car_type')}
-                            </label>
-                            <TypeSelect defaultValue={form.type} className="form-input" name="type" onChange={handleInputChange} />
-                        </div>
-                        {/* Provider */}
-                        <div>
-                            <label htmlFor="provider" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('provider')}
-                            </label>
-                            <ProviderSelect defaultValue={form.provider} className="form-input" name="provider" onChange={handleInputChange} />
-                        </div>
-                        {/* Kilometers */}
-                        <div>
-                            <label htmlFor="kilometers" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('kilometers')}
-                            </label>
-                            <input
-                                type="number"
-                                id="kilometers"
-                                name="kilometers"
-                                min="0"
-                                value={form.kilometers}
-                                onChange={handleInputChange}
-                                className="form-input"
-                                placeholder={t('enter_kilometers')}
-                            />
-                        </div>
-                        {/* Market Price */}
-                        <div>
-                            <label htmlFor="market_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('market_price')}
-                            </label>{' '}
-                            <div className="flex">
-                                <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
-                                    $
-                                </span>
-                                <input
-                                    type="number"
-                                    id="market_price"
-                                    name="market_price"
-                                    step="0.01"
-                                    min="0"
-                                    value={form.market_price}
-                                    onChange={handleInputChange}
-                                    className="form-input ltr:rounded-l-none rtl:rounded-r-none"
-                                    placeholder="0.00"
-                                />
+                    {/* Tab 1: Car Details */}
+                    {activeTab === 1 && (
+                        <div className="space-y-5">
+                            <div className="mb-5">
+                                <h5 className="text-lg font-semibold dark:text-white-light">{t('car_information')}</h5>
                             </div>
-                        </div>
-                        {/* Value Price */}
-                        <div>
-                            <label htmlFor="value_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('value_price')}
-                            </label>{' '}
-                            <div className="flex">
-                                <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
-                                    $
-                                </span>
-                                <input
-                                    type="number"
-                                    id="value_price"
-                                    name="value_price"
-                                    step="0.01"
-                                    min="0"
-                                    value={form.value_price}
-                                    onChange={handleInputChange}
-                                    className="form-input ltr:rounded-l-none rtl:rounded-r-none"
-                                    placeholder="0.00"
-                                />
-                            </div>
-                        </div>
-                        {/* Sale Price */}
-                        <div>
-                            <label htmlFor="sale_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('sale_price')}
-                            </label>{' '}
-                            <div className="flex">
-                                <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
-                                    $
-                                </span>
-                                <input
-                                    type="number"
-                                    id="sale_price"
-                                    name="sale_price"
-                                    step="0.01"
-                                    min="0"
-                                    value={form.sale_price}
-                                    onChange={handleInputChange}
-                                    className="form-input ltr:rounded-l-none rtl:rounded-r-none"
-                                    placeholder="0.00"
-                                />
-                            </div>
-                        </div>
-                    </div>{' '}
-                    {/* Car Images */}
-                    <div className="space-y-6">
-                        {/* Thumbnail Section */}
-                        <div>
-                            <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_thumbnail')}</label>
-                            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{t('thumbnail_description')}</p>
 
-                            <div className="flex items-center gap-4">
-                                {/* Thumbnail Preview */}
-                                {thumbnailPreview ? (
-                                    <div className="group relative h-32 w-32">
-                                        <img src={thumbnailPreview} alt="Thumbnail preview" className="h-full w-full rounded-lg object-cover" />
-                                        <button
-                                            type="button"
-                                            className="absolute right-0 top-0 hidden rounded-full bg-red-500 p-1 text-white hover:bg-red-600 group-hover:block"
-                                            onClick={removeThumbnail}
-                                        >
-                                            <IconX className="h-4 w-4" />
-                                        </button>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                {/* Car Title */}
+                                <div>
+                                    <label htmlFor="title" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('car_title')} <span className="text-red-500">*</span>
+                                    </label>
+                                    <input type="text" id="title" name="title" value={form.title} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_title')} required />
+                                </div>
+                                {/* Year */}
+                                <div>
+                                    <label htmlFor="year" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('year')} <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="year"
+                                        name="year"
+                                        min="1900"
+                                        max={new Date().getFullYear() + 1}
+                                        value={form.year}
+                                        onChange={handleInputChange}
+                                        className="form-input"
+                                        placeholder={t('enter_year')}
+                                        required
+                                    />
+                                </div>
+                                {/* Brand */}
+                                <div>
+                                    <label htmlFor="brand" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('brand')} <span className="text-red-500">*</span>
+                                    </label>
+                                    <BrandSelect defaultValue={form.brand} className="form-input" name="brand" onChange={handleInputChange} />
+                                </div>
+                                {/* Status */}
+                                <div>
+                                    <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('car_status')} <span className="text-red-500">*</span>
+                                    </label>
+                                    <StatusSelect defaultValue={form.status} className="form-input" name="status" onChange={handleInputChange} />
+                                </div>
+                                {/* Type */}
+                                <div>
+                                    <label htmlFor="type" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('car_type')}
+                                    </label>
+                                    <TypeSelect defaultValue={form.type} className="form-input" name="type" onChange={handleInputChange} />
+                                </div>
+                                {/* Provider */}
+                                <div>
+                                    <label htmlFor="provider" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('provider')}
+                                    </label>
+                                    <ProviderSelect defaultValue={form.provider} className="form-input" name="provider" onChange={handleInputChange} />
+                                </div>
+                                {/* Kilometers */}
+                                <div>
+                                    <label htmlFor="kilometers" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('kilometers')}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="kilometers"
+                                        name="kilometers"
+                                        min="0"
+                                        value={form.kilometers}
+                                        onChange={handleInputChange}
+                                        className="form-input"
+                                        placeholder={t('enter_kilometers')}
+                                    />
+                                </div>
+                                {/* Market Price */}
+                                <div>
+                                    <label htmlFor="market_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('market_price')}
+                                    </label>
+                                    <div className="flex">
+                                        <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
+                                            $
+                                        </span>
+                                        <input
+                                            type="number"
+                                            id="market_price"
+                                            name="market_price"
+                                            step="0.01"
+                                            min="0"
+                                            value={form.market_price}
+                                            onChange={handleInputChange}
+                                            className="form-input ltr:rounded-l-none rtl:rounded-r-none"
+                                            placeholder="0.00"
+                                        />
                                     </div>
-                                ) : (
-                                    <div
-                                        onClick={handleThumbnailSelect}
-                                        className="flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b]"
-                                    >
-                                        <IconUpload className="mb-2 h-6 w-6" />
-                                        <p className="text-xs text-gray-600 dark:text-gray-400">{t('upload_thumbnail')}</p>
+                                </div>
+                                {/* Value Price */}
+                                <div>
+                                    <label htmlFor="value_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('value_price')}
+                                    </label>
+                                    <div className="flex">
+                                        <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
+                                            $
+                                        </span>
+                                        <input
+                                            type="number"
+                                            id="value_price"
+                                            name="value_price"
+                                            step="0.01"
+                                            min="0"
+                                            value={form.value_price}
+                                            onChange={handleInputChange}
+                                            className="form-input ltr:rounded-l-none rtl:rounded-r-none"
+                                            placeholder="0.00"
+                                        />
                                     </div>
-                                )}
+                                </div>
+                                {/* Sale Price */}
+                                <div>
+                                    <label htmlFor="sale_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('sale_price')}
+                                    </label>
+                                    <div className="flex">
+                                        <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
+                                            $
+                                        </span>
+                                        <input
+                                            type="number"
+                                            id="sale_price"
+                                            name="sale_price"
+                                            step="0.01"
+                                            min="0"
+                                            value={form.sale_price}
+                                            onChange={handleInputChange}
+                                            className="form-input ltr:rounded-l-none rtl:rounded-r-none"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                            <input ref={thumbnailInputRef} type="file" className="hidden" accept="image/*" onChange={handleThumbnailChange} />
-                        </div>
 
-                        {/* Gallery Section */}
-                        <div>
-                            <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_gallery')}</label>
-                            <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{t('gallery_description')}</p>
+                            {/* Car Images */}
+                            <div className="space-y-6">
+                                {/* Thumbnail Section */}
+                                <div>
+                                    <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_thumbnail')}</label>
+                                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{t('thumbnail_description')}</p>
 
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                {/* Add Gallery Images Button */}
-                                {galleryPreviews.length < 9 && (
-                                    <div
-                                        onClick={handleGallerySelect}
-                                        className="flex h-36 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b]"
-                                    >
-                                        <IconUpload className="mb-2 h-6 w-6" />
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('upload_gallery_images')}</p>
-                                        <p className="text-[10px] text-gray-500 dark:text-gray-500">{t('image_formats')}</p>
+                                    <div className="flex items-center gap-4">
+                                        {/* Thumbnail Preview */}
+                                        {thumbnailPreview ? (
+                                            <div className="group relative h-32 w-32">
+                                                <img src={thumbnailPreview} alt="Thumbnail preview" className="h-full w-full rounded-lg object-cover" />
+                                                <button
+                                                    type="button"
+                                                    className="absolute right-0 top-0 hidden rounded-full bg-red-500 p-1 text-white hover:bg-red-600 group-hover:block"
+                                                    onClick={removeThumbnail}
+                                                >
+                                                    <IconX className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onClick={handleThumbnailSelect}
+                                                className="flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b]"
+                                            >
+                                                <IconUpload className="mb-2 h-6 w-6" />
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">{t('upload_thumbnail')}</p>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                    <input ref={thumbnailInputRef} type="file" className="hidden" accept="image/*" onChange={handleThumbnailChange} />
+                                </div>
 
-                                {/* Gallery Image Previews */}
-                                {galleryPreviews.map((url, index) => (
-                                    <div key={index} className="group relative h-36">
-                                        <img src={url} alt={`Gallery ${index + 1}`} className="h-full w-full rounded-lg object-cover" />
-                                        <button
-                                            type="button"
-                                            className="absolute right-0 top-0 hidden rounded-full bg-red-500 p-1 text-white hover:bg-red-600 group-hover:block"
-                                            onClick={() => removeGalleryImage(index)}
-                                        >
-                                            <IconX className="h-4 w-4" />
-                                        </button>
+                                {/* Gallery Section */}
+                                <div>
+                                    <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_gallery')}</label>
+                                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{t('gallery_description')}</p>
+
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                        {/* Add Gallery Images Button */}{' '}
+                                        {galleryPreviews.length < 9 && (
+                                            <div
+                                                onClick={handleGallerySelect}
+                                                className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b]"
+                                            >
+                                                <IconUpload className="mb-2 h-6 w-6" />
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">{t('upload_gallery_images')}</p>
+                                                <p className="text-[10px] text-gray-500 dark:text-gray-500">{t('image_formats')}</p>
+                                            </div>
+                                        )}{' '}
+                                        {/* Gallery Image Previews */}
+                                        {galleryPreviews.map((url, index) => (
+                                            <div key={index} className="group relative aspect-square">
+                                                <img src={url} alt={`Gallery ${index + 1}`} className="h-full w-full rounded-lg object-cover" />
+                                                <button
+                                                    type="button"
+                                                    className="absolute right-0 top-0 hidden rounded-full bg-red-500 p-1 text-white hover:bg-red-600 group-hover:block"
+                                                    onClick={() => removeGalleryImage(index)}
+                                                >
+                                                    <IconX className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
+                                    <input ref={galleryInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleGalleryChange} />
+                                </div>
                             </div>
-                            <input ref={galleryInputRef} type="file" className="hidden" accept="image/*" multiple onChange={handleGalleryChange} />
                         </div>
-                    </div>
+                    )}
+
+                    {/* Tab 2: Colors */}
+                    {activeTab === 2 && (
+                        <div className="space-y-5">
+                            <div className="mb-5">
+                                <h5 className="text-lg font-semibold dark:text-white-light">{t('color_variants')}</h5>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('add_first_color')}</p>
+                            </div>
+
+                            {/* Add Color Button */}
+                            <div className="flex justify-between items-center">
+                                <button type="button" onClick={addColor} className="btn btn-primary">
+                                    <IconPlus className="w-4 h-4 mr-2" />
+                                    {t('add_color')}
+                                </button>
+                            </div>
+
+                            {/* Colors List */}
+                            {colors.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <div className="text-gray-400 mb-4">
+                                        <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={1}
+                                                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a4 4 0 004-4V5z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <p className="text-gray-500 dark:text-gray-400">{t('no_colors_added')}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    {colors.map((color, index) => (
+                                        <div key={color.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-6">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <h6 className="text-lg font-medium">
+                                                    {t('color_name')} #{index + 1}
+                                                </h6>
+                                                <button type="button" onClick={() => removeColor(color.id)} className="btn btn-outline-danger">
+                                                    {t('remove_color')}
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {/* Color Picker */}
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('color_value')}</label>
+                                                    <div className="flex items-center gap-3">
+                                                        <input
+                                                            type="color"
+                                                            value={color.color}
+                                                            onChange={(e) => updateColorValue(color.id, e.target.value)}
+                                                            className="w-12 h-12 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={color.color}
+                                                            onChange={(e) => updateColorValue(color.id, e.target.value)}
+                                                            className="form-input flex-1"
+                                                            placeholder="#000000"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Color Images */}
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('color_images')}</label>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t('max_color_images')}</p>
+
+                                                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        {/* Add Images Button */}{' '}
+                                                        {color.images.length < 10 && (
+                                                            <div
+                                                                onClick={() => {
+                                                                    const input = document.createElement('input');
+                                                                    input.type = 'file';
+                                                                    input.accept = 'image/*';
+                                                                    input.multiple = true;
+                                                                    input.onchange = (e) => handleColorImageChange(color.id, e as any);
+                                                                    input.click();
+                                                                }}
+                                                                className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b]"
+                                                            >
+                                                                <IconUpload className="mb-1 h-4 w-4" />
+                                                                <p className="text-xs text-gray-600 dark:text-gray-400">{t('upload_color_images')}</p>
+                                                            </div>
+                                                        )}
+                                                        {/* Color Image Previews */}{' '}
+                                                        {color.previews.map((url, imgIndex) => (
+                                                            <div key={imgIndex} className="group relative aspect-square">
+                                                                <img src={url} alt={`Color ${index + 1} - ${imgIndex + 1}`} className="h-full w-full rounded-lg object-cover" />
+                                                                <button
+                                                                    type="button"
+                                                                    className="absolute right-0 top-0 hidden rounded-full bg-red-500 p-1 text-white hover:bg-red-600 group-hover:block"
+                                                                    onClick={() => removeColorImage(color.id, imgIndex)}
+                                                                >
+                                                                    <IconX className="h-3 w-3" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Submit Button */}
                     <div className="flex justify-end gap-4 mt-8">
                         <button type="button" onClick={() => router.back()} className="btn btn-outline-danger">

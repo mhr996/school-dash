@@ -481,6 +481,19 @@
     "select_status": "בחר סטטוס",
     "select_type": "בחר סוג",
     "car_type": "סוג רכב",
+    "colors": "צבעים",
+    "color_variants": "גרסאות צבע",
+    "add_color": "הוסף צבע",
+    "remove_color": "הסר צבע",
+    "color_name": "שם הצבע",
+    "color_value": "ערך הצבע",
+    "color_images": "תמונות הצבע",
+    "upload_color_images": "העלה תמונות צבע",
+    "max_color_images": "מקסימום 10 תמונות לכל צבע",
+    "select_color": "בחר צבע",
+    "no_colors_added": "טרם נוספו צבעים",
+    "add_first_color": "הוסף את הגרסת הצבע הראשונה",
+    "color_required": "נדרש לפחות צבע אחד",
     "customers": "לקוחות",
     "add_new_customer": "הוסף לקוח חדש",
     "edit_customer": "ערוך לקוח",
@@ -533,5 +546,7 @@
     "enter_age": "הזן גיל",
     "select_country": "בחר מדינה",
     "customer_type_new": "חדש",
-    "customer_type_existing": "קיים"
+    "customer_type_existing": "קיים",
+    "available_colors": "צבעים זמינים",
+    "for": "עבור"
 }
