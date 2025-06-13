@@ -600,7 +600,6 @@
     "select_type": "Select type",
     "search_types": "Search types...",
     "no_types_found": "No types found",
-    "car_details": "Car Details",
     "colors": "Colors",
     "color_variants": "Color Variants",
     "add_color": "Add Color",

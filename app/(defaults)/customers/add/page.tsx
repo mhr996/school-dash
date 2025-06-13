@@ -28,7 +28,6 @@ const AddCustomer = () => {
         message: '',
         type: 'success',
     });
-
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
@@ -153,7 +152,6 @@ const AddCustomer = () => {
                             </label>
                             <input type="text" id="name" name="name" value={form.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_customer_name')} required />
                         </div>
-
                         {/* Phone */}
                         <div>
                             <label htmlFor="phone" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -161,15 +159,13 @@ const AddCustomer = () => {
                             </label>
                             <input type="tel" id="phone" name="phone" value={form.phone} onChange={handleInputChange} className="form-input" placeholder={t('enter_phone_number')} required />
                         </div>
-
                         {/* Car Number */}
                         <div>
                             <label htmlFor="car_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('car_number')}
                             </label>
                             <input type="text" id="car_number" name="car_number" value={form.car_number} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_number')} />
-                        </div>
-
+                        </div>{' '}
                         {/* Country */}
                         <div>
                             <label htmlFor="country" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -177,7 +173,6 @@ const AddCustomer = () => {
                             </label>
                             <CountrySelect defaultValue={form.country} className="form-input" name="country" onChange={handleInputChange} />
                         </div>
-
                         {/* Age */}
                         <div>
                             <label htmlFor="age" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -185,7 +180,6 @@ const AddCustomer = () => {
                             </label>
                             <input type="number" id="age" name="age" min="1" max="120" value={form.age} onChange={handleInputChange} className="form-input" placeholder={t('enter_age')} />
                         </div>
-
                         {/* Customer Type */}
                         <div>
                             <label htmlFor="customer_type" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -193,7 +187,6 @@ const AddCustomer = () => {
                             </label>
                             <CustomerTypeSelect defaultValue={form.customer_type} className="form-input" name="customer_type" onChange={handleInputChange} />
                         </div>
-
                         {/* Initial Balance */}
                         <div>
                             <label htmlFor="balance" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">

@@ -12,7 +12,7 @@ interface CountrySelectProps {
 
 const { t } = getTranslation();
 
-const CountrySelect = ({ defaultValue, className = 'form-select text-white-dark', onChange }: CountrySelectProps) => {
+const CountrySelect = ({ defaultValue, className = 'form-select text-white-dark', onChange, name }: CountrySelectProps) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCountry, setSelectedCountry] = useState(defaultValue);
@@ -232,13 +232,12 @@ const CountrySelect = ({ defaultValue, className = 'form-select text-white-dark'
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
     const handleCountrySelect = (country: string) => {
         setSelectedCountry(country);
         setIsOpen(false);
         if (onChange) {
             const event = {
-                target: { value: country },
+                target: { value: country, name: name || 'country' },
             } as React.ChangeEvent<HTMLSelectElement>;
             onChange(event);
         }
