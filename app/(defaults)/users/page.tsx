@@ -153,7 +153,6 @@ const UsersList = () => {
 
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-            {' '}
             {/* Alert */}
             {alert.visible && (
                 <div className="mb-4 ml-4 max-w-96">
@@ -167,7 +166,6 @@ const UsersList = () => {
             )}
             <div className="invoice-table">
                 <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
-                    {' '}
                     <div className="flex items-center gap-2">
                         <button
                             type="button"
@@ -225,7 +223,7 @@ const UsersList = () => {
                                 title: t('email'),
                                 sortable: true,
                             },
-                           
+
                             {
                                 accessor: 'created_at',
                                 title: t('registration_date'),
@@ -248,7 +246,7 @@ const UsersList = () => {
                                         <Link href={`/users/edit/${id}`} className="flex hover:text-info">
                                             <IconEdit className="h-4.5 w-4.5" />
                                         </Link>
-                                      
+
                                         <button type="button" className="flex hover:text-danger" onClick={() => deleteRow(id)}>
                                             <IconTrashLines />
                                         </button>
@@ -273,7 +271,7 @@ const UsersList = () => {
 
                     {loading && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black-dark-light bg-opacity-60 backdrop-blur-sm" />}
                 </div>
-            </div>{' '}
+            </div>
             {/* Confirm Deletion Modal */}
             <ConfirmModal
                 isOpen={showConfirmModal}

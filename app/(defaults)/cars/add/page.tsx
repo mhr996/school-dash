@@ -8,6 +8,7 @@ import { getTranslation } from '@/i18n';
 import IconX from '@/components/icon/icon-x';
 import IconUpload from '@/components/icon/icon-camera';
 import IconPlus from '@/components/icon/icon-plus';
+import IconGallery from '@/components/icon/icon-gallery';
 import BrandSelect from '@/components/brand-select/brand-select';
 import StatusSelect from '@/components/status-select/status-select';
 import ProviderSelect from '@/components/provider-select/provider-select';
@@ -25,7 +26,6 @@ const AddCar = () => {
     const router = useRouter();
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState(1);
-
     const [form, setForm] = useState({
         title: '',
         year: '',
@@ -37,6 +37,7 @@ const AddCar = () => {
         market_price: '',
         value_price: '',
         sale_price: '',
+        desc: '', // New description field
     });
 
     // Separate states for thumbnail and gallery images
@@ -45,10 +46,16 @@ const AddCar = () => {
     const [galleryImages, setGalleryImages] = useState<File[]>([]);
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
-    const galleryInputRef = useRef<HTMLInputElement>(null);
-
-    // Colors state
+    const galleryInputRef = useRef<HTMLInputElement>(null); // Colors state
     const [colors, setColors] = useState<ColorVariant[]>([]);
+
+    // Features state
+    interface Feature {
+        id: string;
+        label: string;
+        value: string;
+    }
+    const [features, setFeatures] = useState<Feature[]>([]);
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
@@ -160,7 +167,6 @@ const AddCar = () => {
             reader.readAsDataURL(file);
         });
     };
-
     const removeColorImage = (colorId: string, imageIndex: number) => {
         setColors((prev) =>
             prev.map((color) =>
@@ -173,6 +179,24 @@ const AddCar = () => {
                     : color,
             ),
         );
+    };
+
+    // Feature management functions
+    const addFeature = () => {
+        const newFeature: Feature = {
+            id: Date.now().toString(),
+            label: '',
+            value: '',
+        };
+        setFeatures((prev) => [...prev, newFeature]);
+    };
+
+    const removeFeature = (featureId: string) => {
+        setFeatures((prev) => prev.filter((feature) => feature.id !== featureId));
+    };
+
+    const updateFeature = (featureId: string, field: 'label' | 'value', value: string) => {
+        setFeatures((prev) => prev.map((feature) => (feature.id === featureId ? { ...feature, [field]: value } : feature)));
     };
 
     const validateForm = () => {
@@ -295,6 +319,8 @@ const AddCar = () => {
                 market_price: form.market_price ? parseFloat(form.market_price) : 0,
                 value_price: form.value_price ? parseFloat(form.value_price) : 0,
                 sale_price: form.sale_price ? parseFloat(form.sale_price) : 0,
+                desc: form.desc.trim() || null, // New description field
+                features: features.filter((f) => f.label.trim() && f.value.trim()).map((f) => ({ label: f.label.trim(), value: f.value.trim() })), // New features field
                 images: [], // Initially empty
                 colors: [], // Initially empty, will be updated after upload
             };
@@ -382,7 +408,7 @@ const AddCar = () => {
                         onClose={() => setAlert({ visible: false, message: '', type: 'success' })}
                     />
                 </div>
-            )}{' '}
+            )}
             <div className="panel">
                 {/* Tabs Navigation */}
                 <div className="mb-5">
@@ -405,9 +431,17 @@ const AddCar = () => {
                         >
                             {t('colors')}
                         </button>
+                        <button
+                            type="button"
+                            className={`px-6 py-3 border-b-2 font-medium text-sm ${
+                                activeTab === 3 ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                            onClick={() => setActiveTab(3)}
+                        >
+                            {t('features_tab')}
+                        </button>
                     </div>
                 </div>
-
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Tab 1: Car Details */}
                     {activeTab === 1 && (
@@ -554,6 +588,14 @@ const AddCar = () => {
                                 </div>
                             </div>
 
+                            {/* Car Description */}
+                            <div className="mt-5">
+                                <label htmlFor="desc" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                    {t('car_description')}
+                                </label>
+                                <textarea id="desc" name="desc" value={form.desc} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_description')} rows={4} />
+                            </div>
+
                             {/* Car Images */}
                             <div className="space-y-6">
                                 {/* Thumbnail Section */}
@@ -593,7 +635,7 @@ const AddCar = () => {
                                     <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{t('gallery_description')}</p>
 
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                                        {/* Add Gallery Images Button */}{' '}
+                                        {/* Add Gallery Images Button */}
                                         {galleryPreviews.length < 9 && (
                                             <div
                                                 onClick={handleGallerySelect}
@@ -603,7 +645,7 @@ const AddCar = () => {
                                                 <p className="text-sm text-gray-600 dark:text-gray-400">{t('upload_gallery_images')}</p>
                                                 <p className="text-[10px] text-gray-500 dark:text-gray-500">{t('image_formats')}</p>
                                             </div>
-                                        )}{' '}
+                                        )}
                                         {/* Gallery Image Previews */}
                                         {galleryPreviews.map((url, index) => (
                                             <div key={index} className="group relative aspect-square">
@@ -631,7 +673,6 @@ const AddCar = () => {
                                 <h5 className="text-lg font-semibold dark:text-white-light">{t('color_variants')}</h5>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">{t('add_first_color')}</p>
                             </div>
-
                             {/* Add Color Button */}
                             <div className="flex justify-between items-center">
                                 <button type="button" onClick={addColor} className="btn btn-primary">
@@ -639,19 +680,11 @@ const AddCar = () => {
                                     {t('add_color')}
                                 </button>
                             </div>
-
                             {/* Colors List */}
                             {colors.length === 0 ? (
                                 <div className="text-center py-12">
                                     <div className="text-gray-400 mb-4">
-                                        <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth={1}
-                                                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zM21 5a2 2 0 00-2-2h-4a2 2 0 00-2 2v12a4 4 0 004 4h4a4 4 0 004-4V5z"
-                                            />
-                                        </svg>
+                                        <IconGallery className="w-16 h-16 mx-auto" />
                                     </div>
                                     <p className="text-gray-500 dark:text-gray-400">{t('no_colors_added')}</p>
                                 </div>
@@ -695,7 +728,7 @@ const AddCar = () => {
                                                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{t('max_color_images')}</p>
 
                                                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                                                        {/* Add Images Button */}{' '}
+                                                        {/* Add Images Button */}
                                                         {color.images.length < 10 && (
                                                             <div
                                                                 onClick={() => {
@@ -712,7 +745,7 @@ const AddCar = () => {
                                                                 <p className="text-xs text-gray-600 dark:text-gray-400">{t('upload_color_images')}</p>
                                                             </div>
                                                         )}
-                                                        {/* Color Image Previews */}{' '}
+                                                        {/* Color Image Previews */}
                                                         {color.previews.map((url, imgIndex) => (
                                                             <div key={imgIndex} className="group relative aspect-square">
                                                                 <img src={url} alt={`Color ${index + 1} - ${imgIndex + 1}`} className="h-full w-full rounded-lg object-cover" />
@@ -726,6 +759,80 @@ const AddCar = () => {
                                                             </div>
                                                         ))}
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Tab 3: Features */}
+                    {activeTab === 3 && (
+                        <div className="space-y-5">
+                            <div className="mb-5">
+                                <h5 className="text-lg font-semibold dark:text-white-light">{t('car_features')}</h5>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('add_car_features_description')}</p>
+                            </div>
+                            {/* Add Feature Button */}
+                            <div className="flex justify-between items-center">
+                                <button type="button" onClick={addFeature} className="btn btn-primary">
+                                    <IconPlus className="w-4 h-4 mr-2" />
+                                    {t('add_feature')}
+                                </button>
+                            </div>
+                            {/* Features List */}
+                            {features.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <div className="text-gray-400 mb-4">
+                                        <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={1}
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <p className="text-gray-500 dark:text-gray-400">{t('no_features_added')}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {features.map((feature, index) => (
+                                        <div key={feature.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <h6 className="text-base font-medium">
+                                                    {t('feature')} #{index + 1}
+                                                </h6>
+                                                <button type="button" onClick={() => removeFeature(feature.id)} className="btn btn-outline-danger btn-sm">
+                                                    {t('remove')}
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* Feature Label */}
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('feature_label')}</label>
+                                                    <input
+                                                        type="text"
+                                                        value={feature.label}
+                                                        onChange={(e) => updateFeature(feature.id, 'label', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('enter_feature_label')}
+                                                    />
+                                                </div>
+
+                                                {/* Feature Value */}
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('feature_value')}</label>
+                                                    <input
+                                                        type="text"
+                                                        value={feature.value}
+                                                        onChange={(e) => updateFeature(feature.id, 'value', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('enter_feature_value')}
+                                                    />
                                                 </div>
                                             </div>
                                         </div>

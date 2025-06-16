@@ -138,10 +138,8 @@ const LicenseDetailsPage = ({ params }: LicenseDetailsPageProps) => {
 
     return (
         <div className="container mx-auto p-6">
-            {' '}
             {/* Header with back button */}
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                {' '}
                 <div onClick={() => router.back()} className="cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mb-4 cursor-pointer text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -182,7 +180,7 @@ const LicenseDetailsPage = ({ params }: LicenseDetailsPageProps) => {
                         <div className="mb-6">
                             <h6 className="text-base font-semibold text-gray-700 dark:text-white-light mb-2">{t('description')}</h6>
                             <p className="text-gray-600 dark:text-gray-400">{license.desc || t('no_description_available')}</p>
-                        </div>{' '}
+                        </div>
                         {/* Features */}
                         <div>
                             <h6 className="text-base font-semibold text-gray-700 dark:text-white-light mb-3">{t('features')}</h6>

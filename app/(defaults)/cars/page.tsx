@@ -24,6 +24,8 @@ interface Car {
     kilometers: number;
     provider: string;
     brand: string;
+    desc?: string; // New description field
+    features?: Array<{ label: string; value: string }>; // New features field
     images: string[];
     providers?: {
         id: string;

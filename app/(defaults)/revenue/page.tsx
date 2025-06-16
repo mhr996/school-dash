@@ -424,7 +424,7 @@ const RevenuePage = () => {
                     <div className="panel h-full">
                         <div className="mb-5 flex items-center justify-between">
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('revenue_trend')}</h5>
-                        </div>{' '}
+                        </div>
                         <div className="relative">
                             <div className="min-h-[300px]">
                                 {isMounted && !stats.loading && <ApexChart series={revenueChartData.series} options={revenueChartData.options} type="area" height={300} />}
@@ -439,12 +439,11 @@ const RevenuePage = () => {
 
                     {/* Revenue Distribution */}
                     <div className="panel h-full">
-                        {' '}
                         <div className="mb-5 flex items-center justify-between">
                             <h5 className="text-lg font-semibold dark:text-white-light">
                                 {t('revenue')} {t('distribution')}
                             </h5>
-                        </div>{' '}
+                        </div>
                         <div className="relative">
                             <div className="min-h-[300px]">
                                 {isMounted && !stats.loading && <ApexChart series={distributionChartData.series} options={distributionChartData.options} type="donut" height={300} />}
@@ -461,7 +460,6 @@ const RevenuePage = () => {
                 {/* Shop Revenue Table */}
                 <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
                     <div className="invoice-table">
-                        {' '}
                         <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
                             <h5 className="text-lg font-semibold dark:text-white-light">
                                 {t('shops')} {t('revenue')}
@@ -469,7 +467,7 @@ const RevenuePage = () => {
                             <div className="ltr:ml-auto rtl:mr-auto">
                                 <input type="text" className="form-input w-auto" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
                             </div>
-                        </div>{' '}
+                        </div>
                         <div className="datatables pagination-padding relative">
                             <DataTable
                                 className={`${stats.loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}

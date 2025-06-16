@@ -182,7 +182,6 @@ const EditSubscriptionPage = () => {
                         </Link>
                     </li>
                     <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        {' '}
                         <Link href="/subscriptions" className="text-primary hover:underline">
                             {t('subscriptions')}
                         </Link>
@@ -198,7 +197,7 @@ const EditSubscriptionPage = () => {
                 <div className="mb-4">
                     <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />
                 </div>
-            )}{' '}
+            )}
             {/* Form Container */}
             <div className="panel mb-5">
                 <div className="mb-5">
@@ -233,9 +232,7 @@ const EditSubscriptionPage = () => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    {' '}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {' '}
                         {/* Status Field */}
                         <div className="relative" ref={statusRef}>
                             <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">
@@ -265,7 +262,7 @@ const EditSubscriptionPage = () => {
                                     </div>
                                 </div>
                             )}
-                        </div>{' '}
+                        </div>
                         {/* Renewal Date Field */}
                         <div>
                             <label htmlFor="renewal_date" className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">
@@ -273,13 +270,13 @@ const EditSubscriptionPage = () => {
                             </label>
                             <input type="date" id="renewal_date" name="renewal_date" value={form.renewal_date || ''} onChange={handleRenewalDateChange} className="form-input" />
                         </div>
-                    </div>{' '}
+                    </div>
                     {/* Manual Renewal Section */}
                     <div className="panel border-2 border-dashed border-gray-200 dark:border-gray-700">
                         <div className="mb-5">
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('manual_renewal')}</h5>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('manual_renewal_description')}</p>
-                        </div>{' '}
+                        </div>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             <button type="button" onClick={() => handleRenewSubscription(1)} className="btn btn-outline-primary">
                                 {t('renew_for_1_month')}
@@ -294,7 +291,7 @@ const EditSubscriptionPage = () => {
                                 {t('renew_for_1_year')}
                             </button>
                         </div>
-                    </div>{' '}
+                    </div>
                     {/* Action Buttons */}
                     <div className="flex justify-end gap-4">
                         <button type="button" onClick={() => router.back()} className="btn btn-outline-danger">

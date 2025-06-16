@@ -77,12 +77,11 @@ const AddLicensePage = () => {
     return (
         <div className="container mx-auto p-6">
             <div className="flex items-center gap-5 mb-6">
-                {' '}
                 <div onClick={() => router.back()}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mb-4 cursor-pointer text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                </div>{' '}
+                </div>
                 {/* Breadcrumb Navigation */}
                 <ul className="flex space-x-2 rtl:space-x-reverse mb-4">
                     <li>
@@ -104,7 +103,7 @@ const AddLicensePage = () => {
                 <div className="mb-4">
                     <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />
                 </div>
-            )}{' '}
+            )}
             {/* Form Container */}
             <div className="rounded-md border border-[#ebedf2] bg-white p-6 dark:border-[#191e3a] dark:bg-black">
                 <h6 className="mb-5 text-lg font-bold">{t('add_new_license')}</h6>
@@ -147,7 +146,7 @@ const AddLicensePage = () => {
                             {t('description')}
                         </label>
                         <textarea id="desc" name="desc" value={form.desc} onChange={handleInputChange} className="form-textarea" placeholder={t('enter_license_description')} rows={4} />
-                    </div>{' '}
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {/* Shops Count Field */}
                         <div>

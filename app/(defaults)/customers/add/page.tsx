@@ -165,7 +165,7 @@ const AddCustomer = () => {
                                 {t('car_number')}
                             </label>
                             <input type="text" id="car_number" name="car_number" value={form.car_number} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_number')} />
-                        </div>{' '}
+                        </div>
                         {/* Country */}
                         <div>
                             <label htmlFor="country" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">

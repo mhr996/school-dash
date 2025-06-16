@@ -550,7 +550,6 @@ const ShopPreview = () => {
     return (
         <div className="container mx-auto p-6">
             <div className="flex items-center gap-4 mb-6">
-                {' '}
                 <div onClick={() => router.back()}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 cursor-pointer text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -616,7 +615,7 @@ const ShopPreview = () => {
                             <IconUser className="h-5 w-5" />
                             Owner Information
                         </div>
-                    </button>{' '}
+                    </button>
                     <button
                         type="button"
                         className={`p-4 border-b-2 ${activeTab === 'details' ? 'border-primary text-primary' : 'border-transparent hover:border-gray-300'}`}
@@ -626,7 +625,7 @@ const ShopPreview = () => {
                             <IconMapPin className="h-5 w-5" />
                             Shop Details
                         </div>
-                    </button>{' '}
+                    </button>
                     <button
                         type="button"
                         className={`p-4 border-b-2 ${activeTab === 'revenue' ? 'border-primary text-primary' : 'border-transparent hover:border-gray-300'}`}
@@ -648,7 +647,7 @@ const ShopPreview = () => {
                         </div>
                     </button>
                 </div>
-            </div>{' '}
+            </div>
             {/* Tab Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {activeTab === 'revenue' && (
@@ -948,7 +947,6 @@ const ShopPreview = () => {
                                 </div>
 
                                 <div className="grid grid-cols-1 gap-5">
-                                    {' '}
                                     {/* Address */}
                                     <div>
                                         <h6 className="text-sm font-semibold mb-3">Address</h6>
@@ -1078,7 +1076,7 @@ const ShopPreview = () => {
                                                 </svg>
                                             </div>
                                             <h6 className="text-sm font-semibold ltr:ml-3 rtl:mr-3">Products</h6>
-                                        </div>{' '}
+                                        </div>
                                         <div className="flex items-center justify-between">
                                             <p className="text-3xl font-bold dark:text-white-light">{productsCount}</p>
                                             {newProductsCount > 0 && <span className="badge bg-success/20 text-success dark:bg-success dark:text-white-light">+{newProductsCount} New</span>}
@@ -1138,7 +1136,7 @@ const ShopPreview = () => {
                                                         strokeLinecap="round"
                                                     />
                                                 </svg>
-                                            </div>{' '}
+                                            </div>
                                             <h6 className="text-sm font-semibold ltr:ml-3 rtl:mr-3">Revenue</h6>
                                         </div>
                                         <div className="flex items-center justify-between">

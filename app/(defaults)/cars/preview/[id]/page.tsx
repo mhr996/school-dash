@@ -27,6 +27,8 @@ interface Car {
     kilometers: number;
     provider: string;
     brand: string;
+    desc?: string; // New description field
+    features?: Array<{ label: string; value: string }>; // New features field
     images: string[];
     colors?: Array<{
         color: string;
@@ -197,7 +199,6 @@ const CarPreview = () => {
             </div>
 
             <div className="container mx-auto p-6">
-                {' '}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Images Gallery */}
                     <div className="lg:col-span-2">
@@ -317,7 +318,7 @@ const CarPreview = () => {
                                         <IconBox className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('brand')}:</span>
                                         <span className="font-medium">{car.brand}</span>
-                                    </div>{' '}
+                                    </div>
                                     <div className="flex items-center">
                                         <IconCalendar className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('year')}:</span>
@@ -334,7 +335,7 @@ const CarPreview = () => {
                                         <IconMapPin className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('kilometers')}:</span>
                                         <span className="font-medium">{formatKilometers(car.kilometers)}</span>
-                                    </div>{' '}
+                                    </div>
                                     <div className="flex items-center">
                                         <IconUser className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('provider')}:</span>
@@ -368,7 +369,6 @@ const CarPreview = () => {
                                     </div>
                                     <span className="font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(car.market_price)}</span>
                                 </div>
-
                                 <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                     <div className="flex items-center">
                                         <IconTrendingUp className="w-5 h-5 text-gray-400 ltr:mr-2 rtl:ml-2" />
@@ -376,7 +376,6 @@ const CarPreview = () => {
                                     </div>
                                     <span className="font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(car.value_price)}</span>
                                 </div>
-
                                 <div className="flex justify-between items-center p-3 bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/20">
                                     <div className="flex items-center">
                                         <IconDollarSign className="w-5 h-5 text-primary ltr:mr-2 rtl:ml-2" />
@@ -387,16 +386,43 @@ const CarPreview = () => {
                             </div>
                         </div>
 
+                        {/* Car Description */}
+                        {car.desc && (
+                            <div className="panel">
+                                <div className="mb-5">
+                                    <h3 className="text-lg font-semibold">{t('car_description')}</h3>
+                                </div>
+                                <div className="text-gray-700 dark:text-gray-300 leading-relaxed">{car.desc}</div>
+                            </div>
+                        )}
+
+                        {/* Car Features */}
+                        {car.features && car.features.length > 0 && (
+                            <div className="panel">
+                                <div className="mb-5">
+                                    <h3 className="text-lg font-semibold">خصائص السيارة</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {car.features.map((feature, index) => (
+                                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{feature.label}:</span>
+                                            <span className="font-semibold text-gray-700 dark:text-gray-300">{feature.value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Additional Information */}
                         <div className="panel">
                             <div className="mb-5">
                                 <h3 className="text-lg font-semibold">{t('additional_information')}</h3>
-                            </div>{' '}
+                            </div>
                             <div className="space-y-3 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">{t('car_id')}:</span>
                                     <span className="font-medium font-mono">{car.id}</span>
-                                </div>{' '}
+                                </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">{t('created_at')}:</span>
                                     <span className="font-medium">{new Date(car.created_at).toLocaleDateString()}</span>

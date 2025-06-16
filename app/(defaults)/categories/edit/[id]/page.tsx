@@ -112,12 +112,11 @@ const EditCategory = () => {
         <div className="container mx-auto p-6">
             <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-5">
-                    {' '}
                     <button onClick={() => router.back()} className="hover:text-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
-                    </button>{' '}
+                    </button>
                     <ul className="flex space-x-2 rtl:space-x-reverse items-center">
                         <li>
                             <Link href="/" className="text-primary hover:underline">
@@ -134,12 +133,12 @@ const EditCategory = () => {
                         </li>
                     </ul>
                 </div>
-            </div>{' '}
+            </div>
             {alert.visible && (
                 <div className="mb-4">
                     <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />
                 </div>
-            )}{' '}
+            )}
             {/* Edit Form */}
             <div className="panel mb-5">
                 <div className="mb-5">
@@ -158,7 +157,7 @@ const EditCategory = () => {
                                 {t('description')}
                             </label>
                             <textarea id="desc" name="desc" className="form-textarea min-h-[100px]" value={form.desc} onChange={handleInputChange} />
-                        </div>{' '}
+                        </div>
                         <div>
                             <button type="submit" className="btn btn-primary" disabled={loading}>
                                 {loading ? t('saving') : t('save_changes')}

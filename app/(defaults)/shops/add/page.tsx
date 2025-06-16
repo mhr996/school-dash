@@ -351,12 +351,11 @@ const AddShopPage = () => {
     return (
         <div className="container mx-auto p-6">
             <div className="flex items-center gap-5 mb-6">
-                {' '}
                 <div onClick={() => router.back()}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mb-4 cursor-pointer text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                </div>{' '}
+                </div>
                 {/* Breadcrumb Navigation */}
                 <ul className="flex space-x-2 rtl:space-x-reverse mb-4">
                     <li>
@@ -388,7 +387,6 @@ const AddShopPage = () => {
                     <div className="relative h-52 w-full">
                         <img src={form.cover_image_url || '/assets/images/img-placeholder-fallback.webp'} alt="Shop Cover" className="h-full w-full object-cover" />
                         <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-                            {' '}
                             <div className="text-center flex flex-col items-center justify-center">
                                 <h2 className="text-xl font-bold text-white mb-4">{t('shop_cover_image')}</h2>
                                 <ImageUpload
@@ -409,7 +407,7 @@ const AddShopPage = () => {
                             </div>
                         </div>
                     </div>
-                </div>{' '}
+                </div>
                 <div className="mb-6">
                     <Tabs
                         tabs={[
@@ -421,7 +419,7 @@ const AddShopPage = () => {
                         onTabClick={(tab) => setActiveTab(tab)}
                         activeTab={activeTab}
                     />
-                </div>{' '}
+                </div>
                 {activeTab === 0 && (
                     <div className="panel mb-5">
                         <div className="mb-5">
@@ -440,7 +438,7 @@ const AddShopPage = () => {
                                     onError={(error) => setAlert({ visible: true, message: error, type: 'danger' })}
                                 />
                             </div>
-                            {/* Shop Info Column */}{' '}
+                            {/* Shop Info Column */}
                             <div className="space-y-5">
                                 <div>
                                     <label htmlFor="shop_name" className="block text-sm font-bold text-gray-700 dark:text-white">
@@ -474,7 +472,7 @@ const AddShopPage = () => {
                                 <div className="relative" ref={dropdownRef}>
                                     <label htmlFor="owner" className="block text-sm font-bold text-gray-700 dark:text-white">
                                         {t('shop_owner')} <span className="text-red-500">*</span>
-                                    </label>{' '}
+                                    </label>
                                     <div className="relative">
                                         <input
                                             type="text"
@@ -513,7 +511,7 @@ const AddShopPage = () => {
                                             </div>
                                         )}
                                     </div>
-                                </div>{' '}
+                                </div>
                                 <div ref={categoryRef} className="relative">
                                     <label htmlFor="category_id" className="block text-sm font-bold text-gray-700 dark:text-white">
                                         {t('category')}
@@ -556,16 +554,16 @@ const AddShopPage = () => {
                                             </div>
                                         </div>
                                     )}
-                                </div>{' '}
+                                </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 dark:text-white ">{t('visibility')}</label>
                                     <label className="inline-flex cursor-pointer items-center">
                                         <input type="checkbox" name="public" className="form-checkbox" checked={form.public} onChange={handleInputChange} />
                                         <span className="relative text-white-dark checked:bg-none ml-2">{form.public ? t('public') : t('private')}</span>
                                     </label>
-                                </div>{' '}
+                                </div>
                                 <div className="relative" ref={statusRef}>
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-white">{t('status')}</label>{' '}
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-white">{t('status')}</label>
                                     <div
                                         className="cursor-pointer rounded border border-[#e0e6ed] bg-white p-2.5 text-dark dark:border-[#191e3a] dark:bg-black dark:text-white-dark flex items-center justify-between"
                                         onClick={() => {
@@ -578,7 +576,6 @@ const AddShopPage = () => {
                                     {form.statusDropdownOpen && (
                                         <div className="absolute z-10 mt-1 w-full rounded-md border border-[#e0e6ed] bg-white shadow-lg dark:border-[#191e3a] dark:bg-black">
                                             <div className="max-h-64 overflow-y-auto">
-                                                {' '}
                                                 {['Approved', 'Pending', 'Rejected', 'Banned'].map((status) => (
                                                     <div
                                                         key={status}
@@ -599,7 +596,7 @@ const AddShopPage = () => {
                             </div>
                         </div>
                     </div>
-                )}{' '}
+                )}
                 {activeTab === 1 && (
                     <div className="panel mb-5">
                         <div className="mb-5">
@@ -626,7 +623,7 @@ const AddShopPage = () => {
                                 </div>
                             </div>
                             <div className="sm:col-span-2">
-                                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">{t('shop_location')}</label>{' '}
+                                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">{t('shop_location')}</label>
                                 <div className="h-[400px] mb-4">
                                     <MapSelector
                                         initialPosition={form.latitude && form.longitude ? [form.latitude, form.longitude] : null}
@@ -635,16 +632,16 @@ const AddShopPage = () => {
                                         useCurrentLocationByDefault={true}
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">{t('click_map_select_location')}</p>{' '}
+                                <p className="text-xs text-gray-500 mt-1">{t('click_map_select_location')}</p>
                                 {form.latitude && form.longitude && (
                                     <p className="text-sm mt-10">
-                                        {t('selected_coordinates')}:{' '}
+                                        {t('selected_coordinates')}:
                                         <span className="font-semibold">
                                             {form.latitude.toFixed(6)}, {form.longitude.toFixed(6)}
                                         </span>
                                     </p>
                                 )}
-                            </div>{' '}
+                            </div>
                             <div className="sm:col-span-2">
                                 <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">
                                     {t('phone_numbers')} ({t('up_to_3')})
@@ -680,19 +677,19 @@ const AddShopPage = () => {
                             </div>
                         </div>
                     </div>
-                )}{' '}
+                )}
                 {activeTab === 2 && (
                     <div className="panel mb-5">
                         <div className="mb-5">
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('working_hours')}</h5>
                             <p className="text-gray-500 dark:text-gray-400 mt-1">{t('set_working_hours')}</p>
-                        </div>{' '}
+                        </div>
                         <div className="grid grid-cols-1 gap-6">
                             {form.work_hours?.map((day, index) => (
                                 <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-md p-4">
                                     <div className="flex flex-wrap items-center justify-between gap-4">
                                         <div className="flex items-center">
-                                            <h6 className="text-lg mx-2 font-semibold min-w-[100px]">{day.day}</h6>{' '}
+                                            <h6 className="text-lg mx-2 font-semibold min-w-[100px]">{day.day}</h6>
                                             <label className="inline-flex cursor-pointer">
                                                 <input type="checkbox" className="form-checkbox" checked={day.open} onChange={(e) => handleWorkHoursChange(index, 'open', e.target.checked)} />
                                                 <span className="relative text-white-dark checked:bg-none ml-2">{day.open ? t('open') : t('closed')}</span>
@@ -701,7 +698,6 @@ const AddShopPage = () => {
 
                                         <AnimateHeight duration={300} height={day.open ? 'auto' : 0}>
                                             <div className={`flex flex-wrap items-center gap-4 ${day.open ? 'mt-4 sm:mt-0' : ''}`}>
-                                                {' '}
                                                 <div className="flex items-center">
                                                     <span className="mx-2">{t('from')}:</span>
                                                     <input
@@ -729,7 +725,7 @@ const AddShopPage = () => {
                             ))}
                         </div>
                     </div>
-                )}{' '}
+                )}
                 {activeTab === 3 && (
                     <div className="panel mb-5">
                         <div className="mb-5">
@@ -772,7 +768,7 @@ const AddShopPage = () => {
                             )}
                         </div>
                     </div>
-                )}{' '}
+                )}
                 {/* Submit Button */}
                 <div className="flex justify-end gap-4">
                     <button type="button" className="btn btn-outline-danger" onClick={() => router.back()}>

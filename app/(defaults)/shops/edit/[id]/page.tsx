@@ -369,9 +369,7 @@ const EditShop = () => {
     return (
         <div className="container mx-auto p-6">
             <div className="mb-6 flex items-center justify-between">
-                {' '}
                 <div className="flex items-center gap-5">
-                    {' '}
                     <button onClick={() => router.back()} className="hover:text-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -395,7 +393,7 @@ const EditShop = () => {
                         </li>
                     </ul>
                 </div>
-            </div>{' '}
+            </div>
             {alert.visible && (
                 <div className="mb-4">
                     <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />
@@ -405,7 +403,6 @@ const EditShop = () => {
             <form onSubmit={handleSubmit}>
                 {/* Cover Image */}
                 <div className="panel mb-5 overflow-hidden">
-                    {' '}
                     <div className="relative h-52 w-full">
                         <img src={form.cover_image_url || '/assets/images/img-placeholder-fallback.webp'} alt={t('shop_cover_image')} className="h-full w-full object-cover" />
                         <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
@@ -429,7 +426,7 @@ const EditShop = () => {
                             </div>
                         </div>
                     </div>
-                </div>{' '}
+                </div>
                 <div className="mb-6">
                     <Tabs
                         tabs={[
@@ -464,7 +461,7 @@ const EditShop = () => {
                                         });
                                     }}
                                 />
-                            </div>{' '}
+                            </div>
                             <div className="grid flex-1 grid-cols-1 gap-5 sm:grid-cols-2">
                                 <div>
                                     <label htmlFor="shop_name" className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">
@@ -490,9 +487,9 @@ const EditShop = () => {
                                         <input type="checkbox" name="public" className="form-checkbox" checked={form.public} onChange={handleInputChange} />
                                         <span className="relative text-white-dark checked:bg-none ml-2">{form.public ? t('public') : t('private')}</span>
                                     </label>
-                                </div>{' '}
+                                </div>
                                 <div className="relative" ref={statusRef}>
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-white">{t('status')}</label>{' '}
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-white">{t('status')}</label>
                                     <div
                                         className="cursor-pointer rounded border border-[#e0e6ed] bg-white p-2.5 text-dark dark:border-[#191e3a] dark:bg-black dark:text-white-dark flex items-center justify-between"
                                         onClick={() => {
@@ -501,7 +498,7 @@ const EditShop = () => {
                                     >
                                         <span>{t(form.status?.toLowerCase())}</span>
                                         <IconCaretDown className={`h-4 w-4 transition-transform duration-300 ${form.statusDropdownOpen ? 'rotate-180' : ''}`} />
-                                    </div>{' '}
+                                    </div>
                                     {form.statusDropdownOpen && (
                                         <div className="absolute z-10 mt-1 w-full rounded-md border border-[#e0e6ed] bg-white shadow-lg dark:border-[#191e3a] dark:bg-black">
                                             <div className="max-h-64 overflow-y-auto">
@@ -521,7 +518,7 @@ const EditShop = () => {
                                             </div>
                                         </div>
                                     )}
-                                </div>{' '}
+                                </div>
                                 <div ref={categoryRef} className="relative">
                                     <label htmlFor="category_id" className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">
                                         {t('category')}
@@ -532,7 +529,7 @@ const EditShop = () => {
                                     >
                                         <span>{form.category_id ? categories.find((c) => c.id === form.category_id)?.title || t('select_category') : t('select_category')}</span>
                                         <IconCaretDown className={`h-4 w-4 transition-transform duration-300 ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} />
-                                    </div>{' '}
+                                    </div>
                                     {isCategoryDropdownOpen && (
                                         <div className="absolute z-10 mt-1 w-full rounded-md border border-[#e0e6ed] bg-white shadow-lg dark:border-[#191e3a] dark:bg-black">
                                             <div className="p-2">
@@ -595,9 +592,8 @@ const EditShop = () => {
                             </div>
 
                             <div className="sm:col-span-2">
-                                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">Shop Location</label>{' '}
+                                <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-white">Shop Location</label>
                                 <div className="h-[400px] mb-4">
-                                    {' '}
                                     <MapSelector
                                         initialPosition={form.latitude && form.longitude ? [form.latitude, form.longitude] : null}
                                         onChange={(lat, lng) => {
@@ -614,7 +610,7 @@ const EditShop = () => {
                                 <p className="text-xs text-gray-500 mt-1">Click on the map to select your shop's location.</p>
                                 {form.latitude && form.longitude && (
                                     <p className="text-sm mt-10">
-                                        Selected coordinates:{' '}
+                                        Selected coordinates:
                                         <span className="font-semibold">
                                             {form.latitude.toFixed(6)}, {form.longitude.toFixed(6)}
                                         </span>

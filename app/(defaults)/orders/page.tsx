@@ -139,7 +139,6 @@ const OrdersList = () => {
 
     return (
         <div>
-            {' '}
             <ul className="flex space-x-2 rtl:space-x-reverse">
                 <li>
                     <Link href="/" className="text-primary hover:underline">
@@ -151,7 +150,7 @@ const OrdersList = () => {
                 </li>
             </ul>
             <div className="panel mt-6">
-                {/* Confirmation Modal */}{' '}
+                {/* Confirmation Modal */}
                 <ConfirmModal
                     isOpen={showConfirmModal}
                     title={t('delete_order')}
@@ -166,7 +165,6 @@ const OrdersList = () => {
                 {/* Alert */}
                 {alert.visible && (
                     <div className="mb-4">
-                        {' '}
                         <Alert
                             type={alert.type}
                             title={alert.type === 'success' ? t('success') : t('error')}
@@ -245,10 +243,10 @@ const OrdersList = () => {
                                         <div className="flex items-center justify-center gap-2">
                                             <Link href={`/orders/preview/${id}`} className="hover:text-info" title={t('view_order')}>
                                                 <IconEye className="h-5 w-5" />
-                                            </Link>{' '}
+                                            </Link>
                                             {/* <button type="button" className="hover:text-primary" title={t('print_order')} onClick={() => handlePrintOrder(id)}>
                                                 <IconPrinter className="h-5 w-5" />
-                                            </button>{' '} */}
+                                            </button> */}
                                             <button type="button" className="hover:text-success" title={t('download_pdf')} onClick={() => handleDownloadOrderPDF(id)}>
                                                 <IconDownload className="h-5 w-5" />
                                             </button>

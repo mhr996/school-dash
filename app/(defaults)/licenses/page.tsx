@@ -126,7 +126,6 @@ const LicensesList = () => {
 
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-            {' '}
             {/* Alert */}
             {alert.visible && (
                 <div className="mb-4 ml-4 max-w-96">
@@ -153,7 +152,6 @@ const LicensesList = () => {
             )}
             <div className="invoice-table">
                 <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
-                    {' '}
                     <div className="flex items-center gap-2">
                         <button type="button" className="btn btn-danger gap-2" onClick={() => deleteRow(selectedRecords[0]?.id)}>
                             <IconTrashLines />
@@ -169,7 +167,6 @@ const LicensesList = () => {
                     </div>
                 </div>
                 <div className="datatables pagination-padding relative">
-                    {' '}
                     <DataTable
                         className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
                         records={records}

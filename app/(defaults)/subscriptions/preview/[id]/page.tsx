@@ -242,7 +242,6 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Main Subscription Info */}
                 <div className="lg:col-span-8">
-                    {' '}
                     <div className="panel h-full">
                         {/* Header */}
                         <div className="flex justify-between mb-5">
@@ -265,7 +264,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
                                             {t('license')} {t('id')}
                                         </p>
                                         <p className="font-semibold">#{subscription.license_id}</p>
-                                    </div>{' '}
+                                    </div>
                                     {subscription.license?.desc && (
                                         <div className="md:col-span-2">
                                             <p className="text-sm text-gray-500 dark:text-gray-400">{t('description')}</p>
@@ -289,7 +288,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
                                     </div>
                                 </div>
                             </div>
-                        </div>{' '}
+                        </div>
                         {/* User Info */}
                         <div>
                             <h6 className="text-base font-semibold text-gray-700 dark:text-white-light mb-2">{t('user_details')}</h6>
@@ -323,7 +322,6 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
 
                 {/* Side Info */}
                 <div className="lg:col-span-4">
-                    {' '}
                     <div className="panel h-full">
                         <div className="mb-5">
                             <h5 className="text-lg font-semibold text-gray-800 dark:text-white-light">{t('subscription_summary')}</h5>
@@ -342,7 +340,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
                                 <h6 className="text-sm font-semibold text-gray-700 dark:text-white-light mb-2">{t('created_at')}</h6>
                                 <p className="text-gray-600 dark:text-gray-400">{new Date(subscription.created_at).toLocaleDateString()}</p>
                             </div>
-                            <hr className="border-gray-200 dark:border-gray-700" />{' '}
+                            <hr className="border-gray-200 dark:border-gray-700" />
                             <div className="mt-4">
                                 <Link href={`/licenses/preview/${subscription.license_id}`} className="btn btn-outline-primary w-full mb-2">
                                     {t('license_details')}
@@ -357,7 +355,7 @@ const SubscriptionDetailsPage = ({ params }: SubscriptionDetailsPageProps) => {
                         </div>
                     </div>
                 </div>
-            </div>{' '}
+            </div>
             {/* Subscription History */}
             <div className="mt-8">
                 <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">

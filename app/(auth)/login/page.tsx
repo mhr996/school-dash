@@ -39,7 +39,7 @@ const CoverLogin = () => {
                                 <img src="/assets/images/logo.png" alt="Logo" className="mx-auto w-28 max-w-none" />
                             </Link>
                             <LanguageDropdown className="ms-auto w-max" />
-                        </div>{' '}
+                        </div>
                         <div className="w-full max-w-[440px] lg:mt-16">
                             <div className="mb-10">
                                 <h1 className="text-3xl font-extrabold uppercase !leading-snug text-primary md:text-4xl">{t('sign_in')}</h1>
@@ -89,7 +89,7 @@ const CoverLogin = () => {
                                         </Link>
                                     </li>
                                 </ul>
-                            </div> */}{' '}
+                            </div> */}
                             {/* <div className="text-center dark:text-white mt-4">
                                 Don&apos;t have an account ?&nbsp;
                                 <Link href="/register" className="uppercase text-primary underline transition hover:text-black dark:hover:text-white">

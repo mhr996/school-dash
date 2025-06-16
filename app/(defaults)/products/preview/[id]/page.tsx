@@ -85,7 +85,6 @@ const ProductDetailsPage = ({ params }: ProductDetailsPageProps) => {
     return (
         <div className="container mx-auto p-6">
             <div className="flex items-center gap-5 mb-6">
-                {' '}
                 <div onClick={() => router.back()}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mb-4 cursor-pointer text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -165,7 +164,6 @@ const ProductDetailsPage = ({ params }: ProductDetailsPageProps) => {
                                         {(product.discount_start || product.discount_end) && (
                                             <div className="mt-2 text-sm">
                                                 <div className="flex flex-col gap-1">
-                                                    {' '}
                                                     {product.discount_start && (
                                                         <div className="flex items-center">
                                                             <span className="font-medium mr-2">{t('starts')}:</span>

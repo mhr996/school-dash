@@ -105,7 +105,6 @@ const CarSelect = ({ selectedCar, onCarSelect, className = 'form-select' }: CarS
                 className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#191e3a] flex items-center justify-between min-h-[42px] ${selectedCar ? 'text-black dark:text-white' : 'text-gray-500'}`}
                 onClick={() => setIsOpen(!isOpen)}
             >
-                {' '}
                 {selectedCar ? (
                     <div className="flex items-center gap-3">
                         {(() => {
@@ -163,7 +162,6 @@ const CarSelect = ({ selectedCar, onCarSelect, className = 'form-select' }: CarS
                                     className="cursor-pointer px-4 py-3 hover:bg-gray-100 dark:hover:bg-[#191e3a] border-b border-gray-100 dark:border-[#191e3a] last:border-b-0"
                                     onClick={() => handleCarSelect(car)}
                                 >
-                                    {' '}
                                     <div className="flex items-center gap-3">
                                         {(() => {
                                             const imageList = getCarImageList(car.images);

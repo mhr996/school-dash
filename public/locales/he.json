@@ -550,5 +550,18 @@
     "available_colors": "צבעים זמינים",
     "for": "עבור",
     "balance": "יתרה",
-    "accounting": "חשבונאות"
+    "accounting": "חשבונאות",
+    "car_description": "תיאור הרכב",
+    "enter_car_description": "הזן תיאור הרכב",
+    "car_features": "תכונות הרכב",
+    "add_car_features_description": "הוסף תכונות ומפרטים של הרכב",
+    "feature": "תכונה",
+    "feature_label": "שם התכונה",
+    "feature_value": "ערך התכונה",
+    "enter_feature_label": "הזן שם התכונה",
+    "enter_feature_value": "הזן ערך התכונה",
+    "add_feature": "הוסף תכונה",
+    "remove_feature": "הסר תכונה",
+    "no_features_added": "לא הוספו תכונות עדיין",
+    "features_tab": "תכונות"
 }

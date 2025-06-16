@@ -46,10 +46,10 @@ const StaticMap: React.FC<StaticMapProps> = ({ position = null, zoom = 15, heigh
                 <Marker position={mapPosition} />
                 <div className="leaflet-bottom leaflet-right mb-1 mr-1">
                     <div className="leaflet-control leaflet-control-attribution bg-white bg-opacity-80 dark:bg-gray-800 dark:bg-opacity-80 px-1 py-0.5 text-xs">
-                        &copy;{' '}
+                        &copy;
                         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
                             OpenStreetMap
-                        </a>{' '}
+                        </a>
                         contributors
                     </div>
                 </div>

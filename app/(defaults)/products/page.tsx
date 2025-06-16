@@ -167,7 +167,6 @@ const ProductsList = () => {
 
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-            {' '}
             {alert.visible && (
                 <div className="mb-4 ml-4 max-w-96">
                     <Alert
@@ -322,7 +321,7 @@ const ProductsList = () => {
 
                     {loading && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black-dark-light bg-opacity-60 backdrop-blur-sm" />}
                 </div>
-            </div>{' '}
+            </div>
             <ConfirmModal
                 isOpen={showConfirmModal}
                 title={t('confirm_deletion')}

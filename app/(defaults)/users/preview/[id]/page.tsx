@@ -75,13 +75,12 @@ const UserPreview = () => {
     return (
         <div className="container mx-auto p-6">
             <div className="flex items-center gap-5 mb-6">
-                {' '}
                 <div onClick={() => router.back()}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mb-4 cursor-pointer text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                 </div>
-                {/* Breadcrumb Navigation */}{' '}
+                {/* Breadcrumb Navigation */}
                 <ul className="flex space-x-2 rtl:space-x-reverse mb-4">
                     <li>
                         <Link href="/" className="text-primary hover:underline">
@@ -97,12 +96,12 @@ const UserPreview = () => {
                         <span>{t('preview')}</span>
                     </li>
                 </ul>
-            </div>{' '}
+            </div>
             {alert.visible && (
                 <div className="mb-4">
                     <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />
                 </div>
-            )}{' '}
+            )}
             {/* General Information */}
             <div className="mb-6 rounded-md border border-[#ebedf2] bg-white p-4 dark:border-[#191e3a] dark:bg-black">
                 <h6 className="mb-5 text-lg font-bold">{t('general_information')}</h6>
@@ -112,7 +111,6 @@ const UserPreview = () => {
                     </div>
                     <div className="grid flex-1 grid-cols-1 gap-5 sm:grid-cols-2">
                         <div>
-                            {' '}
                             <label className="block text-sm font-bold text-gray-700 dark:text-white">{t('full_name')}</label>
                             <p className="mt-1 text-base text-gray-800 dark:text-gray-400">{user.full_name || t('not_available')}</p>
                         </div>
@@ -154,7 +152,7 @@ const UserPreview = () => {
                         </div>
                     </div>
                 </div>
-            </div>{' '}
+            </div>
             {/* Social Information */}
             <div className="rounded-md border border-[#ebedf2] bg-white p-4 dark:border-[#191e3a] dark:bg-black">
                 <h6 className="mb-5 text-lg font-bold">{t('social')}</h6>

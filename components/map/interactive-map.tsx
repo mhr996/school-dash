@@ -77,13 +77,13 @@ const InteractiveMap: React.FC<InteractiveMapProps> = ({ position = null, zoom =
                         },
                     }}
                 />
-              
+
                 <div className="leaflet-bottom leaflet-left mb-1 ml-1">
                     <div className="leaflet-control leaflet-control-attribution bg-white bg-opacity-80 dark:bg-gray-800 dark:bg-opacity-80 px-1 py-0.5 text-xs">
-                        &copy;{' '}
+                        &copy;
                         <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
                             OpenStreetMap
-                        </a>{' '}
+                        </a>
                         contributors
                     </div>
                 </div>
