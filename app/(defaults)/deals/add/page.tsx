@@ -62,9 +62,7 @@ const AddDeal = () => {
         title: '',
         notes: '',
         selling_price: '',
-    });
-
-    // Form state for exchange deal
+    }); // Form state for exchange deal
     const [exchangeForm, setExchangeForm] = useState({
         title: '',
         notes: '',
@@ -76,6 +74,15 @@ const AddDeal = () => {
         old_car_condition: '', // يد
         old_car_market_price: '',
         old_car_purchase_price: '',
+    });
+
+    // Form state for company commission deal
+    const [companyCommissionForm, setCompanyCommissionForm] = useState({
+        title: '',
+        company_name: '', // اسم الشركة المقدمه للعموله
+        commission_date: '', // التاريخ
+        amount: '', // المبلغ
+        description: '', // حول (تفاصيل العموله)
     }); // File uploads - unified for all document types
     const [dealFiles, setDealFiles] = useState<FileItem[]>([]);
 
@@ -107,10 +114,14 @@ const AddDeal = () => {
         const { name, value } = e.target;
         setSaleForm((prev) => ({ ...prev, [name]: value }));
     };
-
     const handleExchangeFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setExchangeForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleCompanyCommissionFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setCompanyCommissionForm((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleDealTypeChange = (type: string) => {
@@ -133,6 +144,13 @@ const AddDeal = () => {
             old_car_condition: '',
             old_car_market_price: '',
             old_car_purchase_price: '',
+        });
+        setCompanyCommissionForm({
+            title: '',
+            company_name: '',
+            commission_date: '',
+            amount: '',
+            description: '',
         });
         setDealFiles([]);
     };
@@ -161,7 +179,6 @@ const AddDeal = () => {
         }
         return true;
     };
-
     const validateExchangeForm = () => {
         if (!selectedCustomer) {
             setAlert({ visible: true, message: t('customer_required'), type: 'danger' });
@@ -182,6 +199,26 @@ const AddDeal = () => {
         return true;
     };
 
+    const validateCompanyCommissionForm = () => {
+        if (!companyCommissionForm.title.trim()) {
+            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            return false;
+        }
+        if (!companyCommissionForm.company_name.trim()) {
+            setAlert({ visible: true, message: t('company_name_required'), type: 'danger' });
+            return false;
+        }
+        if (!companyCommissionForm.commission_date) {
+            setAlert({ visible: true, message: t('commission_date_required'), type: 'danger' });
+            return false;
+        }
+        if (!companyCommissionForm.amount || parseFloat(companyCommissionForm.amount) <= 0) {
+            setAlert({ visible: true, message: t('company_commission_amount_required'), type: 'danger' });
+            return false;
+        }
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -193,6 +230,9 @@ const AddDeal = () => {
             return;
         }
         if (dealType === 'exchange' && !validateExchangeForm()) {
+            return;
+        }
+        if (dealType === 'company_commission' && !validateCompanyCommissionForm()) {
             return;
         }
 
@@ -240,7 +280,6 @@ const AddDeal = () => {
                     notes: saleForm.notes.trim(),
                 };
             }
-
             if (dealType === 'exchange') {
                 const exchangeAmount = selectedCar ? selectedCar.sale_price - parseFloat(exchangeForm.old_car_purchase_price || '0') : 0;
                 dealData = {
@@ -290,6 +329,27 @@ const AddDeal = () => {
                         },
                     },
                     notes: exchangeForm.notes.trim(),
+                };
+            }
+
+            if (dealType === 'company_commission') {
+                dealData = {
+                    ...dealData,
+                    title: companyCommissionForm.title.trim(),
+                    description: companyCommissionForm.description.trim() || `${t('company_commission_deal_description')} ${companyCommissionForm.company_name}`,
+                    amount: parseFloat(companyCommissionForm.amount),
+                    deal_data: {
+                        company_commission_details: {
+                            company_name: companyCommissionForm.company_name.trim(),
+                            commission_date: companyCommissionForm.commission_date,
+                            amount: parseFloat(companyCommissionForm.amount),
+                            description: companyCommissionForm.description.trim(),
+                        },
+                        attachments: {
+                            total_files: dealFiles.length,
+                        },
+                    },
+                    notes: companyCommissionForm.description.trim(),
                 };
             }
 
@@ -810,6 +870,118 @@ const AddDeal = () => {
                         accept="image/*,.pdf,.doc,.docx"
                     />
                 </div>
+            </div>{' '}
+        </div>
+    );
+
+    const renderCompanyCommissionForm = () => (
+        <div className="space-y-8">
+            {/* Company Commission Details */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconDollarSign className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('company_commission_details')}</h5>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Deal Title */}
+                    <div className="md:col-span-2">
+                        <label htmlFor="title" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('deal_title')} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            value={companyCommissionForm.title}
+                            onChange={handleCompanyCommissionFormChange}
+                            className="form-input"
+                            placeholder={t('enter_deal_title')}
+                        />
+                    </div>
+                    {/* Company Name */}
+                    <div>
+                        <label htmlFor="company_name" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('company_name')} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="company_name"
+                            name="company_name"
+                            value={companyCommissionForm.company_name}
+                            onChange={handleCompanyCommissionFormChange}
+                            className="form-input"
+                            placeholder={t('enter_company_name')}
+                        />
+                    </div>
+                    {/* Commission Date */}
+                    <div>
+                        <label htmlFor="commission_date" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('commission_date')} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="date"
+                            id="commission_date"
+                            name="commission_date"
+                            value={companyCommissionForm.commission_date}
+                            onChange={handleCompanyCommissionFormChange}
+                            className="form-input"
+                        />
+                    </div>{' '}
+                    {/* Commission Amount */}
+                    <div>
+                        <label htmlFor="amount" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('company_commission_amount')} <span className="text-red-500">*</span>
+                        </label>
+                        <div className="flex">
+                            <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
+                                $
+                            </span>
+                            <input
+                                type="number"
+                                id="amount"
+                                name="amount"
+                                step="0.01"
+                                min="0"
+                                value={companyCommissionForm.amount}
+                                onChange={handleCompanyCommissionFormChange}
+                                className="form-input ltr:rounded-l-none rtl:rounded-r-none"
+                                placeholder="0.00"
+                            />
+                        </div>
+                    </div>
+                    {/* Commission Description */}
+                    <div className="md:col-span-2">
+                        <label htmlFor="description" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('commission_description')}
+                        </label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            value={companyCommissionForm.description}
+                            onChange={handleCompanyCommissionFormChange}
+                            className="form-textarea min-h-[120px]"
+                            placeholder={t('enter_commission_description')}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* File Attachments */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconNotes className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('attachments')}</h5>
+                </div>
+                <div className="space-y-6">
+                    <FileUpload
+                        files={dealFiles}
+                        onFilesChange={setDealFiles}
+                        title={t('deal_documents')}
+                        description={t('upload_deal_documents_desc')}
+                        maxFiles={20}
+                        accept="image/*,.pdf,.doc,.docx"
+                    />
+                </div>
             </div>
         </div>
     );
@@ -864,12 +1036,13 @@ const AddDeal = () => {
                         <p className="text-gray-600 dark:text-gray-400 mt-2">{t('select_deal_type_desc')}</p>
                     </div>
                     <DealTypeSelect defaultValue={dealType} className="form-input text-lg py-3 bg-white dark:bg-black" name="deal_type" onChange={handleDealTypeChange} />
-                </div>
+                </div>{' '}
                 {/* Render form based on deal type */}
                 {dealType === 'new_used_sale' && renderNewUsedSaleForm()}
                 {dealType === 'exchange' && renderExchangeForm()}
+                {dealType === 'company_commission' && renderCompanyCommissionForm()}
                 {/* Other deal types placeholder */}
-                {dealType && dealType !== 'new_used_sale' && dealType !== 'exchange' && (
+                {dealType && dealType !== 'new_used_sale' && dealType !== 'exchange' && dealType !== 'company_commission' && (
                     <div className="panel">
                         <div className="text-center py-12">
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t(`deal_type_${dealType}`)}</h3>

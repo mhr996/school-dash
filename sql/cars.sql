@@ -12,11 +12,16 @@ CREATE TABLE IF NOT EXISTS cars (
     kilometers DECIMAL(10,2) DEFAULT 0.00,
     market_price DECIMAL(12,2) DEFAULT 0.00,
     value_price DECIMAL(12,2) DEFAULT 0.00,
-    sale_price DECIMAL(12,2) DEFAULT 0.00,
-    images TEXT[] DEFAULT '{}',
+    sale_price DECIMAL(12,2) DEFAULT 0.00,    images TEXT[] DEFAULT '{}',
     colors JSONB DEFAULT '[]'::jsonb,
     desc TEXT, -- New description field
-    features JSONB DEFAULT '[]'::jsonb -- New features field as array of objects
+    features JSONB DEFAULT '[]'::jsonb, -- New features field as array of objects
+    -- Home page display settings
+    show_in_sales BOOLEAN DEFAULT FALSE,
+    show_in_featured BOOLEAN DEFAULT FALSE,
+    show_in_new_car BOOLEAN DEFAULT FALSE,
+    show_in_used_car BOOLEAN DEFAULT FALSE,
+    show_in_luxery_car BOOLEAN DEFAULT FALSE
 );
 
 -- Create updated_at trigger for cars table
@@ -40,6 +45,12 @@ CREATE INDEX IF NOT EXISTS idx_cars_status ON cars(status);
 CREATE INDEX IF NOT EXISTS idx_cars_year ON cars(year);
 CREATE INDEX IF NOT EXISTS idx_cars_created_at ON cars(created_at);
 CREATE INDEX IF NOT EXISTS idx_cars_provider ON cars(provider);
+-- Indexes for home page display settings
+CREATE INDEX IF NOT EXISTS idx_cars_show_in_sales ON cars(show_in_sales);
+CREATE INDEX IF NOT EXISTS idx_cars_show_in_featured ON cars(show_in_featured);
+CREATE INDEX IF NOT EXISTS idx_cars_show_in_new_car ON cars(show_in_new_car);
+CREATE INDEX IF NOT EXISTS idx_cars_show_in_used_car ON cars(show_in_used_car);
+CREATE INDEX IF NOT EXISTS idx_cars_show_in_luxery_car ON cars(show_in_luxery_car);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE cars ENABLE ROW LEVEL SECURITY;

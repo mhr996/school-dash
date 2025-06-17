@@ -24,9 +24,10 @@ interface CarSelectProps {
     selectedCar?: Car | null;
     onCarSelect: (car: Car | null) => void;
     className?: string;
+    availableCars?: Car[]; // Optional prop to pass pre-filtered cars
 }
 
-const CarSelect = ({ selectedCar, onCarSelect, className = 'form-select' }: CarSelectProps) => {
+const CarSelect = ({ selectedCar, onCarSelect, className = 'form-select', availableCars }: CarSelectProps) => {
     const { t } = getTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [cars, setCars] = useState<Car[]>([]);
@@ -36,20 +37,24 @@ const CarSelect = ({ selectedCar, onCarSelect, className = 'form-select' }: CarS
     const wrapperRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (isOpen && cars.length === 0) {
+        if (availableCars) {
+            // Use provided cars instead of fetching
+            setCars(availableCars);
+            setFilteredCars(availableCars);
+        } else if (isOpen && cars.length === 0) {
             fetchCars();
         }
-    }, [isOpen]);
-
+    }, [isOpen, availableCars]);
     useEffect(() => {
-        const filtered = cars.filter(
+        const carsToFilter = availableCars || cars;
+        const filtered = carsToFilter.filter(
             (car) =>
                 car.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 car.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 car.provider.toLowerCase().includes(searchTerm.toLowerCase()),
         );
         setFilteredCars(filtered);
-    }, [cars, searchTerm]);
+    }, [cars, searchTerm, availableCars]);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
