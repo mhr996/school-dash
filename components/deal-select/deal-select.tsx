@@ -106,8 +106,8 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                 <span className="truncate">{selectedDeal.customer?.name || t('no_customer')}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                                <IconDollarSign className="w-3 h-3" />
-                                <span>{new Intl.NumberFormat('ar-AE', { style: 'currency', currency: 'AED' }).format(selectedDeal.amount)}</span>
+                              
+                                <span>{"$" + selectedDeal.amount}</span>
                             </div>
                         </div>
                     </div>
@@ -163,8 +163,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                             </div>
                                             <div className="text-right">
                                                 <div className="flex items-center gap-1 text-lg font-bold text-green-600 dark:text-green-400">
-                                                    <IconDollarSign className="w-4 h-4" />
-                                                    <span>{new Intl.NumberFormat('ar-AE', { style: 'currency', currency: 'AED' }).format(deal.amount)}</span>
+                                                    <span>{"$" + deal.amount}</span>
                                                 </div>
                                             </div>
                                         </div>

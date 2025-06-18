@@ -86,7 +86,7 @@ const PaymentTypeSelect = ({ defaultValue = '', className = 'form-select text-wh
         if (selected) {
             const IconComponent = selected.icon;
             return (
-                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 ${selected.bgColor} ${selected.borderColor} border`}>
+                <div className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200`}>
                     <div className={`p-2 rounded-full ${selected.bgColor}`}>
                         <IconComponent className={`w-4 h-4 ${selected.color}`} />
                     </div>

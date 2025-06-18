@@ -278,7 +278,7 @@ const AddBill = () => {
 
     const populateFormFromDeal = (deal: Deal) => {
         if (!deal) return;
-        
+
         setBillForm((prev) => ({
             ...prev,
             customer_name: deal.customer?.name || '',
@@ -343,7 +343,8 @@ const AddBill = () => {
                     <div className="mb-5 flex items-center gap-3">
                         <IconMenuWidgets className="w-5 h-5 text-primary" />
                         <h5 className="text-xl font-bold text-primary dark:text-white-light">{t('select_deal')}</h5>
-                    </div>                    <div className="space-y-4">
+                    </div>{' '}
+                    <div className="space-y-4">
                         <DealSelect
                             deals={deals}
                             selectedDeal={selectedDeal}
@@ -371,12 +372,7 @@ const AddBill = () => {
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</label>
-                                    <p className="text-sm text-gray-900 dark:text-white">
-                                        {new Intl.NumberFormat('ar-AE', {
-                                            style: 'currency',
-                                            currency: 'AED',
-                                        }).format(selectedDeal.amount)}
-                                    </p>
+                                    <p className="text-sm text-gray-900 dark:text-white">{'$' + selectedDeal.amount}</p>
                                 </div>{' '}
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('car')}</label>
@@ -393,12 +389,9 @@ const AddBill = () => {
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_type')}</h5>
-                        </div>                        <div className="space-y-4">
-                            <BillTypeSelect
-                                defaultValue={billForm.bill_type}
-                                onChange={(billType) => handleFormChange({ target: { name: 'bill_type', value: billType } } as any)}
-                                className="w-full"
-                            />
+                        </div>{' '}
+                        <div className="space-y-4">
+                            <BillTypeSelect defaultValue={billForm.bill_type} onChange={(billType) => handleFormChange({ target: { name: 'bill_type', value: billType } } as any)} className="w-full" />
                         </div>
                     </div>
                 )}
@@ -466,7 +459,9 @@ const AddBill = () => {
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('receipt_details')}</h5>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">                            <div className="md:col-span-2 lg:col-span-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {' '}
+                            <div className="md:col-span-2 lg:col-span-3">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment_type')}</label>
                                 <PaymentTypeSelect
                                     defaultValue={billForm.payment_type}
@@ -474,7 +469,6 @@ const AddBill = () => {
                                     className="w-full"
                                 />
                             </div>
-
                             {/* Payment Type Specific Fields */}
                             {billForm.payment_type === 'visa' && (
                                 <>
@@ -511,7 +505,6 @@ const AddBill = () => {
                                     </div>
                                 </>
                             )}
-
                             {billForm.payment_type === 'bank_transfer' && (
                                 <>
                                     <div>
@@ -540,7 +533,6 @@ const AddBill = () => {
                                     </div>
                                 </>
                             )}
-
                             {billForm.payment_type === 'transfer' && (
                                 <>
                                     <div>
@@ -599,7 +591,6 @@ const AddBill = () => {
                                     </div>
                                 </>
                             )}
-
                             {billForm.payment_type === 'check' && (
                                 <>
                                     <div>
@@ -662,12 +653,9 @@ const AddBill = () => {
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_status')}</h5>
-                        </div>                        <div className="space-y-4">
-                            <BillStatusSelect
-                                defaultValue={billForm.status}
-                                onChange={(status) => handleFormChange({ target: { name: 'status', value: status } } as any)}
-                                className="w-full"
-                            />
+                        </div>{' '}
+                        <div className="space-y-4">
+                            <BillStatusSelect defaultValue={billForm.status} onChange={(status) => handleFormChange({ target: { name: 'status', value: status } } as any)} className="w-full" />
                         </div>
                     </div>
                 )}
