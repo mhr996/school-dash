@@ -192,7 +192,7 @@ const CarsList = () => {
                     <DataTable
                         className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
                         records={records}
-                        columns={[
+                        columns={[ 
                             {
                                 accessor: 'id',
                                 title: t('id'),

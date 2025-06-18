@@ -275,6 +275,7 @@ const Bills = () => {
                         onSelectedRecordsChange={setSelectedRecords}
                         className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
                         highlightOnHover
+                        minHeight={300}
                     />
                 </div>
             </div>

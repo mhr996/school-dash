@@ -853,5 +853,8 @@
     "deal_status_completed": "Completed",
     "deal_status_cancelled": "Cancelled",
     "deal_status": "Deal Status",
-    "select_deal_status_desc": "Choose the current status of this deal"
+    "select_deal_status_desc": "Choose the current status of this deal",
+    "error_loading_deals": "Error loading deals",
+    "no_customer": "No Customer",
+    "no_car": "No Car"
 }

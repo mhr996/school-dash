@@ -8,23 +8,40 @@ import { getTranslation } from '@/i18n';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconUser from '@/components/icon/icon-user';
 import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
+import DealSelect from '@/components/deal-select/deal-select';
+import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
+import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
+import BillStatusSelect from '@/components/bill-status-select/bill-status-select';
 
 interface Deal {
-    id: string;
+    id: number;
     title: string;
     deal_type: string;
     amount: number;
-    customer_id: string;
+    status: string;
+    customer_id?: number;
+    customer_name?: string;
+    car_id?: number;
     customer?: {
+        id: number;
         name: string;
         phone: string;
-        identity_number: string;
+        email?: string;
+        country?: string;
+        age?: number;
     };
-    car_id: string;
     car?: {
+        id: number;
         title: string;
         brand: string;
         year: number;
+        status: string;
+        type?: string;
+        provider: string;
+        kilometers: number;
+        market_price: number;
+        value_price: number;
+        sale_price: number;
     };
 }
 
@@ -85,7 +102,6 @@ const AddBill = () => {
     useEffect(() => {
         fetchDeals();
     }, []);
-
     const fetchDeals = async () => {
         try {
             const { data, error } = await supabase
@@ -93,7 +109,7 @@ const AddBill = () => {
                 .select(
                     `
                     *,
-                    customer:customers(*),
+                    customer:customers!deals_customer_id_fkey(*),
                     car:cars(*)
                 `,
                 )
@@ -101,23 +117,32 @@ const AddBill = () => {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            setDeals(data || []);
+
+            // Process the data to ensure we have proper fallbacks
+            const processedDeals = (data || []).map((deal) => ({
+                ...deal,
+                customer: deal.customer || null,
+                car: deal.car || null,
+            }));
+
+            setDeals(processedDeals);
+            console.log('Fetched deals:', processedDeals);
         } catch (error) {
             console.error('Error fetching deals:', error);
+            setAlert({ visible: true, message: t('error_loading_deals'), type: 'danger' });
         }
     };
-
     const handleDealSelect = (dealId: string) => {
-        const deal = deals.find((d) => d.id === dealId);
+        const deal = deals.find((d) => d.id.toString() === dealId);
         if (deal) {
             setSelectedDeal(deal);
             // Auto-fill form with deal data
             setBillForm((prev) => ({
                 ...prev,
                 customer_name: deal.customer?.name || '',
-                identity_number: deal.customer?.identity_number || '',
+                identity_number: '', // This field doesn't exist in the customer interface
                 phone: deal.customer?.phone || '',
-                car_details: `${deal.car?.brand} ${deal.car?.title} ${deal.car?.year}`,
+                car_details: deal.car ? `${deal.car.brand} ${deal.car.title} ${deal.car.year}` : '',
                 sale_price: deal.amount?.toString() || '',
             }));
         }
@@ -299,25 +324,27 @@ const AddBill = () => {
                     <div className="mb-5 flex items-center gap-3">
                         <IconMenuWidgets className="w-5 h-5 text-primary" />
                         <h5 className="text-xl font-bold text-primary dark:text-white-light">{t('select_deal')}</h5>
-                    </div>
-                    <div className="space-y-4">
-                        <select value={selectedDeal?.id || ''} onChange={(e) => handleDealSelect(e.target.value)} className="form-select text-lg py-3" required>
-                            <option value="">{t('select_deal')}</option>
-                            {deals.map((deal) => (
-                                <option key={deal.id} value={deal.id}>
-                                    {deal.title} - {deal.customer?.name} - {t(`deal_type_${deal.deal_type}`)}
-                                </option>
-                            ))}
-                        </select>
+                    </div>                    <div className="space-y-4">
+                        <DealSelect
+                            deals={deals}
+                            selectedDeal={selectedDeal}
+                            onChange={(deal) => {
+                                setSelectedDeal(deal);
+                                if (deal) {
+                                    populateFormFromDeal(deal);
+                                }
+                            }}
+                            className="w-full"
+                        />
                         {selectedDeal && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-white dark:bg-gray-800 rounded-lg border">
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_title')}</label>
                                     <p className="text-sm text-gray-900 dark:text-white">{selectedDeal.title}</p>
-                                </div>
+                                </div>{' '}
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_name')}</label>
-                                    <p className="text-sm text-gray-900 dark:text-white">{selectedDeal.customer?.name}</p>
+                                    <p className="text-sm text-gray-900 dark:text-white">{selectedDeal.customer?.name || t('no_customer')}</p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_type')}</label>
@@ -331,12 +358,10 @@ const AddBill = () => {
                                             currency: 'AED',
                                         }).format(selectedDeal.amount)}
                                     </p>
-                                </div>
+                                </div>{' '}
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('car')}</label>
-                                    <p className="text-sm text-gray-900 dark:text-white">
-                                        {selectedDeal.car?.brand} {selectedDeal.car?.title}
-                                    </p>
+                                    <p className="text-sm text-gray-900 dark:text-white">{selectedDeal.car ? `${selectedDeal.car.brand} ${selectedDeal.car.title}` : t('no_car')}</p>
                                 </div>
                             </div>
                         )}
@@ -349,14 +374,12 @@ const AddBill = () => {
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_type')}</h5>
-                        </div>
-                        <div className="space-y-4">
-                            <select name="bill_type" value={billForm.bill_type} onChange={handleFormChange} className="form-select" required>
-                                <option value="">{t('select_bill_type')}</option>
-                                <option value="tax_invoice">{t('tax_invoice_only')}</option>
-                                <option value="receipt_only">{t('receipt_only')}</option>
-                                <option value="tax_invoice_receipt">{t('tax_invoice_and_receipt')}</option>
-                            </select>
+                        </div>                        <div className="space-y-4">
+                            <BillTypeSelect
+                                defaultValue={billForm.bill_type}
+                                onChange={(billType) => handleFormChange({ target: { name: 'bill_type', value: billType } } as any)}
+                                className="w-full"
+                            />
                         </div>
                     </div>
                 )}
@@ -424,16 +447,13 @@ const AddBill = () => {
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('receipt_details')}</h5>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div className="md:col-span-2 lg:col-span-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">                            <div className="md:col-span-2 lg:col-span-3">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment_type')}</label>
-                                <select name="payment_type" value={billForm.payment_type} onChange={handleFormChange} className="form-select">
-                                    <option value="">{t('select_payment_type')}</option>
-                                    <option value="visa">{t('visa_card')}</option>
-                                    <option value="bank_transfer">{t('bank_transfer')}</option>
-                                    <option value="transfer">{t('transfer')}</option>
-                                    <option value="check">{t('check')}</option>
-                                </select>
+                                <PaymentTypeSelect
+                                    defaultValue={billForm.payment_type}
+                                    onChange={(paymentType) => handleFormChange({ target: { name: 'payment_type', value: paymentType } } as any)}
+                                    className="w-full"
+                                />
                             </div>
 
                             {/* Payment Type Specific Fields */}
@@ -623,13 +643,12 @@ const AddBill = () => {
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_status')}</h5>
-                        </div>
-                        <div className="space-y-4">
-                            <select name="status" value={billForm.status} onChange={handleFormChange} className="form-select">
-                                <option value="pending">{t('bill_status_pending')}</option>
-                                <option value="paid">{t('bill_status_paid')}</option>
-                                <option value="overdue">{t('bill_status_overdue')}</option>
-                            </select>
+                        </div>                        <div className="space-y-4">
+                            <BillStatusSelect
+                                defaultValue={billForm.status}
+                                onChange={(status) => handleFormChange({ target: { name: 'status', value: status } } as any)}
+                                className="w-full"
+                            />
                         </div>
                     </div>
                 )}
