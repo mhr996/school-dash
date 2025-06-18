@@ -7,6 +7,8 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import DealTypeSelect from '@/components/deal-type-select/deal-type-select';
 import DealStatusSelect from '@/components/deal-status-select/deal-status-select';
+import CustomerSelect from '@/components/customer-select/customer-select';
+import CarSelect from '@/components/car-select/car-select';
 
 interface Deal {
     id: string;
@@ -17,6 +19,30 @@ interface Deal {
     amount: number;
     status: string;
     customer_id?: string;
+    car_id?: string;
+}
+
+interface Customer {
+    id: string;
+    name: string;
+    phone: string;
+    country: string;
+    age: number;
+}
+
+interface Car {
+    id: string;
+    title: string;
+    year: number;
+    brand: string;
+    status: string;
+    type?: string;
+    provider: string;
+    kilometers: number;
+    market_price: number;
+    value_price: number;
+    sale_price: number;
+    images: string[] | string;
 }
 
 const EditDeal = ({ params }: { params: { id: string } }) => {
@@ -25,6 +51,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
     const [deal, setDeal] = useState<Deal | null>(null);
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [selectedCar, setSelectedCar] = useState<Car | null>(null);
     const dealId = params.id;
 
     const [dealType, setDealType] = useState('');
@@ -34,6 +62,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         amount: '',
         status: '',
         customer_id: '',
+        car_id: '',
     });
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -48,7 +77,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 const { data, error } = await supabase.from('deals').select('*').eq('id', dealId).single();
 
                 if (error) throw error;
-
                 if (data) {
                     setDeal(data);
                     setDealType(data.deal_type || '');
@@ -58,7 +86,24 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         amount: data.amount?.toString() || '0',
                         status: data.status || 'active',
                         customer_id: data.customer_id || '',
+                        car_id: data.car_id || '',
                     });
+
+                    // Fetch customer details if customer_id exists
+                    if (data.customer_id) {
+                        const { data: customerData } = await supabase.from('customers').select('*').eq('id', data.customer_id).single();
+                        if (customerData) {
+                            setSelectedCustomer(customerData);
+                        }
+                    }
+
+                    // Fetch car details if car_id exists
+                    if (data.car_id) {
+                        const { data: carData } = await supabase.from('cars').select('*').eq('id', data.car_id).single();
+                        if (carData) {
+                            setSelectedCar(carData);
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching deal:', error);
@@ -80,9 +125,24 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const handleDealTypeChange = (type: string) => {
         setDealType(type);
     };
-
     const handleStatusChange = (status: string) => {
         setForm((prev) => ({ ...prev, status }));
+    };
+
+    const handleCustomerSelect = (customer: Customer | null) => {
+        setSelectedCustomer(customer);
+        setForm((prev) => ({ ...prev, customer_id: customer?.id || '' }));
+    };
+
+    const handleCarSelect = (car: Car | null) => {
+        setSelectedCar(car);
+        setForm((prev) => ({ ...prev, car_id: car?.id || '' }));
+    };
+
+    const handleCreateNewCustomer = () => {
+        // Navigate to create customer page
+        // This can be implemented later
+        console.log('Create new customer');
     };
 
     const validateForm = () => {
@@ -119,6 +179,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 amount: form.amount ? parseFloat(form.amount) : 0,
                 status: form.status,
                 customer_id: form.customer_id || null,
+                car_id: form.car_id || null,
             };
 
             const { error } = await supabase.from('deals').update(dealData).eq('id', dealId);
@@ -271,7 +332,22 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                             <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('deal_status')}
                             </label>
-                            <DealStatusSelect defaultValue={form.status} className="form-select" name="status" onChange={handleStatusChange} />
+                            <DealStatusSelect defaultValue={form.status} className="form-select" name="status" onChange={handleStatusChange} />{' '}
+                        </div>
+                    </div>
+
+                    {/* Customer and Car Selection */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {/* Customer Selector */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('customer')}</label>
+                            <CustomerSelect selectedCustomer={selectedCustomer} onCustomerSelect={handleCustomerSelect} onCreateNew={handleCreateNewCustomer} className="form-input" />
+                        </div>
+
+                        {/* Car Selector */}
+                        <div>
+                            <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('car')}</label>
+                            <CarSelect selectedCar={selectedCar} onCarSelect={handleCarSelect} className="form-input" />
                         </div>
                     </div>
 

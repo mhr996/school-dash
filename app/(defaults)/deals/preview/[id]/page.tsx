@@ -2,12 +2,17 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import IconEdit from '@/components/icon/icon-edit';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconUser from '@/components/icon/icon-user';
+import IconCar from '@/components/icon/icon-car';
+import IconPhone from '@/components/icon/icon-phone';
+import IconMapPin from '@/components/icon/icon-map-pin';
 
 interface Deal {
     id: string;
@@ -19,6 +24,30 @@ interface Deal {
     status: string;
     customer_id?: string;
     customer_name?: string;
+    car_id?: string;
+}
+
+interface Customer {
+    id: string;
+    name: string;
+    phone: string;
+    country: string;
+    age: number;
+}
+
+interface Car {
+    id: string;
+    title: string;
+    year: number;
+    brand: string;
+    status: string;
+    type?: string;
+    provider: string;
+    kilometers: number;
+    market_price: number;
+    value_price: number;
+    sale_price: number;
+    images: string[] | string;
 }
 
 const PreviewDeal = ({ params }: { params: { id: string } }) => {
@@ -26,6 +55,9 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [deal, setDeal] = useState<Deal | null>(null);
+    const [customer, setCustomer] = useState<Customer | null>(null);
+    const [car, setCar] = useState<Car | null>(null);
+    const [carImageUrl, setCarImageUrl] = useState<string | null>(null);
     const dealId = params.id;
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -33,7 +65,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
         message: '',
         type: 'success',
     });
-
     useEffect(() => {
         const fetchDeal = async () => {
             try {
@@ -43,6 +74,25 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
 
                 if (data) {
                     setDeal(data);
+
+                    // Fetch customer details if customer_id exists
+                    if (data.customer_id) {
+                        const { data: customerData } = await supabase.from('customers').select('*').eq('id', data.customer_id).single();
+                        if (customerData) {
+                            setCustomer(customerData);
+                        }
+                    } // Fetch car details if car_id exists
+                    if (data.car_id) {
+                        const { data: carData } = await supabase.from('cars').select('*').eq('id', data.car_id).single();
+                        if (carData) {
+                            setCar(carData);
+                            // Get car image URL
+                            if (carData.images && carData.images.length > 0) {
+                                const imageUrl = await getCarImageUrl(carData.images);
+                                setCarImageUrl(imageUrl);
+                            }
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching deal:', error);
@@ -56,7 +106,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             fetchDeal();
         }
     }, [dealId]);
-
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -64,6 +113,14 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
         }).format(value);
+    };
+    const getCarImageUrl = async (images: string[] | string | null) => {
+        if (!images) return null;
+        const imageArray = Array.isArray(images) ? images : [images];
+        if (imageArray.length === 0) return null;
+        const imagePath = imageArray[0];
+        const { data } = supabase.storage.from('cars').getPublicUrl(imagePath);
+        return data.publicUrl;
     };
 
     const getDealTypeBadgeClass = (type: string) => {
@@ -164,99 +221,187 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Content */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Deal Information */}
-                    <div className="panel">
-                        <div className="mb-5">
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_information')}</h5>
+            <div className="space-y-6">
+                {/* Deal Information */}
+                <div className="panel">
+                    <div className="mb-5">
+                        <h5 className="text-xl font-bold text-gray-900 dark:text-white-light">{t('deal_information')}</h5>
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="flex justify-center items-center flex-col gap-2">
+                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('deal_type')}</label>
+                                <span className={`badge ${getDealTypeBadgeClass(deal.deal_type)} mt-2 text-base px-3 py-2`}>{t(`deal_type_${deal.deal_type}`)}</span>
+                            </div>
+                            <div className="flex justify-center items-center flex-col gap-2">
+                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('status')}</label>
+                                <span className={`badge ${getStatusBadgeClass(deal.status)} text-base px-3 py-2`}>{t(`status_${deal.status}`)}</span>
+                            </div>
+                            <div className="flex justify-center items-center flex-col gap-2">
+                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('amount')}</label>
+                                <div className="flex items-center gap-2">
+                                    <IconDollarSign className="w-5 h-5 text-success" />
+                                    <span className="text-xl font-bold text-success">{formatCurrency(deal.amount)}</span>
+                                </div>
+                            </div>
+                            <div className="flex justify-center items-center flex-col gap-2">
+                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('created_date')}</label>
+                                <div className="flex items-center gap-2">
+                                    <IconCalendar className="w-5 h-5 text-primary" />
+                                    <span className="font-medium">{new Date(deal.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('deal_type')}</label>
-                                <span className={`badge ${getDealTypeBadgeClass(deal.deal_type)} text-lg px-4 py-2`}>{t(`deal_type_${deal.deal_type}`)}</span>
-                            </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">{t('deal_title')}</label>
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{deal.title}</h2>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('deal_title')}</label>
-                                <p className="text-gray-900 dark:text-white text-lg font-medium">{deal.title}</p>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('description')}</label>
-                                <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-                                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{deal.description}</p>
-                                </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">{t('description')}</label>
+                            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
+                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{deal.description}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Sidebar */}
-                <div className="space-y-6">
-                    {/* Status & Amount */}
+                {/* Customer Information */}
+                {customer && (
                     <div className="panel">
                         <div className="mb-5">
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_summary')}</h5>
+                            <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
+                                <IconUser className="w-6 h-6 text-primary" />
+                                {t('customer_information')}
+                            </h5>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">{t('status')}</span>
-                                <span className={`badge ${getStatusBadgeClass(deal.status)}`}>{t(`status_${deal.status}`)}</span>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">{t('amount')}</span>
-                                <div className="flex items-center gap-2">
-                                    <IconDollarSign className="w-4 h-4 text-success" />
-                                    <span className="text-lg font-bold text-success">{formatCurrency(deal.amount)}</span>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                                <div className="p-3 bg-primary/10 rounded-full">
+                                    <IconUser className="w-6 h-6 text-primary" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-gray-900 dark:text-white text-lg">{customer.name}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('customer_name')}</p>
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between">
-                                <span className="text-gray-600 dark:text-gray-400">{t('created_date')}</span>
-                                <div className="flex items-center gap-2">
-                                    <IconCalendar className="w-4 h-4 text-primary" />
-                                    <span>{new Date(deal.created_at).toLocaleDateString()}</span>
+                            {customer.phone && (
+                                <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                                    <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
+                                        <IconPhone className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-gray-900 dark:text-white text-lg">{customer.phone}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('phone_number')}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {customer.country && (
+                                <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                                    <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
+                                        <IconMapPin className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-gray-900 dark:text-white text-lg">{customer.country}</p>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('country')}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                                <div className="p-3 bg-amber-100 dark:bg-amber-900/20 rounded-full">
+                                    <IconUser className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div>
+                                    <p className="font-bold text-gray-900 dark:text-white text-lg">{customer.age}</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">{t('age')}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
+                )}
 
-                    {/* Customer Information */}
-                    {deal.customer_name && (
-                        <div className="panel">
-                            <div className="mb-5">
-                                <h5 className="text-lg font-semibold dark:text-white-light">{t('customer_information')}</h5>
+                {/* Car Information */}
+                {car && (
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
+                                <IconCar className="w-6 h-6 text-primary" />
+                                {t('car_information')}
+                            </h5>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Car Image and Basic Info */}
+                            <div className="flex flex-col md:flex-row gap-6 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                                <div className="flex-shrink-0">
+                                    {carImageUrl ? (
+                                        <img src={carImageUrl} alt={car.title} className="w-full md:w-[200px] h-[150px] rounded-lg object-cover" />
+                                    ) : (
+                                        <div className="w-full md:w-[200px] h-[150px] bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                                            <IconCar className="w-12 h-12 text-gray-400" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-2xl text-gray-900 dark:text-white mb-2">{car.title}</h3>
+                                    <p className="text-gray-600 dark:text-gray-400 text-lg mb-4">
+                                        {car.brand} • {car.year}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-4">
+                                        <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                            {car.kilometers.toLocaleString()} {t('km')}
+                                        </span>
+                                        <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                            {t('provider')}: {car.provider}
+                                        </span>
+                                        {car.type && (
+                                            <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                                {t('car_type')}: {car.type}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="space-y-3">
-                                <div>
-                                    <span className="text-gray-600 dark:text-gray-400">{t('customer_name')}</span>
-                                    <p className="font-medium">{deal.customer_name}</p>
+                            {/* Car Pricing */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <p className="text-blue-600 dark:text-blue-400 font-medium mb-2">{t('market_price')}</p>
+                                    <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{formatCurrency(car.market_price)}</p>
+                                </div>
+                                <div className="p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                                    <p className="text-emerald-600 dark:text-emerald-400 font-medium mb-2">{t('value_price')}</p>
+                                    <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(car.value_price)}</p>
+                                </div>
+                                <div className="p-6 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                    <p className="text-amber-600 dark:text-amber-400 font-medium mb-2">{t('sale_price')}</p>
+                                    <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">{formatCurrency(car.sale_price)}</p>
                                 </div>
                             </div>
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    {/* Actions */}
-                    <div className="panel">
-                        <div className="mb-5">
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('actions')}</h5>
-                        </div>
+                {/* Actions */}
+                <div className="panel">
+                    <div className="mb-5">
+                        <h5 className="text-xl font-bold text-gray-900 dark:text-white-light">{t('actions')}</h5>
+                    </div>
 
-                        <div className="space-y-3">
-                            <Link href={`/deals/edit/${deal.id}`} className="btn btn-primary w-full gap-2">
-                                <IconEdit className="w-4 h-4" />
-                                {t('edit_deal')}
-                            </Link>
-                            <Link href="/deals" className="btn btn-outline-secondary w-full">
-                                {t('back_to_deals')}
-                            </Link>
-                        </div>
+                    <div className="flex flex-wrap gap-4">
+                        <Link href={`/deals/edit/${deal.id}`} className="btn btn-primary gap-2">
+                            <IconEdit className="w-4 h-4" />
+                            {t('edit_deal')}
+                        </Link>
+                        <Link href="/deals" className="btn btn-outline-secondary">
+                            {t('back_to_deals')}
+                        </Link>
                     </div>
                 </div>
             </div>

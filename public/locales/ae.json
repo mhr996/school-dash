@@ -968,10 +968,12 @@
     "adding": "جاري الإضافة...",
     "add_car": "إضافة سيارة",
     "select_deal_status": "اختر حالة الصفقة",
-    "deal_status_pending": "في الانتظار",
+    "deal_status_pending": "قيد الانتظار",
+    "status_pending": "قيد الانتظار",
     "deal_status_active": "قيد التنفيذ",
     "deal_status_completed": "مكتملة",
     "deal_status_cancelled": "ملغية",
     "deal_status": "حالة الصفقة",
-    "select_deal_status_desc": "اختر الحالة الحالية لهذه الصفقة"
+    "select_deal_status_desc": "اختر الحالة الحالية لهذه الصفقة",
+    "phone_number": "رقم الهاتف"
 }
