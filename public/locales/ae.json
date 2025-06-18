@@ -962,10 +962,16 @@
     "add_car_to": "إضافة سيارة إلى",
     "no_cars_in_category": "لا توجد سيارات في هذه الفئة",
     "add_cars_to_category_description": "ابدأ بإضافة السيارات إلى هذه الفئة باستخدام المحدد أعلاه",
-    "car_removed_successfully": "تم حذف السيارة بنجاح",
     "error_removing_car": "خطأ في حذف السيارة",
     "error_loading_cars": "خطأ في تحميل السيارات",
     "remove_car": "حذف السيارة",
     "adding": "جاري الإضافة...",
-    "add_car": "إضافة سيارة"
+    "add_car": "إضافة سيارة",
+    "select_deal_status": "اختر حالة الصفقة",
+    "deal_status_pending": "في الانتظار",
+    "deal_status_active": "قيد التنفيذ",
+    "deal_status_completed": "مكتملة",
+    "deal_status_cancelled": "ملغية",
+    "deal_status": "حالة الصفقة",
+    "select_deal_status_desc": "اختر الحالة الحالية لهذه الصفقة"
 }

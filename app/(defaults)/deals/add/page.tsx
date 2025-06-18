@@ -6,6 +6,7 @@ import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import DealTypeSelect from '@/components/deal-type-select/deal-type-select';
+import DealStatusSelect from '@/components/deal-status-select/deal-status-select';
 import CustomerSelect from '@/components/customer-select/customer-select';
 import CarSelect from '@/components/car-select/car-select';
 import FileUpload from '@/components/file-upload/file-upload';
@@ -52,8 +53,8 @@ const AddDeal = () => {
     const router = useRouter();
     const [saving, setSaving] = useState(false);
     const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
-
     const [dealType, setDealType] = useState('');
+    const [dealStatus, setDealStatus] = useState('pending'); // Default to pending
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [selectedCar, setSelectedCar] = useState<Car | null>(null);
 
@@ -122,6 +123,10 @@ const AddDeal = () => {
     const handleCompanyCommissionFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setCompanyCommissionForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleDealStatusChange = (status: string) => {
+        setDealStatus(status);
     };
 
     const handleDealTypeChange = (type: string) => {
@@ -240,7 +245,7 @@ const AddDeal = () => {
         try {
             let dealData: any = {
                 deal_type: dealType,
-                status: 'active',
+                status: dealStatus,
                 customer_id: selectedCustomer?.id || null,
             };
 
@@ -1029,14 +1034,24 @@ const AddDeal = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Deal Type Selector - Prominent at the top */}
+                {/* Deal Type Selector - Prominent at the top */}{' '}
                 <div className="panel bg-gradient-to-r from-primary/10 to-secondary/10 border-2 border-primary/20">
                     <div className="mb-5">
                         <h5 className="text-xl font-bold text-primary dark:text-white-light">{t('select_deal_type')}</h5>
                         <p className="text-gray-600 dark:text-gray-400 mt-2">{t('select_deal_type_desc')}</p>
                     </div>
                     <DealTypeSelect defaultValue={dealType} className="form-input text-lg py-3 bg-white dark:bg-black" name="deal_type" onChange={handleDealTypeChange} />
-                </div>{' '}
+                </div>
+                {/* Deal Status Selector */}
+                {dealType && (
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h5 className="text-lg font-bold text-gray-900 dark:text-white-light">{t('deal_status')}</h5>
+                            <p className="text-gray-600 dark:text-gray-400 mt-2">{t('select_deal_status_desc')}</p>
+                        </div>
+                        <DealStatusSelect defaultValue={dealStatus} className="form-input" name="deal_status" onChange={handleDealStatusChange} />
+                    </div>
+                )}{' '}
                 {/* Render form based on deal type */}
                 {dealType === 'new_used_sale' && renderNewUsedSaleForm()}
                 {dealType === 'exchange' && renderExchangeForm()}

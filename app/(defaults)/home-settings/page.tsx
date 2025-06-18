@@ -138,6 +138,8 @@ const HomePageSettings = () => {
 
             if (allCarsError) throw allCarsError;
 
+            console.log('All Cars:', allCars);
+
             setAvailableCars(allCars || []);
 
             // Separate cars into their respective categories

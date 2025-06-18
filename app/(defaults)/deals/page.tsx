@@ -227,12 +227,6 @@ const DealsList = () => {
                                 render: ({ status }) => <span className={`badge ${getStatusBadgeClass(status)}`}>{t(`status_${status}`)}</span>,
                             },
                             {
-                                accessor: 'customer_name',
-                                title: t('customer'),
-                                sortable: true,
-                                render: ({ customer_name }) => <span>{customer_name || '-'}</span>,
-                            },
-                            {
                                 accessor: 'created_at',
                                 title: t('created_date'),
                                 sortable: true,

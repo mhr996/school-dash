@@ -593,5 +593,12 @@
     "error_removing_car": "שגיאה בהסרת הרכב",
     "error_loading_cars": "שגיאה בטעינת רכבים",
     "remove_car": "הסר רכב",
-    "adding": "מוסיף..."
+    "adding": "מוסיף...",
+    "select_deal_status": "בחר סטטוס עסקה",
+    "deal_status_pending": "ממתין",
+    "deal_status_active": "בביצוע",
+    "deal_status_completed": "הושלם",
+    "deal_status_cancelled": "בוטל",
+    "deal_status": "סטטוס עסקה",
+    "select_deal_status_desc": "בחר את הסטטוס הנוכחי של העסקה הזו"
 }

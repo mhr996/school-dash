@@ -6,6 +6,7 @@ import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import DealTypeSelect from '@/components/deal-type-select/deal-type-select';
+import DealStatusSelect from '@/components/deal-status-select/deal-status-select';
 
 interface Deal {
     id: string;
@@ -76,9 +77,12 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     };
-
     const handleDealTypeChange = (type: string) => {
         setDealType(type);
+    };
+
+    const handleStatusChange = (status: string) => {
+        setForm((prev) => ({ ...prev, status }));
     };
 
     const validateForm = () => {
@@ -225,7 +229,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                             </label>
                             <input type="text" id="title" name="title" value={form.title} onChange={handleInputChange} className="form-input" placeholder={t('enter_deal_title')} required />
                         </div>
-
                         {/* Description */}
                         <div className="md:col-span-2">
                             <label htmlFor="description" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -241,7 +244,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 required
                             />
                         </div>
-
                         {/* Amount */}
                         <div>
                             <label htmlFor="amount" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -263,18 +265,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     placeholder="0.00"
                                 />
                             </div>
-                        </div>
-
+                        </div>{' '}
                         {/* Status */}
                         <div>
                             <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('status')}
+                                {t('deal_status')}
                             </label>
-                            <select id="status" name="status" value={form.status} onChange={handleInputChange} className="form-select">
-                                <option value="active">{t('status_active')}</option>
-                                <option value="completed">{t('status_completed')}</option>
-                                <option value="cancelled">{t('status_cancelled')}</option>
-                            </select>
+                            <DealStatusSelect defaultValue={form.status} className="form-select" name="status" onChange={handleStatusChange} />
                         </div>
                     </div>
 

@@ -846,5 +846,12 @@
     "add_feature": "Add Feature",
     "remove_feature": "Remove Feature",
     "no_features_added": "No features added yet",
-    "features_tab": "Features"
+    "features_tab": "Features",
+    "select_deal_status": "Select Deal Status",
+    "deal_status_pending": "Pending",
+    "deal_status_active": "In Progress",
+    "deal_status_completed": "Completed",
+    "deal_status_cancelled": "Cancelled",
+    "deal_status": "Deal Status",
+    "select_deal_status_desc": "Choose the current status of this deal"
 }
