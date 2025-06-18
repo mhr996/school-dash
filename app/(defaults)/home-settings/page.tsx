@@ -244,14 +244,27 @@ const HomePageSettings = () => {
             maximumFractionDigits: 0,
         }).format(value);
     };
-
     const getCarImage = (car: Car) => {
-        if (Array.isArray(car.images) && car.images.length > 0) {
-            return car.images[0];
+        // Parse images array properly
+        let imagesList: string[] = [];
+        if (Array.isArray(car.images)) {
+            imagesList = car.images;
         } else if (typeof car.images === 'string' && car.images) {
-            return car.images;
+            try {
+                imagesList = JSON.parse(car.images);
+            } catch {
+                imagesList = [];
+            }
         }
-        return '/assets/images/car-placeholder.jpg';
+
+        // Get the first image (thumbnail) if available
+        if (imagesList.length > 0 && imagesList[0]) {
+            const { data } = supabase.storage.from('cars').getPublicUrl(imagesList[0]);
+            return data.publicUrl;
+        }
+
+        // Return null if no image - we'll handle this in the component
+        return null;
     };
 
     if (loading) {
@@ -395,14 +408,15 @@ const HomePageSettings = () => {
                                         key={car.id}
                                         className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow"
                                     >
+                                     
                                         {/* Car Image */}
                                         <div className="relative h-48">
                                             <img
-                                                src={getCarImage(car)}
+                                                src={getCarImage(car) || '/assets/images/img-placeholder-fallback.webp'}
                                                 alt={car.title}
-                                                className="w-full h-full object-cover"
+                                                className="w-full h-full object-contain"
                                                 onError={(e) => {
-                                                    e.currentTarget.src = '/assets/images/car-placeholder.jpg';
+                                                    e.currentTarget.src = '/assets/images/img-placeholder-fallback.webp';
                                                 }}
                                             />
                                             <button
@@ -414,7 +428,6 @@ const HomePageSettings = () => {
                                                 <IconTrash className="w-4 h-4" />
                                             </button>
                                         </div>
-
                                         {/* Car Details */}
                                         <div className="p-4">
                                             <h6 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-2">{car.title}</h6>
