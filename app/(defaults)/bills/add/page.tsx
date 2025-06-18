@@ -276,6 +276,25 @@ const AddBill = () => {
         }
     };
 
+    const populateFormFromDeal = (deal: Deal) => {
+        if (!deal) return;
+        
+        setBillForm((prev) => ({
+            ...prev,
+            customer_name: deal.customer?.name || '',
+            identity_number: '', // This field doesn't exist in the customer interface
+            phone: deal.customer?.phone || '',
+            car_details: deal.car ? `${deal.car.brand} ${deal.car.title} ${deal.car.year}` : '',
+            sale_price: deal.amount?.toString() || '',
+            // Calculate financials based on the sale price
+            total: deal.amount?.toString() || '',
+            tax_amount: (deal.amount * 0.18)?.toFixed(2) || '',
+            total_with_tax: (deal.amount * 1.18)?.toFixed(2) || '',
+            // Set default date to today if not already set
+            date: prev.date || new Date().toISOString().split('T')[0],
+        }));
+    };
+
     return (
         <div className="container mx-auto p-6">
             <div className="flex items-center gap-5 mb-6">
