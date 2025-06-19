@@ -33,14 +33,42 @@ interface Bill {
     id: string;
     deal_id: string;
     bill_type: string;
-    customer_name: string;
-    amount: number;
-    commission: number;
-    tax_amount: number;
-    total_amount: number;
     status: string;
+    customer_name: string;
+    identity_number?: string;
+    phone?: string;
+    date?: string;
+    car_details?: string;
+    sale_price?: number;
+    commission?: number;
+    free_text?: string;
+    total?: number;
+    tax_amount?: number;
+    total_with_tax?: number;
+    payment_type?: string;
+    visa_amount?: number;
+    visa_installments?: number;
+    visa_card_type?: string;
+    visa_last_four?: string;
+    bank_amount?: number;
+    bank_name?: string;
+    bank_branch?: string;
+    account_number?: string;
+    transfer_number?: string;
+    transfer_holder_name?: string;
+    transfer_amount?: number;
+    transfer_bank_name?: string;
+    transfer_branch?: string;
+    transfer_account_number?: string;
+    transfer_branch_number?: string;
+    check_amount?: number;
+    check_bank_name?: string;
+    check_branch_number?: string;
+    check_account_number?: string;
+    check_number?: string;
+    check_holder_name?: string;
+    check_branch?: string;
     created_at: string;
-    bill_data: any;
     deal?: Deal;
 }
 
@@ -66,7 +94,7 @@ const BillPreview = () => {
                     *,
                     deal:deals(
                         *,
-                        customer:customers(*),
+                        customer:customers!deals_customer_id_fkey(*),
                         car:cars(*)
                     )
                 `,
@@ -134,9 +162,6 @@ const BillPreview = () => {
         );
     }
 
-    const invoiceData = bill.bill_data?.invoice;
-    const receiptData = bill.bill_data?.receipt;
-
     return (
         <div className="container mx-auto p-6">
             {/* Header - Hide when printing */}
@@ -193,7 +218,7 @@ const BillPreview = () => {
                             <div className="space-y-3">
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">{t('bill_id')}:</span>
-                                    <span className="font-medium">#{bill.id.slice(-8).toUpperCase()}</span>
+                                    <span className="font-medium">#{bill.id}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">{t('bill_type')}:</span>
@@ -234,52 +259,31 @@ const BillPreview = () => {
                         </div>
                     </div>
                 </div>
-
                 {/* Financial Summary */}
                 <div className="panel">
                     <h2 className="text-xl font-bold text-primary mb-4">{t('financial_summary')}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                     
                         <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">
-                                {new Intl.NumberFormat('ar-AE', {
-                                    style: 'currency',
-                                    currency: 'AED',
-                                }).format(bill.amount)}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">{t('base_amount')}</div>
+                            <div className="text-2xl font-bold text-blue-600">${new Intl.NumberFormat('en-US').format(bill.sale_price || 0)}</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">{t('sale_price')}</div>
                         </div>
                         <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">
-                                {new Intl.NumberFormat('ar-AE', {
-                                    style: 'currency',
-                                    currency: 'AED',
-                                }).format(bill.commission || 0)}
-                            </div>
+                            <div className="text-2xl font-bold text-green-600">${new Intl.NumberFormat('en-US').format(bill.commission || 0)}</div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">{t('commission')}</div>
                         </div>
                         <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                            <div className="text-2xl font-bold text-yellow-600">
-                                {new Intl.NumberFormat('ar-AE', {
-                                    style: 'currency',
-                                    currency: 'AED',
-                                }).format(bill.tax_amount)}
-                            </div>
+                            <div className="text-2xl font-bold text-yellow-600">${new Intl.NumberFormat('en-US').format(bill.tax_amount || 0)}</div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">{t('tax_amount')}</div>
                         </div>
                         <div className="text-center p-4 bg-primary/10 rounded-lg">
-                            <div className="text-2xl font-bold text-primary">
-                                {new Intl.NumberFormat('ar-AE', {
-                                    style: 'currency',
-                                    currency: 'AED',
-                                }).format(bill.total_amount)}
-                            </div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">{t('total_amount')}</div>
+                            <div className="text-2xl font-bold text-primary">${new Intl.NumberFormat('en-US').format(bill.total_with_tax || 0)}</div>
+                            <div className="text-sm text-gray-600 dark:text-gray-400">{t('total_with_tax')}</div>
                         </div>
                     </div>
-                </div>
-
+                </div>{' '}
                 {/* Tax Invoice Details */}
-                {invoiceData && (
+                {(bill.bill_type === 'tax_invoice' || bill.bill_type === 'tax_invoice_receipt') && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconUser className="w-5 h-5 text-primary" />
@@ -288,36 +292,35 @@ const BillPreview = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('customer_name')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{invoiceData.customer_name}</p>
+                                <p className="text-sm text-gray-900 dark:text-white">{bill.customer_name}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('identity_number')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{invoiceData.identity_number || t('not_provided')}</p>
+                                <p className="text-sm text-gray-900 dark:text-white">{bill.identity_number || t('not_provided')}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{invoiceData.phone || t('not_provided')}</p>
+                                <p className="text-sm text-gray-900 dark:text-white">{bill.phone || t('not_provided')}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('date')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{new Date(invoiceData.date).toLocaleDateString()}</p>
+                                <p className="text-sm text-gray-900 dark:text-white">{bill.date ? new Date(bill.date).toLocaleDateString() : t('not_provided')}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('car_details')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{invoiceData.car_details}</p>
+                                <p className="text-sm text-gray-900 dark:text-white">{bill.car_details || t('not_provided')}</p>
                             </div>
-                            {invoiceData.free_text && (
+                            {bill.free_text && (
                                 <div className="md:col-span-2 lg:col-span-3">
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('free_text')}</label>
-                                    <p className="text-sm text-gray-900 dark:text-white">{invoiceData.free_text}</p>
+                                    <p className="text-sm text-gray-900 dark:text-white">{bill.free_text}</p>
                                 </div>
                             )}
                         </div>
                     </div>
-                )}
-
+                )}{' '}
                 {/* Receipt Details */}
-                {receiptData && receiptData.payment_type && (
+                {(bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') && bill.payment_type && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
@@ -326,83 +329,68 @@ const BillPreview = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('payment_type')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{t(receiptData.payment_type)}</p>
+                                <p className="text-sm text-gray-900 dark:text-white">{t(bill.payment_type)}</p>
                             </div>
 
-                            {receiptData.payment_type === 'visa' && (
+                            {bill.payment_type === 'visa' && (
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">
-                                            {new Intl.NumberFormat('ar-AE', {
-                                                style: 'currency',
-                                                currency: 'AED',
-                                            }).format(parseFloat(receiptData.visa_amount) || 0)}
-                                        </p>
+                                        <p className="text-sm text-gray-900 dark:text-white">${new Intl.NumberFormat('en-US').format(bill.visa_amount || 0)}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_installments')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{receiptData.visa_installments}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.visa_installments || t('not_provided')}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_card_type')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{receiptData.visa_card_type}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.visa_card_type || t('not_provided')}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_last_four')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">****{receiptData.visa_last_four}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.visa_last_four ? `****${bill.visa_last_four}` : t('not_provided')}</p>
                                     </div>
                                 </>
                             )}
 
-                            {receiptData.payment_type === 'bank_transfer' && (
+                            {bill.payment_type === 'bank_transfer' && (
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">
-                                            {new Intl.NumberFormat('ar-AE', {
-                                                style: 'currency',
-                                                currency: 'AED',
-                                            }).format(parseFloat(receiptData.bank_amount) || 0)}
-                                        </p>
+                                        <p className="text-sm text-gray-900 dark:text-white">${new Intl.NumberFormat('en-US').format(bill.bank_amount || 0)}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_name')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{receiptData.bank_name}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.bank_name || t('not_provided')}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_branch')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{receiptData.bank_branch}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.bank_branch || t('not_provided')}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('account_number')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{receiptData.account_number}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.account_number || t('not_provided')}</p>
                                     </div>
                                 </>
                             )}
 
-                            {receiptData.payment_type === 'check' && (
+                            {bill.payment_type === 'check' && (
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">
-                                            {new Intl.NumberFormat('ar-AE', {
-                                                style: 'currency',
-                                                currency: 'AED',
-                                            }).format(parseFloat(receiptData.check_amount) || 0)}
-                                        </p>
+                                        <p className="text-sm text-gray-900 dark:text-white">${new Intl.NumberFormat('en-US').format(bill.check_amount || 0)}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_number')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{receiptData.check_number}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.check_number || t('not_provided')}</p>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_bank_name')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{receiptData.check_bank_name}</p>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_bank_name')}</label>{' '}
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.check_bank_name || t('not_provided')}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_holder_name')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{receiptData.check_holder_name}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">{bill.check_holder_name || t('not_provided')}</p>
                                     </div>
                                 </>
                             )}

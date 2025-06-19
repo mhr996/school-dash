@@ -19,6 +19,7 @@ interface Bill {
     customer_name: string;
     amount: number;
     tax_amount: number;
+    total_with_tax: number;
     total_amount: number;
     status: string;
     created_at: string;
@@ -181,22 +182,10 @@ const Bills = () => {
             render: (bill: Bill) => <span className="badge badge-outline-info">{getBillTypeLabel(bill.bill_type)}</span>,
         },
         {
-            accessor: 'amount',
-            title: t('amount'),
-            sortable: true,
-            render: (bill: Bill) => <span className="font-medium">{new Intl.NumberFormat('ar-AE', { style: 'currency', currency: 'AED' }).format(bill.amount)}</span>,
-        },
-        {
-            accessor: 'tax_amount',
-            title: t('tax_amount'),
-            sortable: true,
-            render: (bill: Bill) => <span className="font-medium">{new Intl.NumberFormat('ar-AE', { style: 'currency', currency: 'AED' }).format(bill.tax_amount)}</span>,
-        },
-        {
-            accessor: 'total_amount',
+            accessor: 'total_with_tax',
             title: t('total_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className="font-bold">{new Intl.NumberFormat('ar-AE', { style: 'currency', currency: 'AED' }).format(bill.total_amount)}</span>,
+            render: (bill: Bill) => <span className="font-bold">{'$' + bill.total_with_tax}</span>,
         },
         {
             accessor: 'status',

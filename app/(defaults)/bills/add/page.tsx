@@ -190,68 +190,46 @@ const AddBill = () => {
         e.preventDefault();
 
         if (!validateForm()) return;
-
         setSaving(true);
         try {
             const billData = {
                 deal_id: selectedDeal?.id,
                 bill_type: billForm.bill_type,
-                customer_name: billForm.customer_name,
-                amount: parseFloat(billForm.sale_price) || 0,
-                commission: parseFloat(billForm.commission) || 0,
-                tax_amount: parseFloat(billForm.tax_amount) || 0,
-                total_amount: parseFloat(billForm.total_with_tax) || 0,
                 status: billForm.status,
-                bill_data: {
-                    invoice:
-                        billForm.bill_type === 'tax_invoice' || billForm.bill_type === 'tax_invoice_receipt'
-                            ? {
-                                  customer_name: billForm.customer_name,
-                                  identity_number: billForm.identity_number,
-                                  phone: billForm.phone,
-                                  date: billForm.date,
-                                  car_details: billForm.car_details,
-                                  sale_price: billForm.sale_price,
-                                  commission: billForm.commission,
-                                  free_text: billForm.free_text,
-                                  total: billForm.total,
-                                  tax_amount: billForm.tax_amount,
-                                  total_with_tax: billForm.total_with_tax,
-                              }
-                            : null,
-                    receipt:
-                        billForm.bill_type === 'receipt_only' || billForm.bill_type === 'tax_invoice_receipt'
-                            ? {
-                                  customer_name: billForm.customer_name,
-                                  identity_number: billForm.identity_number,
-                                  phone: billForm.phone,
-                                  date: billForm.date,
-                                  payment_type: billForm.payment_type,
-                                  visa_amount: billForm.visa_amount,
-                                  visa_installments: billForm.visa_installments,
-                                  visa_card_type: billForm.visa_card_type,
-                                  visa_last_four: billForm.visa_last_four,
-                                  bank_amount: billForm.bank_amount,
-                                  bank_name: billForm.bank_name,
-                                  bank_branch: billForm.bank_branch,
-                                  account_number: billForm.account_number,
-                                  transfer_number: billForm.transfer_number,
-                                  transfer_holder_name: billForm.transfer_holder_name,
-                                  transfer_amount: billForm.transfer_amount,
-                                  transfer_bank_name: billForm.transfer_bank_name,
-                                  transfer_branch: billForm.transfer_branch,
-                                  transfer_account_number: billForm.transfer_account_number,
-                                  transfer_branch_number: billForm.transfer_branch_number,
-                                  check_amount: billForm.check_amount,
-                                  check_bank_name: billForm.check_bank_name,
-                                  check_branch_number: billForm.check_branch_number,
-                                  check_account_number: billForm.check_account_number,
-                                  check_number: billForm.check_number,
-                                  check_holder_name: billForm.check_holder_name,
-                                  check_branch: billForm.check_branch,
-                              }
-                            : null,
-                },
+                customer_name: billForm.customer_name,
+                identity_number: billForm.identity_number,
+                phone: billForm.phone,
+                date: billForm.date,
+                car_details: billForm.car_details,
+                sale_price: parseFloat(billForm.sale_price) || null,
+                commission: parseFloat(billForm.commission) || null,
+                free_text: billForm.free_text,
+                total: parseFloat(billForm.total) || null,
+                tax_amount: parseFloat(billForm.tax_amount) || null,
+                total_with_tax: parseFloat(billForm.total_with_tax) || null,
+                payment_type: billForm.payment_type || null,
+                visa_amount: parseFloat(billForm.visa_amount) || null,
+                visa_installments: parseInt(billForm.visa_installments) || null,
+                visa_card_type: billForm.visa_card_type || null,
+                visa_last_four: billForm.visa_last_four || null,
+                bank_amount: parseFloat(billForm.bank_amount) || null,
+                bank_name: billForm.bank_name || null,
+                bank_branch: billForm.bank_branch || null,
+                account_number: billForm.account_number || null,
+                transfer_number: billForm.transfer_number || null,
+                transfer_holder_name: billForm.transfer_holder_name || null,
+                transfer_amount: parseFloat(billForm.transfer_amount) || null,
+                transfer_bank_name: billForm.transfer_bank_name || null,
+                transfer_branch: billForm.transfer_branch || null,
+                transfer_account_number: billForm.transfer_account_number || null,
+                transfer_branch_number: billForm.transfer_branch_number || null,
+                check_amount: parseFloat(billForm.check_amount) || null,
+                check_bank_name: billForm.check_bank_name || null,
+                check_branch_number: billForm.check_branch_number || null,
+                check_account_number: billForm.check_account_number || null,
+                check_number: billForm.check_number || null,
+                check_holder_name: billForm.check_holder_name || null,
+                check_branch: billForm.check_branch || null,
             };
 
             const { error } = await supabase.from('bills').insert([billData]);

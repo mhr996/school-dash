@@ -34,7 +34,7 @@
     "list": "قائمة",
     "preview": "معاينة",
     "add": "يضيف",
-    "edit": "يحرر",
+    "edit": "تعديل",
     "calendar": "تقويم",
     "tabs": "نوافذ التبويب",
     "accordions": "الأكورديونات",
@@ -703,9 +703,8 @@
     "for": "لـ",
     "balance": "الرصيد",
     "accounting": "الحسابات",
-
     "deals": "الصفقات",
-    "deal": "صفقة",
+    "deal": "الصفقة",
     "deal_title": "عنوان الصفقة",
     "deal_type": "نوع الصفقة",
     "deal_information": "معلومات الصفقة",
@@ -990,5 +989,10 @@
     "deal_status_cancelled": "ملغية",
     "deal_status": "حالة الصفقة",
     "select_deal_status_desc": "اختر الحالة الحالية لهذه الصفقة",
-    "phone_number": "رقم الهاتف"
+    "phone_number": "رقم الهاتف",
+    "total_amount": "إجمالي المبلغ",
+    "tax_invoice_only": "فاتورة ضريبية",
+    "tax_invoice_and_receipt": "فاتورة ضريبية مع سند قبض",
+    "tax_amount": "مبلغ الضريبة",
+    "tax_invoice_details": "تفاصيل الفاتورة الضريبية"
 }
