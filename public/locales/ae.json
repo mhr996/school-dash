@@ -994,5 +994,7 @@
     "tax_invoice_only": "فاتورة ضريبية",
     "tax_invoice_and_receipt": "فاتورة ضريبية مع سند قبض",
     "tax_amount": "مبلغ الضريبة",
-    "tax_invoice_details": "تفاصيل الفاتورة الضريبية"
+    "tax_invoice_details": "تفاصيل الفاتورة الضريبية",
+    "id_number": "رقم الهوية",
+    "enter_id_number": "أدخل رقم الهوية"
 }

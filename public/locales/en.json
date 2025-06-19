@@ -871,5 +871,7 @@
     "select_deal_status_desc": "Choose the current status of this deal",
     "error_loading_deals": "Error loading deals",
     "no_customer": "No Customer",
-    "no_car": "No Car"
+    "no_car": "No Car",
+    "id_number": "ID Number",
+    "enter_id_number": "Enter ID Number"
 }

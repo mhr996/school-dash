@@ -8,9 +8,13 @@ CREATE TABLE IF NOT EXISTS customers (
     car_number VARCHAR(100),
     country VARCHAR(100),
     age INTEGER CHECK (age > 0 AND age <= 120),
+    id_number VARCHAR(100),
     customer_type VARCHAR(20) NOT NULL CHECK (customer_type IN ('new', 'existing')),
     balance DECIMAL(10,2) DEFAULT 0.00
 );
+
+-- Migration: Add id_number column if it doesn't exist
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS id_number VARCHAR(100);
 
 -- Create updated_at trigger for customers table
 CREATE OR REPLACE FUNCTION update_updated_at_column()

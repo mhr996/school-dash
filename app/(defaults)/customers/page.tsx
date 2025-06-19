@@ -20,6 +20,7 @@ interface Customer {
     car_number: string;
     country: string;
     age: number;
+    id_number: string;
     customer_type: 'new' | 'existing';
     balance: number;
 }
@@ -190,21 +191,13 @@ const CustomersList = () => {
                                 title: t('phone'),
                                 sortable: true,
                             },
-                            {
-                                accessor: 'car_number',
-                                title: t('car_number'),
-                                sortable: true,
-                            },
+
                             {
                                 accessor: 'country',
                                 title: t('country'),
                                 sortable: true,
                             },
-                            {
-                                accessor: 'age',
-                                title: t('age'),
-                                sortable: true,
-                            },
+
                             {
                                 accessor: 'customer_type',
                                 title: t('customer_type'),

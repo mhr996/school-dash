@@ -19,6 +19,7 @@ const AddCustomer = () => {
         car_number: '',
         country: '',
         age: '',
+        id_number: '',
         customer_type: '',
         balance: '0',
     });
@@ -70,6 +71,7 @@ const AddCustomer = () => {
                 car_number: form.car_number.trim() || null,
                 country: form.country.trim() || null,
                 age: form.age ? parseInt(form.age) : null,
+                id_number: form.id_number.trim() || null,
                 customer_type: form.customer_type,
                 balance: form.balance ? parseFloat(form.balance) : 0,
             };
@@ -83,7 +85,7 @@ const AddCustomer = () => {
             // Redirect to customers list after a short delay
             setTimeout(() => {
                 router.push('/customers');
-            }, 1500);
+            }, 1000);
         } catch (error) {
             console.error(error);
             setAlert({
@@ -157,7 +159,7 @@ const AddCustomer = () => {
                             <label htmlFor="phone" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('phone')} <span className="text-red-500">*</span>
                             </label>
-                            <input type="tel" id="phone" name="phone" value={form.phone} onChange={handleInputChange} className="form-input" placeholder={t('enter_phone_number')} required />
+                            <input type="tel" id="phone" name="phone" value={form.phone} onChange={handleInputChange} className="form-input text-right" placeholder={t('enter_phone_number')} required />
                         </div>
                         {/* Car Number */}
                         <div>
@@ -186,6 +188,13 @@ const AddCustomer = () => {
                                 {t('customer_type')} <span className="text-red-500">*</span>
                             </label>
                             <CustomerTypeSelect defaultValue={form.customer_type} className="form-input" name="customer_type" onChange={handleInputChange} />
+                        </div>
+                        {/* ID Number */}
+                        <div>
+                            <label htmlFor="id_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                {t('id_number')}
+                            </label>
+                            <input type="text" id="id_number" name="id_number" value={form.id_number} onChange={handleInputChange} className="form-input" placeholder={t('enter_id_number')} />
                         </div>
                         {/* Initial Balance */}
                         <div>

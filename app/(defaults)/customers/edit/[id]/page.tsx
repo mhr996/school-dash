@@ -15,6 +15,7 @@ interface Customer {
     car_number: string;
     country: string;
     age: number;
+    id_number: string;
     customer_type: string;
     balance: number;
 }
@@ -28,13 +29,13 @@ const EditCustomer = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [customer, setCustomer] = useState<Customer | null>(null);
-
     const [form, setForm] = useState({
         name: '',
         phone: '',
         car_number: '',
         country: '',
         age: '',
+        id_number: '',
         customer_type: '',
         balance: '',
     });
@@ -60,6 +61,7 @@ const EditCustomer = () => {
                         car_number: data.car_number || '',
                         country: data.country || '',
                         age: data.age?.toString() || '',
+                        id_number: data.id_number || '',
                         customer_type: data.customer_type || '',
                         balance: data.balance?.toString() || '0',
                     });
@@ -119,6 +121,7 @@ const EditCustomer = () => {
                 car_number: form.car_number.trim() || null,
                 country: form.country.trim() || null,
                 age: form.age ? parseInt(form.age) : null,
+                id_number: form.id_number.trim() || null,
                 customer_type: form.customer_type,
                 balance: form.balance ? parseFloat(form.balance) : 0,
             };
@@ -221,7 +224,6 @@ const EditCustomer = () => {
                             </label>
                             <input type="text" id="name" name="name" value={form.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_customer_name')} required />
                         </div>
-
                         {/* Phone */}
                         <div>
                             <label htmlFor="phone" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -229,7 +231,6 @@ const EditCustomer = () => {
                             </label>
                             <input type="tel" id="phone" name="phone" value={form.phone} onChange={handleInputChange} className="form-input" placeholder={t('enter_phone_number')} required />
                         </div>
-
                         {/* Car Number */}
                         <div>
                             <label htmlFor="car_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -237,15 +238,13 @@ const EditCustomer = () => {
                             </label>
                             <input type="text" id="car_number" name="car_number" value={form.car_number} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_number')} />
                         </div>
-
                         {/* Country */}
                         <div>
                             <label htmlFor="country" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('country')}
                             </label>
                             <CountrySelect defaultValue={form.country} className="form-input" name="country" onChange={handleInputChange} />
-                        </div>
-
+                        </div>{' '}
                         {/* Age */}
                         <div>
                             <label htmlFor="age" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -253,7 +252,13 @@ const EditCustomer = () => {
                             </label>
                             <input type="number" id="age" name="age" min="1" max="120" value={form.age} onChange={handleInputChange} className="form-input" placeholder={t('enter_age')} />
                         </div>
-
+                        {/* ID Number */}
+                        <div>
+                            <label htmlFor="id_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                {t('id_number')}
+                            </label>
+                            <input type="text" id="id_number" name="id_number" value={form.id_number} onChange={handleInputChange} className="form-input" placeholder={t('enter_id_number')} />
+                        </div>
                         {/* Customer Type */}
                         <div>
                             <label htmlFor="customer_type" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -261,7 +266,6 @@ const EditCustomer = () => {
                             </label>
                             <CustomerTypeSelect defaultValue={form.customer_type} className="form-input" name="customer_type" onChange={handleInputChange} />
                         </div>
-
                         {/* Balance */}
                         <div>
                             <label htmlFor="balance" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
