@@ -8,7 +8,8 @@ import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconUser from '@/components/icon/icon-user';
 import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
 import IconEdit from '@/components/icon/icon-edit';
-import IconPrinter from '@/components/icon/icon-printer';
+import IconDownload from '@/components/icon/icon-download';
+import { generateBillPDF } from '@/utils/pdf-generator';
 
 interface Deal {
     id: string;
@@ -77,9 +78,9 @@ const BillPreview = () => {
     const router = useRouter();
     const params = useParams();
     const billId = params?.id as string;
-
     const [loading, setLoading] = useState(true);
     const [bill, setBill] = useState<Bill | null>(null);
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
 
     useEffect(() => {
         fetchBill();
@@ -136,9 +137,24 @@ const BillPreview = () => {
                 return 'text-blue-600 bg-blue-100';
         }
     };
-
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownloadPDF = async () => {
+        if (!bill) return;
+
+        setDownloadingPDF(true);
+        try {
+            await generateBillPDF(bill, {
+                filename: `bill-${bill.id}-${bill.customer_name.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+            });
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            // You might want to show an error notification here
+        } finally {
+            setDownloadingPDF(false);
+        }
     };
 
     if (loading) {
@@ -194,11 +210,11 @@ const BillPreview = () => {
                     <div>
                         <h1 className="text-2xl font-bold">{t('bill_preview')}</h1>
                         <p className="text-gray-500">{t('view_bill_details')}</p>
-                    </div>
+                    </div>{' '}
                     <div className="flex gap-3">
-                        <button onClick={handlePrint} className="btn btn-outline-primary gap-2">
-                            <IconPrinter className="w-4 h-4" />
-                            {t('print')}
+                        <button onClick={handleDownloadPDF} disabled={downloadingPDF} className="btn btn-outline-primary gap-2">
+                            <IconDownload className="w-4 h-4" />
+                            {downloadingPDF ? t('generating_pdf') : t('download_pdf')}
                         </button>
                         <Link href={`/bills/edit/${bill.id}`} className="btn btn-primary gap-2">
                             <IconEdit className="w-4 h-4" />
@@ -263,7 +279,6 @@ const BillPreview = () => {
                 <div className="panel">
                     <h2 className="text-xl font-bold text-primary mb-4">{t('financial_summary')}</h2>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                     
                         <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             <div className="text-2xl font-bold text-blue-600">${new Intl.NumberFormat('en-US').format(bill.sale_price || 0)}</div>
                             <div className="text-sm text-gray-600 dark:text-gray-400">{t('sale_price')}</div>

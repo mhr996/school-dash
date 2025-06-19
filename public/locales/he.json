@@ -602,5 +602,6 @@
     "deal_status": "סטטוס עסקה",
     "select_deal_status_desc": "בחר את הסטטוס הנוכחי של העסקה הזו",
     "id_number": "מספר מזהה",
-    "enter_id_number": "הזן מספר מזהה"
+    "enter_id_number": "הזן מספר מזהה",
+    "generating_pdf": "מייצר PDF..."
 }

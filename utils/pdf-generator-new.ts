@@ -253,9 +253,10 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
 
         // Generate clean, professional HTML
         const billHTML = `
-            <div style="max-width: 800px; margin: 0 auto; padding: 48px; background: #ffffff;">                <!-- Header -->
+            <div style="max-width: 800px; margin: 0 auto; padding: 48px; background: #ffffff;">
+                <!-- Header -->
                 <div style="text-align: center; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
-                    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1e3a8a; letter-spacing: -0.025em;">
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #111827; letter-spacing: -0.025em;">
                         Cars CRM
                     </h1>
                     <p style="margin: 8px 0 0 0; font-size: 16px; color: #6b7280; font-weight: 500;">
@@ -345,29 +346,31 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                 <div style="margin-bottom: 40px;">
                     <h2 style="margin: 0 0 24px 0; font-size: 18px; font-weight: 600; color: #111827;">
                         Financial Summary
-                    </h2>                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
+                    </h2>
+                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
                         <thead>
-                            <tr style="background: #374151;">
-                                <th style="padding: 16px; text-align: right; font-weight: 600; color: #ffffff; border-bottom: 1px solid #e5e7eb;">Description</th>
-                                <th style="padding: 16px; text-align: right; font-weight: 600; color: #ffffff; border-bottom: 1px solid #e5e7eb;">Amount</th>
+                            <tr style="background: #f9fafb;">
+                                <th style="padding: 16px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Description</th>
+                                <th style="padding: 16px; text-align: right; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Amount</th>
                             </tr>
                         </thead>
-                        <tbody>                            ${
-                            billData.sale_price
-                                ? `
+                        <tbody>
+                            ${
+                                billData.sale_price
+                                    ? `
                             <tr>
-                                <td style="padding: 12px 16px; color: #374151; text-align: right; border-bottom: 1px solid #ddd;">Sale Price</td>
-                                <td style="padding: 12px 16px; text-align: right; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.sale_price)}</td>
+                                <td style="padding: 12px 16px; color: #374151; border-bottom: 1px solid #f3f4f6;">Sale Price</td>
+                                <td style="padding: 12px 16px; text-align: right; color: #111827; font-weight: 500; border-bottom: 1px solid #f3f4f6;">${formatCurrency(billData.sale_price)}</td>
                             </tr>
                             `
-                                : ''
-                        }
+                                    : ''
+                            }
                             ${
                                 billData.commission
                                     ? `
                             <tr>
-                                <td style="padding: 12px 16px; color: #374151; text-align: right; border-bottom: 1px solid #ddd;">Commission</td>
-                                <td style="padding: 12px 16px; text-align: right; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.commission)}</td>
+                                <td style="padding: 12px 16px; color: #374151; border-bottom: 1px solid #f3f4f6;">Commission</td>
+                                <td style="padding: 12px 16px; text-align: right; color: #111827; font-weight: 500; border-bottom: 1px solid #f3f4f6;">${formatCurrency(billData.commission)}</td>
                             </tr>
                             `
                                     : ''
@@ -376,8 +379,8 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                                 billData.total
                                     ? `
                             <tr>
-                                <td style="padding: 12px 16px; color: #374151; text-align: right; border-bottom: 1px solid #ddd;">Subtotal</td>
-                                <td style="padding: 12px 16px; text-align: right; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.total)}</td>
+                                <td style="padding: 12px 16px; color: #374151; border-bottom: 1px solid #f3f4f6;">Subtotal</td>
+                                <td style="padding: 12px 16px; text-align: right; color: #111827; font-weight: 500; border-bottom: 1px solid #f3f4f6;">${formatCurrency(billData.total)}</td>
                             </tr>
                             `
                                     : ''
@@ -386,17 +389,18 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                                 billData.tax_amount
                                     ? `
                             <tr>
-                                <td style="padding: 12px 16px; color: #374151; text-align: right; border-bottom: 1px solid #ddd;">Tax (18%)</td>
-                                <td style="padding: 12px 16px; text-align: right; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.tax_amount)}</td>
+                                <td style="padding: 12px 16px; color: #374151; border-bottom: 1px solid #f3f4f6;">Tax (18%)</td>
+                                <td style="padding: 12px 16px; text-align: right; color: #111827; font-weight: 500; border-bottom: 1px solid #f3f4f6;">${formatCurrency(billData.tax_amount)}</td>
                             </tr>
                             `
                                     : ''
-                            }                            ${
+                            }
+                            ${
                                 billData.total_with_tax
                                     ? `
                             <tr style="background: #f9fafb;">
-                                <td style="padding: 16px; font-weight: 600; color: #111827; text-align: right; border-bottom: 1px solid #ddd;">Total Amount</td>
-                                <td style="padding: 16px; text-align: right; font-weight: 700; color: #111827; font-size: 16px; border-bottom: 1px solid #ddd;">${formatCurrency(billData.total_with_tax)}</td>
+                                <td style="padding: 16px; font-weight: 600; color: #111827;">Total Amount</td>
+                                <td style="padding: 16px; text-align: right; font-weight: 700; color: #111827; font-size: 16px;">${formatCurrency(billData.total_with_tax)}</td>
                             </tr>
                             `
                                     : ''

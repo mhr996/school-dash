@@ -996,5 +996,6 @@
     "tax_amount": "مبلغ الضريبة",
     "tax_invoice_details": "تفاصيل الفاتورة الضريبية",
     "id_number": "رقم الهوية",
-    "enter_id_number": "أدخل رقم الهوية"
+    "enter_id_number": "أدخل رقم الهوية",
+    "generating_pdf": "جاري إنشاء ملف PDF..."
 }

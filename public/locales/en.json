@@ -453,6 +453,7 @@
     "view_order": "View Order",
     "print_order": "Print Order",
     "download_pdf": "Download PDF",
+    "generating_pdf": "Generating PDF...",
     "delete_order": "Delete Order",
     "delete_order_confirmation": "Are you sure you want to delete this order?",
     "order_deleted_successfully": "Order deleted successfully!",
