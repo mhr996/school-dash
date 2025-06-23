@@ -40,6 +40,7 @@ interface Car {
     market_price: number;
     buy_price: number;
     sale_price: number;
+    car_number?: string; // Car number field
     images: string[] | string;
 }
 
@@ -64,6 +65,7 @@ const AddDeal = () => {
     const [saving, setSaving] = useState(false);
     const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
     const [showCreateCarModal, setShowCreateCarModal] = useState(false);
+    const [customerCreationContext, setCustomerCreationContext] = useState<'customer' | 'seller' | 'buyer'>('customer'); // Track which customer we're creating
     const [dealType, setDealType] = useState('');
     const [dealStatus, setDealStatus] = useState('pending'); // Default to pending
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -75,7 +77,9 @@ const AddDeal = () => {
         quantity: '1', // Default quantity
         loss_amount: '', // Manual loss/deductions
         tax_percentage: '18', // Default tax percentage
-    }); // Form state for exchange deal
+    });
+
+    // Form state for exchange deal
     const [exchangeForm, setExchangeForm] = useState({
         title: '',
         notes: '',
@@ -85,32 +89,63 @@ const AddDeal = () => {
         old_car_year: '',
         old_car_kilometers: '',
         old_car_condition: '', // يد
+        old_car_number: '', // رقم السيارة
         old_car_market_price: '',
         old_car_purchase_price: '',
-    });
-
-    // Form state for company commission deal
+        // Exchange calculation fields
+        customer_car_eval_value: '', // تم تبديل على سيارة وتم تقييمها ب
+        additional_customer_amount: '', // المبلغ المضاف من الزبون
+        loss_amount: '', // Manual loss/deductions
+    }); // Form state for company commission deal
     const [companyCommissionForm, setCompanyCommissionForm] = useState({
         title: '',
         company_name: '', // اسم الشركة المقدمه للعموله
         commission_date: '', // التاريخ
         amount: '', // المبلغ
         description: '', // حول (تفاصيل العموله)
-    }); // File uploads - separate for each document type
+    }); // Form state for intermediary deal
+    const [intermediaryForm, setIntermediaryForm] = useState({
+        title: '',
+        notes: '',
+        profit_commission: '', // عمولة الربح
+    });
+
+    // Form state for financing assistance intermediary deal
+    const [financingAssistanceForm, setFinancingAssistanceForm] = useState({
+        title: '',
+        notes: '',
+        commission: '', // العمولة
+    });
+
+    // Separate state for intermediary deal participants
+    const [selectedSeller, setSelectedSeller] = useState<Customer | null>(null);
+    const [selectedBuyer, setSelectedBuyer] = useState<Customer | null>(null); // File uploads - separate for each document type
     const [dealAttachments, setDealAttachments] = useState<DealAttachments>({
         carLicense: null,
         driverLicense: null,
         carTransferDocument: null,
     });
 
-    const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
-        visible: false,
-        message: '',
-        type: 'success',
-    }); // Auto-fill form when car is selected
+    const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({ visible: false, message: '', type: 'success' }); // Auto-fill form when car is selected
     useEffect(() => {
-        if (selectedCar && selectedCustomer) {
-            if (dealType === 'new_used_sale') {
+        if (dealType === 'intermediary') {
+            // For intermediary deals, use seller and buyer
+            if (selectedCar && (selectedSeller || selectedBuyer)) {
+                setIntermediaryForm((prev) => ({
+                    ...prev,
+                    title: `${t('intermediary_deal_for')} ${selectedCar.title} - ${selectedSeller?.name || ''} ${t('to')} ${selectedBuyer?.name || ''}`,
+                }));
+            }
+        } else if (dealType === 'financing_assistance_intermediary') {
+            // For financing assistance intermediary deals, use customer and car
+            if (selectedCar && selectedCustomer) {
+                setFinancingAssistanceForm((prev) => ({
+                    ...prev,
+                    title: `${t('financing_assistance_commission')} ${selectedCar.title} - ${selectedCustomer.name}`,
+                }));
+            }
+        } else if (selectedCar && selectedCustomer) {
+            if (dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') {
                 setSaleForm((prev) => {
                     // Only auto-fill selling_price if:
                     // 1. It's a new car selection (different car ID), OR
@@ -140,7 +175,7 @@ const AddDeal = () => {
                 }));
             }
         }
-    }, [selectedCar, selectedCustomer, t, dealType]);
+    }, [selectedCar, selectedCustomer, selectedSeller, selectedBuyer, t, dealType]);
 
     const handleSaleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -150,21 +185,30 @@ const AddDeal = () => {
         const { name, value } = e.target;
         setExchangeForm((prev) => ({ ...prev, [name]: value }));
     };
-
     const handleCompanyCommissionFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setCompanyCommissionForm((prev) => ({ ...prev, [name]: value }));
+    };
+    const handleIntermediaryFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setIntermediaryForm((prev) => ({ ...prev, [name]: value }));
+    };
+
+    const handleFinancingAssistanceFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setFinancingAssistanceForm((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleDealStatusChange = (status: string) => {
         setDealStatus(status);
     };
-
     const handleDealTypeChange = (type: string) => {
         setDealType(type);
         // Reset form when deal type changes
         setSelectedCustomer(null);
         setSelectedCar(null);
+        setSelectedSeller(null);
+        setSelectedBuyer(null);
         setSaleForm({
             title: '',
             notes: '',
@@ -181,8 +225,12 @@ const AddDeal = () => {
             old_car_year: '',
             old_car_kilometers: '',
             old_car_condition: '',
+            old_car_number: '',
             old_car_market_price: '',
             old_car_purchase_price: '',
+            customer_car_eval_value: '',
+            additional_customer_amount: '',
+            loss_amount: '',
         });
         setCompanyCommissionForm({
             title: '',
@@ -191,6 +239,16 @@ const AddDeal = () => {
             amount: '',
             description: '',
         });
+        setIntermediaryForm({
+            title: '',
+            notes: '',
+            profit_commission: '',
+        });
+        setFinancingAssistanceForm({
+            title: '',
+            notes: '',
+            commission: '',
+        });
         setDealAttachments({
             carLicense: null,
             driverLicense: null,
@@ -198,7 +256,13 @@ const AddDeal = () => {
         });
     };
     const handleCustomerCreated = (customer: Customer) => {
-        setSelectedCustomer(customer);
+        if (customerCreationContext === 'seller') {
+            setSelectedSeller(customer);
+        } else if (customerCreationContext === 'buyer') {
+            setSelectedBuyer(customer);
+        } else {
+            setSelectedCustomer(customer);
+        }
         setAlert({ visible: true, message: t('customer_created_successfully'), type: 'success' });
     };
 
@@ -235,6 +299,10 @@ const AddDeal = () => {
             setAlert({ visible: true, message: t('car_required'), type: 'danger' });
             return false;
         }
+        if (!exchangeForm.title.trim()) {
+            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            return false;
+        }
         if (!exchangeForm.old_car_manufacturer || !exchangeForm.old_car_name || !exchangeForm.old_car_year) {
             setAlert({ visible: true, message: t('old_car_details_required'), type: 'danger' });
             return false;
@@ -265,6 +333,49 @@ const AddDeal = () => {
         }
         return true;
     };
+    const validateIntermediaryForm = () => {
+        if (!selectedSeller) {
+            setAlert({ visible: true, message: t('seller_required'), type: 'danger' });
+            return false;
+        }
+        if (!selectedBuyer) {
+            setAlert({ visible: true, message: t('buyer_required'), type: 'danger' });
+            return false;
+        }
+        if (!selectedCar) {
+            setAlert({ visible: true, message: t('car_required'), type: 'danger' });
+            return false;
+        }
+        if (!intermediaryForm.title.trim()) {
+            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            return false;
+        }
+        if (!intermediaryForm.profit_commission || parseFloat(intermediaryForm.profit_commission) <= 0) {
+            setAlert({ visible: true, message: t('profit_commission_required'), type: 'danger' });
+            return false;
+        }
+        return true;
+    };
+
+    const validateFinancingAssistanceForm = () => {
+        if (!selectedCustomer) {
+            setAlert({ visible: true, message: t('customer_required'), type: 'danger' });
+            return false;
+        }
+        if (!selectedCar) {
+            setAlert({ visible: true, message: t('car_required'), type: 'danger' });
+            return false;
+        }
+        if (!financingAssistanceForm.title.trim()) {
+            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            return false;
+        }
+        if (!financingAssistanceForm.commission || parseFloat(financingAssistanceForm.commission) <= 0) {
+            setAlert({ visible: true, message: t('commission_required'), type: 'danger' });
+            return false;
+        }
+        return true;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -273,13 +384,19 @@ const AddDeal = () => {
             setAlert({ visible: true, message: t('deal_type_required'), type: 'danger' });
             return;
         } // Validate based on deal type
-        if (dealType === 'new_used_sale' && !validateNewUsedSaleForm()) {
+        if ((dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') && !validateNewUsedSaleForm()) {
             return;
         }
         if (dealType === 'exchange' && !validateExchangeForm()) {
             return;
         }
         if (dealType === 'company_commission' && !validateCompanyCommissionForm()) {
+            return;
+        }
+        if (dealType === 'intermediary' && !validateIntermediaryForm()) {
+            return;
+        }
+        if (dealType === 'financing_assistance_intermediary' && !validateFinancingAssistanceForm()) {
             return;
         }
 
@@ -291,7 +408,7 @@ const AddDeal = () => {
                 customer_id: selectedCustomer?.id || null,
             };
 
-            if (dealType === 'new_used_sale') {
+            if (dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') {
                 dealData = {
                     ...dealData,
                     title: saleForm.title.trim(),
@@ -357,6 +474,7 @@ const AddDeal = () => {
                             year: parseInt(exchangeForm.old_car_year),
                             kilometers: parseInt(exchangeForm.old_car_kilometers || '0'),
                             condition: exchangeForm.old_car_condition,
+                            car_number: exchangeForm.old_car_number,
                             market_price: parseFloat(exchangeForm.old_car_market_price || '0'),
                             purchase_price: parseFloat(exchangeForm.old_car_purchase_price || '0'),
                         },
@@ -408,6 +526,101 @@ const AddDeal = () => {
                     notes: companyCommissionForm.description.trim(),
                 };
             }
+            if (dealType === 'intermediary') {
+                dealData = {
+                    ...dealData,
+                    title: intermediaryForm.title.trim(),
+                    description: intermediaryForm.notes.trim() || `${t('intermediary_deal_description')} ${selectedCar?.title}`,
+                    amount: parseFloat(intermediaryForm.profit_commission),
+                    car_id: selectedCar?.id,
+                    customer_id: null, // No single customer for intermediary deals
+                    deal_data: {
+                        car_details: {
+                            name: selectedCar?.title,
+                            brand: selectedCar?.brand,
+                            year: selectedCar?.year,
+                            kilometers: selectedCar?.kilometers,
+                            status: selectedCar?.status,
+                            type: selectedCar?.type,
+                            provider: selectedCar?.provider,
+                            market_price: selectedCar?.market_price,
+                            buy_price: selectedCar?.buy_price,
+                            sale_price: selectedCar?.sale_price,
+                            car_number: selectedCar?.car_number,
+                        },
+                        seller_details: {
+                            name: selectedSeller?.name,
+                            phone: selectedSeller?.phone,
+                            country: selectedSeller?.country,
+                            age: selectedSeller?.age,
+                            identity_number: selectedSeller?.identity_number,
+                            birth_date: selectedSeller?.birth_date,
+                        },
+                        buyer_details: {
+                            name: selectedBuyer?.name,
+                            phone: selectedBuyer?.phone,
+                            country: selectedBuyer?.country,
+                            age: selectedBuyer?.age,
+                            identity_number: selectedBuyer?.identity_number,
+                            birth_date: selectedBuyer?.birth_date,
+                        },
+                        intermediary_details: {
+                            profit_commission: parseFloat(intermediaryForm.profit_commission),
+                        },
+                        attachments: {
+                            car_license: dealAttachments.carLicense ? 1 : 0,
+                            driver_license: dealAttachments.driverLicense ? 1 : 0,
+                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
+                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
+                        },
+                    },
+                    notes: intermediaryForm.notes.trim(),
+                };
+            }
+
+            if (dealType === 'financing_assistance_intermediary') {
+                dealData = {
+                    ...dealData,
+                    title: financingAssistanceForm.title.trim(),
+                    description: financingAssistanceForm.notes.trim() || `${t('financing_assistance_commission')} ${selectedCar?.title}`,
+                    amount: parseFloat(financingAssistanceForm.commission),
+                    car_id: selectedCar?.id,
+                    customer_id: selectedCustomer?.id,
+                    deal_data: {
+                        car_details: {
+                            name: selectedCar?.title,
+                            brand: selectedCar?.brand,
+                            year: selectedCar?.year,
+                            kilometers: selectedCar?.kilometers,
+                            status: selectedCar?.status,
+                            type: selectedCar?.type,
+                            provider: selectedCar?.provider,
+                            market_price: selectedCar?.market_price,
+                            buy_price: selectedCar?.buy_price,
+                            sale_price: selectedCar?.sale_price,
+                            car_number: selectedCar?.car_number,
+                        },
+                        customer_details: {
+                            name: selectedCustomer?.name,
+                            phone: selectedCustomer?.phone,
+                            country: selectedCustomer?.country,
+                            age: selectedCustomer?.age,
+                            identity_number: selectedCustomer?.identity_number,
+                            birth_date: selectedCustomer?.birth_date,
+                        },
+                        financing_assistance_details: {
+                            commission: parseFloat(financingAssistanceForm.commission),
+                        },
+                        attachments: {
+                            car_license: dealAttachments.carLicense ? 1 : 0,
+                            driver_license: dealAttachments.driverLicense ? 1 : 0,
+                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
+                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
+                        },
+                    },
+                    notes: financingAssistanceForm.notes.trim(),
+                };
+            }
 
             const { error } = await supabase.from('deals').insert([dealData]);
 
@@ -447,11 +660,26 @@ const AddDeal = () => {
                 <div className="mb-5 flex items-center gap-3">
                     <IconUser className="w-5 h-5 text-primary" />
                     <h5 className="text-lg font-semibold dark:text-white-light">{t('customer_information')}</h5>
-                </div>
+                </div>{' '}
                 <div className="space-y-4">
-                    <CustomerSelect selectedCustomer={selectedCustomer} onCustomerSelect={setSelectedCustomer} onCreateNew={() => setShowCreateCustomerModal(true)} className="form-input" />
+                    <CustomerSelect
+                        selectedCustomer={selectedCustomer}
+                        onCustomerSelect={setSelectedCustomer}
+                        onCreateNew={() => {
+                            setCustomerCreationContext('customer');
+                            setShowCreateCustomerModal(true);
+                        }}
+                        className="form-input"
+                    />
                     <div className="flex justify-end">
-                        <button type="button" onClick={() => setShowCreateCustomerModal(true)} className="btn btn-outline-primary">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCustomerCreationContext('customer');
+                                setShowCreateCustomerModal(true);
+                            }}
+                            className="btn btn-outline-primary"
+                        >
                             {t('create_new_customer')}
                         </button>
                     </div>
@@ -529,7 +757,7 @@ const AddDeal = () => {
                                 <div>
                                     <span className="text-green-600 dark:text-green-300 font-medium">{t('car_name')}:</span>
                                     <p className="text-green-800 dark:text-green-100">{selectedCar.title}</p>
-                                </div>
+                                </div>{' '}
                                 <div>
                                     <span className="text-green-600 dark:text-green-300 font-medium">{t('provider')}:</span>
                                     <p className="text-green-800 dark:text-green-100">{selectedCar.provider}</p>
@@ -538,6 +766,12 @@ const AddDeal = () => {
                                     <span className="text-green-600 dark:text-green-300 font-medium">{t('year')}:</span>
                                     <p className="text-green-800 dark:text-green-100">{selectedCar.year}</p>
                                 </div>
+                                {selectedCar.car_number && (
+                                    <div>
+                                        <span className="text-green-600 dark:text-green-300 font-medium">{t('car_number')}:</span>
+                                        <p className="text-green-800 dark:text-green-100">{selectedCar.car_number}</p>
+                                    </div>
+                                )}
                                 <div>
                                     <span className="text-green-600 dark:text-green-300 font-medium">{t('kilometers')}:</span>
                                     <p className="text-green-800 dark:text-green-100">
@@ -584,49 +818,33 @@ const AddDeal = () => {
                     {selectedCar && (
                         <div className="md:col-span-2">
                             <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                {' '}
                                 {/* Table Header */}
-                                <div className="grid grid-cols-4 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                <div className="grid grid-cols-3 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
                                     <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
                                     <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
-                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_quantity')}</div>
-                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_total')}</div>
-                                </div>
+                                </div>{' '}
                                 {/* Row 1: Car for Sale */}
-                                <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
                                         <div className="font-medium">{t('car_for_sale')}</div>
                                         <div className="text-s mt-1 text-gray-500">
-                                            {selectedCar.brand} {selectedCar.title} - {selectedCar.year} -{selectedCar.type}
+                                            {selectedCar.brand} {selectedCar.title} - {selectedCar.year}
+                                            {selectedCar.car_number && ` - ${selectedCar.car_number}`}
                                         </div>
                                     </div>
                                     <div className="text-center">-</div>
-                                    <div className="text-center">-</div>
-                                    <div className="text-center">-</div>
-                                </div>
+                                </div>{' '}
                                 {/* Row 2: Buy Price */}
-                                <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                     <div className="text-center">
                                         <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price.toFixed(2)}</span>
                                     </div>
-                                    <div className="text-center">
-                                        <input
-                                            type="number"
-                                            name="quantity"
-                                            value={saleForm.quantity}
-                                            onChange={handleSaleFormChange}
-                                            className="form-input text-center w-16"
-                                            style={{ direction: 'ltr', textAlign: 'center' }}
-                                            min="1"
-                                        />
-                                    </div>
-                                    <div className="text-center">
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">${(selectedCar.buy_price * parseFloat(saleForm.quantity || '1')).toFixed(2)}</span>
-                                    </div>
-                                </div>
+                                </div>{' '}
                                 {/* Row 3: Selling Price */}
-                                <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
                                     <div className="text-center">
                                         <div className="flex justify-center">
                                             <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
@@ -645,18 +863,10 @@ const AddDeal = () => {
                                             />
                                         </div>
                                     </div>
-                                    <div className="text-center">
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">{saleForm.quantity}</span>
-                                    </div>
-                                    <div className="text-center">
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                                            ${saleForm.selling_price ? (parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1')).toFixed(2) : '0.00'}
-                                        </span>
-                                    </div>
-                                </div>
+                                </div>{' '}
                                 {/* Row 4: Loss (Editable) */}
-                                <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm pt-1 text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
                                     <div className="text-center">
                                         <div className="flex justify-center">
                                             <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
@@ -675,24 +885,18 @@ const AddDeal = () => {
                                             />
                                         </div>
                                     </div>
-                                    <div className="text-center">-</div>
-                                    <div className="text-center">
-                                        <span className="text-sm text-red-600 dark:text-red-400">${saleForm.loss_amount ? parseFloat(saleForm.loss_amount).toFixed(2) : '0.00'}</span>
-                                    </div>
-                                </div>
+                                </div>{' '}
                                 {/* Row 5: Profit Commission (Calculated) */}
-                                <div className="grid grid-cols-4 gap-4 mb-4 py-2">
+                                <div className="grid grid-cols-3 gap-4 mb-4 py-2">
                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
-                                    <div className="text-center">-</div>
-                                    <div className="text-center">-</div>
                                     <div className="text-center">
                                         {(() => {
                                             if (!saleForm.selling_price || !selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
 
-                                            const buyTotal = selectedCar.buy_price * parseFloat(saleForm.quantity || '1');
-                                            const sellTotal = parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1');
-                                            const loss = parseFloat(saleForm.loss_amount || '0'); // This field is for loss/deductions
-                                            const profitCommission = sellTotal - buyTotal - loss;
+                                            const buyPrice = selectedCar.buy_price;
+                                            const sellPrice = parseFloat(saleForm.selling_price);
+                                            const loss = parseFloat(saleForm.loss_amount || '0');
+                                            const profitCommission = sellPrice - buyPrice - loss;
 
                                             return (
                                                 <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -701,78 +905,7 @@ const AddDeal = () => {
                                             );
                                         })()}
                                     </div>
-                                </div>
-                                {/* Separator */}
-                                <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
-                                {/* Tax Calculations */}
-                                <div className="space-y-3">
-                                    {/* Price Before Tax */}
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                                            $
-                                            {saleForm.selling_price
-                                                ? (() => {
-                                                      const sellTotal = parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1');
-                                                      const buyTotal = selectedCar ? selectedCar.buy_price * parseFloat(saleForm.quantity || '1') : 0;
-                                                      const loss = parseFloat(saleForm.loss_amount || '0');
-                                                      const profitCommission = Math.max(0, sellTotal - buyTotal - loss);
-                                                      return (sellTotal + profitCommission).toFixed(2);
-                                                  })()
-                                                : '0.00'}
-                                        </span>
-                                    </div>
-
-                                    {/* Tax */}
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            {t('deal_tax')}
-                                            <input
-                                                type="number"
-                                                name="tax_percentage"
-                                                value={saleForm.tax_percentage}
-                                                onChange={handleSaleFormChange}
-                                                className="form-input w-16 mx-2 text-center"
-                                                style={{ direction: 'ltr', textAlign: 'center' }}
-                                                min="0"
-                                                max="100"
-                                            />
-                                            %
-                                        </span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">
-                                            $
-                                            {saleForm.selling_price
-                                                ? (() => {
-                                                      const sellTotal = parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1');
-                                                      const buyTotal = selectedCar ? selectedCar.buy_price * parseFloat(saleForm.quantity || '1') : 0;
-                                                      const loss = parseFloat(saleForm.loss_amount || '0');
-                                                      const profitCommission = Math.max(0, sellTotal - buyTotal - loss);
-                                                      const beforeTax = sellTotal + profitCommission;
-                                                      return ((beforeTax * parseFloat(saleForm.tax_percentage || '0')) / 100).toFixed(2);
-                                                  })()
-                                                : '0.00'}
-                                        </span>
-                                    </div>
-
-                                    {/* Total Including Tax */}
-                                    <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
-                                        <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                        <span className="text-lg font-bold text-primary">
-                                            $
-                                            {saleForm.selling_price
-                                                ? (() => {
-                                                      const sellTotal = parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1');
-                                                      const buyTotal = selectedCar ? selectedCar.buy_price * parseFloat(saleForm.quantity || '1') : 0;
-                                                      const loss = parseFloat(saleForm.loss_amount || '0');
-                                                      const profitCommission = Math.max(0, sellTotal - buyTotal - loss);
-                                                      const beforeTax = sellTotal + profitCommission;
-                                                      const tax = (beforeTax * parseFloat(saleForm.tax_percentage || '0')) / 100;
-                                                      return (beforeTax + tax).toFixed(2);
-                                                  })()
-                                                : '0.00'}
-                                        </span>
-                                    </div>
-                                </div>
+                                </div>{' '}
                             </div>
                         </div>
                     )}
@@ -828,11 +961,26 @@ const AddDeal = () => {
                 <div className="mb-5 flex items-center gap-3">
                     <IconUser className="w-5 h-5 text-primary" />
                     <h5 className="text-lg font-semibold dark:text-white-light">{t('customer_information')}</h5>
-                </div>
+                </div>{' '}
                 <div className="space-y-4">
-                    <CustomerSelect selectedCustomer={selectedCustomer} onCustomerSelect={setSelectedCustomer} onCreateNew={() => setShowCreateCustomerModal(true)} className="form-input" />
+                    <CustomerSelect
+                        selectedCustomer={selectedCustomer}
+                        onCustomerSelect={setSelectedCustomer}
+                        onCreateNew={() => {
+                            setCustomerCreationContext('customer');
+                            setShowCreateCustomerModal(true);
+                        }}
+                        className="form-input"
+                    />
                     <div className="flex justify-end">
-                        <button type="button" onClick={() => setShowCreateCustomerModal(true)} className="btn btn-outline-primary">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCustomerCreationContext('customer');
+                                setShowCreateCustomerModal(true);
+                            }}
+                            className="btn btn-outline-primary"
+                        >
                             {t('create_new_customer')}
                         </button>
                     </div>
@@ -953,7 +1101,6 @@ const AddDeal = () => {
                             placeholder={t('enter_manufacturer')}
                         />
                     </div>
-
                     <div>
                         <label htmlFor="old_car_name" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('car_name')} <span className="text-red-500">*</span>
@@ -968,7 +1115,6 @@ const AddDeal = () => {
                             placeholder={t('enter_car_name')}
                         />
                     </div>
-
                     <div>
                         <label htmlFor="old_car_year" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('year')} <span className="text-red-500">*</span>
@@ -985,7 +1131,6 @@ const AddDeal = () => {
                             max="2030"
                         />
                     </div>
-
                     <div>
                         <label htmlFor="old_car_kilometers" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('kilometers')}
@@ -999,8 +1144,7 @@ const AddDeal = () => {
                             className="form-input"
                             placeholder={t('enter_kilometers')}
                         />
-                    </div>
-
+                    </div>{' '}
                     <div>
                         <label htmlFor="old_car_condition" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('condition')} ({t('hand')})
@@ -1015,7 +1159,20 @@ const AddDeal = () => {
                             placeholder={t('enter_condition')}
                         />
                     </div>
-
+                    <div>
+                        <label htmlFor="old_car_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('car_number')}
+                        </label>
+                        <input
+                            type="text"
+                            id="old_car_number"
+                            name="old_car_number"
+                            value={exchangeForm.old_car_number}
+                            onChange={handleExchangeFormChange}
+                            className="form-input"
+                            placeholder={t('enter_car_number')}
+                        />
+                    </div>
                     <div>
                         <label htmlFor="old_car_market_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('market_price')}
@@ -1031,7 +1188,6 @@ const AddDeal = () => {
                             step="0.01"
                         />
                     </div>
-
                     <div>
                         <label htmlFor="old_car_purchase_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('purchase_price_from_customer')} <span className="text-red-500">*</span>
@@ -1069,7 +1225,7 @@ const AddDeal = () => {
                         </div>
                     </div>
                 )}
-            </div>
+            </div>{' '}
             {/* Deal Details */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">
@@ -1079,11 +1235,150 @@ const AddDeal = () => {
                 <div className="grid grid-cols-1 gap-4">
                     <div>
                         <label htmlFor="title" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                            {t('deal_title')}
+                            {t('deal_title')} <span className="text-red-500">*</span>
                         </label>
                         <input type="text" id="title" name="title" value={exchangeForm.title} onChange={handleExchangeFormChange} className="form-input" placeholder={t('enter_deal_title')} />
                     </div>
 
+                    {/* Exchange Deal Summary Table */}
+                    {selectedCar && (
+                        <div className="md:col-span-2">
+                            <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                {/* Table Header */}
+                                <div className="grid grid-cols-3 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
+                                </div>
+                                {/* Row 1: Car for Sale */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                        <div className="font-medium">{t('car_for_sale')}</div>
+                                        <div className="text-s mt-1 text-gray-500">
+                                            {selectedCar.brand} {selectedCar.title} - {selectedCar.year}
+                                            {selectedCar.car_number && ` - ${selectedCar.car_number}`}
+                                        </div>
+                                    </div>
+                                    <div className="text-center">-</div>
+                                </div>
+                                {/* Row 2: Buy Price */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                {/* Row 3: Selling Price (Auto from sale_price) */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.sale_price.toFixed(2)}</span>
+                                    </div>
+                                </div>{' '}
+                                {/* Row 4: Customer Car Evaluation (Editable) */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm pt-3 text-gray-700 dark:text-gray-300 text-right">
+                                        <div className="font-medium">{t('customer_car_evaluation')}</div>
+                                        {exchangeForm.old_car_manufacturer && exchangeForm.old_car_name && (
+                                            <div className="text-s mt-1 text-gray-500">
+                                                {exchangeForm.old_car_manufacturer} {exchangeForm.old_car_name}
+                                                {exchangeForm.old_car_year && ` - ${exchangeForm.old_car_year}`}
+                                                {exchangeForm.old_car_number && ` - ${exchangeForm.old_car_number}`}
+                                                {exchangeForm.old_car_condition && ` - ${exchangeForm.old_car_condition}`}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                $
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="customer_car_eval_value"
+                                                step="0.01"
+                                                min="0"
+                                                value={exchangeForm.customer_car_eval_value}
+                                                onChange={handleExchangeFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Row 5: Additional Amount from Customer (Editable) */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm pt-3 text-gray-700 dark:text-gray-300 text-right">{t('additional_amount_from_customer')}</div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                $
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="additional_customer_amount"
+                                                step="0.01"
+                                                min="0"
+                                                value={exchangeForm.additional_customer_amount}
+                                                onChange={handleExchangeFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Row 6: Loss (Editable) */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                $
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="loss_amount"
+                                                step="0.01"
+                                                min="0"
+                                                value={exchangeForm.loss_amount}
+                                                onChange={handleExchangeFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Row 7: Profit Commission (Calculated) */}
+                                <div className="grid grid-cols-3 gap-4 mb-4 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
+                                    <div className="text-center">
+                                        {(() => {
+                                            if (!selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
+
+                                            const buyPrice = selectedCar.buy_price;
+                                            const sellPrice = selectedCar.sale_price;
+                                            const customerCarValue = parseFloat(exchangeForm.customer_car_eval_value || '0');
+                                            const additionalAmount = parseFloat(exchangeForm.additional_customer_amount || '0');
+                                            const loss = parseFloat(exchangeForm.loss_amount || '0');
+
+                                            // For exchange: Profit = (Sale Price - Customer Car Value + Additional Amount) - Buy Price - Loss
+                                            const profitCommission = sellPrice - customerCarValue + additionalAmount - buyPrice - loss;
+
+                                            return (
+                                                <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    {profitCommission >= 0 ? '+' : ''}${profitCommission.toFixed(2)}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Notes */}
                     <div>
                         <label htmlFor="notes" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('notes')}
@@ -1254,6 +1549,578 @@ const AddDeal = () => {
             </div>
         </div>
     );
+    const renderIntermediaryForm = () => (
+        <div className="space-y-8">
+            {/* Seller Information */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconUser className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('seller_information')}</h5>
+                </div>{' '}
+                <div className="space-y-4">
+                    <CustomerSelect
+                        selectedCustomer={selectedSeller}
+                        onCustomerSelect={setSelectedSeller}
+                        onCreateNew={() => {
+                            setCustomerCreationContext('seller');
+                            setShowCreateCustomerModal(true);
+                        }}
+                        className="form-input"
+                    />
+                    <div className="flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCustomerCreationContext('seller');
+                                setShowCreateCustomerModal(true);
+                            }}
+                            className="btn btn-outline-primary"
+                        >
+                            {t('create_new_customer')}
+                        </button>
+                    </div>
+
+                    {/* Seller Details Display */}
+                    {selectedSeller && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <h6 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">{t('seller_details')}</h6>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span className="text-blue-600 dark:text-blue-300 font-medium">{t('customer_name')}:</span>
+                                    <p className="text-blue-800 dark:text-blue-100">{selectedSeller.name}</p>
+                                </div>
+                                <div>
+                                    <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
+                                    <p className="text-blue-800 dark:text-blue-100">{selectedSeller.phone}</p>
+                                </div>
+                                {selectedSeller.identity_number && (
+                                    <div>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('identity_number')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{selectedSeller.identity_number}</p>
+                                    </div>
+                                )}
+                                {selectedSeller.birth_date && (
+                                    <div>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('birth_date')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{new Date(selectedSeller.birth_date).toLocaleDateString()}</p>
+                                    </div>
+                                )}
+                                {selectedSeller.country && (
+                                    <div>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('country')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{selectedSeller.country}</p>
+                                    </div>
+                                )}
+                                <div>
+                                    <span className="text-blue-600 dark:text-blue-300 font-medium">{t('age')}:</span>
+                                    <p className="text-blue-800 dark:text-blue-100">
+                                        {selectedSeller.age} {t('years_old')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            {/* Car Information */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconMenuWidgets className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('car_information')}</h5>
+                </div>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('select_car')} <span className="text-red-500">*</span>
+                        </label>
+                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" />
+                    </div>
+                    <div className="flex justify-end">
+                        <button type="button" onClick={() => setShowCreateCarModal(true)} className="btn btn-outline-primary">
+                            {t('create_new_car')}
+                        </button>
+                    </div>
+
+                    {/* Car Details Display */}
+                    {selectedCar && (
+                        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                            <h6 className="font-semibold text-green-800 dark:text-green-200 mb-3">{t('car_details')}</h6>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('manufacturer')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.brand}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('car_name')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.title}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('provider')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.provider}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('year')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.year}</p>
+                                </div>
+                                {selectedCar.car_number && (
+                                    <div>
+                                        <span className="text-green-600 dark:text-green-300 font-medium">{t('car_number')}:</span>
+                                        <p className="text-green-800 dark:text-green-100">{selectedCar.car_number}</p>
+                                    </div>
+                                )}
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('kilometers')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">
+                                        {selectedCar.kilometers.toLocaleString()} {t('km')}
+                                    </p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('status')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.status}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            {/* Buyer Information */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconUser className="w-5 h-5 text-warning" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('buyer_information')}</h5>
+                </div>{' '}
+                <div className="space-y-4">
+                    <CustomerSelect
+                        selectedCustomer={selectedBuyer}
+                        onCustomerSelect={setSelectedBuyer}
+                        onCreateNew={() => {
+                            setCustomerCreationContext('buyer');
+                            setShowCreateCustomerModal(true);
+                        }}
+                        className="form-input"
+                    />
+                    <div className="flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCustomerCreationContext('buyer');
+                                setShowCreateCustomerModal(true);
+                            }}
+                            className="btn btn-outline-primary"
+                        >
+                            {t('create_new_customer')}
+                        </button>
+                    </div>
+
+                    {/* Buyer Details Display */}
+                    {selectedBuyer && (
+                        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
+                            <h6 className="font-semibold text-orange-800 dark:text-orange-200 mb-3">{t('buyer_details')}</h6>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span className="text-orange-600 dark:text-orange-300 font-medium">{t('customer_name')}:</span>
+                                    <p className="text-orange-800 dark:text-orange-100">{selectedBuyer.name}</p>
+                                </div>
+                                <div>
+                                    <span className="text-orange-600 dark:text-orange-300 font-medium">{t('phone')}:</span>
+                                    <p className="text-orange-800 dark:text-orange-100">{selectedBuyer.phone}</p>
+                                </div>
+                                {selectedBuyer.identity_number && (
+                                    <div>
+                                        <span className="text-orange-600 dark:text-orange-300 font-medium">{t('identity_number')}:</span>
+                                        <p className="text-orange-800 dark:text-orange-100">{selectedBuyer.identity_number}</p>
+                                    </div>
+                                )}
+                                {selectedBuyer.birth_date && (
+                                    <div>
+                                        <span className="text-orange-600 dark:text-orange-300 font-medium">{t('birth_date')}:</span>
+                                        <p className="text-orange-800 dark:text-orange-100">{new Date(selectedBuyer.birth_date).toLocaleDateString()}</p>
+                                    </div>
+                                )}
+                                {selectedBuyer.country && (
+                                    <div>
+                                        <span className="text-orange-600 dark:text-orange-300 font-medium">{t('country')}:</span>
+                                        <p className="text-orange-800 dark:text-orange-100">{selectedBuyer.country}</p>
+                                    </div>
+                                )}
+                                <div>
+                                    <span className="text-orange-600 dark:text-orange-300 font-medium">{t('age')}:</span>
+                                    <p className="text-orange-800 dark:text-orange-100">
+                                        {selectedBuyer.age} {t('years_old')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+            {/* Deal Details */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconDollarSign className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_details')}</h5>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Deal Title */}
+                    <div className="md:col-span-2">
+                        <label htmlFor="title" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('deal_title')} <span className="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="title" name="title" value={intermediaryForm.title} onChange={handleIntermediaryFormChange} className="form-input" placeholder={t('enter_deal_title')} />
+                    </div>
+                    {/* Deal Summary Table */}
+                    {selectedCar && (
+                        <div className="md:col-span-2">
+                            <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                {/* Table Header */}
+                                <div className="grid grid-cols-3 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
+                                </div>
+                                {/* Row 1: Car Brokerage Commission */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                        <div className="font-medium">{t('intermediary_car_commission')}</div>
+                                        <div className="text-s mt-1 text-gray-500">
+                                            {selectedCar.brand} {selectedCar.title} - {selectedCar.year}
+                                            {selectedCar.car_number && ` - ${selectedCar.car_number}`}
+                                        </div>
+                                    </div>
+                                    <div className="text-center">-</div>
+                                </div>
+                                {/* Row 2: Profit Commission (Editable) */}
+                                <div className="grid grid-cols-3 gap-4 mb-4 py-2">
+                                    <div className="text-sm pt-1 text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                $
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="profit_commission"
+                                                step="0.01"
+                                                min="0"
+                                                value={intermediaryForm.profit_commission}
+                                                onChange={handleIntermediaryFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {/* Notes */}
+                    <div className="md:col-span-2">
+                        <label htmlFor="notes" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('notes')}
+                        </label>
+                        <textarea
+                            id="notes"
+                            name="notes"
+                            value={intermediaryForm.notes}
+                            onChange={handleIntermediaryFormChange}
+                            className="form-textarea min-h-[120px]"
+                            placeholder={t('enter_deal_notes')}
+                        />
+                    </div>
+                </div>
+            </div>
+            {/* Deal Attachments */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconNotes className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_attachments')}</h5>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SingleFileUpload
+                        file={dealAttachments.carLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carLicense: file }))}
+                        title={t('car_license')}
+                        description={t('car_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.driverLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, driverLicense: file }))}
+                        title={t('driver_license')}
+                        description={t('driver_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.carTransferDocument}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carTransferDocument: file }))}
+                        title={t('car_transfer_document')}
+                        description={t('car_transfer_document_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                </div>
+            </div>{' '}
+        </div>
+    );
+
+    const renderFinancingAssistanceForm = () => (
+        <div className="space-y-8">
+            {/* Customer Information */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconUser className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('customer_information')}</h5>
+                </div>
+                <div className="space-y-4">
+                    <CustomerSelect
+                        selectedCustomer={selectedCustomer}
+                        onCustomerSelect={setSelectedCustomer}
+                        onCreateNew={() => {
+                            setCustomerCreationContext('customer');
+                            setShowCreateCustomerModal(true);
+                        }}
+                        className="form-input"
+                    />
+                    <div className="flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCustomerCreationContext('customer');
+                                setShowCreateCustomerModal(true);
+                            }}
+                            className="btn btn-outline-primary"
+                        >
+                            {t('create_new_customer')}
+                        </button>
+                    </div>
+
+                    {/* Customer Details Display */}
+                    {selectedCustomer && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <h6 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">{t('customer_details')}</h6>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span className="text-blue-600 dark:text-blue-300 font-medium">{t('customer_name')}:</span>
+                                    <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.name}</p>
+                                </div>
+                                <div>
+                                    <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
+                                    <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.phone}</p>
+                                </div>
+                                {selectedCustomer.identity_number && (
+                                    <div>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('identity_number')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.identity_number}</p>
+                                    </div>
+                                )}
+                                {selectedCustomer.birth_date && (
+                                    <div>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('birth_date')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{new Date(selectedCustomer.birth_date).toLocaleDateString()}</p>
+                                    </div>
+                                )}
+                                {selectedCustomer.country && (
+                                    <div>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('country')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.country}</p>
+                                    </div>
+                                )}
+                                <div>
+                                    <span className="text-blue-600 dark:text-blue-300 font-medium">{t('age')}:</span>
+                                    <p className="text-blue-800 dark:text-blue-100">
+                                        {selectedCustomer.age} {t('years_old')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Car Information */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconMenuWidgets className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('car_information')}</h5>
+                </div>
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('select_car')} <span className="text-red-500">*</span>
+                        </label>
+                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" />
+                    </div>
+                    <div className="flex justify-end">
+                        <button type="button" onClick={() => setShowCreateCarModal(true)} className="btn btn-outline-primary">
+                            {t('create_new_car')}
+                        </button>
+                    </div>
+
+                    {/* Car Details Display */}
+                    {selectedCar && (
+                        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+                            <h6 className="font-semibold text-green-800 dark:text-green-200 mb-3">{t('car_details')}</h6>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('manufacturer')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.brand}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('car_name')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.title}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('provider')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.provider}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('year')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.year}</p>
+                                </div>
+                                {selectedCar.car_number && (
+                                    <div>
+                                        <span className="text-green-600 dark:text-green-300 font-medium">{t('car_number')}:</span>
+                                        <p className="text-green-800 dark:text-green-100">{selectedCar.car_number}</p>
+                                    </div>
+                                )}
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('kilometers')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">
+                                        {selectedCar.kilometers.toLocaleString()} {t('km')}
+                                    </p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('status')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{selectedCar.status}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Deal Details */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconDollarSign className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_details')}</h5>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Deal Title */}
+                    <div className="md:col-span-2">
+                        <label htmlFor="title" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('deal_title')} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            value={financingAssistanceForm.title}
+                            onChange={handleFinancingAssistanceFormChange}
+                            className="form-input"
+                            placeholder={t('enter_deal_title')}
+                        />
+                    </div>
+                    {/* Deal Summary Table */}
+                    {selectedCar && (
+                        <div className="md:col-span-2">
+                            <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                {/* Table Header */}
+                                <div className="grid grid-cols-3 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
+                                </div>
+                                {/* Row 1: Financing Assistance Commission */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                        <div className="font-medium">{t('financing_assistance_commission')}</div>
+                                        <div className="text-s mt-1 text-gray-500">
+                                            {selectedCar.brand} {selectedCar.title} - {selectedCar.year}
+                                            {selectedCar.car_number && ` - ${selectedCar.car_number}`}
+                                        </div>
+                                    </div>
+                                    <div className="text-center">-</div>
+                                </div>
+                                {/* Row 2: Commission (Editable) */}
+                                <div className="grid grid-cols-3 gap-4 mb-4 py-2">
+                                    <div className="text-sm pt-1 text-gray-700 dark:text-gray-300 text-right">{t('commission_editable')}</div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                $
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="commission"
+                                                step="0.01"
+                                                min="0"
+                                                value={financingAssistanceForm.commission}
+                                                onChange={handleFinancingAssistanceFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {/* Notes */}
+                    <div className="md:col-span-2">
+                        <label htmlFor="notes" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('notes')}
+                        </label>
+                        <textarea
+                            id="notes"
+                            name="notes"
+                            value={financingAssistanceForm.notes}
+                            onChange={handleFinancingAssistanceFormChange}
+                            className="form-textarea min-h-[120px]"
+                            placeholder={t('enter_deal_notes')}
+                        />
+                    </div>
+                </div>
+            </div>
+            {/* Deal Attachments */}
+            <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                    <IconNotes className="w-5 h-5 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_attachments')}</h5>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SingleFileUpload
+                        file={dealAttachments.carLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carLicense: file }))}
+                        title={t('car_license')}
+                        description={t('car_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.driverLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, driverLicense: file }))}
+                        title={t('driver_license')}
+                        description={t('driver_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.carTransferDocument}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carTransferDocument: file }))}
+                        title={t('car_transfer_document')}
+                        description={t('car_transfer_document_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="container mx-auto p-6">
@@ -1312,20 +2179,28 @@ const AddDeal = () => {
                         </div>
                         <DealStatusSelect defaultValue={dealStatus} className="form-input" name="deal_status" onChange={handleDealStatusChange} />
                     </div>
-                )}
+                )}{' '}
                 {/* Render form based on deal type */}
-                {dealType === 'new_used_sale' && renderNewUsedSaleForm()}
+                {(dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') && renderNewUsedSaleForm()}
                 {dealType === 'exchange' && renderExchangeForm()}
                 {dealType === 'company_commission' && renderCompanyCommissionForm()}
+                {dealType === 'intermediary' && renderIntermediaryForm()}
+                {dealType === 'financing_assistance_intermediary' && renderFinancingAssistanceForm()}
                 {/* Other deal types placeholder */}
-                {dealType && dealType !== 'new_used_sale' && dealType !== 'exchange' && dealType !== 'company_commission' && (
-                    <div className="panel">
-                        <div className="text-center py-12">
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t(`deal_type_${dealType}`)}</h3>
-                            <p className="text-gray-600 dark:text-gray-400">{t('form_coming_soon')}</p>
+                {dealType &&
+                    dealType !== 'new_used_sale' &&
+                    dealType !== 'new_used_sale_tax_inclusive' &&
+                    dealType !== 'exchange' &&
+                    dealType !== 'company_commission' &&
+                    dealType !== 'intermediary' &&
+                    dealType !== 'financing_assistance_intermediary' && (
+                        <div className="panel">
+                            <div className="text-center py-12">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t(`deal_type_${dealType}`)}</h3>
+                                <p className="text-gray-600 dark:text-gray-400">{t('form_coming_soon')}</p>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
                 {/* Submit Button */}
                 {dealType && (
                     <div className="flex justify-end gap-4">

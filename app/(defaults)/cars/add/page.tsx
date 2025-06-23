@@ -37,6 +37,7 @@ const AddCar = () => {
         market_price: '',
         buy_price: '',
         sale_price: '',
+        car_number: '', // Car number field
         desc: '', // New description field
     });
 
@@ -304,7 +305,6 @@ const AddCar = () => {
         e.preventDefault();
 
         if (!validateForm()) return;
-
         setSaving(true);
         try {
             // First, create the car record without images to get the car ID
@@ -319,6 +319,7 @@ const AddCar = () => {
                 market_price: form.market_price ? parseFloat(form.market_price) : 0,
                 buy_price: form.buy_price ? parseFloat(form.buy_price) : 0,
                 sale_price: form.sale_price ? parseFloat(form.sale_price) : 0,
+                car_number: form.car_number.trim() || null, // Car number field
                 desc: form.desc.trim() || null, // New description field
                 features: features.filter((f) => f.label.trim() && f.value.trim()).map((f) => ({ label: f.label.trim(), value: f.value.trim() })), // New features field
                 images: [], // Initially empty
@@ -457,7 +458,7 @@ const AddCar = () => {
                                         {t('car_title')} <span className="text-red-500">*</span>
                                     </label>
                                     <input type="text" id="title" name="title" value={form.title} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_title')} required />
-                                </div>
+                                </div>{' '}
                                 {/* Year */}
                                 <div>
                                     <label htmlFor="year" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -474,6 +475,21 @@ const AddCar = () => {
                                         className="form-input"
                                         placeholder={t('enter_year')}
                                         required
+                                    />
+                                </div>
+                                {/* Car Number */}
+                                <div>
+                                    <label htmlFor="car_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('car_number')}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="car_number"
+                                        name="car_number"
+                                        value={form.car_number}
+                                        onChange={handleInputChange}
+                                        className="form-input"
+                                        placeholder={t('enter_car_number')}
                                     />
                                 </div>
                                 {/* Brand */}

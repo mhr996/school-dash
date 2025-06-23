@@ -38,6 +38,7 @@ interface Car {
     market_price: number;
     buy_price: number;
     sale_price: number;
+    car_number?: string; // Car number field
     desc?: string; // New description field
     features?: Feature[]; // New features field
     images: string[];
@@ -73,6 +74,7 @@ const EditCar = () => {
         market_price: '',
         buy_price: '',
         sale_price: '',
+        car_number: '', // Car number field
         desc: '', // New description field
     }); // Separate states for thumbnail and gallery images
     const [thumbnailImage, setThumbnailImage] = useState<File | null>(null);
@@ -113,6 +115,7 @@ const EditCar = () => {
                         market_price: data.market_price?.toString() || '',
                         buy_price: data.buy_price?.toString() || '',
                         sale_price: data.sale_price?.toString() || '',
+                        car_number: data.car_number || '', // Car number field
                         desc: data.desc || '', // New description field
                     }); // Convert relative paths to full URLs for display and keep original paths
                     if (data.images && data.images.length > 0) {
@@ -452,6 +455,7 @@ const EditCar = () => {
                 market_price: form.market_price ? parseFloat(form.market_price) : 0,
                 buy_price: form.buy_price ? parseFloat(form.buy_price) : 0,
                 sale_price: form.sale_price ? parseFloat(form.sale_price) : 0,
+                car_number: form.car_number.trim() || null, // Car number field
                 desc: form.desc.trim() || null, // New description field
                 features: features.filter((f) => f.label.trim() && f.value.trim()).map((f) => ({ label: f.label.trim(), value: f.value.trim() })), // New features field
                 images: allImageUrls,
@@ -590,7 +594,7 @@ const EditCar = () => {
                                         {t('car_title')} <span className="text-red-500">*</span>
                                     </label>
                                     <input type="text" id="title" name="title" value={form.title} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_title')} required />
-                                </div>
+                                </div>{' '}
                                 {/* Year */}
                                 <div>
                                     <label htmlFor="year" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -607,6 +611,21 @@ const EditCar = () => {
                                         className="form-input"
                                         placeholder={t('enter_year')}
                                         required
+                                    />
+                                </div>
+                                {/* Car Number */}
+                                <div>
+                                    <label htmlFor="car_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('car_number')}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="car_number"
+                                        name="car_number"
+                                        value={form.car_number}
+                                        onChange={handleInputChange}
+                                        className="form-input"
+                                        placeholder={t('enter_car_number')}
                                     />
                                 </div>
                                 {/* Brand */}

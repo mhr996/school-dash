@@ -18,6 +18,7 @@ interface Car {
     market_price: number;
     buy_price: number;
     sale_price: number;
+    car_number?: string; // Car number field
     images: string[] | string;
 }
 

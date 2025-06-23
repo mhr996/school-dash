@@ -20,11 +20,12 @@ const DealTypeSelect = ({ defaultValue, className = 'form-select text-white-dark
     useEffect(() => {
         setSelectedType(defaultValue);
     }, [defaultValue]);
-
     const dealTypes = [
         { value: 'new_used_sale', label: t('deal_type_new_used_sale') },
+        { value: 'new_used_sale_tax_inclusive', label: t('deal_type_new_used_sale_tax_inclusive') },
         { value: 'exchange', label: t('deal_type_exchange') },
         { value: 'intermediary', label: t('deal_type_intermediary') },
+        { value: 'financing_assistance_intermediary', label: t('deal_type_financing_assistance_intermediary') },
         { value: 'company_commission', label: t('deal_type_company_commission') },
     ];
 

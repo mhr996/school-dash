@@ -42,6 +42,7 @@ interface Deal {
         market_price: number;
         buy_price: number;
         sale_price: number;
+        car_number?: string; // Car number field
     };
 }
 
@@ -448,7 +449,8 @@ const AddBill = () => {
                                         <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
                                             <div className="font-medium">{t('car_for_sale')}</div>
                                             <div className="text-xs text-gray-500">
-                                                {selectedDeal.car.brand} {selectedDeal.car.title} - {selectedDeal.car.year} - #{selectedDeal.car.id}
+                                                {selectedDeal.car.brand} {selectedDeal.car.title} - {selectedDeal.car.year}
+                                                {selectedDeal.car.car_number && ` - ${selectedDeal.car.car_number}`} - #{selectedDeal.car.id}
                                             </div>
                                         </div>
                                         <div className="text-center">-</div>
@@ -536,7 +538,15 @@ const AddBill = () => {
                             <label htmlFor="free_text" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 {t('notes')}
                             </label>
-                            <textarea id="free_text" name="free_text" rows={3} value={billForm.free_text || ''} onChange={handleFormChange} className="form-textarea" placeholder={t('enter_bill_notes')} />
+                            <textarea
+                                id="free_text"
+                                name="free_text"
+                                rows={3}
+                                value={billForm.free_text || ''}
+                                onChange={handleFormChange}
+                                className="form-textarea"
+                                placeholder={t('enter_bill_notes')}
+                            />
                         </div>
                     </>
                 )}
