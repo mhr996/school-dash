@@ -723,12 +723,11 @@
     "update_deal_description": "تحديث معلومات الصفقة",
 
     "deal_type_new_used_sale": "صفقة بيع جديد/مستعمل",
-    "deal_type_new_used_sale_tax_inclusive": "بيع جديد/مستعمل شاملة الضريبة للتجار",
+    "deal_type_new_used_sale_tax_inclusive": "صفقة بيع جديد/مستعمل شاملة الضريبة للتجار",
     "deal_type_exchange": "صفقة تبديل",
     "deal_type_intermediary": "صفقة وسيط",
-    "deal_type_financing_assistance_intermediary": "وسيط مساعدة للتمويل",
-    "deal_type_company_commission": "عمولة من الشركات",
-
+    "deal_type_financing_assistance_intermediary": "صفقة وسيط مساعدة للتمويل",
+    "deal_type_company_commission": "صفقة عمولة من الشركات",
     "deal_type_new_used_sale_desc": "بيع سيارة جديدة أو مستعملة للعملاء",
     "deal_type_exchange_desc": "تبديل سيارة قديمة بسيارة جديدة أو مستعملة",
     "deal_type_intermediary_desc": "الوساطة في صفقة بين طرفين",
