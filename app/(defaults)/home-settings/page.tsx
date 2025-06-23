@@ -25,7 +25,7 @@ interface Car {
     provider: string;
     kilometers: number;
     market_price: number;
-    value_price: number;
+    buy_price: number;
     sale_price: number;
     images: string[] | string;
     show_in_sales?: boolean;
@@ -377,7 +377,7 @@ const HomePageSettings = () => {
                                     className="form-input"
                                     availableCars={availableCars.filter((car) => !car[currentTab.dbField as keyof Car])}
                                 />
-                            </div>{' '}
+                            </div>
                             <button
                                 onClick={() => selectedCarToAdd && addCarToTab(selectedCarToAdd)}
                                 disabled={!selectedCarToAdd || saving}
@@ -410,7 +410,6 @@ const HomePageSettings = () => {
                                         key={car.id}
                                         className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow"
                                     >
-                                     
                                         {/* Car Image */}
                                         <div className="relative h-48">
                                             <img

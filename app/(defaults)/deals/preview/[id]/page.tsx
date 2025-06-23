@@ -13,6 +13,9 @@ import IconUser from '@/components/icon/icon-user';
 import IconCar from '@/components/icon/icon-car';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMapPin from '@/components/icon/icon-map-pin';
+import IconInvoice from '@/components/icon/icon-invoice';
+import IconReceipt from '@/components/icon/icon-receipt';
+import IconPlus from '@/components/icon/icon-plus';
 
 interface Deal {
     id: string;
@@ -45,9 +48,20 @@ interface Car {
     provider: string;
     kilometers: number;
     market_price: number;
-    value_price: number;
+    buy_price: number;
     sale_price: number;
     images: string[] | string;
+}
+
+interface Bill {
+    id: string;
+    bill_type: string;
+    status: string;
+    customer_name: string;
+    date: string;
+    total_with_tax: number;
+    total: number;
+    created_at: string;
 }
 
 const PreviewDeal = ({ params }: { params: { id: string } }) => {
@@ -57,6 +71,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const [deal, setDeal] = useState<Deal | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [car, setCar] = useState<Car | null>(null);
+    const [bills, setBills] = useState<Bill[]>([]);
     const [carImageUrl, setCarImageUrl] = useState<string | null>(null);
     const dealId = params.id;
 
@@ -92,6 +107,17 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                 setCarImageUrl(imageUrl);
                             }
                         }
+                    }
+
+                    // Fetch bills linked to this deal
+                    const { data: billsData } = await supabase
+                        .from('bills')
+                        .select('id, bill_type, status, customer_name, date, total_with_tax, total, created_at')
+                        .eq('deal_id', dealId)
+                        .order('created_at', { ascending: false });
+
+                    if (billsData) {
+                        setBills(billsData);
                     }
                 }
             } catch (error) {
@@ -137,7 +163,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                 return 'badge-outline-secondary';
         }
     };
-
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
             case 'active':
@@ -148,6 +173,32 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                 return 'badge-outline-danger';
             default:
                 return 'badge-outline-secondary';
+        }
+    };
+
+    const getBillStatusBadgeClass = (status: string) => {
+        switch (status) {
+            case 'paid':
+                return 'badge-outline-success';
+            case 'pending':
+                return 'badge-outline-warning';
+            case 'overdue':
+                return 'badge-outline-danger';
+            default:
+                return 'badge-outline-secondary';
+        }
+    };
+
+    const getBillTypeIcon = (type: string) => {
+        switch (type) {
+            case 'tax_invoice':
+                return <IconInvoice className="w-5 h-5" />;
+            case 'receipt_only':
+                return <IconReceipt className="w-5 h-5" />;
+            case 'tax_invoice_receipt':
+                return <IconInvoice className="w-5 h-5" />;
+            default:
+                return <IconInvoice className="w-5 h-5" />;
         }
     };
 
@@ -376,8 +427,8 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                     <p className="text-3xl font-bold text-blue-700 dark:text-blue-300">{formatCurrency(car.market_price)}</p>
                                 </div>
                                 <div className="p-6 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-                                    <p className="text-emerald-600 dark:text-emerald-400 font-medium mb-2">{t('value_price')}</p>
-                                    <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(car.value_price)}</p>
+                                    <p className="text-emerald-600 dark:text-emerald-400 font-medium mb-2">{t('buy_price')}</p>
+                                    <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-300">{formatCurrency(car.buy_price)}</p>
                                 </div>
                                 <div className="p-6 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
                                     <p className="text-amber-600 dark:text-amber-400 font-medium mb-2">{t('sale_price')}</p>
@@ -387,6 +438,55 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                         </div>
                     </div>
                 )}
+
+                {/* Bills Section */}
+                <div className="panel">
+                    <div className="mb-5">
+                        <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
+                            <IconInvoice className="w-6 h-6 text-primary" />
+                            {t('bills')}
+                        </h5>
+                    </div>
+
+                    {bills.length > 0 ? (
+                        <div className="space-y-4">
+                            {bills.map((bill) => (
+                                <div key={bill.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2 bg-primary/10 rounded-full text-primary">{getBillTypeIcon(bill.bill_type)}</div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h4 className="font-semibold text-gray-900 dark:text-white">{t(`bill_type_${bill.bill_type}`)}</h4>
+                                                <span className={`badge ${getBillStatusBadgeClass(bill.status)} text-xs`}>{t(`bill_status_${bill.status}`)}</span>
+                                            </div>
+                                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                {bill.customer_name} • {new Date(bill.date).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-bold text-gray-900 dark:text-white text-lg">{formatCurrency(bill.total_with_tax || bill.total || 0)}</div>
+                                        <Link href={`/bills/preview/${bill.id}`} className="text-primary hover:underline text-sm">
+                                            {t('view_bill')}
+                                        </Link>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                                <IconInvoice className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('no_bills_found')}</h3>
+                            <p className="text-gray-600 dark:text-gray-400 mb-4">{t('no_bills_description')}</p>
+                            <Link href={`/bills/add?deal=${dealId}`} className="btn btn-primary gap-2">
+                                <IconPlus className="w-4 h-4" />
+                                {t('create_bill')}
+                            </Link>
+                        </div>
+                    )}
+                </div>
 
                 {/* Actions */}
                 <div className="panel">

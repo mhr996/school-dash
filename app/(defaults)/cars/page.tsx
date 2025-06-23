@@ -19,7 +19,7 @@ interface Car {
     year: number;
     status: string;
     market_price: number;
-    value_price: number;
+    buy_price: number;
     sale_price: number;
     kilometers: number;
     provider: string;
@@ -192,7 +192,7 @@ const CarsList = () => {
                     <DataTable
                         className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
                         records={records}
-                        columns={[ 
+                        columns={[
                             {
                                 accessor: 'id',
                                 title: t('id'),

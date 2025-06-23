@@ -22,7 +22,7 @@ interface Car {
     status: string;
     type?: string;
     market_price: number;
-    value_price: number;
+    buy_price: number;
     sale_price: number;
     kilometers: number;
     provider: string;
@@ -371,10 +371,9 @@ const CarPreview = () => {
                                 </div>
                                 <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                     <div className="flex items-center">
-                                        <IconTrendingUp className="w-5 h-5 text-gray-400 ltr:mr-2 rtl:ml-2" />
-                                        <span className="text-sm text-gray-600">{t('value_price')}:</span>
+                                        <IconTrendingUp className="w-5 h-5 text-gray-400 ltr:mr-2 rtl:ml-2" /> <span className="text-sm text-gray-600">{t('buy_price')}:</span>
                                     </div>
-                                    <span className="font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(car.value_price)}</span>
+                                    <span className="font-semibold text-gray-700 dark:text-gray-300">{formatCurrency(car.buy_price)}</span>
                                 </div>
                                 <div className="flex justify-between items-center p-3 bg-primary/10 dark:bg-primary/20 rounded-lg border border-primary/20">
                                     <div className="flex items-center">

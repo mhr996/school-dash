@@ -10,10 +10,11 @@ interface BillTypeSelectProps {
     name?: string;
     defaultValue?: string;
     className?: string;
+    dealType?: string; // Add dealType prop to filter available options
     onChange?: (billType: string) => void;
 }
 
-const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white-dark', onChange, name = 'bill_type', id }: BillTypeSelectProps) => {
+const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white-dark', dealType, onChange, name = 'bill_type', id }: BillTypeSelectProps) => {
     const { t } = getTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [selectedType, setSelectedType] = useState(defaultValue);
@@ -22,7 +23,6 @@ const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white
     useEffect(() => {
         setSelectedType(defaultValue);
     }, [defaultValue]);
-
     const billTypes = [
         {
             value: 'tax_invoice',
@@ -53,6 +53,19 @@ const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white
         },
     ];
 
+    // Filter bill types based on deal type
+    const getFilteredBillTypes = () => {
+        if (dealType === 'intermediary') {
+            // For intermediary deals, only show tax_invoice_receipt
+            return billTypes.filter((type) => type.value === 'tax_invoice_receipt');
+        } else {
+            // For all other deal types, show tax_invoice and receipt_only
+            return billTypes.filter((type) => type.value === 'tax_invoice' || type.value === 'receipt_only');
+        }
+    };
+
+    const filteredBillTypes = getFilteredBillTypes();
+
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
@@ -70,9 +83,8 @@ const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white
             onChange(type);
         }
     };
-
     const getSelectedLabel = () => {
-        const selected = billTypes.find((type) => type.value === selectedType);
+        const selected = filteredBillTypes.find((type) => type.value === selectedType);
         if (selected) {
             const IconComponent = selected.icon;
             return (
@@ -94,6 +106,16 @@ const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white
         );
     };
 
+    // Reset selectedType if it's not available in the filtered options
+    useEffect(() => {
+        if (selectedType && !filteredBillTypes.find((type) => type.value === selectedType)) {
+            setSelectedType('');
+            if (onChange) {
+                onChange('');
+            }
+        }
+    }, [filteredBillTypes, selectedType, onChange]);
+
     return (
         <div ref={wrapperRef} className="relative">
             <div
@@ -106,7 +128,7 @@ const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white
             {isOpen && (
                 <div className="absolute z-50 mt-2 w-full rounded-lg border border-gray-200 dark:border-[#191e3a] bg-white dark:bg-black shadow-lg shadow-black/10 dark:shadow-black/50">
                     <div className="max-h-60 overflow-y-auto p-2">
-                        {billTypes.map((type) => {
+                        {filteredBillTypes.map((type) => {
                             const IconComponent = type.icon;
                             return (
                                 <div

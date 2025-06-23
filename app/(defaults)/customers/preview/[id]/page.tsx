@@ -254,7 +254,7 @@ const CustomerPreview = () => {
                                             <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('country')}:</span>
                                             <span className="font-medium">{customer.country}</span>
                                         </div>
-                                    )}{' '}
+                                    )}
                                     {customer.age && (
                                         <div className="flex items-center">
                                             <IconUser className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />

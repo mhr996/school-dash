@@ -33,7 +33,7 @@ interface Deal {
         provider: string;
         kilometers: number;
         market_price: number;
-        value_price: number;
+        buy_price: number;
         sale_price: number;
     };
 }
@@ -96,9 +96,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="font-semibold text-gray-900 dark:text-white truncate">{selectedDeal.title}</span>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${dealTypeColor}`}>
-                                {t(`deal_type_${selectedDeal.deal_type}`)}
-                            </span>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full border ${dealTypeColor}`}>{t(`deal_type_${selectedDeal.deal_type}`)}</span>
                         </div>
                         <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                             <div className="flex items-center gap-1">
@@ -106,8 +104,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                 <span className="truncate">{selectedDeal.customer?.name || t('no_customer')}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              
-                                <span>{"$" + selectedDeal.amount}</span>
+                                <span>{'$' + selectedDeal.amount}</span>
                             </div>
                         </div>
                     </div>
@@ -156,14 +153,12 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                                 </div>
                                                 <div>
                                                     <h4 className={`font-semibold text-gray-900 dark:text-white ${isSelected ? 'text-primary' : ''}`}>{deal.title}</h4>
-                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${dealTypeColor}`}>
-                                                        {t(`deal_type_${deal.deal_type}`)}
-                                                    </span>
+                                                    <span className={`px-2 py-1 text-xs font-medium rounded-full border ${dealTypeColor}`}>{t(`deal_type_${deal.deal_type}`)}</span>
                                                 </div>
                                             </div>
                                             <div className="text-right">
                                                 <div className="flex items-center gap-1 text-lg font-bold text-green-600 dark:text-green-400">
-                                                    <span>{"$" + deal.amount}</span>
+                                                    <span>{'$' + deal.amount}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -188,9 +183,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                                 </div>
                                                 <div>
                                                     <span className="text-gray-500 dark:text-gray-400">{t('car')}: </span>
-                                                    <span className="text-gray-900 dark:text-white font-medium">
-                                                        {deal.car ? `${deal.car.brand} ${deal.car.title}` : t('no_car')}
-                                                    </span>
+                                                    <span className="text-gray-900 dark:text-white font-medium">{deal.car ? `${deal.car.brand} ${deal.car.title}` : t('no_car')}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -203,9 +196,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
             )}
             {isOpen && !loading && deals.length === 0 && (
                 <div className="absolute z-50 mt-2 w-full rounded-lg border border-gray-200 dark:border-[#191e3a] bg-white dark:bg-black shadow-lg shadow-black/10 dark:shadow-black/50">
-                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                        {t('no_deals_available') || 'No deals available'}
-                    </div>
+                    <div className="p-4 text-center text-gray-500 dark:text-gray-400">{t('no_deals_available') || 'No deals available'}</div>
                 </div>
             )}
         </div>

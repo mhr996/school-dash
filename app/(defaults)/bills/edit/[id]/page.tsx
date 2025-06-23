@@ -40,7 +40,7 @@ interface Deal {
         provider: string;
         kilometers: number;
         market_price: number;
-        value_price: number;
+        buy_price: number;
         sale_price: number;
     };
 }
@@ -460,7 +460,7 @@ const EditBill = () => {
                     <div className="mb-5 flex items-center gap-3">
                         <IconMenuWidgets className="w-5 h-5 text-primary" />
                         <h5 className="text-xl font-bold text-primary dark:text-white-light">{t('associated_deal')}</h5>
-                    </div>{' '}
+                    </div>
                     <div className="space-y-4">
                         <DealSelect
                             deals={deals}
@@ -483,7 +483,7 @@ const EditBill = () => {
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_type')}</label>
                                     <p className="text-sm text-gray-900 dark:text-white">{t(`deal_type_${selectedDeal.deal_type}`)}</p>
-                                </div>{' '}
+                                </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</label>
                                     <p className="text-sm text-gray-900 dark:text-white">
@@ -510,7 +510,7 @@ const EditBill = () => {
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_type')}</h5>
-                        </div>{' '}
+                        </div>
                         <div className="space-y-4">
                             <BillTypeSelect defaultValue={billForm.bill_type} onChange={(billType) => handleFormChange({ target: { name: 'bill_type', value: billType } } as any)} className="w-full" />
                         </div>
@@ -778,7 +778,7 @@ const EditBill = () => {
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_status')}</h5>
-                        </div>{' '}
+                        </div>
                         <div className="space-y-4">
                             <BillStatusSelect defaultValue={billForm.status} onChange={(status) => handleFormChange({ target: { name: 'status', value: status } } as any)} className="w-full" />
                         </div>

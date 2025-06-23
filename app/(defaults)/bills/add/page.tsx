@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
@@ -40,7 +40,7 @@ interface Deal {
         provider: string;
         kilometers: number;
         market_price: number;
-        value_price: number;
+        buy_price: number;
         sale_price: number;
     };
 }
@@ -48,6 +48,7 @@ interface Deal {
 const AddBill = () => {
     const { t } = getTranslation();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [saving, setSaving] = useState(false);
     const [deals, setDeals] = useState<Deal[]>([]);
     const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
@@ -98,10 +99,15 @@ const AddBill = () => {
         check_holder_name: '',
         check_branch: '',
     });
-
     useEffect(() => {
         fetchDeals();
-    }, []);
+    }, []); // Effect to handle pre-selected deal from URL parameter
+    useEffect(() => {
+        const dealId = searchParams?.get('deal');
+        if (dealId && deals.length > 0) {
+            handleDealSelect(dealId);
+        }
+    }, [deals, searchParams]);
     const fetchDeals = async () => {
         try {
             const { data, error } = await supabase
@@ -136,9 +142,10 @@ const AddBill = () => {
         const deal = deals.find((d) => d.id.toString() === dealId);
         if (deal) {
             setSelectedDeal(deal);
-            // Auto-fill form with deal data
+            // Auto-fill form with deal data and reset bill_type when deal changes
             setBillForm((prev) => ({
                 ...prev,
+                bill_type: '', // Reset bill type when deal changes as available options might change
                 customer_name: deal.customer?.name || '',
                 identity_number: '', // This field doesn't exist in the customer interface
                 phone: deal.customer?.phone || '',
@@ -321,7 +328,7 @@ const AddBill = () => {
                     <div className="mb-5 flex items-center gap-3">
                         <IconMenuWidgets className="w-5 h-5 text-primary" />
                         <h5 className="text-xl font-bold text-primary dark:text-white-light">{t('select_deal')}</h5>
-                    </div>{' '}
+                    </div>
                     <div className="space-y-4">
                         <DealSelect
                             deals={deals}
@@ -339,7 +346,7 @@ const AddBill = () => {
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_title')}</label>
                                     <p className="text-sm text-gray-900 dark:text-white">{selectedDeal.title}</p>
-                                </div>{' '}
+                                </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_name')}</label>
                                     <p className="text-sm text-gray-900 dark:text-white">{selectedDeal.customer?.name || t('no_customer')}</p>
@@ -351,7 +358,7 @@ const AddBill = () => {
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</label>
                                     <p className="text-sm text-gray-900 dark:text-white">{'$' + selectedDeal.amount}</p>
-                                </div>{' '}
+                                </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('car')}</label>
                                     <p className="text-sm text-gray-900 dark:text-white">{selectedDeal.car ? `${selectedDeal.car.brand} ${selectedDeal.car.title}` : t('no_car')}</p>
@@ -359,77 +366,180 @@ const AddBill = () => {
                             </div>
                         )}
                     </div>
-                </div>
-
+                </div>{' '}
                 {/* Bill Type Selection */}
                 {selectedDeal && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_type')}</h5>
-                        </div>{' '}
+                        </div>
                         <div className="space-y-4">
-                            <BillTypeSelect defaultValue={billForm.bill_type} onChange={(billType) => handleFormChange({ target: { name: 'bill_type', value: billType } } as any)} className="w-full" />
+                            <BillTypeSelect
+                                defaultValue={billForm.bill_type}
+                                dealType={selectedDeal?.deal_type}
+                                onChange={(billType) => handleFormChange({ target: { name: 'bill_type', value: billType } } as any)}
+                                className="w-full"
+                            />
                         </div>
                     </div>
                 )}
-
                 {/* Tax Invoice Section */}
-                {(billForm.bill_type === 'tax_invoice' || billForm.bill_type === 'tax_invoice_receipt') && (
-                    <div className="panel">
-                        <div className="mb-5 flex items-center gap-3">
-                            <IconUser className="w-5 h-5 text-primary" />
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('tax_invoice_details')}</h5>
+                {(billForm.bill_type === 'tax_invoice' || billForm.bill_type === 'tax_invoice_receipt') && selectedDeal && (
+                    <>
+                        {/* Customer Information Display */}
+                        <div className="panel">
+                            <div className="mb-5 flex items-center gap-3">
+                                <IconUser className="w-5 h-5 text-primary" />
+                                <h5 className="text-lg font-semibold dark:text-white-light">{t('customer_information')}</h5>
+                            </div>
+                            {selectedDeal.customer && (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                    <h6 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">{t('customer_details')}</h6>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                                        <div>
+                                            <span className="text-blue-600 dark:text-blue-300 font-medium">{t('customer_name')}:</span>
+                                            <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.name}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
+                                            <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.phone}</p>
+                                        </div>
+                                        {selectedDeal.customer.email && (
+                                            <div>
+                                                <span className="text-blue-600 dark:text-blue-300 font-medium">{t('email')}:</span>
+                                                <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.email}</p>
+                                            </div>
+                                        )}
+                                        {selectedDeal.customer.country && (
+                                            <div>
+                                                <span className="text-blue-600 dark:text-blue-300 font-medium">{t('country')}:</span>
+                                                <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.country}</p>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <span className="text-blue-600 dark:text-blue-300 font-medium">{t('age')}:</span>
+                                            <p className="text-blue-800 dark:text-blue-100">
+                                                {selectedDeal.customer.age} {t('years_old')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('customer_name')}</label>
-                                <input name="customer_name" value={billForm.customer_name} onChange={handleFormChange} className="form-input" placeholder={t('customer_name')} required />
+                        {/* Tax Invoice Details Table */}
+                        <div className="panel">
+                            <div className="mb-5 flex items-center gap-3">
+                                <IconDollarSign className="w-5 h-5 text-primary" />
+                                <h5 className="text-lg font-semibold dark:text-white-light">تفاصيل الفاتورة الضريبية</h5>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('identity_number')}</label>
-                                <input name="identity_number" value={billForm.identity_number} onChange={handleFormChange} className="form-input" placeholder={t('identity_number')} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')}</label>
-                                <input name="phone" value={billForm.phone} onChange={handleFormChange} className="form-input" placeholder={t('phone')} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('date')}</label>
-                                <input name="date" type="date" value={billForm.date} onChange={handleFormChange} className="form-input" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('car_details')}</label>
-                                <input name="car_details" value={billForm.car_details} onChange={handleFormChange} className="form-input" placeholder={t('car_details')} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('sale_price')}</label>
-                                <input name="sale_price" type="number" step="0.01" value={billForm.sale_price} onChange={handleFormChange} className="form-input" placeholder={t('sale_price')} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('commission')}</label>
-                                <input name="commission" type="number" step="0.01" value={billForm.commission} onChange={handleFormChange} className="form-input" placeholder={t('commission')} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('total')}</label>
-                                <input name="total" value={billForm.total} className="form-input bg-gray-100 dark:bg-gray-700" placeholder={t('total')} readOnly />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('tax_amount')}</label>
-                                <input name="tax_amount" value={billForm.tax_amount} className="form-input bg-gray-100 dark:bg-gray-700" placeholder={t('tax_amount')} readOnly />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('total_with_tax')}</label>
-                                <input name="total_with_tax" value={billForm.total_with_tax} className="form-input bg-gray-100 dark:bg-gray-700" placeholder={t('total_with_tax')} readOnly />
-                            </div>
-                            <div className="md:col-span-2 lg:col-span-3">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('free_text')}</label>
-                                <textarea name="free_text" rows={3} value={billForm.free_text} onChange={handleFormChange} className="form-textarea" placeholder={t('free_text')} />
-                            </div>
-                        </div>
-                    </div>
-                )}
+                            {selectedDeal.car && (
+                                <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                    {/* Table Header */}
+                                    <div className="grid grid-cols-4 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                        <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
+                                        <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
+                                        <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_quantity')}</div>
+                                        <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_total')}</div>
+                                    </div>
 
+                                    {/* Row 1: Car for Sale */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                            <div className="font-medium">{t('car_for_sale')}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {selectedDeal.car.brand} {selectedDeal.car.title} - {selectedDeal.car.year} - #{selectedDeal.car.id}
+                                            </div>
+                                        </div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                    </div>
+
+                                    {/* Row 2: Buy Price */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${selectedDeal.car.buy_price.toFixed(2)}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${selectedDeal.car.buy_price.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: Selling Price */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${selectedDeal.amount.toFixed(2)}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${selectedDeal.amount.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 4: Loss */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-red-600 dark:text-red-400">${Math.max(0, selectedDeal.car.buy_price - selectedDeal.amount).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 5: Profit Commission */}
+                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-green-600 dark:text-green-400">${Math.max(0, selectedDeal.amount - selectedDeal.car.buy_price).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Separator */}
+                                    <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
+
+                                    {/* Tax Calculations */}
+                                    <div className="space-y-3">
+                                        {/* Price Before Tax */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${selectedDeal.amount.toFixed(2)}</span>
+                                        </div>
+
+                                        {/* Tax */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${(selectedDeal.amount * 0.18).toFixed(2)}</span>{' '}
+                                        </div>
+
+                                        {/* Total Including Tax */}
+                                        <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                            <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                            <span className="text-lg font-bold text-primary">${(selectedDeal.amount * 1.18).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Notes Section */}
+                        <div className="mt-6">
+                            <label htmlFor="free_text" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                {t('notes')}
+                            </label>
+                            <textarea id="free_text" name="free_text" rows={3} value={billForm.free_text || ''} onChange={handleFormChange} className="form-textarea" placeholder={t('enter_bill_notes')} />
+                        </div>
+                    </>
+                )}
                 {/* Receipt Section */}
                 {(billForm.bill_type === 'receipt_only' || billForm.bill_type === 'tax_invoice_receipt') && (
                     <div className="panel">
@@ -438,7 +548,6 @@ const AddBill = () => {
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('receipt_details')}</h5>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {' '}
                             <div className="md:col-span-2 lg:col-span-3">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment_type')}</label>
                                 <PaymentTypeSelect
@@ -624,20 +733,18 @@ const AddBill = () => {
                         </div>
                     </div>
                 )}
-
                 {/* Status Selection */}
                 {billForm.bill_type && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_status')}</h5>
-                        </div>{' '}
+                        </div>
                         <div className="space-y-4">
                             <BillStatusSelect defaultValue={billForm.status} onChange={(status) => handleFormChange({ target: { name: 'status', value: status } } as any)} className="w-full" />
                         </div>
                     </div>
                 )}
-
                 {/* Submit Button */}
                 {selectedDeal && billForm.bill_type && (
                     <div className="flex justify-end gap-4">

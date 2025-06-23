@@ -210,7 +210,7 @@ const BillPreview = () => {
                     <div>
                         <h1 className="text-2xl font-bold">{t('bill_preview')}</h1>
                         <p className="text-gray-500">{t('view_bill_details')}</p>
-                    </div>{' '}
+                    </div>
                     <div className="flex gap-3">
                         <button onClick={handleDownloadPDF} disabled={downloadingPDF} className="btn btn-outline-primary gap-2">
                             <IconDownload className="w-4 h-4" />
@@ -296,7 +296,7 @@ const BillPreview = () => {
                             <div className="text-sm text-gray-600 dark:text-gray-400">{t('total_with_tax')}</div>
                         </div>
                     </div>
-                </div>{' '}
+                </div>
                 {/* Tax Invoice Details */}
                 {(bill.bill_type === 'tax_invoice' || bill.bill_type === 'tax_invoice_receipt') && (
                     <div className="panel">
@@ -333,7 +333,7 @@ const BillPreview = () => {
                             )}
                         </div>
                     </div>
-                )}{' '}
+                )}
                 {/* Receipt Details */}
                 {(bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') && bill.payment_type && (
                     <div className="panel">
@@ -400,7 +400,7 @@ const BillPreview = () => {
                                         <p className="text-sm text-gray-900 dark:text-white">{bill.check_number || t('not_provided')}</p>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_bank_name')}</label>{' '}
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_bank_name')}</label>
                                         <p className="text-sm text-gray-900 dark:text-white">{bill.check_bank_name || t('not_provided')}</p>
                                     </div>
                                     <div>

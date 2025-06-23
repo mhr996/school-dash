@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import IconCaretDown from '@/components/icon/icon-caret-down';
 import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
+import IconPlus from '@/components/icon/icon-plus';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
 
@@ -15,7 +16,7 @@ interface Car {
     provider: string;
     kilometers: number;
     market_price: number;
-    value_price: number;
+    buy_price: number;
     sale_price: number;
     images: string[] | string;
 }
@@ -23,11 +24,12 @@ interface Car {
 interface CarSelectProps {
     selectedCar?: Car | null;
     onCarSelect: (car: Car | null) => void;
+    onCreateNew?: () => void;
     className?: string;
     availableCars?: Car[]; // Optional prop to pass pre-filtered cars
 }
 
-const CarSelect = ({ selectedCar, onCarSelect, className = 'form-select', availableCars }: CarSelectProps) => {
+const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-select', availableCars }: CarSelectProps) => {
     const { t } = getTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [cars, setCars] = useState<Car[]>([]);
@@ -80,11 +82,18 @@ const CarSelect = ({ selectedCar, onCarSelect, className = 'form-select', availa
             setLoading(false);
         }
     };
-
     const handleCarSelect = (car: Car) => {
         onCarSelect(car);
         setIsOpen(false);
         setSearchTerm('');
+    };
+
+    const handleCreateNew = () => {
+        if (onCreateNew) {
+            onCreateNew();
+            setIsOpen(false);
+            setSearchTerm('');
+        }
     };
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -148,7 +157,18 @@ const CarSelect = ({ selectedCar, onCarSelect, className = 'form-select', availa
                             autoFocus
                         />
                     </div>
-
+                    {/* Create New Car Button */}
+                    {onCreateNew && (
+                        <div className="p-2 border-b border-gray-200 dark:border-[#191e3a]">
+                            <button
+                                onClick={handleCreateNew}
+                                className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
+                            >
+                                <IconPlus className="w-4 h-4" />
+                                <span className="font-medium">{t('create_new_car')}</span>
+                            </button>
+                        </div>
+                    )}
                     {/* Cars List */}
                     <div className="max-h-60 overflow-y-auto">
                         {loading ? (

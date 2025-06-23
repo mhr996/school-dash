@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import supabase from '@/lib/supabase';
@@ -9,8 +9,9 @@ import DealTypeSelect from '@/components/deal-type-select/deal-type-select';
 import DealStatusSelect from '@/components/deal-status-select/deal-status-select';
 import CustomerSelect from '@/components/customer-select/customer-select';
 import CarSelect from '@/components/car-select/car-select';
-import FileUpload from '@/components/file-upload/file-upload';
+import SingleFileUpload from '@/components/file-upload/single-file-upload';
 import CreateCustomerModal from '@/components/modals/create-customer-modal';
+import CreateCarModal from '@/components/modals/create-car-modal';
 import IconUser from '@/components/icon/icon-user';
 import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
@@ -37,7 +38,7 @@ interface Car {
     provider: string;
     kilometers: number;
     market_price: number;
-    value_price: number;
+    buy_price: number;
     sale_price: number;
     images: string[] | string;
 }
@@ -48,21 +49,32 @@ interface FileItem {
     id: string;
 }
 
+interface DealAttachments {
+    carLicense: FileItem | null;
+    driverLicense: FileItem | null;
+    carTransferDocument: FileItem | null;
+}
+
 const AddDeal = () => {
     const { t } = getTranslation();
     const router = useRouter();
+
+    // Ref to track the last auto-filled selling price and car ID to prevent overriding user edits
+    const lastAutoFilledRef = useRef<{ carId: string | null; price: string }>({ carId: null, price: '' });
     const [saving, setSaving] = useState(false);
     const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
+    const [showCreateCarModal, setShowCreateCarModal] = useState(false);
     const [dealType, setDealType] = useState('');
     const [dealStatus, setDealStatus] = useState('pending'); // Default to pending
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-    const [selectedCar, setSelectedCar] = useState<Car | null>(null);
-
-    // Form state for new/used sale deal
+    const [selectedCar, setSelectedCar] = useState<Car | null>(null); // Form state for new/used sale deal
     const [saleForm, setSaleForm] = useState({
         title: '',
         notes: '',
         selling_price: '',
+        quantity: '1', // Default quantity
+        loss_amount: '', // Manual loss/deductions
+        tax_percentage: '18', // Default tax percentage
     }); // Form state for exchange deal
     const [exchangeForm, setExchangeForm] = useState({
         title: '',
@@ -84,24 +96,43 @@ const AddDeal = () => {
         commission_date: '', // التاريخ
         amount: '', // المبلغ
         description: '', // حول (تفاصيل العموله)
-    }); // File uploads - unified for all document types
-    const [dealFiles, setDealFiles] = useState<FileItem[]>([]);
+    }); // File uploads - separate for each document type
+    const [dealAttachments, setDealAttachments] = useState<DealAttachments>({
+        carLicense: null,
+        driverLicense: null,
+        carTransferDocument: null,
+    });
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
         message: '',
         type: 'success',
-    });
-
-    // Auto-fill form when car is selected
+    }); // Auto-fill form when car is selected
     useEffect(() => {
         if (selectedCar && selectedCustomer) {
             if (dealType === 'new_used_sale') {
-                setSaleForm((prev) => ({
-                    ...prev,
-                    title: `${t('sale_deal_for')} ${selectedCar.title} - ${selectedCustomer.name}`,
-                    selling_price: selectedCar.sale_price.toString(),
-                }));
+                setSaleForm((prev) => {
+                    // Only auto-fill selling_price if:
+                    // 1. It's a new car selection (different car ID), OR
+                    // 2. The current price matches the last auto-filled price (user hasn't manually edited it)
+                    const shouldAutoFillPrice = lastAutoFilledRef.current.carId !== selectedCar.id || prev.selling_price === lastAutoFilledRef.current.price || prev.selling_price === '';
+
+                    const newSellingPrice = shouldAutoFillPrice ? selectedCar.sale_price.toString() : prev.selling_price;
+
+                    // Update the ref with the new auto-filled values
+                    if (shouldAutoFillPrice) {
+                        lastAutoFilledRef.current = {
+                            carId: selectedCar.id,
+                            price: newSellingPrice,
+                        };
+                    }
+
+                    return {
+                        ...prev,
+                        title: `${t('sale_deal_for')} ${selectedCar.title} - ${selectedCustomer.name}`,
+                        selling_price: newSellingPrice,
+                    };
+                });
             } else if (dealType === 'exchange') {
                 setExchangeForm((prev) => ({
                     ...prev,
@@ -138,6 +169,9 @@ const AddDeal = () => {
             title: '',
             notes: '',
             selling_price: '',
+            quantity: '1',
+            loss_amount: '',
+            tax_percentage: '18',
         });
         setExchangeForm({
             title: '',
@@ -157,12 +191,20 @@ const AddDeal = () => {
             amount: '',
             description: '',
         });
-        setDealFiles([]);
+        setDealAttachments({
+            carLicense: null,
+            driverLicense: null,
+            carTransferDocument: null,
+        });
     };
-
     const handleCustomerCreated = (customer: Customer) => {
         setSelectedCustomer(customer);
         setAlert({ visible: true, message: t('customer_created_successfully'), type: 'success' });
+    };
+
+    const handleCarCreated = (car: Car) => {
+        setSelectedCar(car);
+        setAlert({ visible: true, message: t('car_created_successfully'), type: 'success' });
     };
 
     const validateNewUsedSaleForm = () => {
@@ -266,7 +308,7 @@ const AddDeal = () => {
                             type: selectedCar?.type,
                             provider: selectedCar?.provider,
                             market_price: selectedCar?.market_price,
-                            value_price: selectedCar?.value_price,
+                            buy_price: selectedCar?.buy_price,
                             sale_price: selectedCar?.sale_price,
                             selling_price: parseFloat(saleForm.selling_price),
                         },
@@ -279,7 +321,10 @@ const AddDeal = () => {
                             birth_date: selectedCustomer?.birth_date,
                         },
                         attachments: {
-                            total_files: dealFiles.length,
+                            car_license: dealAttachments.carLicense ? 1 : 0,
+                            driver_license: dealAttachments.driverLicense ? 1 : 0,
+                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
+                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
                         },
                     },
                     notes: saleForm.notes.trim(),
@@ -303,7 +348,7 @@ const AddDeal = () => {
                             type: selectedCar?.type,
                             provider: selectedCar?.provider,
                             market_price: selectedCar?.market_price,
-                            value_price: selectedCar?.value_price,
+                            buy_price: selectedCar?.buy_price,
                             sale_price: selectedCar?.sale_price,
                         },
                         old_car_details: {
@@ -330,7 +375,10 @@ const AddDeal = () => {
                         },
 
                         attachments: {
-                            total_files: dealFiles.length,
+                            car_license: dealAttachments.carLicense ? 1 : 0,
+                            driver_license: dealAttachments.driverLicense ? 1 : 0,
+                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
+                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
                         },
                     },
                     notes: exchangeForm.notes.trim(),
@@ -351,7 +399,10 @@ const AddDeal = () => {
                             description: companyCommissionForm.description.trim(),
                         },
                         attachments: {
-                            total_files: dealFiles.length,
+                            car_license: dealAttachments.carLicense ? 1 : 0,
+                            driver_license: dealAttachments.driverLicense ? 1 : 0,
+                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
+                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
                         },
                     },
                     notes: companyCommissionForm.description.trim(),
@@ -453,13 +504,17 @@ const AddDeal = () => {
                     <IconMenuWidgets className="w-5 h-5 text-primary" />
                     <h5 className="text-lg font-semibold dark:text-white-light">{t('car_information')}</h5>
                 </div>
-
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('select_car')} <span className="text-red-500">*</span>
                         </label>
-                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} className="form-input" />
+                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" />
+                    </div>
+                    <div className="flex justify-end">
+                        <button type="button" onClick={() => setShowCreateCarModal(true)} className="btn btn-outline-primary">
+                            {t('create_new_car')}
+                        </button>
                     </div>
 
                     {/* Car Details Display */}
@@ -494,8 +549,8 @@ const AddDeal = () => {
                                     <p className="text-green-800 dark:text-green-100">{selectedCar.status}</p>
                                 </div>
                                 <div>
-                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('value_price')}:</span>
-                                    <p className="text-green-800 dark:text-green-100">{formatCurrency(selectedCar.value_price)}</p>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('buy_price')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{formatCurrency(selectedCar.buy_price)}</p>
                                 </div>
                                 <div>
                                     <span className="text-green-600 dark:text-green-300 font-medium">{t('market_price')}:</span>
@@ -525,42 +580,199 @@ const AddDeal = () => {
                         </label>
                         <input type="text" id="title" name="title" value={saleForm.title} onChange={handleSaleFormChange} className="form-input" placeholder={t('enter_deal_title')} />
                     </div>
-                    {/* Selling Price */}
-                    <div>
-                        <label htmlFor="selling_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                            {t('selling_price')} <span className="text-red-500">*</span>
-                        </label>
-                        <div className="flex">
-                            <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
-                                $
-                            </span>
-                            <input
-                                type="number"
-                                id="selling_price"
-                                name="selling_price"
-                                step="0.01"
-                                min="0"
-                                value={saleForm.selling_price}
-                                onChange={handleSaleFormChange}
-                                className="form-input ltr:rounded-l-none rtl:rounded-r-none"
-                                placeholder="0.00"
-                            />
-                        </div>
-                    </div>
-                    {/* Profit Calculation */}
-                    {selectedCar && saleForm.selling_price && (
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('estimated_profit')}</label>
-                            <div className="flex">
-                                <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
-                                    $
-                                </span>
-                                <input
-                                    type="text"
-                                    value={(parseFloat(saleForm.selling_price) - selectedCar.value_price).toFixed(2)}
-                                    className="form-input ltr:rounded-l-none rtl:rounded-r-none bg-gray-50 dark:bg-gray-800"
-                                    readOnly
-                                />
+                    {/* Deal Summary Table */}
+                    {selectedCar && (
+                        <div className="md:col-span-2">
+                            <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                {/* Table Header */}
+                                <div className="grid grid-cols-4 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_quantity')}</div>
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_total')}</div>
+                                </div>
+                                {/* Row 1: Car for Sale */}
+                                <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                        <div className="font-medium">{t('car_for_sale')}</div>
+                                        <div className="text-s mt-1 text-gray-500">
+                                            {selectedCar.brand} {selectedCar.title} - {selectedCar.year} -{selectedCar.type}
+                                        </div>
+                                    </div>
+                                    <div className="text-center">-</div>
+                                    <div className="text-center">-</div>
+                                    <div className="text-center">-</div>
+                                </div>
+                                {/* Row 2: Buy Price */}
+                                <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price.toFixed(2)}</span>
+                                    </div>
+                                    <div className="text-center">
+                                        <input
+                                            type="number"
+                                            name="quantity"
+                                            value={saleForm.quantity}
+                                            onChange={handleSaleFormChange}
+                                            className="form-input text-center w-16"
+                                            style={{ direction: 'ltr', textAlign: 'center' }}
+                                            min="1"
+                                        />
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">${(selectedCar.buy_price * parseFloat(saleForm.quantity || '1')).toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                {/* Row 3: Selling Price */}
+                                <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                $
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="selling_price"
+                                                step="0.01"
+                                                min="0"
+                                                value={saleForm.selling_price}
+                                                onChange={handleSaleFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">{saleForm.quantity}</span>
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                            ${saleForm.selling_price ? (parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1')).toFixed(2) : '0.00'}
+                                        </span>
+                                    </div>
+                                </div>
+                                {/* Row 4: Loss (Editable) */}
+                                <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                $
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="loss_amount"
+                                                step="0.01"
+                                                min="0"
+                                                value={saleForm.loss_amount}
+                                                onChange={handleSaleFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="text-center">-</div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-red-600 dark:text-red-400">${saleForm.loss_amount ? parseFloat(saleForm.loss_amount).toFixed(2) : '0.00'}</span>
+                                    </div>
+                                </div>
+                                {/* Row 5: Profit Commission (Calculated) */}
+                                <div className="grid grid-cols-4 gap-4 mb-4 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
+                                    <div className="text-center">-</div>
+                                    <div className="text-center">-</div>
+                                    <div className="text-center">
+                                        {(() => {
+                                            if (!saleForm.selling_price || !selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
+
+                                            const buyTotal = selectedCar.buy_price * parseFloat(saleForm.quantity || '1');
+                                            const sellTotal = parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1');
+                                            const loss = parseFloat(saleForm.loss_amount || '0'); // This field is for loss/deductions
+                                            const profitCommission = sellTotal - buyTotal - loss;
+
+                                            return (
+                                                <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    {profitCommission >= 0 ? '+' : ''}${profitCommission.toFixed(2)}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
+                                </div>
+                                {/* Separator */}
+                                <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
+                                {/* Tax Calculations */}
+                                <div className="space-y-3">
+                                    {/* Price Before Tax */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                            $
+                                            {saleForm.selling_price
+                                                ? (() => {
+                                                      const sellTotal = parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1');
+                                                      const buyTotal = selectedCar ? selectedCar.buy_price * parseFloat(saleForm.quantity || '1') : 0;
+                                                      const loss = parseFloat(saleForm.loss_amount || '0');
+                                                      const profitCommission = Math.max(0, sellTotal - buyTotal - loss);
+                                                      return (sellTotal + profitCommission).toFixed(2);
+                                                  })()
+                                                : '0.00'}
+                                        </span>
+                                    </div>
+
+                                    {/* Tax */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            {t('deal_tax')}
+                                            <input
+                                                type="number"
+                                                name="tax_percentage"
+                                                value={saleForm.tax_percentage}
+                                                onChange={handleSaleFormChange}
+                                                className="form-input w-16 mx-2 text-center"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                min="0"
+                                                max="100"
+                                            />
+                                            %
+                                        </span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">
+                                            $
+                                            {saleForm.selling_price
+                                                ? (() => {
+                                                      const sellTotal = parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1');
+                                                      const buyTotal = selectedCar ? selectedCar.buy_price * parseFloat(saleForm.quantity || '1') : 0;
+                                                      const loss = parseFloat(saleForm.loss_amount || '0');
+                                                      const profitCommission = Math.max(0, sellTotal - buyTotal - loss);
+                                                      const beforeTax = sellTotal + profitCommission;
+                                                      return ((beforeTax * parseFloat(saleForm.tax_percentage || '0')) / 100).toFixed(2);
+                                                  })()
+                                                : '0.00'}
+                                        </span>
+                                    </div>
+
+                                    {/* Total Including Tax */}
+                                    <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                        <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                        <span className="text-lg font-bold text-primary">
+                                            $
+                                            {saleForm.selling_price
+                                                ? (() => {
+                                                      const sellTotal = parseFloat(saleForm.selling_price) * parseFloat(saleForm.quantity || '1');
+                                                      const buyTotal = selectedCar ? selectedCar.buy_price * parseFloat(saleForm.quantity || '1') : 0;
+                                                      const loss = parseFloat(saleForm.loss_amount || '0');
+                                                      const profitCommission = Math.max(0, sellTotal - buyTotal - loss);
+                                                      const beforeTax = sellTotal + profitCommission;
+                                                      const tax = (beforeTax * parseFloat(saleForm.tax_percentage || '0')) / 100;
+                                                      return (beforeTax + tax).toFixed(2);
+                                                  })()
+                                                : '0.00'}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -573,20 +785,36 @@ const AddDeal = () => {
                     </div>
                 </div>
             </div>
-            {/* File Attachments */}
+            {/* Deal Attachments */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">
                     <IconNotes className="w-5 h-5 text-primary" />
-                    <h5 className="text-lg font-semibold dark:text-white-light">{t('attachments')}</h5>
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_attachments')}</h5>
                 </div>
-                <div className="space-y-6">
-                    <FileUpload
-                        files={dealFiles}
-                        onFilesChange={setDealFiles}
-                        title={t('deal_documents')}
-                        description={t('upload_deal_documents_desc')}
-                        maxFiles={20}
-                        accept="image/*,.pdf,.doc,.docx"
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SingleFileUpload
+                        file={dealAttachments.carLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carLicense: file }))}
+                        title={t('car_license')}
+                        description={t('car_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.driverLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, driverLicense: file }))}
+                        title={t('driver_license')}
+                        description={t('driver_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.carTransferDocument}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carTransferDocument: file }))}
+                        title={t('car_transfer_document')}
+                        description={t('car_transfer_document_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                     />
                 </div>
             </div>
@@ -657,7 +885,12 @@ const AddDeal = () => {
                     <h5 className="text-lg font-semibold dark:text-white-light">{t('new_car_from_showroom')}</h5>
                 </div>
                 <div className="space-y-4">
-                    <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} className="form-input" />
+                    <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" />
+                    <div className="flex justify-end">
+                        <button type="button" onClick={() => setShowCreateCarModal(true)} className="btn btn-outline-primary">
+                            {t('create_new_car')}
+                        </button>
+                    </div>
 
                     {/* Car Details Display */}
                     {selectedCar && (
@@ -859,23 +1092,39 @@ const AddDeal = () => {
                     </div>
                 </div>
             </div>
-            {/* File Attachments */}
+            {/* Deal Attachments */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">
                     <IconNotes className="w-5 h-5 text-primary" />
-                    <h5 className="text-lg font-semibold dark:text-white-light">{t('attachments')}</h5>
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_attachments')}</h5>
                 </div>
-                <div className="space-y-6">
-                    <FileUpload
-                        files={dealFiles}
-                        onFilesChange={setDealFiles}
-                        title={t('deal_documents')}
-                        description={t('upload_deal_documents_desc')}
-                        maxFiles={20}
-                        accept="image/*,.pdf,.doc,.docx"
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SingleFileUpload
+                        file={dealAttachments.carLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carLicense: file }))}
+                        title={t('car_license')}
+                        description={t('car_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.driverLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, driverLicense: file }))}
+                        title={t('driver_license')}
+                        description={t('driver_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.carTransferDocument}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carTransferDocument: file }))}
+                        title={t('car_transfer_document')}
+                        description={t('car_transfer_document_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                     />
                 </div>
-            </div>{' '}
+            </div>
         </div>
     );
 
@@ -931,7 +1180,7 @@ const AddDeal = () => {
                             onChange={handleCompanyCommissionFormChange}
                             className="form-input"
                         />
-                    </div>{' '}
+                    </div>
                     {/* Commission Amount */}
                     <div>
                         <label htmlFor="amount" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -970,21 +1219,36 @@ const AddDeal = () => {
                     </div>
                 </div>
             </div>
-
-            {/* File Attachments */}
+            {/* Deal Attachments */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">
                     <IconNotes className="w-5 h-5 text-primary" />
-                    <h5 className="text-lg font-semibold dark:text-white-light">{t('attachments')}</h5>
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_attachments')}</h5>
                 </div>
-                <div className="space-y-6">
-                    <FileUpload
-                        files={dealFiles}
-                        onFilesChange={setDealFiles}
-                        title={t('deal_documents')}
-                        description={t('upload_deal_documents_desc')}
-                        maxFiles={20}
-                        accept="image/*,.pdf,.doc,.docx"
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SingleFileUpload
+                        file={dealAttachments.carLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carLicense: file }))}
+                        title={t('car_license')}
+                        description={t('car_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.driverLicense}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, driverLicense: file }))}
+                        title={t('driver_license')}
+                        description={t('driver_license_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    />
+                    <SingleFileUpload
+                        file={dealAttachments.carTransferDocument}
+                        onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carTransferDocument: file }))}
+                        title={t('car_transfer_document')}
+                        description={t('car_transfer_document_desc')}
+                        accept="image/*,.pdf"
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                     />
                 </div>
             </div>
@@ -1016,12 +1280,10 @@ const AddDeal = () => {
                     </li>
                 </ul>
             </div>
-
             <div className="mb-6">
                 <h1 className="text-2xl font-bold">{t('add_new_deal')}</h1>
                 <p className="text-gray-500">{t('create_deal_description')}</p>
             </div>
-
             {alert.visible && (
                 <div className="mb-6">
                     <Alert
@@ -1032,9 +1294,8 @@ const AddDeal = () => {
                     />
                 </div>
             )}
-
             <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Deal Type Selector - Prominent at the top */}{' '}
+                {/* Deal Type Selector - Prominent at the top */}
                 <div className="panel bg-gradient-to-r from-primary/10 to-secondary/10 border-2 border-primary/20">
                     <div className="mb-5">
                         <h5 className="text-xl font-bold text-primary dark:text-white-light">{t('select_deal_type')}</h5>
@@ -1051,7 +1312,7 @@ const AddDeal = () => {
                         </div>
                         <DealStatusSelect defaultValue={dealStatus} className="form-input" name="deal_status" onChange={handleDealStatusChange} />
                     </div>
-                )}{' '}
+                )}
                 {/* Render form based on deal type */}
                 {dealType === 'new_used_sale' && renderNewUsedSaleForm()}
                 {dealType === 'exchange' && renderExchangeForm()}
@@ -1077,9 +1338,10 @@ const AddDeal = () => {
                     </div>
                 )}
             </form>
-
             {/* Create Customer Modal */}
             <CreateCustomerModal isOpen={showCreateCustomerModal} onClose={() => setShowCreateCustomerModal(false)} onCustomerCreated={handleCustomerCreated} />
+            {/* Create Car Modal */}
+            <CreateCarModal isOpen={showCreateCarModal} onClose={() => setShowCreateCarModal(false)} onCarCreated={handleCarCreated} />
         </div>
     );
 };

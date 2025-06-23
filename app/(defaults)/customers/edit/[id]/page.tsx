@@ -244,7 +244,7 @@ const EditCustomer = () => {
                                 {t('country')}
                             </label>
                             <CountrySelect defaultValue={form.country} className="form-input" name="country" onChange={handleInputChange} />
-                        </div>{' '}
+                        </div>
                         {/* Age */}
                         <div>
                             <label htmlFor="age" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">

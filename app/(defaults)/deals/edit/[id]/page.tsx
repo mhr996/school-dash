@@ -40,7 +40,7 @@ interface Car {
     provider: string;
     kilometers: number;
     market_price: number;
-    value_price: number;
+    buy_price: number;
     sale_price: number;
     images: string[] | string;
 }
@@ -326,13 +326,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     placeholder="0.00"
                                 />
                             </div>
-                        </div>{' '}
+                        </div>
                         {/* Status */}
                         <div>
                             <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('deal_status')}
                             </label>
-                            <DealStatusSelect defaultValue={form.status} className="form-select" name="status" onChange={handleStatusChange} />{' '}
+                            <DealStatusSelect defaultValue={form.status} className="form-select" name="status" onChange={handleStatusChange} />
                         </div>
                     </div>
 

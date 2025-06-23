@@ -35,7 +35,7 @@ const AddCar = () => {
         provider: '',
         kilometers: '',
         market_price: '',
-        value_price: '',
+        buy_price: '',
         sale_price: '',
         desc: '', // New description field
     });
@@ -224,7 +224,7 @@ const AddCar = () => {
             setAlert({ visible: true, message: t('price_must_be_positive'), type: 'danger' });
             return false;
         }
-        if (form.value_price && parseFloat(form.value_price) < 0) {
+        if (form.buy_price && parseFloat(form.buy_price) < 0) {
             setAlert({ visible: true, message: t('price_must_be_positive'), type: 'danger' });
             return false;
         }
@@ -317,7 +317,7 @@ const AddCar = () => {
                 provider: form.provider || null,
                 kilometers: form.kilometers ? parseFloat(form.kilometers) : 0,
                 market_price: form.market_price ? parseFloat(form.market_price) : 0,
-                value_price: form.value_price ? parseFloat(form.value_price) : 0,
+                buy_price: form.buy_price ? parseFloat(form.buy_price) : 0,
                 sale_price: form.sale_price ? parseFloat(form.sale_price) : 0,
                 desc: form.desc.trim() || null, // New description field
                 features: features.filter((f) => f.label.trim() && f.value.trim()).map((f) => ({ label: f.label.trim(), value: f.value.trim() })), // New features field
@@ -544,8 +544,8 @@ const AddCar = () => {
                                 </div>
                                 {/* Value Price */}
                                 <div>
-                                    <label htmlFor="value_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                        {t('value_price')}
+                                    <label htmlFor="buy_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                        {t('buy_price')}
                                     </label>
                                     <div className="flex">
                                         <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
@@ -553,11 +553,11 @@ const AddCar = () => {
                                         </span>
                                         <input
                                             type="number"
-                                            id="value_price"
-                                            name="value_price"
+                                            id="buy_price"
+                                            name="buy_price"
                                             step="0.01"
                                             min="0"
-                                            value={form.value_price}
+                                            value={form.buy_price}
                                             onChange={handleInputChange}
                                             className="form-input ltr:rounded-l-none rtl:rounded-r-none"
                                             placeholder="0.00"
