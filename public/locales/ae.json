@@ -1060,5 +1060,11 @@
     "confirm_delete_selected_deals": "هل أنت متأكد من أنك تريد حذف الصفقات المحددة؟",
     "confirm_delete_selected_bills": "هل أنت متأكد من أنك تريد حذف الفواتير المحددة؟",
     "confirm_delete_selected_cars": "هل أنت متأكد من أنك تريد حذف السيارات المحددة؟",
-    "confirm_delete_selected_providers": "هل أنت متأكد من أنك تريد حذف المزودين المحددين؟"
+    "confirm_delete_selected_providers": "هل أنت متأكد من أنك تريد حذف المزودين المحددين؟",
+    "visa_card": "بطاقة فيزا",
+    "cash_amount": "المبلغ النقدي",
+    "cash_description": "الدفع النقدي",
+    "visa_amount": "مبلغ البطاقة",
+    "visa_last_four": "آخر 4 أرقام من البطاقة",
+    "bank_amount": "مبلغ التحويل البنكي"
 }

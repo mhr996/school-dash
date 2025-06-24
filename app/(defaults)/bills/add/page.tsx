@@ -99,6 +99,8 @@ const AddBill = () => {
         check_number: '',
         check_holder_name: '',
         check_branch: '',
+        // Cash fields
+        cash_amount: '',
     });
     useEffect(() => {
         fetchDeals();
@@ -236,6 +238,7 @@ const AddBill = () => {
                 check_number: billForm.check_number || null,
                 check_holder_name: billForm.check_holder_name || null,
                 check_branch: billForm.check_branch || null,
+                cash_amount: parseFloat(billForm.cash_amount) || null,
             };
 
             const { error } = await supabase.from('bills').insert([billData]);
@@ -894,6 +897,22 @@ const AddBill = () => {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_branch')}</label>
                                         <input name="check_branch" value={billForm.check_branch} onChange={handleFormChange} className="form-input" placeholder={t('check_branch')} />
+                                    </div>{' '}
+                                </>
+                            )}
+                            {billForm.payment_type === 'cash' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('cash_amount')}</label>
+                                        <input
+                                            name="cash_amount"
+                                            type="number"
+                                            step="0.01"
+                                            value={billForm.cash_amount}
+                                            onChange={handleFormChange}
+                                            className="form-input"
+                                            placeholder={t('cash_amount')}
+                                        />
                                     </div>
                                 </>
                             )}
