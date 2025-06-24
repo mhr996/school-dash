@@ -24,9 +24,13 @@ interface Deal {
     };
     car_id: string;
     car?: {
+        id: number;
         title: string;
         brand: string;
         year: number;
+        car_number?: string;
+        buy_price?: number;
+        sale_price?: number;
     };
 }
 
@@ -296,6 +300,272 @@ const BillPreview = () => {
                         </div>
                     </div>
                 </div>
+                {/* Deal Summary Table (تفاصيل الفاتورة الضريبية) */}
+                {bill.deal && bill.deal.car && (
+                    <div className="panel">
+                        <div className="mb-5 flex items-center gap-3">
+                            <IconDollarSign className="w-5 h-5 text-primary" />
+                            <h5 className="text-lg font-semibold dark:text-white-light">تفاصيل الفاتورة الضريبية</h5>
+                        </div>
+                        <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            {/* Table Header */}
+                            <div className="grid grid-cols-4 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
+                                <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
+                                <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_quantity')}</div>
+                                <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_total')}</div>
+                            </div>
+
+                            {/* Render table based on deal type */}
+                            {(bill.deal.deal_type === 'new_used_sale' || bill.deal.deal_type === 'new_used_sale_tax_inclusive') && (
+                                <>
+                                    {/* Row 1: Car for Sale */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                            <div className="font-medium">{t('car_for_sale')}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {bill.deal.car.brand} {bill.deal.car.title} - {bill.deal.car.year}
+                                                {bill.deal.car.car_number && ` - ${bill.deal.car.car_number}`} - #{bill.deal.car.id}
+                                            </div>
+                                        </div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                    </div>
+
+                                    {/* Row 2: Buy Price */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: Selling Price */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 4: Loss */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-red-600 dark:text-red-400">${Math.max(0, (bill.deal.car.buy_price || 0) - (bill.deal.amount || 0)).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 5: Profit Commission */}
+                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-green-600 dark:text-green-400">${Math.max(0, (bill.deal.amount || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {bill.deal.deal_type === 'intermediary' && (
+                                <>
+                                    {/* Row 1: Car Brokerage Commission */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                            <div className="font-medium">{t('intermediary_car_commission')}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {bill.deal.car.brand} {bill.deal.car.title} - {bill.deal.car.year}
+                                                {bill.deal.car.car_number && ` - ${bill.deal.car.car_number}`} - #{bill.deal.car.id}
+                                            </div>
+                                        </div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                    </div>
+
+                                    {/* Row 2: Profit Commission */}
+                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-green-600 dark:text-green-400">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {bill.deal.deal_type === 'financing_assistance_intermediary' && (
+                                <>
+                                    {/* Row 1: Financing Assistance Commission */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                            <div className="font-medium">{t('financing_assistance_commission')}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {bill.deal.car.brand} {bill.deal.car.title} - {bill.deal.car.year}
+                                                {bill.deal.car.car_number && ` - ${bill.deal.car.car_number}`} - #{bill.deal.car.id}
+                                            </div>
+                                        </div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                    </div>
+
+                                    {/* Row 2: Commission */}
+                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('commission_editable')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-green-600 dark:text-green-400">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {bill.deal.deal_type === 'exchange' && (
+                                <>
+                                    {/* Row 1: Car for Sale */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                            <div className="font-medium">{t('car_for_sale')}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {bill.deal.car.brand} {bill.deal.car.title} - {bill.deal.car.year}
+                                                {bill.deal.car.car_number && ` - ${bill.deal.car.car_number}`} - #{bill.deal.car.id}
+                                            </div>
+                                        </div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                    </div>
+
+                                    {/* Row 2: Buy Price */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 3: Selling Price */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 4: Customer Car Evaluation */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                            <div className="font-medium">{t('customer_car_evaluation')}</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 5: Additional Customer Amount */}
+                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('additional_customer_amount')}</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">-</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-blue-600 dark:text-blue-400">${Math.max(0, (bill.deal.car.sale_price || 0) - (bill.deal.amount || 0)).toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {bill.deal.deal_type === 'company_commission' && (
+                                <>
+                                    {/* Row 1: Company Commission */}
+                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                            <div className="font-medium">{t('company_commission')}</div>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-green-600 dark:text-green-400">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Separator */}
+                            <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
+
+                            {/* Tax Calculations */}
+                            <div className="space-y-3">
+                                {/* Price Before Tax */}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                </div>
+
+                                {/* Tax */}
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">${((bill.deal.amount || 0) * 0.18).toFixed(2)}</span>
+                                </div>
+
+                                {/* Total Including Tax */}
+                                <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                    <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                    <span className="text-lg font-bold text-primary">${((bill.deal.amount || 0) * 1.18).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Tax Invoice Details */}
                 {(bill.bill_type === 'tax_invoice' || bill.bill_type === 'tax_invoice_receipt') && (
                     <div className="panel">

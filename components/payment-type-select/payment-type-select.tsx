@@ -53,15 +53,6 @@ const PaymentTypeSelect = ({ defaultValue = '', className = 'form-select text-wh
             description: t('bank_transfer_description') || 'Direct bank transfer',
         },
         {
-            value: 'transfer',
-            label: t('transfer'),
-            icon: IconTransfer,
-            color: 'text-purple-600 dark:text-purple-400',
-            bgColor: 'bg-purple-50 dark:bg-purple-900/20',
-            borderColor: 'border-purple-200 dark:border-purple-800',
-            description: t('transfer_description') || 'Money transfer service',
-        },
-        {
             value: 'check',
             label: t('check'),
             icon: IconCheck,

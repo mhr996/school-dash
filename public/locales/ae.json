@@ -1066,5 +1066,6 @@
     "cash_description": "الدفع النقدي",
     "visa_amount": "مبلغ البطاقة",
     "visa_last_four": "آخر 4 أرقام من البطاقة",
-    "bank_amount": "مبلغ التحويل البنكي"
+    "bank_amount": "مبلغ التحويل البنكي",
+    "bank_branch": "فرع البنك"
 }

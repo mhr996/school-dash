@@ -261,12 +261,7 @@ const DealsList = () => {
                                 sortable: true,
                                 render: ({ created_at }) => <span>{new Date(created_at).toLocaleDateString()}</span>,
                             },
-                            {
-                                accessor: 'attachments',
-                                title: t('attachments'),
-                                sortable: false,
-                                render: ({ attachments }) => <AttachmentsDisplay attachments={attachments || []} compact={true} />,
-                            },
+                          
                             {
                                 accessor: 'action',
                                 title: t('actions'),
