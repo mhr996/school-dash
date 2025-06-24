@@ -16,19 +16,9 @@ import IconMapPin from '@/components/icon/icon-map-pin';
 import IconInvoice from '@/components/icon/icon-invoice';
 import IconReceipt from '@/components/icon/icon-receipt';
 import IconPlus from '@/components/icon/icon-plus';
-
-interface Deal {
-    id: string;
-    created_at: string;
-    deal_type: string;
-    title: string;
-    description: string;
-    amount: number;
-    status: string;
-    customer_id?: string;
-    customer_name?: string;
-    car_id?: string;
-}
+import IconPaperclip from '@/components/icon/icon-paperclip';
+import { Deal, DealAttachment } from '@/types';
+import AttachmentsDisplay from '@/components/attachments/attachments-display';
 
 interface Customer {
     id: string;
@@ -50,6 +40,7 @@ interface Car {
     market_price: number;
     buy_price: number;
     sale_price: number;
+    car_number?: string;
     images: string[] | string;
 }
 
@@ -71,8 +62,10 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const [deal, setDeal] = useState<Deal | null>(null);
     const [customer, setCustomer] = useState<Customer | null>(null);
     const [car, setCar] = useState<Car | null>(null);
+    const [carTakenFromClient, setCarTakenFromClient] = useState<Car | null>(null);
     const [bills, setBills] = useState<Bill[]>([]);
     const [carImageUrl, setCarImageUrl] = useState<string | null>(null);
+    const [carTakenImageUrl, setCarTakenImageUrl] = useState<string | null>(null);
     const dealId = params.id;
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -105,6 +98,19 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                             if (carData.images && carData.images.length > 0) {
                                 const imageUrl = await getCarImageUrl(carData.images);
                                 setCarImageUrl(imageUrl);
+                            }
+                        }
+                    }
+
+                    // Fetch car taken from client details if car_taken_from_client exists (for exchange deals)
+                    if (data.car_taken_from_client) {
+                        const { data: carTakenData } = await supabase.from('cars').select('*').eq('id', data.car_taken_from_client).single();
+                        if (carTakenData) {
+                            setCarTakenFromClient(carTakenData);
+                            // Get car taken image URL
+                            if (carTakenData.images && carTakenData.images.length > 0) {
+                                const imageUrl = await getCarImageUrl(carTakenData.images);
+                                setCarTakenImageUrl(imageUrl);
                             }
                         }
                     }
@@ -314,11 +320,62 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                             <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-3">{t('description')}</label>
                             <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border">
                                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{deal.description}</p>
-                            </div>
+                            </div>{' '}
                         </div>
                     </div>
                 </div>
+                {/* Deal Summary Table */}
+                {car && (
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h5 className="text-xl font-bold text-gray-900 dark:text-white-light">{t('deal_summary')}</h5>
+                        </div>
+                        <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            {/* Table Header */}
+                            <div className="grid grid-cols-3 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
+                                <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
+                            </div>
 
+                            {/* Row 1: Car */}
+                            <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                    <div className="font-medium">{t('car')}</div>
+                                    <div className="text-xs mt-1 text-gray-500">
+                                        {car.brand} {car.title} - {car.year}
+                                    </div>
+                                </div>
+                                <div className="text-center">-</div>
+                            </div>
+
+                            {/* Row 2: Buy Price */}
+                            <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price')}</div>
+                                <div className="text-center">
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">${car.buy_price?.toFixed(2) || '0.00'}</span>
+                                </div>
+                            </div>
+
+                            {/* Row 3: Deal Amount */}
+                            <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('deal_amount')}</div>
+                                <div className="text-center">
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">${deal.amount?.toFixed(2) || '0.00'}</span>
+                                </div>
+                            </div>
+
+                            {/* Row 4: Profit/Loss */}
+                            <div className="grid grid-cols-3 gap-4 mb-3 py-2 border-t border-gray-200 dark:border-gray-600 pt-2">
+                                <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
+                                <div className="text-center">
+                                    <span className={`text-sm font-bold ${(deal.amount || 0) - (car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        ${((deal.amount || 0) - (car.buy_price || 0)).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* Customer Information */}
                 {customer && (
                     <div className="panel">
@@ -376,7 +433,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                         </div>
                     </div>
                 )}
-
                 {/* Car Information */}
                 {car && (
                     <div className="panel">
@@ -419,7 +475,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                     </div>
                                 </div>
                             </div>
-
                             {/* Car Pricing */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -434,11 +489,83 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                     <p className="text-amber-600 dark:text-amber-400 font-medium mb-2">{t('sale_price')}</p>
                                     <p className="text-3xl font-bold text-amber-700 dark:text-amber-300">{formatCurrency(car.sale_price)}</p>
                                 </div>
+                            </div>{' '}
+                        </div>
+                    </div>
+                )}{' '}
+                {/* Car Taken From Client (Exchange Deals) */}
+                {carTakenFromClient && deal.deal_type === 'exchange' && (
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
+                                <IconCar className="w-6 h-6 text-orange-500" />
+                                {t('car_taken_from_client')}
+                            </h5>
+                        </div>
+
+                        <div className="space-y-6">
+                            {/* Car Image and Basic Info */}
+                            <div className="flex flex-col md:flex-row gap-6 p-6 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                                <div className="flex-shrink-0">
+                                    {carTakenImageUrl ? (
+                                        <img src={carTakenImageUrl} alt={carTakenFromClient.title} className="w-full md:w-[200px] h-[150px] rounded-lg object-cover" />
+                                    ) : (
+                                        <div className="w-full md:w-[200px] h-[150px] bg-orange-200 dark:bg-orange-700 rounded-lg flex items-center justify-center">
+                                            <IconCar className="w-12 h-12 text-orange-400" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-2xl text-gray-900 dark:text-white mb-2">{carTakenFromClient.title}</h3>
+                                    <p className="text-gray-600 dark:text-gray-400 text-lg mb-4">
+                                        {carTakenFromClient.brand} • {carTakenFromClient.year}
+                                    </p>
+                                    <div className="flex flex-wrap items-center gap-4">
+                                        <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                            {carTakenFromClient.kilometers.toLocaleString()} {t('km')}
+                                        </span>
+                                        <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                            {t('provider')}: {carTakenFromClient.provider}
+                                        </span>
+                                        {carTakenFromClient.car_number && (
+                                            <span className="text-gray-600 dark:text-gray-400 font-medium">
+                                                {t('car_number')}: {carTakenFromClient.car_number}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Car Pricing */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="p-6 bg-orange-100 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                                    <p className="text-orange-600 dark:text-orange-400 font-medium mb-2">{t('market_price')}</p>
+                                    <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{formatCurrency(carTakenFromClient.market_price)}</p>
+                                </div>
+                                <div className="p-6 bg-orange-100 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                                    <p className="text-orange-600 dark:text-orange-400 font-medium mb-2">{t('buy_price')}</p>
+                                    <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{formatCurrency(carTakenFromClient.buy_price)}</p>
+                                </div>
+                                <div className="p-6 bg-orange-100 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                                    <p className="text-orange-600 dark:text-orange-400 font-medium mb-2">{t('received_value')}</p>
+                                    <p className="text-3xl font-bold text-orange-700 dark:text-orange-300">{formatCurrency(carTakenFromClient.buy_price)}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
-
+                {/* Attachments Section */}
+                {deal.attachments && deal.attachments.length > 0 && (
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
+                                <IconPaperclip className="w-6 h-6 text-primary" />
+                                {t('attachments')}
+                            </h5>
+                        </div>
+                        <AttachmentsDisplay attachments={deal.attachments} compact={false} />
+                    </div>
+                )}
                 {/* Bills Section */}
                 <div className="panel">
                     <div className="mb-5">
@@ -487,7 +614,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                         </div>
                     )}
                 </div>
-
                 {/* Actions */}
                 <div className="panel">
                     <div className="mb-5">

@@ -41,10 +41,9 @@ const CustomersList = () => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'name',
         direction: 'asc',
-    });
-
-    // Modal and alert states
+    }); // Modal and alert states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
@@ -126,6 +125,26 @@ const CustomersList = () => {
             setCustomerToDelete(null);
         }
     };
+    const handleBulkDelete = () => {
+        if (selectedRecords.length === 0) return;
+        setShowBulkDeleteModal(true);
+    };
+
+    const confirmBulkDeletion = async () => {
+        const ids = selectedRecords.map((c) => c.id);
+        try {
+            const { error } = await supabase.from('customers').delete().in('id', ids);
+            if (error) throw error;
+            setItems(items.filter((c) => !ids.includes(c.id)));
+            setSelectedRecords([]);
+            setAlert({ visible: true, message: t('customers_deleted_successfully'), type: 'success' });
+        } catch (error) {
+            console.error('Error deleting customers:', error);
+            setAlert({ visible: true, message: t('error_deleting_customer'), type: 'danger' });
+        } finally {
+            setShowBulkDeleteModal(false);
+        }
+    };
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -155,7 +174,7 @@ const CustomersList = () => {
             <div className="invoice-table">
                 <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
                     <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-danger gap-2" disabled={selectedRecords.length === 0}>
+                        <button type="button" className="btn btn-danger gap-2" disabled={selectedRecords.length === 0} onClick={handleBulkDelete}>
                             <IconTrashLines />
                             {t('delete')}
                         </button>
@@ -253,8 +272,7 @@ const CustomersList = () => {
 
                     {loading && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black-dark-light bg-opacity-60 backdrop-blur-sm" />}
                 </div>
-            </div>
-
+            </div>{' '}
             <ConfirmModal
                 isOpen={showConfirmModal}
                 title={t('confirm_deletion')}
@@ -264,6 +282,17 @@ const CustomersList = () => {
                     setCustomerToDelete(null);
                 }}
                 onConfirm={confirmDeletion}
+                confirmLabel={t('delete')}
+                cancelLabel={t('cancel')}
+                size="sm"
+            />
+            {/* Bulk Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={showBulkDeleteModal}
+                title={t('confirm_bulk_deletion')}
+                message={`${t('confirm_delete_selected_customers')}`}
+                onCancel={() => setShowBulkDeleteModal(false)}
+                onConfirm={confirmBulkDeletion}
                 confirmLabel={t('delete')}
                 cancelLabel={t('cancel')}
                 size="sm"

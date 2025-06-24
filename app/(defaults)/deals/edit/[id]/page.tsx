@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
@@ -9,41 +10,12 @@ import DealTypeSelect from '@/components/deal-type-select/deal-type-select';
 import DealStatusSelect from '@/components/deal-status-select/deal-status-select';
 import CustomerSelect from '@/components/customer-select/customer-select';
 import CarSelect from '@/components/car-select/car-select';
-
-interface Deal {
-    id: string;
-    created_at: string;
-    deal_type: string;
-    title: string;
-    description: string;
-    amount: number;
-    status: string;
-    customer_id?: string;
-    car_id?: string;
-}
-
-interface Customer {
-    id: string;
-    name: string;
-    phone: string;
-    country: string;
-    age: number;
-}
-
-interface Car {
-    id: string;
-    title: string;
-    year: number;
-    brand: string;
-    status: string;
-    type?: string;
-    provider: string;
-    kilometers: number;
-    market_price: number;
-    buy_price: number;
-    sale_price: number;
-    images: string[] | string;
-}
+import SingleFileUpload from '@/components/file-upload/single-file-upload';
+import { Deal, Customer, Car, FileItem, DealAttachments, DealAttachment } from '@/types';
+import { uploadMultipleFiles, deleteFile, uploadFile } from '@/utils/file-upload';
+import AttachmentsDisplay from '@/components/attachments/attachments-display';
+import IconNotes from '@/components/icon/icon-notes';
+import IconCar from '@/components/icon/icon-car';
 
 const EditDeal = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
@@ -53,7 +25,16 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const [deal, setDeal] = useState<Deal | null>(null);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [selectedCar, setSelectedCar] = useState<Car | null>(null);
+    const [carTakenFromClient, setCarTakenFromClient] = useState<Car | null>(null);
     const dealId = params.id;
+
+    // Helper function to format currency
+    const formatCurrency = (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+        }).format(amount);
+    };
 
     const [dealType, setDealType] = useState('');
     const [form, setForm] = useState({
@@ -63,7 +44,14 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         status: '',
         customer_id: '',
         car_id: '',
+    }); // State for file attachments
+    const [dealAttachments, setDealAttachments] = useState<DealAttachments>({
+        carLicense: null,
+        driverLicense: null,
+        carTransferDocument: null,
     });
+    const [existingAttachments, setExistingAttachments] = useState<DealAttachment[]>([]);
+    const [newAttachments, setNewAttachments] = useState<{ [key: string]: FileItem }>({});
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
@@ -89,19 +77,30 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         car_id: data.car_id || '',
                     });
 
+                    // Set existing attachments
+                    if (data.attachments && Array.isArray(data.attachments)) {
+                        setExistingAttachments(data.attachments);
+                    }
+
                     // Fetch customer details if customer_id exists
                     if (data.customer_id) {
                         const { data: customerData } = await supabase.from('customers').select('*').eq('id', data.customer_id).single();
                         if (customerData) {
                             setSelectedCustomer(customerData);
                         }
-                    }
-
-                    // Fetch car details if car_id exists
+                    } // Fetch car details if car_id exists
                     if (data.car_id) {
                         const { data: carData } = await supabase.from('cars').select('*').eq('id', data.car_id).single();
                         if (carData) {
                             setSelectedCar(carData);
+                        }
+                    }
+
+                    // Fetch car taken from client details if car_taken_from_client exists (for exchange deals)
+                    if (data.car_taken_from_client) {
+                        const { data: carTakenData } = await supabase.from('cars').select('*').eq('id', data.car_taken_from_client).single();
+                        if (carTakenData) {
+                            setCarTakenFromClient(carTakenData);
                         }
                     }
                 }
@@ -138,11 +137,62 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         setSelectedCar(car);
         setForm((prev) => ({ ...prev, car_id: car?.id || '' }));
     };
-
     const handleCreateNewCustomer = () => {
         // Navigate to create customer page
         // This can be implemented later
         console.log('Create new customer');
+    }; // Handle file upload for new attachments
+    const handleFileUpload = (type: string, fileItem: FileItem | null) => {
+        if (fileItem) {
+            setNewAttachments((prev) => ({ ...prev, [type]: fileItem }));
+        } else {
+            // Remove the file if null
+            handleRemoveNewAttachment(type);
+        }
+    };
+
+    // Remove existing attachment
+    const handleRemoveExistingAttachment = async (attachment: DealAttachment) => {
+        try {
+            // Extract bucket and file path from the attachment URL
+            const bucket = 'deals';
+            const filePath = attachment.url.replace(`/${bucket}/`, '');
+
+            // Delete from storage
+            const deleteSuccess = await deleteFile(bucket, filePath);
+            if (!deleteSuccess) {
+                throw new Error('Failed to delete file from storage');
+            }
+
+            // Update database
+            const updatedAttachments = existingAttachments.filter((a) => a.url !== attachment.url);
+            const { error } = await supabase.from('deals').update({ attachments: updatedAttachments }).eq('id', dealId);
+
+            if (error) throw error;
+
+            setExistingAttachments(updatedAttachments);
+            setAlert({ visible: true, message: t('attachment_removed_successfully'), type: 'success' });
+        } catch (error) {
+            console.error('Error removing attachment:', error);
+            setAlert({
+                visible: true,
+                message: t('error_removing_attachment'),
+                type: 'danger',
+            });
+        }
+    };
+
+    // Remove new attachment (not yet saved)
+    const handleRemoveNewAttachment = (type: string) => {
+        const fileItem = newAttachments[type];
+        if (fileItem?.preview) {
+            URL.revokeObjectURL(fileItem.preview);
+        }
+        setNewAttachments((prev) => {
+            const updated = { ...prev };
+            delete updated[type];
+            return updated;
+        });
     };
 
     const validateForm = () => {
@@ -164,7 +214,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         }
         return true;
     };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -182,7 +231,35 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 car_id: form.car_id || null,
             };
 
-            const { error } = await supabase.from('deals').update(dealData).eq('id', dealId);
+            // Handle new file uploads
+            let updatedAttachments = [...existingAttachments];
+
+            // Upload new attachments
+            for (const [type, fileItem] of Object.entries(newAttachments)) {
+                if (fileItem) {
+                    const uploadResult = await uploadFile(fileItem.file, 'deals', dealId, `${type}.${fileItem.file.name.split('.').pop()}`);
+
+                    if (uploadResult.success && uploadResult.url) {
+                        const newAttachment: DealAttachment = {
+                            type: type as DealAttachment['type'],
+                            name: fileItem.file.name,
+                            url: uploadResult.url,
+                            size: fileItem.file.size,
+                            mimeType: fileItem.file.type,
+                            uploadedAt: new Date().toISOString(),
+                        };
+                        updatedAttachments.push(newAttachment);
+                    }
+                }
+            }
+
+            // Include attachments in deal data
+            const finalDealData = {
+                ...dealData,
+                attachments: updatedAttachments,
+            };
+
+            const { error } = await supabase.from('deals').update(finalDealData).eq('id', dealId);
 
             if (error) throw error;
 
@@ -281,7 +358,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         </label>
                         <DealTypeSelect defaultValue={dealType} className="form-input text-lg py-3" name="deal_type" onChange={handleDealTypeChange} />
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {/* Deal Title */}
                         <div className="md:col-span-2">
@@ -304,9 +380,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 placeholder={t('enter_deal_description')}
                                 required
                             />
-                        </div>
+                        </div>{' '}
                         {/* Amount */}
-                        <div>
+                        <div className="md:col-span-2">
                             <label htmlFor="amount" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('amount')}
                             </label>
@@ -327,30 +403,168 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 />
                             </div>
                         </div>
-                        {/* Status */}
-                        <div>
-                            <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('deal_status')}
-                            </label>
-                            <DealStatusSelect defaultValue={form.status} className="form-select" name="status" onChange={handleStatusChange} />
-                        </div>
                     </div>
 
-                    {/* Customer and Car Selection */}
+                    {/* Deal Status Selector - Full Width */}
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h5 className="text-lg font-bold text-gray-900 dark:text-white-light">{t('deal_status')}</h5>
+                            <p className="text-gray-600 dark:text-gray-400 mt-2">{t('select_deal_status_desc')}</p>
+                        </div>
+                        <DealStatusSelect defaultValue={form.status} className="form-input" name="status" onChange={handleStatusChange} />
+                    </div>
+
+                    {/* Deal Summary Table */}
+                    {selectedCar && (
+                        <div className="panel">
+                            <div className="mb-5">
+                                <h5 className="text-lg font-bold text-gray-900 dark:text-white-light">{t('deal_summary')}</h5>
+                            </div>
+                            <div className="bg-transparent rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                                {/* Table Header */}
+                                <div className="grid grid-cols-3 gap-4 mb-4 pb-2 border-b border-gray-300 dark:border-gray-600">
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('deal_item')}</div>
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-center">{t('deal_price')}</div>
+                                </div>
+
+                                {/* Row 1: Car */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
+                                        <div className="font-medium">{t('car')}</div>
+                                        <div className="text-xs mt-1 text-gray-500">
+                                            {selectedCar.brand} {selectedCar.title} - {selectedCar.year}
+                                        </div>
+                                    </div>
+                                    <div className="text-center">-</div>
+                                </div>
+
+                                {/* Row 2: Buy Price */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price')}</div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                    </div>
+                                </div>
+
+                                {/* Row 3: Deal Amount */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('deal_amount')}</div>
+                                    <div className="text-center">
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">${parseFloat(form.amount || '0').toFixed(2)}</span>
+                                    </div>
+                                </div>
+
+                                {/* Row 4: Profit/Loss */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2 border-t border-gray-200 dark:border-gray-600 pt-2">
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
+                                    <div className="text-center">
+                                        <span className={`text-sm font-bold ${parseFloat(form.amount || '0') - (selectedCar.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            ${(parseFloat(form.amount || '0') - (selectedCar.buy_price || 0)).toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {/* Customer Selector */}
                         <div>
                             <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('customer')}</label>
                             <CustomerSelect selectedCustomer={selectedCustomer} onCustomerSelect={handleCustomerSelect} onCreateNew={handleCreateNewCustomer} className="form-input" />
                         </div>
-
                         {/* Car Selector */}
                         <div>
                             <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('car')}</label>
-                            <CarSelect selectedCar={selectedCar} onCarSelect={handleCarSelect} className="form-input" />
-                        </div>
+                            <CarSelect selectedCar={selectedCar} onCarSelect={handleCarSelect} className="form-input" />{' '}
+                        </div>{' '}
                     </div>
 
+                    {/* Car Taken From Client (Exchange Deals) */}
+                    {carTakenFromClient && deal && deal.deal_type === 'exchange' && (
+                        <div className="panel">
+                            <div className="mb-5 flex items-center gap-3">
+                                <IconCar className="w-5 h-5 text-orange-500" />
+                                <h5 className="text-lg font-semibold dark:text-white-light">{t('car_taken_from_client')}</h5>
+                            </div>
+                            <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-orange-600 dark:text-orange-400 font-medium">{t('car_name')}</label>
+                                        <p className="font-bold text-gray-900 dark:text-white">{carTakenFromClient.title}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-orange-600 dark:text-orange-400 font-medium">{t('brand')}</label>
+                                        <p className="font-bold text-gray-900 dark:text-white">{carTakenFromClient.brand}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-orange-600 dark:text-orange-400 font-medium">{t('year')}</label>
+                                        <p className="font-bold text-gray-900 dark:text-white">{carTakenFromClient.year}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-orange-600 dark:text-orange-400 font-medium">{t('kilometers')}</label>
+                                        <p className="font-bold text-gray-900 dark:text-white">
+                                            {carTakenFromClient.kilometers.toLocaleString()} {t('km')}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-orange-600 dark:text-orange-400 font-medium">{t('received_value')}</label>
+                                        <p className="font-bold text-orange-700 dark:text-orange-300">{formatCurrency(carTakenFromClient.buy_price)}</p>
+                                    </div>
+                                    {carTakenFromClient.car_number && (
+                                        <div>
+                                            <label className="block text-sm text-orange-600 dark:text-orange-400 font-medium">{t('car_number')}</label>
+                                            <p className="font-bold text-gray-900 dark:text-white">{carTakenFromClient.car_number}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Deal Attachments */}
+                    {deal.attachments && deal.attachments.length > 0 && (
+                        <div className="panel">
+                            <div className="mb-5 flex items-center gap-3">
+                                <IconNotes className="w-5 h-5 text-primary" />
+                                <h5 className="text-lg font-semibold dark:text-white-light">{t('existing_attachments')}</h5>
+                            </div>
+                            <AttachmentsDisplay attachments={deal.attachments} compact={false} />
+                        </div>
+                    )}
+                    {/* Add New Attachments */}
+                    <div className="panel">
+                        <div className="mb-5 flex items-center gap-3">
+                            <IconNotes className="w-5 h-5 text-primary" />
+                            <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_attachments')}</h5>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <SingleFileUpload
+                                file={dealAttachments.carLicense}
+                                onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carLicense: file }))}
+                                title={t('car_license')}
+                                description={t('car_license_desc')}
+                                accept="image/*,.pdf"
+                                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                            />
+                            <SingleFileUpload
+                                file={dealAttachments.driverLicense}
+                                onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, driverLicense: file }))}
+                                title={t('driver_license')}
+                                description={t('driver_license_desc')}
+                                accept="image/*,.pdf"
+                                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                            />
+                            <SingleFileUpload
+                                file={dealAttachments.carTransferDocument}
+                                onFileChange={(file) => setDealAttachments((prev) => ({ ...prev, carTransferDocument: file }))}
+                                title={t('car_transfer_document')}
+                                description={t('car_transfer_document_desc')}
+                                accept="image/*,.pdf"
+                                className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                            />
+                        </div>
+                    </div>
                     {/* Submit Button */}
                     <div className="flex justify-end gap-4 mt-8">
                         <button type="button" onClick={() => router.back()} className="btn btn-outline-danger">

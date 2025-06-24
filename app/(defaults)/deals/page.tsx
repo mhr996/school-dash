@@ -11,18 +11,9 @@ import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
-
-interface Deal {
-    id: string;
-    created_at: string;
-    deal_type: string;
-    title: string;
-    description: string;
-    amount: number;
-    status: string;
-    customer_id?: string;
-    customer_name?: string;
-}
+import { deleteFolder } from '@/utils/file-upload';
+import { Deal } from '@/types';
+import AttachmentsDisplay from '@/components/attachments/attachments-display';
 
 const DealsList = () => {
     const { t } = getTranslation();
@@ -40,10 +31,9 @@ const DealsList = () => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'title',
         direction: 'asc',
-    });
-
-    // Modal and alert states
+    }); // Modal and alert states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [dealToDelete, setDealToDelete] = useState<Deal | null>(null);
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
@@ -106,12 +96,20 @@ const DealsList = () => {
             }
         }
     };
-
     const confirmDeletion = async () => {
         if (!dealToDelete) return;
         try {
+            // Delete the deal from database
             const { error } = await supabase.from('deals').delete().eq('id', dealToDelete.id);
             if (error) throw error;
+
+            // Delete associated files from storage
+            try {
+                await deleteFolder('deals', dealToDelete.id);
+            } catch (fileError) {
+                console.warn('Warning: Could not delete deal files:', fileError);
+                // Don't fail the deletion if file cleanup fails
+            }
 
             const updatedItems = items.filter((d) => d.id !== dealToDelete.id);
             setItems(updatedItems);
@@ -122,6 +120,37 @@ const DealsList = () => {
         } finally {
             setShowConfirmModal(false);
             setDealToDelete(null);
+        }
+    };
+    const handleBulkDelete = () => {
+        if (selectedRecords.length === 0) return;
+        setShowBulkDeleteModal(true);
+    };
+    const confirmBulkDeletion = async () => {
+        const ids = selectedRecords.map((d) => d.id);
+        try {
+            // Delete deals from database
+            const { error } = await supabase.from('deals').delete().in('id', ids);
+            if (error) throw error;
+
+            // Delete associated files from storage for each deal
+            for (const dealId of ids) {
+                try {
+                    await deleteFolder('deals', dealId);
+                } catch (fileError) {
+                    console.warn(`Warning: Could not delete files for deal ${dealId}:`, fileError);
+                    // Don't fail the deletion if file cleanup fails
+                }
+            }
+
+            setItems(items.filter((d) => !ids.includes(d.id)));
+            setSelectedRecords([]);
+            setAlert({ visible: true, message: t('deals_deleted_successfully'), type: 'success' });
+        } catch (error) {
+            console.error('Error deleting deals:', error);
+            setAlert({ visible: true, message: t('error_deleting_deal'), type: 'danger' });
+        } finally {
+            setShowBulkDeleteModal(false);
         }
     };
 
@@ -177,7 +206,7 @@ const DealsList = () => {
             <div className="invoice-table">
                 <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
                     <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-danger gap-2" disabled={selectedRecords.length === 0}>
+                        <button type="button" className="btn btn-danger gap-2" onClick={handleBulkDelete} disabled={selectedRecords.length === 0}>
                             <IconTrashLines />
                             {t('delete')}
                         </button>
@@ -233,6 +262,12 @@ const DealsList = () => {
                                 render: ({ created_at }) => <span>{new Date(created_at).toLocaleDateString()}</span>,
                             },
                             {
+                                accessor: 'attachments',
+                                title: t('attachments'),
+                                sortable: false,
+                                render: ({ attachments }) => <AttachmentsDisplay attachments={attachments || []} compact={true} />,
+                            },
+                            {
                                 accessor: 'action',
                                 title: t('actions'),
                                 sortable: false,
@@ -269,8 +304,7 @@ const DealsList = () => {
 
                     {loading && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black-dark-light bg-opacity-60 backdrop-blur-sm" />}
                 </div>
-            </div>
-
+            </div>{' '}
             <ConfirmModal
                 isOpen={showConfirmModal}
                 title={t('confirm_deletion')}
@@ -280,6 +314,17 @@ const DealsList = () => {
                     setDealToDelete(null);
                 }}
                 onConfirm={confirmDeletion}
+                confirmLabel={t('delete')}
+                cancelLabel={t('cancel')}
+                size="sm"
+            />
+            {/* Bulk Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={showBulkDeleteModal}
+                title={t('confirm_bulk_deletion')}
+                message={`${t('confirm_delete_selected_deals')}`}
+                onCancel={() => setShowBulkDeleteModal(false)}
+                onConfirm={confirmBulkDeletion}
                 confirmLabel={t('delete')}
                 cancelLabel={t('cancel')}
                 size="sm"

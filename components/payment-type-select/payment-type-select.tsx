@@ -4,6 +4,7 @@ import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconBank from '@/components/icon/icon-bank';
 import IconTransfer from '@/components/icon/icon-transfer';
 import IconCheck from '@/components/icon/icon-check';
+import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import { getTranslation } from '@/i18n';
 
 interface PaymentTypeSelectProps {
@@ -23,8 +24,16 @@ const PaymentTypeSelect = ({ defaultValue = '', className = 'form-select text-wh
     useEffect(() => {
         setSelectedType(defaultValue);
     }, [defaultValue]);
-
     const paymentTypes = [
+        {
+            value: 'cash',
+            label: t('cash'),
+            icon: IconDollarSign,
+            color: 'text-emerald-600 dark:text-emerald-400',
+            bgColor: 'bg-emerald-50 dark:bg-emerald-900/20',
+            borderColor: 'border-emerald-200 dark:border-emerald-800',
+            description: t('cash_description') || 'Payment in cash',
+        },
         {
             value: 'visa',
             label: t('visa_card'),

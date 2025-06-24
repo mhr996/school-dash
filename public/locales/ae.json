@@ -736,7 +736,6 @@
     "deal_type_required": "نوع الصفقة مطلوب",
     "deal_title_required": "عنوان الصفقة مطلوب",
     "amount_cannot_be_negative": "المبلغ لا يمكن أن يكون سالباً",
-
     "deal_added_successfully": "تم إضافة الصفقة بنجاح",
     "deal_updated_successfully": "تم تحديث الصفقة بنجاح",
     "deal_deleted_successfully": "تم حذف الصفقة بنجاح",
@@ -1054,5 +1053,12 @@
     "valid_year_required": "مطلوب سنة صحيحة",
     "valid_kilometers_required": "مطلوب عدد كيلومترات صحيح",
     "valid_price_required": "مطلوب سعر صحيح",
-    "provider_required": "المزود مطلوب"
+    "provider_required": "المزود مطلوب",
+    "confirm_bulk_deletion": "تأكيد الحذف",
+    "bulk_delete_success": "تم حذف العناصر المحددة بنجاح",
+    "bulk_delete_error": "حدث خطأ أثناء حذف العناصر المحددة",
+    "confirm_delete_selected_deals": "هل أنت متأكد من أنك تريد حذف الصفقات المحددة؟",
+    "confirm_delete_selected_bills": "هل أنت متأكد من أنك تريد حذف الفواتير المحددة؟",
+    "confirm_delete_selected_cars": "هل أنت متأكد من أنك تريد حذف السيارات المحددة؟",
+    "confirm_delete_selected_providers": "هل أنت متأكد من أنك تريد حذف المزودين المحددين؟"
 }

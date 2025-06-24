@@ -92,11 +92,10 @@ const BillPreview = () => {
                 .from('bills')
                 .select(
                     `
-                    *,
-                    deal:deals(
+                    *,                    deal:deals(
                         *,
                         customer:customers!deals_customer_id_fkey(*),
-                        car:cars(*)
+                        car:cars!deals_car_id_fkey(*)
                     )
                 `,
                 )

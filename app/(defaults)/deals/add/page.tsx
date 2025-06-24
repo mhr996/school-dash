@@ -16,45 +16,8 @@ import IconUser from '@/components/icon/icon-user';
 import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconNotes from '@/components/icon/icon-notes';
-
-interface Customer {
-    id: string;
-    name: string;
-    phone: string;
-    country: string;
-    age: number;
-    customer_type?: string;
-    identity_number?: string;
-    birth_date?: string;
-}
-
-interface Car {
-    id: string;
-    title: string;
-    year: number;
-    brand: string;
-    status: string;
-    type?: string;
-    provider: string;
-    kilometers: number;
-    market_price: number;
-    buy_price: number;
-    sale_price: number;
-    car_number?: string; // Car number field
-    images: string[] | string;
-}
-
-interface FileItem {
-    file: File;
-    preview?: string;
-    id: string;
-}
-
-interface DealAttachments {
-    carLicense: FileItem | null;
-    driverLicense: FileItem | null;
-    carTransferDocument: FileItem | null;
-}
+import { uploadMultipleFiles } from '@/utils/file-upload';
+import { Customer, Car, FileItem, DealAttachments } from '@/types';
 
 const AddDeal = () => {
     const { t } = getTranslation();
@@ -376,7 +339,6 @@ const AddDeal = () => {
         }
         return true;
     };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -402,6 +364,7 @@ const AddDeal = () => {
 
         setSaving(true);
         try {
+            // First create the deal to get an ID
             let dealData: any = {
                 deal_type: dealType,
                 status: dealStatus,
@@ -415,39 +378,35 @@ const AddDeal = () => {
                     description: saleForm.notes.trim() || `${t('sale_deal_description')} ${selectedCar?.title}`,
                     amount: parseFloat(saleForm.selling_price),
                     car_id: selectedCar?.id,
-                    deal_data: {
-                        car_details: {
-                            name: selectedCar?.title,
-                            brand: selectedCar?.brand,
-                            year: selectedCar?.year,
-                            kilometers: selectedCar?.kilometers,
-                            status: selectedCar?.status,
-                            type: selectedCar?.type,
-                            provider: selectedCar?.provider,
-                            market_price: selectedCar?.market_price,
-                            buy_price: selectedCar?.buy_price,
-                            sale_price: selectedCar?.sale_price,
-                            selling_price: parseFloat(saleForm.selling_price),
-                        },
-                        customer_details: {
-                            name: selectedCustomer?.name,
-                            phone: selectedCustomer?.phone,
-                            country: selectedCustomer?.country,
-                            age: selectedCustomer?.age,
-                            identity_number: selectedCustomer?.identity_number,
-                            birth_date: selectedCustomer?.birth_date,
-                        },
-                        attachments: {
-                            car_license: dealAttachments.carLicense ? 1 : 0,
-                            driver_license: dealAttachments.driverLicense ? 1 : 0,
-                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
-                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
-                        },
-                    },
+                    selling_price: parseFloat(saleForm.selling_price),
+                    loss_amount: saleForm.loss_amount ? parseFloat(saleForm.loss_amount) : null,
+                    tax_percentage: saleForm.tax_percentage ? parseFloat(saleForm.tax_percentage) : null,
+                    quantity: parseInt(saleForm.quantity),
                     notes: saleForm.notes.trim(),
                 };
             }
             if (dealType === 'exchange') {
+                // First, create a new car record for the old car taken from the client
+                const oldCarData = {
+                    title: `${exchangeForm.old_car_manufacturer} ${exchangeForm.old_car_name} (${exchangeForm.old_car_year})`,
+                    year: parseInt(exchangeForm.old_car_year),
+                    brand: exchangeForm.old_car_manufacturer,
+                    status: 'received_from_client',
+                    type: 'used',
+                    provider: '1', // Default provider ID for cars received from clients
+                    kilometers: exchangeForm.old_car_kilometers ? parseInt(exchangeForm.old_car_kilometers) : 0,
+                    market_price: exchangeForm.old_car_market_price ? parseFloat(exchangeForm.old_car_market_price) : 0,
+                    buy_price: parseFloat(exchangeForm.old_car_purchase_price),
+                    sale_price: exchangeForm.old_car_market_price ? parseFloat(exchangeForm.old_car_market_price) : 0,
+                    car_number: exchangeForm.old_car_number || '',
+                    images: JSON.stringify([]),
+                };
+
+                const { data: newCarData, error: carError } = await supabase.from('cars').insert(oldCarData).select().single();
+
+                if (carError) {
+                    throw new Error(`Failed to create car record: ${carError.message}`);
+                }
                 const exchangeAmount = selectedCar ? selectedCar.sale_price - parseFloat(exchangeForm.old_car_purchase_price || '0') : 0;
                 dealData = {
                     ...dealData,
@@ -455,74 +414,19 @@ const AddDeal = () => {
                     description: exchangeForm.notes.trim() || `${t('exchange_deal_description')} ${selectedCar?.title}`,
                     amount: exchangeAmount,
                     car_id: selectedCar?.id,
-                    deal_data: {
-                        new_car_details: {
-                            name: selectedCar?.title,
-                            brand: selectedCar?.brand,
-                            year: selectedCar?.year,
-                            kilometers: selectedCar?.kilometers,
-                            status: selectedCar?.status,
-                            type: selectedCar?.type,
-                            provider: selectedCar?.provider,
-                            market_price: selectedCar?.market_price,
-                            buy_price: selectedCar?.buy_price,
-                            sale_price: selectedCar?.sale_price,
-                        },
-                        old_car_details: {
-                            manufacturer: exchangeForm.old_car_manufacturer,
-                            name: exchangeForm.old_car_name,
-                            year: parseInt(exchangeForm.old_car_year),
-                            kilometers: parseInt(exchangeForm.old_car_kilometers || '0'),
-                            condition: exchangeForm.old_car_condition,
-                            car_number: exchangeForm.old_car_number,
-                            market_price: parseFloat(exchangeForm.old_car_market_price || '0'),
-                            purchase_price: parseFloat(exchangeForm.old_car_purchase_price || '0'),
-                        },
-                        customer_details: {
-                            name: selectedCustomer?.name,
-                            phone: selectedCustomer?.phone,
-                            country: selectedCustomer?.country,
-                            age: selectedCustomer?.age,
-                            identity_number: selectedCustomer?.identity_number,
-                            birth_date: selectedCustomer?.birth_date,
-                        },
-                        exchange_calculation: {
-                            new_car_price: selectedCar?.sale_price || 0,
-                            old_car_value: parseFloat(exchangeForm.old_car_purchase_price || '0'),
-                            difference: exchangeAmount,
-                        },
-
-                        attachments: {
-                            car_license: dealAttachments.carLicense ? 1 : 0,
-                            driver_license: dealAttachments.driverLicense ? 1 : 0,
-                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
-                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
-                        },
-                    },
+                    car_taken_from_client: newCarData.id, // Link the newly created car
                     notes: exchangeForm.notes.trim(),
                 };
             }
-
             if (dealType === 'company_commission') {
                 dealData = {
                     ...dealData,
                     title: companyCommissionForm.title.trim(),
                     description: companyCommissionForm.description.trim() || `${t('company_commission_deal_description')} ${companyCommissionForm.company_name}`,
                     amount: parseFloat(companyCommissionForm.amount),
-                    deal_data: {
-                        company_commission_details: {
-                            company_name: companyCommissionForm.company_name.trim(),
-                            commission_date: companyCommissionForm.commission_date,
-                            amount: parseFloat(companyCommissionForm.amount),
-                            description: companyCommissionForm.description.trim(),
-                        },
-                        attachments: {
-                            car_license: dealAttachments.carLicense ? 1 : 0,
-                            driver_license: dealAttachments.driverLicense ? 1 : 0,
-                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
-                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
-                        },
-                    },
+                    // Company commission specific fields
+                    company_name: companyCommissionForm.company_name.trim(),
+                    commission_date: companyCommissionForm.commission_date,
                     notes: companyCommissionForm.description.trim(),
                 };
             }
@@ -534,50 +438,14 @@ const AddDeal = () => {
                     amount: parseFloat(intermediaryForm.profit_commission),
                     car_id: selectedCar?.id,
                     customer_id: null, // No single customer for intermediary deals
-                    deal_data: {
-                        car_details: {
-                            name: selectedCar?.title,
-                            brand: selectedCar?.brand,
-                            year: selectedCar?.year,
-                            kilometers: selectedCar?.kilometers,
-                            status: selectedCar?.status,
-                            type: selectedCar?.type,
-                            provider: selectedCar?.provider,
-                            market_price: selectedCar?.market_price,
-                            buy_price: selectedCar?.buy_price,
-                            sale_price: selectedCar?.sale_price,
-                            car_number: selectedCar?.car_number,
-                        },
-                        seller_details: {
-                            name: selectedSeller?.name,
-                            phone: selectedSeller?.phone,
-                            country: selectedSeller?.country,
-                            age: selectedSeller?.age,
-                            identity_number: selectedSeller?.identity_number,
-                            birth_date: selectedSeller?.birth_date,
-                        },
-                        buyer_details: {
-                            name: selectedBuyer?.name,
-                            phone: selectedBuyer?.phone,
-                            country: selectedBuyer?.country,
-                            age: selectedBuyer?.age,
-                            identity_number: selectedBuyer?.identity_number,
-                            birth_date: selectedBuyer?.birth_date,
-                        },
-                        intermediary_details: {
-                            profit_commission: parseFloat(intermediaryForm.profit_commission),
-                        },
-                        attachments: {
-                            car_license: dealAttachments.carLicense ? 1 : 0,
-                            driver_license: dealAttachments.driverLicense ? 1 : 0,
-                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
-                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
-                        },
-                    },
+                    // Intermediary specific fields
+                    profit_commission: parseFloat(intermediaryForm.profit_commission),
+                    // Note: You may need to add seller_id and buyer_id fields to your database
+                    // seller_id: selectedSeller?.id,
+                    // buyer_id: selectedBuyer?.id,
                     notes: intermediaryForm.notes.trim(),
                 };
             }
-
             if (dealType === 'financing_assistance_intermediary') {
                 dealData = {
                     ...dealData,
@@ -586,45 +454,93 @@ const AddDeal = () => {
                     amount: parseFloat(financingAssistanceForm.commission),
                     car_id: selectedCar?.id,
                     customer_id: selectedCustomer?.id,
-                    deal_data: {
-                        car_details: {
-                            name: selectedCar?.title,
-                            brand: selectedCar?.brand,
-                            year: selectedCar?.year,
-                            kilometers: selectedCar?.kilometers,
-                            status: selectedCar?.status,
-                            type: selectedCar?.type,
-                            provider: selectedCar?.provider,
-                            market_price: selectedCar?.market_price,
-                            buy_price: selectedCar?.buy_price,
-                            sale_price: selectedCar?.sale_price,
-                            car_number: selectedCar?.car_number,
-                        },
-                        customer_details: {
-                            name: selectedCustomer?.name,
-                            phone: selectedCustomer?.phone,
-                            country: selectedCustomer?.country,
-                            age: selectedCustomer?.age,
-                            identity_number: selectedCustomer?.identity_number,
-                            birth_date: selectedCustomer?.birth_date,
-                        },
-                        financing_assistance_details: {
-                            commission: parseFloat(financingAssistanceForm.commission),
-                        },
-                        attachments: {
-                            car_license: dealAttachments.carLicense ? 1 : 0,
-                            driver_license: dealAttachments.driverLicense ? 1 : 0,
-                            car_transfer_document: dealAttachments.carTransferDocument ? 1 : 0,
-                            total_files: (dealAttachments.carLicense ? 1 : 0) + (dealAttachments.driverLicense ? 1 : 0) + (dealAttachments.carTransferDocument ? 1 : 0),
-                        },
-                    },
+                    // Financing assistance specific fields
+                    commission: parseFloat(financingAssistanceForm.commission),
                     notes: financingAssistanceForm.notes.trim(),
                 };
             }
 
-            const { error } = await supabase.from('deals').insert([dealData]);
+            // Insert the deal first to get the ID
+            const { data: dealResult, error: dealError } = await supabase.from('deals').insert([dealData]).select('id').single();
 
-            if (error) throw error;
+            if (dealError) throw dealError;
+
+            const dealId = dealResult.id;
+
+            // Upload files if any exist
+            let fileUrls: { [key: string]: string } = {};
+            const filesToUpload: { file: File; name: string }[] = [];
+
+            if (dealAttachments.carLicense?.file) {
+                const fileExt = dealAttachments.carLicense.file.name.split('.').pop();
+                filesToUpload.push({
+                    file: dealAttachments.carLicense.file,
+                    name: `car_license.${fileExt}`,
+                });
+            }
+
+            if (dealAttachments.driverLicense?.file) {
+                const fileExt = dealAttachments.driverLicense.file.name.split('.').pop();
+                filesToUpload.push({
+                    file: dealAttachments.driverLicense.file,
+                    name: `driver_license.${fileExt}`,
+                });
+            }
+
+            if (dealAttachments.carTransferDocument?.file) {
+                const fileExt = dealAttachments.carTransferDocument.file.name.split('.').pop();
+                filesToUpload.push({
+                    file: dealAttachments.carTransferDocument.file,
+                    name: `car_transfer_document.${fileExt}`,
+                });
+            }
+            if (filesToUpload.length > 0) {
+                const uploadResults = await uploadMultipleFiles(filesToUpload, 'deals', dealId);
+
+                // Check for upload errors
+                const uploadErrors = Object.entries(uploadResults)
+                    .filter(([_, result]) => !result.success)
+                    .map(([name, result]) => `${name}: ${result.error}`);
+
+                if (uploadErrors.length > 0) {
+                    console.warn('Some files failed to upload:', uploadErrors);
+                    // Continue with the deal creation but log the warnings
+                }
+
+                // Build attachments array from successful uploads
+                const attachments: any[] = [];
+                Object.entries(uploadResults).forEach(([fileName, result]) => {
+                    if (result.success && result.url) {
+                        // Determine attachment type from filename
+                        let type = 'document';
+                        if (fileName.includes('car_license')) type = 'car_license';
+                        else if (fileName.includes('driver_license')) type = 'driver_license';
+                        else if (fileName.includes('car_transfer_document')) type = 'car_transfer_document';
+
+                        // Find the original file to get metadata
+                        const originalFile = filesToUpload.find((f) => f.name === fileName)?.file;
+
+                        attachments.push({
+                            type,
+                            name: fileName,
+                            url: result.url,
+                            uploadedAt: new Date().toISOString(),
+                            size: originalFile?.size || 0,
+                            mimeType: originalFile?.type || 'application/octet-stream',
+                        });
+                    }
+                });
+
+                // Update the deal with attachments array if any were uploaded successfully
+                if (attachments.length > 0) {
+                    const { error: updateError } = await supabase.from('deals').update({ attachments }).eq('id', dealId);
+
+                    if (updateError) {
+                        console.error('Error updating deal with attachments:', updateError);
+                        // Don't throw here as the deal was already created successfully
+                    }
+                }
+            }
 
             setAlert({ visible: true, message: t('deal_added_successfully'), type: 'success' });
 

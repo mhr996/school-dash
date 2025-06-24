@@ -42,8 +42,8 @@ const Bills = () => {
     const [search, setSearch] = useState('');
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({ columnAccessor: 'created_at', direction: 'desc' });
     const [selectedRecords, setSelectedRecords] = useState<Bill[]>([]);
-
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
     const [alertState, setAlertState] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({ visible: false, message: '', type: 'success' });
 
@@ -116,10 +116,9 @@ const Bills = () => {
             setBillToDelete(null);
         }
     };
-
     const handleBulkDelete = () => {
         if (selectedRecords.length === 0) return;
-        if (confirm(t('confirm_delete'))) confirmBulkDeletion();
+        setShowBulkDeleteModal(true);
     };
 
     const confirmBulkDeletion = async () => {
@@ -133,6 +132,8 @@ const Bills = () => {
         } catch (error) {
             console.error('Error deleting bills:', error);
             setAlertState({ visible: true, message: t('error_deleting_bill'), type: 'danger' });
+        } finally {
+            setShowBulkDeleteModal(false);
         }
     };
 
@@ -267,7 +268,7 @@ const Bills = () => {
                         minHeight={300}
                     />
                 </div>
-            </div>
+            </div>{' '}
             <ConfirmModal
                 isOpen={showConfirmModal}
                 title={t('confirm')}
@@ -277,6 +278,17 @@ const Bills = () => {
                     setBillToDelete(null);
                 }}
                 onConfirm={confirmDeletion}
+            />
+            {/* Bulk Delete Confirmation Modal */}
+            <ConfirmModal
+                isOpen={showBulkDeleteModal}
+                title={t('confirm_bulk_deletion')}
+                message={`${t('confirm_delete_selected_bills')}`}
+                onCancel={() => setShowBulkDeleteModal(false)}
+                onConfirm={confirmBulkDeletion}
+                confirmLabel={t('delete')}
+                cancelLabel={t('cancel')}
+                size="sm"
             />
         </div>
     );

@@ -159,11 +159,10 @@ const EditBill = () => {
                 .from('bills')
                 .select(
                     `
-                    *,
-                    deal:deals(
+                    *,                    deal:deals(
                         *,
                         customer:customers!deals_customer_id_fkey(*),
-                        car:cars(*)
+                        car:cars!deals_car_id_fkey(*)
                     )
                 `,
                 )
@@ -244,9 +243,8 @@ const EditBill = () => {
                 .from('deals')
                 .select(
                     `
-                    *,
-                    customer:customers!deals_customer_id_fkey(*),
-                    car:cars(*)
+                    *,                    customer:customers!deals_customer_id_fkey(*),
+                    car:cars!deals_car_id_fkey(*)
                 `,
                 )
                 .eq('status', 'active')

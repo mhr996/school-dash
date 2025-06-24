@@ -51,10 +51,9 @@ const CarsList = () => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'title',
         direction: 'asc',
-    });
-
-    // Modal and alert states
+    }); // Modal and alert states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [carToDelete, setCarToDelete] = useState<Car | null>(null);
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
@@ -145,6 +144,39 @@ const CarsList = () => {
             setCarToDelete(null);
         }
     };
+    const handleBulkDelete = () => {
+        if (selectedRecords.length === 0) return;
+        setShowBulkDeleteModal(true);
+    };
+
+    const confirmBulkDeletion = async () => {
+        const ids = selectedRecords.map((c) => c.id);
+        try {
+            // First, delete all images for the selected cars
+            for (const car of selectedRecords) {
+                if (car.images?.length) {
+                    const { error: storageError } = await supabase.storage.from('cars').remove(car.images);
+                    if (storageError) {
+                        console.error('Error deleting images for car:', car.id, storageError);
+                        // Continue with deletion even if image deletion fails
+                    }
+                }
+            }
+
+            // Delete car records
+            const { error } = await supabase.from('cars').delete().in('id', ids);
+            if (error) throw error;
+
+            setItems(items.filter((c) => !ids.includes(c.id)));
+            setSelectedRecords([]);
+            setAlert({ visible: true, message: t('cars_deleted_successfully'), type: 'success' });
+        } catch (error) {
+            console.error('Error deleting cars:', error);
+            setAlert({ visible: true, message: t('error_deleting_car'), type: 'danger' });
+        } finally {
+            setShowBulkDeleteModal(false);
+        }
+    };
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -174,7 +206,7 @@ const CarsList = () => {
             <div className="invoice-table">
                 <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
                     <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-danger gap-2" disabled={selectedRecords.length === 0}>
+                        <button type="button" className="btn btn-danger gap-2" disabled={selectedRecords.length === 0} onClick={handleBulkDelete}>
                             <IconTrashLines />
                             {t('delete')}
                         </button>
