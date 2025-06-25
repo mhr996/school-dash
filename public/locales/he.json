@@ -663,5 +663,17 @@
     "seller_information": "פרטי המוכר",
     "buyer_information": "פרטי הקונה",
     "seller_details": "פרטי המוכר",
-    "buyer_details": "פרטי הקונה"
+    "buyer_details": "פרטי הקונה",
+    "automate_bill_for_deal": "צור חשבונית אוטומטית לעסקה זו",
+    "create_bill_without_leaving_page": "צור חשבונית לעסקה זו מבלי לעזוב את דף העריכה",
+    "bill_summary": "סיכום החשבונית",
+    "item_description": "תיאור הפריט",
+    "total_price": "מחיר כולל",
+    "bill_notes": "הערות החשבונית",
+    "deal_amount_exchange": "סכום העסקה",
+    "sale_price_auto": "מחיר המכירה",
+    "connected_bills": "חשבוניות מקושרות",
+    "no_bills_connected": "אין חשבוניות מקושרות לעסקה זו עדיין",
+    "unknown_customer": "לקוח לא ידוע",
+    "bill_number": "מספר חשבונית"
 }
