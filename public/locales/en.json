@@ -941,5 +941,6 @@
     "connected_bills": "Connected Bills",
     "no_bills_connected": "No bills connected to this deal yet",
     "unknown_customer": "Unknown Customer",
-    "bill_number": "Bill Number"
+    "bill_number": "Bill Number",
+    "update_deal": "Update Deal"
 }

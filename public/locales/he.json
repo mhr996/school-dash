@@ -675,5 +675,6 @@
     "connected_bills": "חשבוניות מקושרות",
     "no_bills_connected": "אין חשבוניות מקושרות לעסקה זו עדיין",
     "unknown_customer": "לקוח לא ידוע",
-    "bill_number": "מספר חשבונית"
+    "bill_number": "מספר חשבונית",
+    "update_deal": "עדכן עסקה"
 }

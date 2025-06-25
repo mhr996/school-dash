@@ -541,12 +541,11 @@ const AddDeal = () => {
                     }
                 }
             }
-
             setAlert({ visible: true, message: t('deal_added_successfully'), type: 'success' });
 
-            // Redirect to deals list after a short delay
+            // Redirect to the newly created deal's preview page after a short delay
             setTimeout(() => {
-                router.push('/deals');
+                router.push(`/deals/preview/${dealId}`);
             }, 1500);
         } catch (error) {
             console.error(error);

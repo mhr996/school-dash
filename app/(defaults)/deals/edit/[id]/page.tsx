@@ -557,11 +557,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             </div>
         );
     }
-
     return (
         <div className="container mx-auto p-6">
             <div className="flex items-center gap-5 mb-6">
-                <div onClick={() => router.back()}>
+                <div onClick={() => router.push('/deals')}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mb-4 cursor-pointer text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
@@ -1788,11 +1787,11 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 <table className="table-auto w-full">
                                     <thead>
                                         <tr className="bg-gray-50 dark:bg-gray-800">
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">{t('bill_type')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_name')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">{t('status')}</th>
-                                            <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 dark:text-gray-300">{t('created_date')}</th>
+                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('bill_type')}</th>
+                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_name')}</th>
+                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</th>
+                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('status')}</th>
+                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('created_date')}</th>
                                             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">{t('actions')}</th>
                                         </tr>
                                     </thead>
@@ -1819,9 +1818,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         {t(`bill_status_${bill.status}`)}
                                                     </span>
                                                 </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{new Date(bill.created_at).toLocaleDateString()}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{new Date(bill.created_at).toLocaleDateString()}</td>{' '}
                                                 <td className="px-4 py-3 text-center">
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleViewBill(bill)}
                                                         className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors duration-200 text-xs"
                                                     >
@@ -1838,13 +1838,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     </div>
                     {/* Submit Button */}
                     <div className="flex justify-end gap-4 mt-8">
-                        <button type="button" onClick={() => router.back()} className="btn btn-outline-danger">
+                        <button type="button" onClick={() => router.push('/deals')} className="btn btn-outline-danger">
                             {t('cancel')}
                         </button>
                         <button type="submit" className="btn btn-primary" disabled={saving}>
                             {saving ? t('updating') : t('update_deal')}
-                        </button>
-                    </div>{' '}
+                        </button>{' '}
+                    </div>
                 </form>
             </div>
 
