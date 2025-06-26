@@ -13,7 +13,7 @@ interface Customer {
     country: string;
     age: number;
     customer_type: string;
-    identity_number?: string;
+    id_number?: string;
     birth_date?: string;
 }
 
@@ -29,7 +29,7 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
     const [form, setForm] = useState({
         name: '',
         phone: '',
-        identity_number: '',
+        id_number: '',
         birth_date: '',
         country: '',
         customer_type: '',
@@ -113,7 +113,7 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
             const customerData = {
                 name: form.name.trim(),
                 phone: form.phone.trim(),
-                identity_number: form.identity_number.trim() || null,
+                id_number: form.id_number.trim() || null,
                 birth_date: form.birth_date || null,
                 country: form.country || null,
                 age: age,
@@ -139,7 +139,7 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
         setForm({
             name: '',
             phone: '',
-            identity_number: '',
+            id_number: '',
             birth_date: '',
             country: '',
             customer_type: '',
@@ -209,18 +209,10 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
 
                         {/* Identity Number */}
                         <div>
-                            <label htmlFor="identity_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('identity_number')}
+                            <label htmlFor="id_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                                {t('id_number')}
                             </label>
-                            <input
-                                type="text"
-                                id="identity_number"
-                                name="identity_number"
-                                value={form.identity_number}
-                                onChange={handleInputChange}
-                                className="form-input"
-                                placeholder={t('enter_identity_number')}
-                            />
+                            <input type="text" id="id_number" name="id_number" value={form.id_number} onChange={handleInputChange} className="form-input" placeholder={t('enter_id_number')} />
                         </div>
 
                         {/* Birth Date */}

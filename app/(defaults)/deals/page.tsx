@@ -17,7 +17,7 @@ import AttachmentsDisplay from '@/components/attachments/attachments-display';
 
 const DealsList = () => {
     const { t } = getTranslation();
-    const [items, setItems] = useState<Deal[]>([]);
+    const [items, setItems] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [page, setPage] = useState(1);
@@ -35,22 +35,29 @@ const DealsList = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [dealToDelete, setDealToDelete] = useState<Deal | null>(null);
-    const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
-        visible: false,
-        message: '',
-        type: 'success',
-    });
+    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
     useEffect(() => {
         const fetchDeals = async () => {
             try {
-                const { data, error } = await supabase.from('deals').select('*').order('created_at', { ascending: false });
+                const { data, error } = await supabase
+                    .from('deals')
+                    .select(
+                        `
+                        *,
+                        customers!deals_customer_id_fkey (
+                            name,
+                            id_number
+                        )
+                    `,
+                    )
+                    .order('created_at', { ascending: false });
                 if (error) throw error;
 
-                setItems(data as Deal[]);
+                setItems(data as any[]);
             } catch (error) {
                 console.error('Error fetching deals:', error);
-                setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
+                setAlert({ message: t('error_loading_data'), type: 'danger' });
             } finally {
                 setLoading(false);
             }
@@ -75,7 +82,9 @@ const DealsList = () => {
                     item.title.toLowerCase().includes(search.toLowerCase()) ||
                     item.description.toLowerCase().includes(search.toLowerCase()) ||
                     item.deal_type.toLowerCase().includes(search.toLowerCase()) ||
-                    item.status.toLowerCase().includes(search.toLowerCase())
+                    item.status.toLowerCase().includes(search.toLowerCase()) ||
+                    (item.customers?.name && item.customers.name.toLowerCase().includes(search.toLowerCase())) ||
+                    (item.customers?.id_number && item.customers.id_number.toLowerCase().includes(search.toLowerCase()))
                 );
             }),
         );
@@ -113,10 +122,10 @@ const DealsList = () => {
 
             const updatedItems = items.filter((d) => d.id !== dealToDelete.id);
             setItems(updatedItems);
-            setAlert({ visible: true, message: t('deal_deleted_successfully'), type: 'success' });
+            setAlert({ message: t('deal_deleted_successfully'), type: 'success' });
         } catch (error) {
             console.error('Deletion error:', error);
-            setAlert({ visible: true, message: t('error_deleting_deal'), type: 'danger' });
+            setAlert({ message: t('error_deleting_deal'), type: 'danger' });
         } finally {
             setShowConfirmModal(false);
             setDealToDelete(null);
@@ -145,10 +154,10 @@ const DealsList = () => {
 
             setItems(items.filter((d) => !ids.includes(d.id)));
             setSelectedRecords([]);
-            setAlert({ visible: true, message: t('deals_deleted_successfully'), type: 'success' });
+            setAlert({ message: t('deals_deleted_successfully'), type: 'success' });
         } catch (error) {
             console.error('Error deleting deals:', error);
-            setAlert({ visible: true, message: t('error_deleting_deal'), type: 'danger' });
+            setAlert({ message: t('error_deleting_deal'), type: 'danger' });
         } finally {
             setShowBulkDeleteModal(false);
         }
@@ -193,14 +202,9 @@ const DealsList = () => {
 
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-            {alert.visible && (
-                <div className="mb-4 ml-4 max-w-96">
-                    <Alert
-                        type={alert.type}
-                        title={alert.type === 'success' ? t('success') : t('error')}
-                        message={alert.message}
-                        onClose={() => setAlert({ visible: false, message: '', type: 'success' })}
-                    />
+            {alert && (
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert(null)} />
                 </div>
             )}
             <div className="invoice-table">
@@ -232,10 +236,21 @@ const DealsList = () => {
                                 render: ({ id }) => <strong className="text-info">#{id}</strong>,
                             },
                             {
-                                accessor: 'title',
-                                title: t('deal_title'),
+                                accessor: 'customer_name',
+                                title: 'اسم الزبون',
                                 sortable: true,
-                                render: ({ title }) => <div className="font-semibold">{title}</div>,
+                                render: ({ customers, title }) => (
+                                    <div>
+                                        <div className="font-semibold">{customers?.name || t('no_customer')}</div>
+                                        <div className="text-xs text-gray-500 mt-1">{title}</div>
+                                    </div>
+                                ),
+                            },
+                            {
+                                accessor: 'customer_identity',
+                                title: t('id_number'),
+                                sortable: true,
+                                render: ({ customers }) => <div className="text-sm">{customers?.id_number || '-'}</div>,
                             },
                             {
                                 accessor: 'deal_type',
@@ -261,7 +276,7 @@ const DealsList = () => {
                                 sortable: true,
                                 render: ({ created_at }) => <span>{new Date(created_at).toLocaleDateString()}</span>,
                             },
-                          
+
                             {
                                 accessor: 'action',
                                 title: t('actions'),

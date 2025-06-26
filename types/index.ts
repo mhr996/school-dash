@@ -23,6 +23,12 @@ export interface Deal {
     car_taken_from_client?: string; // For exchange deals - links to the car received from client
     attachments?: DealAttachment[];
 
+    // Joined customer data from the customers table
+    customers?: {
+        name: string;
+        id_number?: string;
+    };
+
     // Legacy individual URL columns (for backwards compatibility)
     car_license_url?: string;
     driver_license_url?: string;
@@ -36,7 +42,7 @@ export interface Customer {
     country: string;
     age: number;
     customer_type?: string;
-    identity_number?: string;
+    id_number?: string;
     birth_date?: string;
 }
 

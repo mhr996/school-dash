@@ -14,12 +14,12 @@ const Alert: React.FC<AlertProps> = ({ type, message, title, onClose }) => {
     const [isLeaving, setIsLeaving] = useState(false);
 
     const alertClasses = {
-        primary: 'bg-primary-light text-primary dark:bg-primary-dark-light',
-        secondary: 'bg-secondary-light text-secondary dark:bg-secondary-dark-light',
-        success: 'bg-success-light text-success dark:bg-success-dark-light',
-        warning: 'bg-warning-light text-warning dark:bg-warning-dark-light',
-        danger: 'bg-danger-light text-danger dark:bg-danger-dark-light',
-        info: 'bg-info-light text-info dark:bg-info-dark-light',
+        primary: 'bg-primary-light text-primary dark:bg-primary-dark-light border-l-4 border-primary',
+        secondary: 'bg-secondary-light text-secondary dark:bg-secondary-dark-light border-l-4 border-secondary',
+        success: 'bg-success-light text-success dark:bg-success-dark-light border-l-4 border-success',
+        warning: 'bg-warning-light text-warning dark:bg-warning-dark-light border-l-4 border-warning',
+        danger: 'bg-danger-light text-danger dark:bg-danger-dark-light border-l-4 border-danger',
+        info: 'bg-info-light text-info dark:bg-info-dark-light border-l-4 border-info',
     };
 
     useEffect(() => {
@@ -36,26 +36,31 @@ const Alert: React.FC<AlertProps> = ({ type, message, title, onClose }) => {
         }
     }, [onClose]);
 
+    const handleClose = () => {
+        setIsLeaving(true);
+        setTimeout(() => {
+            setIsVisible(false);
+            if (onClose) onClose();
+        }, 300);
+    };
+
     if (!isVisible) return null;
 
     return (
-        <div className={`flex items-center rounded p-3.5 mb-4 transition-all duration-300 ${isLeaving ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0'} transform ${alertClasses[type]}`}>
-            <span className="ltr:pr-2 rtl:pl-2">
-                {title && <strong className="ltr:mr-1 rtl:ml-1">{title}!</strong>}
-                {message}
+        <div
+            className={`
+                flex items-center rounded-lg p-4 mb-4 shadow-lg backdrop-blur-sm
+                transition-all duration-300 transform
+                ${isLeaving ? 'animate-slide-out-right' : 'animate-slide-in-right'}
+                ${alertClasses[type]}
+            `}
+        >
+            <span className="ltr:pr-2 rtl:pl-2 flex-1">
+                {title && <strong className="ltr:mr-1 rtl:ml-1 font-semibold">{title}!</strong>}
+                <span className="text-sm">{message}</span>
             </span>
             {onClose && (
-                <button
-                    type="button"
-                    className="hover:opacity-80 ltr:ml-auto rtl:mr-auto"
-                    onClick={() => {
-                        setIsLeaving(true);
-                        setTimeout(() => {
-                            setIsVisible(false);
-                            onClose();
-                        }, 300);
-                    }}
-                >
+                <button type="button" className="hover:opacity-80 ltr:ml-auto rtl:mr-auto p-1 rounded transition-colors hover:bg-black/10 dark:hover:bg-white/10" onClick={handleClose}>
                     <IconX className="h-5 w-5" />
                 </button>
             )}

@@ -20,7 +20,7 @@ interface Deal {
     customer?: {
         name: string;
         phone: string;
-        identity_number: string;
+        id_number: string;
     };
     car_id: string;
     car?: {
@@ -40,7 +40,6 @@ interface Bill {
     bill_type: string;
     status: string;
     customer_name: string;
-    identity_number?: string;
     phone?: string;
     date?: string;
     car_details?: string;
@@ -275,28 +274,6 @@ const BillPreview = () => {
                                     </span>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                {/* Financial Summary */}
-                <div className="panel">
-                    <h2 className="text-xl font-bold text-primary mb-4">{t('financial_summary')}</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                            <div className="text-2xl font-bold text-blue-600">${new Intl.NumberFormat('en-US').format(bill.sale_price || 0)}</div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">{t('sale_price')}</div>
-                        </div>
-                        <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                            <div className="text-2xl font-bold text-green-600">${new Intl.NumberFormat('en-US').format(bill.commission || 0)}</div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">{t('commission')}</div>
-                        </div>
-                        <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                            <div className="text-2xl font-bold text-yellow-600">${new Intl.NumberFormat('en-US').format(bill.tax_amount || 0)}</div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">{t('tax_amount')}</div>
-                        </div>
-                        <div className="text-center p-4 bg-primary/10 rounded-lg">
-                            <div className="text-2xl font-bold text-primary">${new Intl.NumberFormat('en-US').format(bill.total_with_tax || 0)}</div>
-                            <div className="text-sm text-gray-600 dark:text-gray-400">{t('total_with_tax')}</div>
                         </div>
                     </div>
                 </div>
@@ -544,22 +521,22 @@ const BillPreview = () => {
 
                             {/* Tax Calculations */}
                             <div className="space-y-3">
-                                {/* Price Before Tax */}
+                                {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">${((bill.deal.amount || 0) / 1.18).toFixed(2)}</span>
                                 </div>
 
-                                {/* Tax */}
+                                {/* Tax - calculated as 18% of the price before tax */}
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">${((bill.deal.amount || 0) * 0.18).toFixed(2)}</span>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">${(((bill.deal.amount || 0) / 1.18) * 0.18).toFixed(2)}</span>
                                 </div>
 
-                                {/* Total Including Tax */}
+                                {/* Total Including Tax - this is the deal amount which already includes tax */}
                                 <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
                                     <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                    <span className="text-lg font-bold text-primary">${((bill.deal.amount || 0) * 1.18).toFixed(2)}</span>
+                                    <span className="text-lg font-bold text-primary">${bill.deal.amount?.toFixed(2) || '0.00'}</span>
                                 </div>
                             </div>
                         </div>
@@ -577,10 +554,6 @@ const BillPreview = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('customer_name')}</label>
                                 <p className="text-sm text-gray-900 dark:text-white">{bill.customer_name}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('identity_number')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{bill.identity_number || t('not_provided')}</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')}</label>

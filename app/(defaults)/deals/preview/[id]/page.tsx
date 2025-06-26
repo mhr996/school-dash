@@ -257,7 +257,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             </div>
 
             {alert.visible && (
-                <div className="mb-6">
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
                     <Alert
                         type={alert.type}
                         title={alert.type === 'success' ? t('success') : t('error')}

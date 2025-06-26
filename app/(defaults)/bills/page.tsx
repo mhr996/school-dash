@@ -9,8 +9,10 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconEdit from '@/components/icon/icon-edit';
 import IconEye from '@/components/icon/icon-eye';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
+import IconPdf from '@/components/icon/icon-pdf';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import { generateBillPDF } from '@/utils/pdf-generator';
 
 interface Bill {
     id: string;
@@ -23,9 +25,20 @@ interface Bill {
     total_amount: number;
     status: string;
     created_at: string;
+    payment_type?: string;
+    visa_amount?: number;
+    bank_amount?: number;
+    transfer_amount?: number;
+    check_amount?: number;
+    cash_amount?: number;
     deal?: {
         title: string;
         deal_type: string;
+        customer?: {
+            id: number;
+            name: string;
+            id_number?: string;
+        };
     };
 }
 
@@ -45,7 +58,8 @@ const Bills = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
-    const [alertState, setAlertState] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({ visible: false, message: '', type: 'success' });
+    const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
+    const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
     useEffect(() => {
         fetchBills();
@@ -54,12 +68,24 @@ const Bills = () => {
     const fetchBills = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('bills').select('*, deal:deals(title, deal_type)').order('created_at', { ascending: false });
+            const { data, error } = await supabase
+                .from('bills')
+                .select(
+                    `
+                    *, 
+                    deal:deals(
+                        title, 
+                        deal_type,
+                        customer:customers!deals_customer_id_fkey(id, name, id_number)
+                    )
+                `,
+                )
+                .order('created_at', { ascending: false });
             if (error) throw error;
             setItems(data || []);
         } catch (error) {
             console.error('Error fetching bills:', error);
-            setAlertState({ visible: true, message: t('error_loading_data'), type: 'danger' });
+            setAlertState({ message: t('error_loading_data'), type: 'danger' });
         } finally {
             setLoading(false);
         }
@@ -72,7 +98,9 @@ const Bills = () => {
                 (bill) =>
                     bill.customer_name.toLowerCase().includes(search.toLowerCase()) ||
                     bill.deal?.title.toLowerCase().includes(search.toLowerCase()) ||
-                    bill.bill_type.toLowerCase().includes(search.toLowerCase()),
+                    bill.bill_type.toLowerCase().includes(search.toLowerCase()) ||
+                    (bill.payment_type && bill.payment_type.toLowerCase().includes(search.toLowerCase())) ||
+                    (bill.deal?.customer?.id_number && bill.deal.customer.id_number.toLowerCase().includes(search.toLowerCase())),
             ),
         );
     }, [items, search]);
@@ -107,10 +135,10 @@ const Bills = () => {
             const { error } = await supabase.from('bills').delete().eq('id', billToDelete.id);
             if (error) throw error;
             setItems(items.filter((b) => b.id !== billToDelete.id));
-            setAlertState({ visible: true, message: t('bill_deleted_successfully'), type: 'success' });
+            setAlertState({ message: t('bill_deleted_successfully'), type: 'success' });
         } catch (error) {
             console.error('Error deleting bill:', error);
-            setAlertState({ visible: true, message: t('error_deleting_bill'), type: 'danger' });
+            setAlertState({ message: t('error_deleting_bill'), type: 'danger' });
         } finally {
             setShowConfirmModal(false);
             setBillToDelete(null);
@@ -128,10 +156,10 @@ const Bills = () => {
             if (error) throw error;
             setItems(items.filter((b) => !ids.includes(b.id)));
             setSelectedRecords([]);
-            setAlertState({ visible: true, message: t('bills_deleted_successfully'), type: 'success' });
+            setAlertState({ message: t('bills_deleted_successfully'), type: 'success' });
         } catch (error) {
             console.error('Error deleting bills:', error);
-            setAlertState({ visible: true, message: t('error_deleting_bill'), type: 'danger' });
+            setAlertState({ message: t('error_deleting_bill'), type: 'danger' });
         } finally {
             setShowBulkDeleteModal(false);
         }
@@ -163,8 +191,98 @@ const Bills = () => {
         }
     };
 
+    const getPaymentTypeLabel = (bill: Bill) => {
+        // For tax invoices without payment, return '-'
+        if (bill.bill_type === 'tax_invoice') {
+            return t('not_applicable');
+        }
+
+        if (!bill.payment_type) {
+            return t('not_applicable');
+        }
+
+        switch (bill.payment_type) {
+            case 'visa':
+                return t('visa');
+            case 'cash':
+                return t('cash');
+            case 'bank_transfer':
+                return t('bank_transfer');
+            case 'transfer':
+                return t('transfer');
+            case 'check':
+                return t('check');
+            default:
+                return bill.payment_type;
+        }
+    };
+
+    const getPaymentAmount = (bill: Bill) => {
+        // For tax invoices without payment, return '-'
+        if (bill.bill_type === 'tax_invoice') {
+            return t('not_applicable');
+        }
+
+        if (!bill.payment_type) {
+            return t('not_applicable');
+        }
+
+        let amount = 0;
+        switch (bill.payment_type) {
+            case 'visa':
+                amount = bill.visa_amount || 0;
+                break;
+            case 'cash':
+                amount = bill.cash_amount || 0;
+                break;
+            case 'bank_transfer':
+                amount = bill.bank_amount || 0;
+                break;
+            case 'transfer':
+                amount = bill.transfer_amount || 0;
+                break;
+            case 'check':
+                amount = bill.check_amount || 0;
+                break;
+            default:
+                return t('not_applicable');
+        }
+
+        return amount > 0 ? `$${amount.toFixed(2)}` : t('not_applicable');
+    };
+
+    const handleDownloadPDF = async (bill: Bill) => {
+        setDownloadingPDF(bill.id);
+        try {
+            await generateBillPDF(bill, {
+                filename: `bill-${bill.id}-${bill.customer_name.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+            });
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            setAlertState({ message: t('error_downloading_pdf'), type: 'danger' });
+        } finally {
+            setDownloadingPDF(null);
+        }
+    };
+
     const columns: DataTableColumn<Bill>[] = [
-        { accessor: 'customer_name', title: t('customer_name'), sortable: true },
+        {
+            accessor: 'id',
+            title: t('id'),
+            sortable: true,
+            render: ({ id }) => <strong className="text-info">#{id}</strong>,
+        },
+        {
+            accessor: 'customer_name',
+            title: t('customer_name'),
+            sortable: true,
+            render: (bill: Bill) => (
+                <div className="flex flex-col">
+                    <span className="font-medium">{bill.customer_name}</span>
+                    {bill.deal?.customer?.id_number && <span className="text-xs text-gray-500">{bill.deal.customer.id_number}</span>}
+                </div>
+            ),
+        },
         {
             accessor: 'deal',
             title: t('deal'),
@@ -187,6 +305,18 @@ const Bills = () => {
             title: t('total_amount'),
             sortable: true,
             render: (bill: Bill) => <span className="font-bold">{'$' + bill.total_with_tax}</span>,
+        },
+        {
+            accessor: 'payment_type',
+            title: t('payment_method'),
+            sortable: true,
+            render: (bill: Bill) => <span className="badge badge-outline-secondary">{getPaymentTypeLabel(bill)}</span>,
+        },
+        {
+            accessor: 'payment_amount',
+            title: t('payment_amount'),
+            sortable: true,
+            render: (bill: Bill) => <span className="font-medium">{getPaymentAmount(bill)}</span>,
         },
         {
             accessor: 'status',
@@ -213,6 +343,9 @@ const Bills = () => {
                     <Link href={`/bills/edit/${bill.id}`} className="flex hover:text-primary" title={t('edit')}>
                         <IconEdit className="h-4.5 w-4.5" />
                     </Link>
+                    <button type="button" className="flex hover:text-success" onClick={() => handleDownloadPDF(bill)} title={t('download_pdf')} disabled={downloadingPDF === bill.id}>
+                        {downloadingPDF === bill.id ? <div className="animate-spin rounded-full h-4.5 w-4.5 border-b-2 border-success"></div> : <IconPdf className="h-4.5 w-4.5" />}
+                    </button>
                     <button type="button" className="flex hover:text-danger" onClick={() => handleDelete(bill)} title={t('delete')}>
                         <IconTrashLines />
                     </button>
@@ -223,14 +356,9 @@ const Bills = () => {
 
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-            {alertState.visible && (
-                <div className="mb-4 ml-4 max-w-96">
-                    <Alert
-                        type={alertState.type}
-                        title={alertState.type === 'success' ? t('success') : t('error')}
-                        message={alertState.message}
-                        onClose={() => setAlertState({ ...alertState, visible: false })}
-                    />
+            {alertState && (
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alertState.type} title={alertState.type === 'success' ? t('success') : t('error')} message={alertState.message} onClose={() => setAlertState(null)} />
                 </div>
             )}
             <div className="invoice-table">

@@ -300,7 +300,7 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                             </div>
                             <div style="margin-bottom: 8px;">
                                 <span style="display: inline-block; width: 80px; color: #6b7280; font-size: 13px;">ID:</span>
-                                <span style="color: #111827; font-weight: 500;">${billData.identity_number || 'N/A'}</span>
+                              
                             </div>
                         </div>
                     </div>

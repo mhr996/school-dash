@@ -16,6 +16,7 @@ import IconUser from '@/components/icon/icon-user';
 import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconNotes from '@/components/icon/icon-notes';
+import IconCalendar from '@/components/icon/icon-calendar';
 import { uploadMultipleFiles } from '@/utils/file-upload';
 import { Customer, Car, FileItem, DealAttachments } from '@/types';
 
@@ -31,6 +32,7 @@ const AddDeal = () => {
     const [customerCreationContext, setCustomerCreationContext] = useState<'customer' | 'seller' | 'buyer'>('customer'); // Track which customer we're creating
     const [dealType, setDealType] = useState('');
     const [dealStatus, setDealStatus] = useState('pending'); // Default to pending
+    const [dealDate, setDealDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [selectedCar, setSelectedCar] = useState<Car | null>(null); // Form state for new/used sale deal
     const [saleForm, setSaleForm] = useState({
@@ -89,7 +91,7 @@ const AddDeal = () => {
         carTransferDocument: null,
     });
 
-    const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({ visible: false, message: '', type: 'success' }); // Auto-fill form when car is selected
+    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null); // Auto-fill form when car is selected
     useEffect(() => {
         if (dealType === 'intermediary') {
             // For intermediary deals, use seller and buyer
@@ -138,7 +140,7 @@ const AddDeal = () => {
                 }));
             }
         }
-    }, [selectedCar, selectedCustomer, selectedSeller, selectedBuyer, t, dealType]);
+    }, [selectedCar, selectedCustomer, selectedSeller, selectedBuyer, dealType]);
 
     const handleSaleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -226,52 +228,52 @@ const AddDeal = () => {
         } else {
             setSelectedCustomer(customer);
         }
-        setAlert({ visible: true, message: t('customer_created_successfully'), type: 'success' });
+        setAlert({ message: t('customer_created_successfully'), type: 'success' });
     };
 
     const handleCarCreated = (car: Car) => {
         setSelectedCar(car);
-        setAlert({ visible: true, message: t('car_created_successfully'), type: 'success' });
+        setAlert({ message: t('car_created_successfully'), type: 'success' });
     };
 
     const validateNewUsedSaleForm = () => {
         if (!selectedCustomer) {
-            setAlert({ visible: true, message: t('customer_required'), type: 'danger' });
+            setAlert({ message: t('customer_required'), type: 'danger' });
             return false;
         }
         if (!selectedCar) {
-            setAlert({ visible: true, message: t('car_required'), type: 'danger' });
+            setAlert({ message: t('car_required'), type: 'danger' });
             return false;
         }
         if (!saleForm.title.trim()) {
-            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            setAlert({ message: t('deal_title_required'), type: 'danger' });
             return false;
         }
         if (!saleForm.selling_price || parseFloat(saleForm.selling_price) <= 0) {
-            setAlert({ visible: true, message: t('selling_price_required'), type: 'danger' });
+            setAlert({ message: t('selling_price_required'), type: 'danger' });
             return false;
         }
         return true;
     };
     const validateExchangeForm = () => {
         if (!selectedCustomer) {
-            setAlert({ visible: true, message: t('customer_required'), type: 'danger' });
+            setAlert({ message: t('customer_required'), type: 'danger' });
             return false;
         }
         if (!selectedCar) {
-            setAlert({ visible: true, message: t('car_required'), type: 'danger' });
+            setAlert({ message: t('car_required'), type: 'danger' });
             return false;
         }
         if (!exchangeForm.title.trim()) {
-            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            setAlert({ message: t('deal_title_required'), type: 'danger' });
             return false;
         }
         if (!exchangeForm.old_car_manufacturer || !exchangeForm.old_car_name || !exchangeForm.old_car_year) {
-            setAlert({ visible: true, message: t('old_car_details_required'), type: 'danger' });
+            setAlert({ message: t('old_car_details_required'), type: 'danger' });
             return false;
         }
         if (!exchangeForm.old_car_purchase_price || parseFloat(exchangeForm.old_car_purchase_price) <= 0) {
-            setAlert({ visible: true, message: t('old_car_purchase_price_required'), type: 'danger' });
+            setAlert({ message: t('old_car_purchase_price_required'), type: 'danger' });
             return false;
         }
         return true;
@@ -279,42 +281,42 @@ const AddDeal = () => {
 
     const validateCompanyCommissionForm = () => {
         if (!companyCommissionForm.title.trim()) {
-            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            setAlert({ message: t('deal_title_required'), type: 'danger' });
             return false;
         }
         if (!companyCommissionForm.company_name.trim()) {
-            setAlert({ visible: true, message: t('company_name_required'), type: 'danger' });
+            setAlert({ message: t('company_name_required'), type: 'danger' });
             return false;
         }
         if (!companyCommissionForm.commission_date) {
-            setAlert({ visible: true, message: t('commission_date_required'), type: 'danger' });
+            setAlert({ message: t('commission_date_required'), type: 'danger' });
             return false;
         }
         if (!companyCommissionForm.amount || parseFloat(companyCommissionForm.amount) <= 0) {
-            setAlert({ visible: true, message: t('company_commission_amount_required'), type: 'danger' });
+            setAlert({ message: t('company_commission_amount_required'), type: 'danger' });
             return false;
         }
         return true;
     };
     const validateIntermediaryForm = () => {
         if (!selectedSeller) {
-            setAlert({ visible: true, message: t('seller_required'), type: 'danger' });
+            setAlert({ message: t('seller_required'), type: 'danger' });
             return false;
         }
         if (!selectedBuyer) {
-            setAlert({ visible: true, message: t('buyer_required'), type: 'danger' });
+            setAlert({ message: t('buyer_required'), type: 'danger' });
             return false;
         }
         if (!selectedCar) {
-            setAlert({ visible: true, message: t('car_required'), type: 'danger' });
+            setAlert({ message: t('car_required'), type: 'danger' });
             return false;
         }
         if (!intermediaryForm.title.trim()) {
-            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            setAlert({ message: t('deal_title_required'), type: 'danger' });
             return false;
         }
         if (!intermediaryForm.profit_commission || parseFloat(intermediaryForm.profit_commission) <= 0) {
-            setAlert({ visible: true, message: t('profit_commission_required'), type: 'danger' });
+            setAlert({ message: t('profit_commission_required'), type: 'danger' });
             return false;
         }
         return true;
@@ -322,19 +324,19 @@ const AddDeal = () => {
 
     const validateFinancingAssistanceForm = () => {
         if (!selectedCustomer) {
-            setAlert({ visible: true, message: t('customer_required'), type: 'danger' });
+            setAlert({ message: t('customer_required'), type: 'danger' });
             return false;
         }
         if (!selectedCar) {
-            setAlert({ visible: true, message: t('car_required'), type: 'danger' });
+            setAlert({ message: t('car_required'), type: 'danger' });
             return false;
         }
         if (!financingAssistanceForm.title.trim()) {
-            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            setAlert({ message: t('deal_title_required'), type: 'danger' });
             return false;
         }
         if (!financingAssistanceForm.commission || parseFloat(financingAssistanceForm.commission) <= 0) {
-            setAlert({ visible: true, message: t('commission_required'), type: 'danger' });
+            setAlert({ message: t('commission_required'), type: 'danger' });
             return false;
         }
         return true;
@@ -343,7 +345,7 @@ const AddDeal = () => {
         e.preventDefault();
 
         if (!dealType) {
-            setAlert({ visible: true, message: t('deal_type_required'), type: 'danger' });
+            setAlert({ message: t('deal_type_required'), type: 'danger' });
             return;
         } // Validate based on deal type
         if ((dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') && !validateNewUsedSaleForm()) {
@@ -369,16 +371,23 @@ const AddDeal = () => {
                 deal_type: dealType,
                 status: dealStatus,
                 customer_id: selectedCustomer?.id || null,
+                created_at: new Date(dealDate + 'T' + new Date().toTimeString().split(' ')[0]).toISOString(),
             };
 
             if (dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') {
+                // Calculate profit commission (amount) = selling price - buy price - loss
+                const sellingPrice = parseFloat(saleForm.selling_price);
+                const buyPrice = selectedCar?.buy_price || 0;
+                const loss = parseFloat(saleForm.loss_amount || '0');
+                const profitCommission = sellingPrice - buyPrice - loss;
+
                 dealData = {
                     ...dealData,
                     title: saleForm.title.trim(),
                     description: saleForm.notes.trim() || `${t('sale_deal_description')} ${selectedCar?.title}`,
-                    amount: parseFloat(saleForm.selling_price),
+                    amount: profitCommission, // This is the profit commission (عمولة الربح)
                     car_id: selectedCar?.id,
-                    selling_price: parseFloat(saleForm.selling_price),
+                    selling_price: sellingPrice,
                     loss_amount: saleForm.loss_amount ? parseFloat(saleForm.loss_amount) : null,
                     tax_percentage: saleForm.tax_percentage ? parseFloat(saleForm.tax_percentage) : null,
                     quantity: parseInt(saleForm.quantity),
@@ -541,16 +550,15 @@ const AddDeal = () => {
                     }
                 }
             }
-            setAlert({ visible: true, message: t('deal_added_successfully'), type: 'success' });
+            setAlert({ message: t('deal_added_successfully'), type: 'success' });
 
-            // Redirect to the newly created deal's preview page after a short delay
+            // Redirect to the newly created deal's edit page after a short delay
             setTimeout(() => {
-                router.push(`/deals/preview/${dealId}`);
+                router.push(`/deals/edit/${dealId}`);
             }, 1500);
         } catch (error) {
             console.error(error);
             setAlert({
-                visible: true,
                 message: error instanceof Error ? error.message : t('error_adding_deal'),
                 type: 'danger',
             });
@@ -612,10 +620,10 @@ const AddDeal = () => {
                                     <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
                                     <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.phone}</p>
                                 </div>
-                                {selectedCustomer.identity_number && (
+                                {selectedCustomer.id_number && (
                                     <div>
-                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('identity_number')}:</span>
-                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.identity_number}</p>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('id_number')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.id_number}</p>
                                     </div>
                                 )}
                                 {selectedCustomer.birth_date && (
@@ -912,10 +920,10 @@ const AddDeal = () => {
                                     <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
                                     <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.phone}</p>
                                 </div>
-                                {selectedCustomer.identity_number && (
+                                {selectedCustomer.id_number && (
                                     <div>
-                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('identity_number')}:</span>
-                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.identity_number}</p>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('id_number')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.id_number}</p>
                                     </div>
                                 )}
                                 {selectedCustomer.birth_date && (
@@ -1508,10 +1516,10 @@ const AddDeal = () => {
                                     <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
                                     <p className="text-blue-800 dark:text-blue-100">{selectedSeller.phone}</p>
                                 </div>
-                                {selectedSeller.identity_number && (
+                                {selectedSeller.id_number && (
                                     <div>
-                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('identity_number')}:</span>
-                                        <p className="text-blue-800 dark:text-blue-100">{selectedSeller.identity_number}</p>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('id_number')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{selectedSeller.id_number}</p>
                                     </div>
                                 )}
                                 {selectedSeller.birth_date && (
@@ -1640,10 +1648,10 @@ const AddDeal = () => {
                                     <span className="text-orange-600 dark:text-orange-300 font-medium">{t('phone')}:</span>
                                     <p className="text-orange-800 dark:text-orange-100">{selectedBuyer.phone}</p>
                                 </div>
-                                {selectedBuyer.identity_number && (
+                                {selectedBuyer.id_number && (
                                     <div>
-                                        <span className="text-orange-600 dark:text-orange-300 font-medium">{t('identity_number')}:</span>
-                                        <p className="text-orange-800 dark:text-orange-100">{selectedBuyer.identity_number}</p>
+                                        <span className="text-orange-600 dark:text-orange-300 font-medium">{t('id_number')}:</span>
+                                        <p className="text-orange-800 dark:text-orange-100">{selectedBuyer.id_number}</p>
                                     </div>
                                 )}
                                 {selectedBuyer.birth_date && (
@@ -1825,10 +1833,10 @@ const AddDeal = () => {
                                     <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
                                     <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.phone}</p>
                                 </div>
-                                {selectedCustomer.identity_number && (
+                                {selectedCustomer.id_number && (
                                     <div>
-                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('identity_number')}:</span>
-                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.identity_number}</p>
+                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('id_number')}:</span>
+                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.id_number}</p>
                                     </div>
                                 )}
                                 {selectedCustomer.birth_date && (
@@ -2066,14 +2074,9 @@ const AddDeal = () => {
                 <h1 className="text-2xl font-bold">{t('add_new_deal')}</h1>
                 <p className="text-gray-500">{t('create_deal_description')}</p>
             </div>
-            {alert.visible && (
-                <div className="mb-6">
-                    <Alert
-                        type={alert.type}
-                        title={alert.type === 'success' ? t('success') : t('error')}
-                        message={alert.message}
-                        onClose={() => setAlert({ visible: false, message: '', type: 'success' })}
-                    />
+            {alert && (
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert(null)} />
                 </div>
             )}
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -2093,6 +2096,30 @@ const AddDeal = () => {
                             <p className="text-gray-600 dark:text-gray-400 mt-2">{t('select_deal_status_desc')}</p>
                         </div>
                         <DealStatusSelect defaultValue={dealStatus} className="form-input" name="deal_status" onChange={handleDealStatusChange} />
+                    </div>
+                )}
+                {/* Deal Date Selector */}
+                {dealType && (
+                    <div className="panel">
+                        <div className="mb-5 flex items-center gap-3">
+                            <IconCalendar className="w-5 h-5 text-primary" />
+                            <div>
+                                <h5 className="text-lg font-bold text-gray-900 dark:text-white-light">{t('deal_date')}</h5>
+                                <p className="text-gray-600 dark:text-gray-400 mt-1">{t('select_deal_date_desc')}</p>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={dealDate}
+                                onChange={(e) => setDealDate(e.target.value)}
+                                className="form-input bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                style={{ colorScheme: 'light' }}
+                            />
+                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                <IconCalendar className="w-5 h-5 text-gray-400" />
+                            </div>
+                        </div>
                     </div>
                 )}{' '}
                 {/* Render form based on deal type */}

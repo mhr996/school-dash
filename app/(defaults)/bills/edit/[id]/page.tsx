@@ -8,6 +8,7 @@ import { getTranslation } from '@/i18n';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconUser from '@/components/icon/icon-user';
 import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
+import IconCalendar from '@/components/icon/icon-calendar';
 import DealSelect from '@/components/deal-select/deal-select';
 import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
@@ -51,7 +52,6 @@ interface Bill {
     bill_type: string;
     status: string;
     customer_name: string;
-    identity_number?: string;
     phone?: string;
     date?: string;
     car_details?: string;
@@ -69,6 +69,7 @@ interface Bill {
     bank_amount?: number;
     bank_name?: string;
     bank_branch?: string;
+    approval_number?: string;
     account_number?: string;
     transfer_number?: string;
     transfer_holder_name?: string;
@@ -100,11 +101,18 @@ const EditBill = () => {
     const [deals, setDeals] = useState<Deal[]>([]);
     const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
     const [bill, setBill] = useState<Bill | null>(null);
-    const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
-        visible: false,
-        message: '',
-        type: 'success',
-    });
+    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+    const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
+
+    // Auto-dismiss alert after 5 seconds
+    useEffect(() => {
+        if (alert) {
+            const timer = setTimeout(() => {
+                setAlert(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [alert]);
 
     // Billing form state
     const [billForm, setBillForm] = useState({
@@ -112,7 +120,6 @@ const EditBill = () => {
         status: 'pending',
         // Invoice fields
         customer_name: '',
-        identity_number: '',
         phone: '',
         date: new Date().toISOString().split('T')[0],
         car_details: '',
@@ -131,6 +138,7 @@ const EditBill = () => {
         bank_amount: '',
         bank_name: '',
         bank_branch: '',
+        approval_number: '',
         account_number: '',
         transfer_number: '',
         transfer_holder_name: '',
@@ -205,7 +213,6 @@ const EditBill = () => {
                 bill_type: billData.bill_type || '',
                 status: billData.status || 'pending',
                 customer_name: billData.customer_name || '',
-                identity_number: billData.identity_number || '',
                 phone: billData.phone || '',
                 date: billData.date || new Date().toISOString().split('T')[0],
                 car_details: billData.car_details || '',
@@ -223,6 +230,7 @@ const EditBill = () => {
                 bank_amount: billData.bank_amount?.toString() || '',
                 bank_name: billData.bank_name || '',
                 bank_branch: billData.bank_branch || '',
+                approval_number: billData.approval_number || '',
                 account_number: billData.account_number || '',
                 transfer_number: billData.transfer_number || '',
                 transfer_holder_name: billData.transfer_holder_name || '',
@@ -274,7 +282,6 @@ const EditBill = () => {
         } catch (error) {
             console.error('Error fetching data:', error);
             setAlert({
-                visible: true,
                 message: t('error_loading_bill'),
                 type: 'danger',
             });
@@ -292,9 +299,9 @@ const EditBill = () => {
             if (name === 'sale_price' || name === 'commission') {
                 const salePrice = parseFloat(name === 'sale_price' ? value : updated.sale_price) || 0;
                 const commission = parseFloat(name === 'commission' ? value : updated.commission) || 0;
-                const total = salePrice + commission;
+                const totalWithTax = salePrice + commission; // This total already includes tax
+                const total = totalWithTax / 1.18; // Price before tax
                 const taxAmount = total * 0.18; // 18% tax
-                const totalWithTax = total + taxAmount;
 
                 updated.total = total.toFixed(2);
                 updated.tax_amount = taxAmount.toFixed(2);
@@ -307,15 +314,15 @@ const EditBill = () => {
 
     const validateForm = () => {
         if (!selectedDeal) {
-            setAlert({ visible: true, message: t('deal_required'), type: 'danger' });
+            setAlert({ message: t('deal_required'), type: 'danger' });
             return false;
         }
         if (!billForm.bill_type) {
-            setAlert({ visible: true, message: t('bill_type_required'), type: 'danger' });
+            setAlert({ message: t('bill_type_required'), type: 'danger' });
             return false;
         }
         if (!billForm.customer_name) {
-            setAlert({ visible: true, message: t('customer_name_required'), type: 'danger' });
+            setAlert({ message: t('customer_name_required'), type: 'danger' });
             return false;
         }
         return true;
@@ -332,7 +339,6 @@ const EditBill = () => {
                 bill_type: billForm.bill_type,
                 status: billForm.status,
                 customer_name: billForm.customer_name,
-                identity_number: billForm.identity_number,
                 phone: billForm.phone,
                 date: billForm.date,
                 car_details: billForm.car_details,
@@ -350,6 +356,7 @@ const EditBill = () => {
                 bank_amount: parseFloat(billForm.bank_amount) || null,
                 bank_name: billForm.bank_name || null,
                 bank_branch: billForm.bank_branch || null,
+                approval_number: billForm.approval_number || null,
                 account_number: billForm.account_number || null,
                 transfer_number: billForm.transfer_number || null,
                 transfer_holder_name: billForm.transfer_holder_name || null,
@@ -365,13 +372,14 @@ const EditBill = () => {
                 check_number: billForm.check_number || null,
                 check_holder_name: billForm.check_holder_name || null,
                 check_branch: billForm.check_branch || null,
+                created_at: billDate ? new Date(billDate).toISOString() : new Date().toISOString(),
             };
 
             const { error } = await supabase.from('bills').update(billData).eq('id', billId);
 
             if (error) throw error;
 
-            setAlert({ visible: true, message: t('bill_updated_successfully'), type: 'success' });
+            setAlert({ message: t('bill_updated_successfully'), type: 'success' });
 
             // Redirect to bills list after a short delay
             setTimeout(() => {
@@ -380,7 +388,6 @@ const EditBill = () => {
         } catch (error) {
             console.error(error);
             setAlert({
-                visible: true,
                 message: t('error_updating_bill'),
                 type: 'danger',
             });
@@ -441,14 +448,9 @@ const EditBill = () => {
                 <p className="text-gray-500">{t('update_bill_description')}</p>
             </div>
 
-            {alert.visible && (
-                <div className="mb-6">
-                    <Alert
-                        type={alert.type}
-                        title={alert.type === 'success' ? t('success') : t('error')}
-                        message={alert.message}
-                        onClose={() => setAlert({ visible: false, message: '', type: 'success' })}
-                    />
+            {alert && (
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert(null)} />
                 </div>
             )}
 
@@ -515,6 +517,31 @@ const EditBill = () => {
                     </div>
                 )}
 
+                {/* Bill Date Selector */}
+                {selectedDeal && (
+                    <div className="panel">
+                        <div className="mb-5 flex items-center gap-3">
+                            <IconCalendar className="w-5 h-5 text-primary" />
+                            <div>
+                                <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_date')}</h5>
+                                <p className="text-gray-600 dark:text-gray-400 mt-1">{t('select_bill_date_desc')}</p>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={billDate}
+                                onChange={(e) => setBillDate(e.target.value)}
+                                className="form-input bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                style={{ colorScheme: 'light' }}
+                            />
+                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                <IconCalendar className="w-5 h-5 text-gray-400" />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Include the same tax invoice and receipt sections as the add page */}
                 {/* Tax Invoice Section */}
                 {(billForm.bill_type === 'tax_invoice' || billForm.bill_type === 'tax_invoice_receipt') && (
@@ -527,10 +554,6 @@ const EditBill = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('customer_name')}</label>
                                 <input name="customer_name" value={billForm.customer_name} onChange={handleFormChange} className="form-input" placeholder={t('customer_name')} required />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('identity_number')}</label>
-                                <input name="identity_number" value={billForm.identity_number} onChange={handleFormChange} className="form-input" placeholder={t('identity_number')} />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')}</label>
@@ -647,6 +670,10 @@ const EditBill = () => {
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_branch')}</label>
                                         <input name="bank_branch" value={billForm.bank_branch} onChange={handleFormChange} className="form-input" placeholder={t('bank_branch')} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('approval_number')}</label>
+                                        <input name="approval_number" value={billForm.approval_number} onChange={handleFormChange} className="form-input" placeholder={t('approval_number')} />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('account_number')}</label>

@@ -25,6 +25,7 @@ import IconCaretDown from '@/components/icon/icon-caret-down';
 import IconPlus from '@/components/icon/icon-plus';
 import IconEye from '@/components/icon/icon-eye';
 import IconReceipt from '@/components/icon/icon-receipt';
+import IconCalendar from '@/components/icon/icon-calendar';
 
 const EditDeal = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
@@ -35,6 +36,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [selectedCar, setSelectedCar] = useState<Car | null>(null);
     const [carTakenFromClient, setCarTakenFromClient] = useState<Car | null>(null);
+    const [dealDate, setDealDate] = useState(new Date().toISOString().split('T')[0]);
     const dealId = params.id;
 
     // Bill creation state
@@ -44,7 +46,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         bill_type: '',
         status: 'pending',
         customer_name: '',
-        identity_number: '',
         phone: '',
         date: new Date().toISOString().split('T')[0],
         car_details: '',
@@ -108,11 +109,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const [existingAttachments, setExistingAttachments] = useState<DealAttachment[]>([]);
     const [newAttachments, setNewAttachments] = useState<{ [key: string]: FileItem }>({});
 
-    const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
-        visible: false,
-        message: '',
-        type: 'success',
-    });
+    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
     // Bill related states
     const [billType, setBillType] = useState('');
@@ -142,6 +139,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 if (data) {
                     setDeal(data);
                     setDealType(data.deal_type || '');
+                    // Set the deal date from the existing deal's created_at, or default to today
+                    setDealDate(data.created_at ? new Date(data.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
                     setForm({
                         title: data.title || '',
                         description: data.description || '',
@@ -183,7 +182,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 }
             } catch (error) {
                 console.error('Error fetching deal:', error);
-                setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
+                setAlert({ message: t('error_loading_data'), type: 'danger' });
             } finally {
                 setLoading(false);
             }
@@ -193,6 +192,23 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             fetchBills();
         }
     }, [dealId]);
+
+    // Auto-populate bill form when bill section is expanded
+    useEffect(() => {
+        if (isBillSectionExpanded && deal && selectedCustomer && selectedCar) {
+            setBillForm((prev) => ({
+                ...prev,
+                customer_name: selectedCustomer.name || '',
+                phone: selectedCustomer.phone || '',
+                car_details: selectedCar ? `${selectedCar.brand} ${selectedCar.title} ${selectedCar.year}` : '',
+                sale_price: deal.amount?.toString() || '',
+                total: (deal.amount / 1.18).toFixed(2), // Price before tax
+                tax_amount: ((deal.amount / 1.18) * 0.18).toFixed(2), // 18% tax
+                total_with_tax: deal.amount?.toString() || '', // Deal amount already includes tax
+            }));
+        }
+    }, [isBillSectionExpanded, deal, selectedCustomer, selectedCar]);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
@@ -288,11 +304,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             if (error) throw error;
 
             setExistingAttachments(updatedAttachments);
-            setAlert({ visible: true, message: t('attachment_removed_successfully'), type: 'success' });
+            setAlert({ message: t('attachment_removed_successfully'), type: 'success' });
         } catch (error) {
             console.error('Error removing attachment:', error);
             setAlert({
-                visible: true,
                 message: t('error_removing_attachment'),
                 type: 'danger',
             });
@@ -314,19 +329,19 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
     const validateForm = () => {
         if (!dealType.trim()) {
-            setAlert({ visible: true, message: t('deal_type_required'), type: 'danger' });
+            setAlert({ message: t('deal_type_required'), type: 'danger' });
             return false;
         }
         if (!form.title.trim()) {
-            setAlert({ visible: true, message: t('deal_title_required'), type: 'danger' });
+            setAlert({ message: t('deal_title_required'), type: 'danger' });
             return false;
         }
         if (!form.description.trim()) {
-            setAlert({ visible: true, message: t('description_required'), type: 'danger' });
+            setAlert({ message: t('description_required'), type: 'danger' });
             return false;
         }
         if (form.amount && parseFloat(form.amount) < 0) {
-            setAlert({ visible: true, message: t('amount_cannot_be_negative'), type: 'danger' });
+            setAlert({ message: t('amount_cannot_be_negative'), type: 'danger' });
             return false;
         }
         return true;
@@ -349,6 +364,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 status: form.status,
                 customer_id: form.customer_id || null,
                 car_id: form.car_id || null,
+                created_at: new Date(dealDate + 'T' + new Date().toTimeString().split(' ')[0]).toISOString(),
             };
 
             // Handle new file uploads
@@ -383,7 +399,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
             if (error) throw error;
 
-            setAlert({ visible: true, message: t('deal_updated_successfully'), type: 'success' });
+            setAlert({ message: t('deal_updated_successfully'), type: 'success' });
 
             // Redirect to deals list after a short delay
             setTimeout(() => {
@@ -392,7 +408,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         } catch (error) {
             console.error(error);
             setAlert({
-                visible: true,
                 message: error instanceof Error ? error.message : t('error_updating_deal'),
                 type: 'danger',
             });
@@ -411,11 +426,11 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             if (name === 'sale_price' || name === 'commission') {
                 const salePrice = parseFloat(name === 'sale_price' ? value : updated.sale_price) || 0;
                 const commission = parseFloat(name === 'commission' ? value : updated.commission) || 0;
-                const total = salePrice + commission;
-                const taxAmount = total * 0.18; // 18% tax
-                const totalWithTax = total + taxAmount;
+                const totalWithTax = salePrice + commission; // This total already includes tax
+                const preTaxAmount = totalWithTax / 1.18; // Remove 18% tax to get pre-tax amount
+                const taxAmount = preTaxAmount * 0.18; // Calculate 18% tax
 
-                updated.total = total.toFixed(2);
+                updated.total = preTaxAmount.toFixed(2);
                 updated.tax_amount = taxAmount.toFixed(2);
                 updated.total_with_tax = totalWithTax.toFixed(2);
             }
@@ -426,11 +441,11 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
     const validateBillForm = () => {
         if (!billForm.bill_type) {
-            setAlert({ visible: true, message: t('bill_type_required'), type: 'danger' });
+            setAlert({ message: t('bill_type_required'), type: 'danger' });
             return false;
         }
         if (!billForm.customer_name) {
-            setAlert({ visible: true, message: t('customer_name_required'), type: 'danger' });
+            setAlert({ message: t('customer_name_required'), type: 'danger' });
             return false;
         }
         return true;
@@ -465,7 +480,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             const { error } = await supabase.from('bills').insert([billData]);
 
             if (error) throw error;
-            setAlert({ visible: true, message: t('bill_created_successfully'), type: 'success' });
+            setAlert({ message: t('bill_created_successfully'), type: 'success' });
 
             // Refresh bills list
             fetchBills();
@@ -475,7 +490,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 bill_type: '',
                 status: 'pending',
                 customer_name: '',
-                identity_number: '',
                 phone: '',
                 date: new Date().toISOString().split('T')[0],
                 car_details: '',
@@ -514,7 +528,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         } catch (error) {
             console.error('Error creating bill:', error);
             setAlert({
-                visible: true,
                 message: error instanceof Error ? error.message : t('error_creating_bill'),
                 type: 'danger',
             });
@@ -588,14 +601,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 <p className="text-gray-500">{t('update_deal_description')}</p>
             </div>
 
-            {alert.visible && (
-                <div className="mb-6">
-                    <Alert
-                        type={alert.type}
-                        title={alert.type === 'success' ? t('success') : t('error')}
-                        message={alert.message}
-                        onClose={() => setAlert({ visible: false, message: '', type: 'success' })}
-                    />
+            {alert && (
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert(null)} />
                 </div>
             )}
 
@@ -665,6 +673,28 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                             <p className="text-gray-600 dark:text-gray-400 mt-2">{t('select_deal_status_desc')}</p>
                         </div>
                         <DealStatusSelect defaultValue={form.status} className="form-input" name="status" onChange={handleStatusChange} />
+                    </div>
+                    {/* Deal Date Selector */}
+                    <div className="panel">
+                        <div className="mb-5 flex items-center gap-3">
+                            <IconCalendar className="w-5 h-5 text-primary" />
+                            <div>
+                                <h5 className="text-lg font-bold text-gray-900 dark:text-white-light">{t('deal_date')}</h5>
+                                <p className="text-gray-600 dark:text-gray-400 mt-1">{t('select_deal_date_desc')}</p>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={dealDate}
+                                onChange={(e) => setDealDate(e.target.value)}
+                                className="form-input bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-lg px-4 py-3 text-lg focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                style={{ colorScheme: 'light' }}
+                            />
+                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                <IconCalendar className="w-5 h-5 text-gray-400" />
+                            </div>
+                        </div>
                     </div>{' '}
                     {/* Deal Summary Table - Different based on Deal Type */}
                     {selectedCar && (
@@ -1909,7 +1939,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                             {/* Bill Summary */}
                             <div>
                                 <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('bill_summary')}</h4>
-                                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
