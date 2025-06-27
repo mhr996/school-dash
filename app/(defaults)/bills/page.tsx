@@ -13,6 +13,7 @@ import IconPdf from '@/components/icon/icon-pdf';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { generateBillPDF } from '@/utils/pdf-generator';
+import { logActivity } from '@/utils/activity-logger';
 
 interface Bill {
     id: string;
@@ -132,6 +133,12 @@ const Bills = () => {
     const confirmDeletion = async () => {
         if (!billToDelete) return;
         try {
+            // Log the activity before deletion (to preserve bill data)
+            await logActivity({
+                type: 'bill_deleted',
+                bill: billToDelete,
+            });
+
             const { error } = await supabase.from('bills').delete().eq('id', billToDelete.id);
             if (error) throw error;
             setItems(items.filter((b) => b.id !== billToDelete.id));

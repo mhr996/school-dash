@@ -11,6 +11,7 @@ import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
+import { logActivity } from '@/utils/activity-logger';
 
 interface Car {
     id: string;
@@ -119,6 +120,12 @@ const CarsList = () => {
     const confirmDeletion = async () => {
         if (!carToDelete) return;
         try {
+            // Log the activity before deletion (to preserve car data)
+            await logActivity({
+                type: 'car_deleted',
+                car: carToDelete,
+            });
+
             // Delete images from storage first
             if (carToDelete.images?.length) {
                 // Remove individual image files

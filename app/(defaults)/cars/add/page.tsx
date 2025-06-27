@@ -13,6 +13,7 @@ import BrandSelect from '@/components/brand-select/brand-select';
 import StatusSelect from '@/components/status-select/status-select';
 import ProviderSelect from '@/components/provider-select/provider-select';
 import TypeSelect from '@/components/type-select/type-select';
+import { logActivity } from '@/utils/activity-logger';
 
 interface ColorVariant {
     id: string;
@@ -354,6 +355,18 @@ const AddCar = () => {
             }
 
             setAlert({ visible: true, message: t('car_added_successfully'), type: 'success' });
+
+            // Get the final car data for logging
+            const finalCarData = { ...carData, id: newCarId };
+            if (Object.keys(updateData).length > 0) {
+                Object.assign(finalCarData, updateData);
+            }
+
+            // Log the activity
+            await logActivity({
+                type: 'car_added',
+                car: finalCarData,
+            });
 
             // Redirect to cars list after a short delay
             setTimeout(() => {

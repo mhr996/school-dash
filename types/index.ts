@@ -73,3 +73,29 @@ export interface DealAttachments {
     driverLicense: FileItem | null;
     carTransferDocument: FileItem | null;
 }
+
+export interface Log {
+    id: string;
+    created_at: string;
+    type:
+        | 'car_added'
+        | 'car_updated'
+        | 'car_deleted'
+        | 'deal_created'
+        | 'deal_updated'
+        | 'deal_deleted'
+        | 'bill_created'
+        | 'bill_updated'
+        | 'bill_deleted'
+        | 'customer_added'
+        | 'customer_updated'
+        | 'customer_deleted'
+        | 'provider_added'
+        | 'provider_updated'
+        | 'provider_deleted';
+
+    // JSONB data columns storing the actual data at time of log
+    deal?: any; // The actual deal data as JSONB
+    car?: any; // The actual car data as JSONB
+    bill?: any; // The actual bill data as JSONB
+}

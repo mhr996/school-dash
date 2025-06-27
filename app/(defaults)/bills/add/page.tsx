@@ -13,6 +13,7 @@ import DealSelect from '@/components/deal-select/deal-select';
 import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
 import BillStatusSelect from '@/components/bill-status-select/bill-status-select';
+import { logActivity } from '@/utils/activity-logger';
 
 interface Deal {
     id: number;
@@ -252,11 +253,23 @@ const AddBill = () => {
                 created_at: billDate ? new Date(billDate + 'T00:00:00').toISOString() : new Date().toISOString(),
             };
 
-            const { error } = await supabase.from('bills').insert([billData]);
+            const { data: billResult, error } = await supabase.from('bills').insert([billData]).select('id').single();
 
             if (error) throw error;
 
             setAlert({ message: t('bill_created_successfully'), type: 'success' });
+
+            // Log the activity with full bill data
+            const billLogData = {
+                ...billData,
+                id: billResult.id,
+                deal: selectedDeal,
+            };
+
+            await logActivity({
+                type: 'bill_created',
+                bill: billLogData,
+            });
 
             // Redirect to bills list after a short delay
             setTimeout(() => {

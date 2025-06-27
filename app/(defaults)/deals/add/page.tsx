@@ -20,6 +20,7 @@ import IconCalendar from '@/components/icon/icon-calendar';
 import { uploadMultipleFiles } from '@/utils/file-upload';
 import { formatCurrency } from '@/utils/number-formatter';
 import { Customer, Car, FileItem, DealAttachments } from '@/types';
+import { logActivity } from '@/utils/activity-logger';
 
 const AddDeal = () => {
     const { t } = getTranslation();
@@ -585,6 +586,19 @@ const AddDeal = () => {
                 }
             }
             setAlert({ message: t('deal_added_successfully'), type: 'success' });
+
+            // Log the activity with full deal data
+            const dealLogData = {
+                ...dealData,
+                id: dealId,
+                customer: selectedCustomer,
+                car: selectedCar,
+            };
+
+            await logActivity({
+                type: 'deal_created',
+                deal: dealLogData,
+            });
 
             // Redirect to the newly created deal's edit page after a short delay
             setTimeout(() => {
@@ -1258,7 +1272,7 @@ const AddDeal = () => {
                                 </div>
                                 {/* Row 6: Loss (Editable) */}
                                 <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                    <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
+                                    <div className="text-sm pt-1 text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
                                     <div className="text-center">
                                         <div className="flex justify-center">
                                             <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
@@ -1743,6 +1757,7 @@ const AddDeal = () => {
                             </div>
                         </div>
                     )}
+
                     {/* Notes */}
                     <div className="md:col-span-2">
                         <label htmlFor="notes" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -1791,7 +1806,7 @@ const AddDeal = () => {
                         className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                     />
                 </div>
-            </div>{' '}
+            </div>
         </div>
     );
 
@@ -1902,19 +1917,9 @@ const AddDeal = () => {
                                     <p className="text-green-800 dark:text-green-100">{selectedCar.title}</p>
                                 </div>
                                 <div>
-                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('provider')}:</span>
-                                    <p className="text-green-800 dark:text-green-100">{selectedCar.provider}</p>
-                                </div>
-                                <div>
                                     <span className="text-green-600 dark:text-green-300 font-medium">{t('year')}:</span>
                                     <p className="text-green-800 dark:text-green-100">{selectedCar.year}</p>
                                 </div>
-                                {selectedCar.car_number && (
-                                    <div>
-                                        <span className="text-green-600 dark:text-green-300 font-medium">{t('car_number')}:</span>
-                                        <p className="text-green-800 dark:text-green-100">{selectedCar.car_number}</p>
-                                    </div>
-                                )}
                                 <div>
                                     <span className="text-green-600 dark:text-green-300 font-medium">{t('kilometers')}:</span>
                                     <p className="text-green-800 dark:text-green-100">
@@ -1922,8 +1927,16 @@ const AddDeal = () => {
                                     </p>
                                 </div>
                                 <div>
-                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('status')}:</span>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('condition')}:</span>
                                     <p className="text-green-800 dark:text-green-100">{selectedCar.status}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('market_price')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{formatCurrency(selectedCar.market_price)}</p>
+                                </div>
+                                <div>
+                                    <span className="text-green-600 dark:text-green-300 font-medium">{t('sale_price')}:</span>
+                                    <p className="text-green-800 dark:text-green-100">{formatCurrency(selectedCar.sale_price)}</p>
                                 </div>
                             </div>
                         </div>

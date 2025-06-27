@@ -14,6 +14,7 @@ import { getTranslation } from '@/i18n';
 import { deleteFolder } from '@/utils/file-upload';
 import { Deal } from '@/types';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
+import { logActivity } from '@/utils/activity-logger';
 
 const DealsList = () => {
     const { t } = getTranslation();
@@ -108,6 +109,12 @@ const DealsList = () => {
     const confirmDeletion = async () => {
         if (!dealToDelete) return;
         try {
+            // Log the activity before deletion (to preserve deal data)
+            await logActivity({
+                type: 'deal_deleted',
+                deal: dealToDelete,
+            });
+
             // Delete the deal from database
             const { error } = await supabase.from('deals').delete().eq('id', dealToDelete.id);
             if (error) throw error;
