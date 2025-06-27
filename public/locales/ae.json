@@ -1084,5 +1084,6 @@
     "unknown_customer": "عميل غير معروف",
     "bill_number": "رقم الفاتورة",
     "close": "إغلاق",
-    "not_applicable": "-"
+    "not_applicable": "-",
+    "received_value": "المبلغ المستلم"
 }
