@@ -16,6 +16,7 @@ import PaymentTypeSelect from '@/components/payment-type-select/payment-type-sel
 import SingleFileUpload from '@/components/file-upload/single-file-upload';
 import { Deal, Customer, Car, FileItem, DealAttachments, DealAttachment } from '@/types';
 import { uploadMultipleFiles, deleteFile, uploadFile } from '@/utils/file-upload';
+import { formatCurrency } from '@/utils/number-formatter';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
 import IconNotes from '@/components/icon/icon-notes';
 import IconCar from '@/components/icon/icon-car';
@@ -209,9 +210,41 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         }
     }, [isBillSectionExpanded, deal, selectedCustomer, selectedCar]);
 
+    // Auto-calculate exchange fields when data is loaded
+    useEffect(() => {
+        if (dealType === 'exchange' && carTakenFromClient && selectedCar) {
+            const purchasePrice = carTakenFromClient.buy_price || 0;
+            const salePrice = selectedCar.sale_price || 0;
+            const difference = salePrice - purchasePrice;
+
+            setForm((prev) => ({
+                ...prev,
+                customer_car_eval_value: purchasePrice.toString(),
+                additional_customer_amount: difference > 0 ? difference.toString() : '0',
+            }));
+        }
+    }, [dealType, carTakenFromClient, selectedCar]);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setForm((prev) => ({ ...prev, [name]: value }));
+        setForm((prev) => {
+            const updated = { ...prev, [name]: value };
+
+            // Auto-calculate exchange fields when relevant values change for exchange deals
+            if (dealType === 'exchange' && carTakenFromClient && selectedCar) {
+                const purchasePrice = carTakenFromClient.buy_price || 0;
+                const salePrice = selectedCar.sale_price || 0;
+                const difference = salePrice - purchasePrice;
+
+                // Set customer_car_eval_value to the purchase price from customer (buy_price of taken car)
+                updated.customer_car_eval_value = purchasePrice.toString();
+
+                // Set additional_customer_amount to the difference (only if positive)
+                updated.additional_customer_amount = difference > 0 ? difference.toString() : '0';
+            }
+
+            return updated;
+        });
     }; // Fetch bills related to this deal
     const fetchBills = async () => {
         setLoadingBills(true);
@@ -268,7 +301,21 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
     const handleCarSelect = (car: Car | null) => {
         setSelectedCar(car);
-        setForm((prev) => ({ ...prev, car_id: car?.id || '' }));
+        setForm((prev) => {
+            const updated = { ...prev, car_id: car?.id || '' };
+
+            // Auto-calculate exchange fields when car changes for exchange deals
+            if (dealType === 'exchange' && carTakenFromClient && car) {
+                const purchasePrice = carTakenFromClient.buy_price || 0;
+                const salePrice = car.sale_price || 0;
+                const difference = salePrice - purchasePrice;
+
+                updated.customer_car_eval_value = purchasePrice.toString();
+                updated.additional_customer_amount = difference > 0 ? difference.toString() : '0';
+            }
+
+            return updated;
+        });
     };
     const handleCreateNewCustomer = () => {
         // Navigate to create customer page
@@ -832,51 +879,21 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             </div>
                                         </div>
 
-                                        {/* Row 4: Customer Car Evaluation (Editable) */}
+                                        {/* Row 4: Customer Car Evaluation (Auto-calculated) */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                            <div className="text-sm pt-3 text-gray-700 dark:text-gray-300 text-right">
+                                            <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
                                                 <div className="font-medium">{t('customer_car_evaluation')}</div>
                                             </div>
                                             <div className="text-center">
-                                                <div className="flex justify-center">
-                                                    <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                        $
-                                                    </span>
-                                                    <input
-                                                        type="number"
-                                                        name="customer_car_eval_value"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={form.customer_car_eval_value || ''}
-                                                        onChange={handleInputChange}
-                                                        className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
-                                                        style={{ direction: 'ltr', textAlign: 'center' }}
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">${parseFloat(form.customer_car_eval_value || '0').toFixed(2)}</span>
                                             </div>
                                         </div>
 
-                                        {/* Row 5: Additional Amount from Customer (Editable) */}
+                                        {/* Row 5: Additional Amount from Customer (Auto-calculated) */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                            <div className="text-sm pt-3 text-gray-700 dark:text-gray-300 text-right">{t('additional_amount_from_customer')}</div>
+                                            <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('additional_amount_from_customer')}</div>
                                             <div className="text-center">
-                                                <div className="flex justify-center">
-                                                    <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                        $
-                                                    </span>
-                                                    <input
-                                                        type="number"
-                                                        name="additional_customer_amount"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={form.additional_customer_amount || ''}
-                                                        onChange={handleInputChange}
-                                                        className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
-                                                        style={{ direction: 'ltr', textAlign: 'center' }}
-                                                        placeholder="0.00"
-                                                    />
-                                                </div>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">${parseFloat(form.additional_customer_amount || '0').toFixed(2)}</span>
                                             </div>
                                         </div>
 
@@ -908,16 +925,16 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
                                             <div className="text-center">
                                                 {(() => {
-                                                    if (!selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
+                                                    if (!selectedCar || !carTakenFromClient) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
 
                                                     const buyPrice = selectedCar.buy_price || 0;
                                                     const sellPrice = selectedCar.sale_price || 0;
-                                                    const customerCarValue = parseFloat(form.customer_car_eval_value || '0');
-                                                    const additionalAmount = parseFloat(form.additional_customer_amount || '0');
+                                                    const oldCarPurchasePrice = carTakenFromClient.buy_price || 0;
                                                     const loss = parseFloat(form.loss_amount || '0');
 
-                                                    // For exchange: Profit = (Sale Price - Customer Car Value + Additional Amount) - Buy Price - Loss
-                                                    const profitCommission = sellPrice - customerCarValue + additionalAmount - buyPrice - loss;
+                                                    // For exchange: Profit = Sale Price - Old Car Purchase Price - Buy Price - Loss
+                                                    // Note: customer_car_eval_value and additional_customer_amount are display-only and don't affect profit
+                                                    const profitCommission = sellPrice - buyPrice - loss;
 
                                                     return (
                                                         <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -1231,37 +1248,37 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             </div>
                                                             {/* Row 2: Buy Price */}
                                                             <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
+                                                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>{' '}
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.buy_price || 0)}</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.buy_price || 0)}</span>
                                                                 </div>
                                                             </div>{' '}
                                                             {/* Row 3: Selling Price */}
                                                             <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>{' '}
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${parseFloat(form.amount || '0').toFixed(2)}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(form.amount || '0'))}</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${parseFloat(form.amount || '0').toFixed(2)}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(form.amount || '0'))}</span>
                                                                 </div>
                                                             </div>
                                                             {/* Row 4: Loss */}
                                                             <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
                                                                 <div className="text-center">-</div>
-                                                                <div className="text-center">-</div>
+                                                                <div className="text-center">-</div>{' '}
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-red-600 dark:text-red-400">${parseFloat(form.loss_amount || '0').toFixed(2)}</span>
+                                                                    <span className="text-sm text-red-600 dark:text-red-400">{formatCurrency(parseFloat(String(form.loss_amount || '0')))}</span>
                                                                 </div>
                                                             </div>
                                                             {/* Row 5: Profit Commission */}
@@ -1279,13 +1296,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                             return profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
                                                                         })()}`}
                                                                     >
-                                                                        $
+                                                                        ${' '}
                                                                         {(() => {
                                                                             const buyPrice = selectedCar.buy_price || 0;
                                                                             const sellPrice = parseFloat(form.amount || '0');
                                                                             const loss = parseFloat(form.loss_amount || '0');
                                                                             const profit = sellPrice - buyPrice - loss;
-                                                                            return profit >= 0 ? `+${profit.toFixed(2)}` : profit.toFixed(2);
+                                                                            return profit >= 0 ? `+${formatCurrency(profit)}` : formatCurrency(profit);
                                                                         })()}
                                                                     </span>
                                                                 </div>
@@ -1312,13 +1329,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             <div className="grid grid-cols-4 gap-4 mb-4 py-2">
                                                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount || 0)}</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-green-600 dark:text-green-400">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-green-600 dark:text-green-400">{formatCurrency(deal?.amount || 0)}</span>
                                                                 </div>
                                                             </div>
                                                         </>
@@ -1343,13 +1360,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             <div className="grid grid-cols-4 gap-4 mb-4 py-2">
                                                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('commission_editable')}</div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount || 0)}</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-green-600 dark:text-green-400">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-green-600 dark:text-green-400">{formatCurrency(deal?.amount || 0)}</span>
                                                                 </div>
                                                             </div>
                                                         </>
@@ -1374,13 +1391,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.buy_price || 0)}</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-red-600 dark:text-red-400">-${selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-red-600 dark:text-red-400">-{formatCurrency(selectedCar.buy_price || 0)}</span>
                                                                 </div>
                                                             </div>
 
@@ -1388,13 +1405,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('sale_price_auto')}</div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.sale_price?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.sale_price || 0)}</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-green-600 dark:text-green-400">${selectedCar.sale_price?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-green-600 dark:text-green-400">{formatCurrency(selectedCar.sale_price || 0)}</span>
                                                                 </div>
                                                             </div>
 
@@ -1402,14 +1419,14 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             <div className="grid grid-cols-4 gap-4 mb-4 py-2">
                                                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('deal_amount_exchange')}</div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount || 0)}</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     {' '}
-                                                                    <span className="text-sm text-blue-600 dark:text-blue-400">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-blue-600 dark:text-blue-400">{formatCurrency(deal?.amount || 0)}</span>
                                                                 </div>
                                                             </div>
                                                         </>
@@ -1422,13 +1439,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                     <div className="font-medium">{t('deal_type_company_commission')}</div>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount || 0)}</span>
                                                                 </div>
                                                                 <div className="text-center">
                                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                 </div>
                                                                 <div className="text-center">
-                                                                    <span className="text-sm text-green-600 dark:text-green-400">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                    <span className="text-sm text-green-600 dark:text-green-400">{formatCurrency(deal?.amount || 0)}</span>
                                                                 </div>
                                                             </div>
                                                         </>
@@ -1445,13 +1462,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                 </div>
                                                             </div>
                                                             <div className="text-center">
-                                                                <span className="text-sm text-gray-700 dark:text-gray-300">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount || 0)}</span>
                                                             </div>
                                                             <div className="text-center">
                                                                 <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                             </div>
                                                             <div className="text-center">
-                                                                <span className="text-sm text-green-600 dark:text-green-400">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                                <span className="text-sm text-green-600 dark:text-green-400">{formatCurrency(deal?.amount || 0)}</span>
                                                             </div>
                                                         </div>
                                                     )}
@@ -1462,19 +1479,19 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         {/* Price Before Tax */}
                                                         <div className="flex justify-between items-center">
                                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                                            <span className="text-sm text-gray-700 dark:text-gray-300">${deal?.amount?.toFixed(2) || '0.00'}</span>
+                                                            <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount || 0)}</span>
                                                         </div>
 
                                                         {/* Tax */}
                                                         <div className="flex justify-between items-center">
                                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                                            <span className="text-sm text-gray-700 dark:text-gray-300">${((deal?.amount || 0) * 0.18).toFixed(2)}</span>
+                                                            <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.amount || 0) * 0.18)}</span>
                                                         </div>
 
                                                         {/* Total Including Tax */}
                                                         <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
                                                             <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                                            <span className="text-lg font-bold text-primary">${((deal?.amount || 0) * 1.18).toFixed(2)}</span>
+                                                            <span className="text-lg font-bold text-primary">{formatCurrency((deal?.amount || 0) * 1.18)}</span>
                                                         </div>
                                                     </div>
                                                 </div>

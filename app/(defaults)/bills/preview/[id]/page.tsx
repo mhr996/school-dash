@@ -6,7 +6,6 @@ import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconUser from '@/components/icon/icon-user';
-import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
 import IconEdit from '@/components/icon/icon-edit';
 import IconDownload from '@/components/icon/icon-download';
 import { generateBillPDF } from '@/utils/pdf-generator';

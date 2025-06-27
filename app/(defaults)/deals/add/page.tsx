@@ -18,6 +18,7 @@ import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconNotes from '@/components/icon/icon-notes';
 import IconCalendar from '@/components/icon/icon-calendar';
 import { uploadMultipleFiles } from '@/utils/file-upload';
+import { formatCurrency } from '@/utils/number-formatter';
 import { Customer, Car, FileItem, DealAttachments } from '@/types';
 
 const AddDeal = () => {
@@ -134,10 +135,24 @@ const AddDeal = () => {
                     };
                 });
             } else if (dealType === 'exchange') {
-                setExchangeForm((prev) => ({
-                    ...prev,
-                    title: `${t('exchange_deal_for')} ${selectedCar.title} - ${selectedCustomer.name}`,
-                }));
+                setExchangeForm((prev) => {
+                    const updated = {
+                        ...prev,
+                        title: `${t('exchange_deal_for')} ${selectedCar.title} - ${selectedCustomer.name}`,
+                    };
+
+                    // Auto-calculate display fields if old car purchase price exists
+                    if (prev.old_car_purchase_price && selectedCar) {
+                        const purchasePrice = parseFloat(prev.old_car_purchase_price);
+                        const salePrice = selectedCar.sale_price;
+                        const difference = salePrice - purchasePrice;
+
+                        updated.customer_car_eval_value = purchasePrice.toString();
+                        updated.additional_customer_amount = difference > 0 ? difference.toString() : '0';
+                    }
+
+                    return updated;
+                });
             }
         }
     }, [selectedCar, selectedCustomer, selectedSeller, selectedBuyer, dealType]);
@@ -148,7 +163,24 @@ const AddDeal = () => {
     };
     const handleExchangeFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setExchangeForm((prev) => ({ ...prev, [name]: value }));
+        setExchangeForm((prev) => {
+            const updated = { ...prev, [name]: value };
+
+            // Auto-calculate values for exchange deals when old car purchase price changes
+            if (name === 'old_car_purchase_price' && selectedCar) {
+                const purchasePrice = parseFloat(value || '0');
+                const salePrice = selectedCar.sale_price;
+                const difference = salePrice - purchasePrice;
+
+                // Set customer_car_eval_value to the purchase price from customer
+                updated.customer_car_eval_value = purchasePrice.toString();
+
+                // Set additional_customer_amount to the difference (only if positive)
+                updated.additional_customer_amount = difference > 0 ? difference.toString() : '0';
+            }
+
+            return updated;
+        });
     };
     const handleCompanyCommissionFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -417,6 +449,8 @@ const AddDeal = () => {
                     throw new Error(`Failed to create car record: ${carError.message}`);
                 }
                 const exchangeAmount = selectedCar ? selectedCar.sale_price - parseFloat(exchangeForm.old_car_purchase_price || '0') : 0;
+                // Note: customer_car_eval_value and additional_customer_amount are for display only
+                // and don't affect the actual deal amount or profit calculation
                 dealData = {
                     ...dealData,
                     title: exchangeForm.title.trim(),
@@ -762,7 +796,7 @@ const AddDeal = () => {
                                 <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                     <div className="text-center">
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price.toFixed(2)}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.buy_price)}</span>
                                     </div>
                                 </div>{' '}
                                 {/* Row 3: Selling Price */}
@@ -814,7 +848,7 @@ const AddDeal = () => {
                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
                                     <div className="text-center">
                                         {(() => {
-                                            if (!saleForm.selling_price || !selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
+                                            if (!saleForm.selling_price || !selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(0)}</span>;
 
                                             const buyPrice = selectedCar.buy_price;
                                             const sellPrice = parseFloat(saleForm.selling_price);
@@ -823,7 +857,8 @@ const AddDeal = () => {
 
                                             return (
                                                 <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                    {profitCommission >= 0 ? '+' : ''}${profitCommission.toFixed(2)}
+                                                    {profitCommission >= 0 ? '+' : ''}
+                                                    {formatCurrency(profitCommission)}
                                                 </span>
                                             );
                                         })()}
@@ -1187,19 +1222,19 @@ const AddDeal = () => {
                                 <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                     <div className="text-center">
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price.toFixed(2)}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.buy_price)}</span>
                                     </div>
                                 </div>
                                 {/* Row 3: Selling Price (Auto from sale_price) */}
                                 <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
                                     <div className="text-center">
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.sale_price.toFixed(2)}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.sale_price)}</span>
                                     </div>
                                 </div>{' '}
-                                {/* Row 4: Customer Car Evaluation (Editable) */}
+                                {/* Row 4: Customer Car Evaluation (Auto-calculated) */}
                                 <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                    <div className="text-sm pt-3 text-gray-700 dark:text-gray-300 text-right">
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
                                         <div className="font-medium">{t('customer_car_evaluation')}</div>
                                         {exchangeForm.old_car_manufacturer && exchangeForm.old_car_name && (
                                             <div className="text-s mt-1 text-gray-500">
@@ -1211,44 +1246,14 @@ const AddDeal = () => {
                                         )}
                                     </div>
                                     <div className="text-center">
-                                        <div className="flex justify-center">
-                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                $
-                                            </span>
-                                            <input
-                                                type="number"
-                                                name="customer_car_eval_value"
-                                                step="0.01"
-                                                min="0"
-                                                value={exchangeForm.customer_car_eval_value}
-                                                onChange={handleExchangeFormChange}
-                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
-                                                style={{ direction: 'ltr', textAlign: 'center' }}
-                                                placeholder="0.00"
-                                            />
-                                        </div>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(exchangeForm.customer_car_eval_value || '0'))}</span>
                                     </div>
                                 </div>
-                                {/* Row 5: Additional Amount from Customer (Editable) */}
+                                {/* Row 5: Additional Amount from Customer (Auto-calculated) */}
                                 <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                    <div className="text-sm pt-3 text-gray-700 dark:text-gray-300 text-right">{t('additional_amount_from_customer')}</div>
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('additional_amount_from_customer')}</div>
                                     <div className="text-center">
-                                        <div className="flex justify-center">
-                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                $
-                                            </span>
-                                            <input
-                                                type="number"
-                                                name="additional_customer_amount"
-                                                step="0.01"
-                                                min="0"
-                                                value={exchangeForm.additional_customer_amount}
-                                                onChange={handleExchangeFormChange}
-                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
-                                                style={{ direction: 'ltr', textAlign: 'center' }}
-                                                placeholder="0.00"
-                                            />
-                                        </div>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(exchangeForm.additional_customer_amount || '0'))}</span>
                                     </div>
                                 </div>
                                 {/* Row 6: Loss (Editable) */}
@@ -1278,20 +1283,21 @@ const AddDeal = () => {
                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
                                     <div className="text-center">
                                         {(() => {
-                                            if (!selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
+                                            if (!selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(0)}</span>;
 
                                             const buyPrice = selectedCar.buy_price;
                                             const sellPrice = selectedCar.sale_price;
-                                            const customerCarValue = parseFloat(exchangeForm.customer_car_eval_value || '0');
-                                            const additionalAmount = parseFloat(exchangeForm.additional_customer_amount || '0');
+                                            const oldCarPurchasePrice = parseFloat(exchangeForm.old_car_purchase_price || '0');
                                             const loss = parseFloat(exchangeForm.loss_amount || '0');
 
-                                            // For exchange: Profit = (Sale Price - Customer Car Value + Additional Amount) - Buy Price - Loss
-                                            const profitCommission = sellPrice - customerCarValue + additionalAmount - buyPrice - loss;
+                                            // For exchange: Profit = Sale Price - Old Car Purchase Price - Buy Price - Loss
+                                            // Note: customer_car_eval_value and additional_customer_amount are display-only and don't affect profit
+                                            const profitCommission = sellPrice - buyPrice - loss;
 
                                             return (
                                                 <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                    {profitCommission >= 0 ? '+' : ''}${profitCommission.toFixed(2)}
+                                                    {profitCommission >= 0 ? '+' : ''}
+                                                    {formatCurrency(profitCommission)}
                                                 </span>
                                             );
                                         })()}

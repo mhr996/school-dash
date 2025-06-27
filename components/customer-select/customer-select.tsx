@@ -7,6 +7,7 @@ import supabase from '@/lib/supabase';
 
 interface Customer {
     id: string;
+    id_number?: string;
     name: string;
     phone: string;
     country: string;
@@ -53,7 +54,7 @@ const CustomerSelect = ({ selectedCustomer, onCustomerSelect, onCreateNew, class
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('customers').select('id, name, phone, country, age').order('name');
+            const { data, error } = await supabase.from('customers').select('id, id_number, name, phone, country, age').order('name');
 
             if (error) throw error;
             setCustomers(data || []);
