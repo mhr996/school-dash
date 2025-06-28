@@ -10,67 +10,88 @@ import { getTranslation } from '@/i18n';
 // Dynamically import ReactApexChart with SSR disabled
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
     ssr: false,
-    loading: () => <div className="h-[200px] flex items-center justify-center">Loading chart...</div>,
+    loading: () => (
+        <div className="h-[200px] flex items-center justify-center animate-pulse bg-gray-200 dark:bg-gray-700 rounded">
+            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-32 animate-pulse"></div>
+        </div>
+    ),
 });
 
 // Icons
+import IconCar from '@/components/icon/icon-car';
 import IconTrendingUp from '@/components/icon/icon-trending-up';
 import IconTrendingDown from '@/components/icon/icon-trending-down';
-import IconShoppingCart from '@/components/icon/icon-shopping-cart';
-import IconStore from '@/components/icon/icon-store';
+import IconMenuInvoice from '@/components/icon/menu/icon-menu-invoice';
 import IconUsersGroup from '@/components/icon/icon-users-group';
+import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconEye from '@/components/icon/icon-eye';
+import IconPlus from '@/components/icon/icon-plus';
+import IconCreditCard from '@/components/icon/icon-credit-card';
+import IconCash from '@/components/icon/icon-cash-banknotes';
+import IconSettings from '@/components/icon/icon-settings';
+import IconUser from '@/components/icon/icon-user';
+import IconClipboardText from '@/components/icon/icon-clipboard-text';
+import IconShoppingCart from '@/components/icon/icon-shopping-cart';
 import IconBox from '@/components/icon/icon-box';
+import IconStore from '@/components/icon/icon-store';
 import IconHorizontalDots from '@/components/icon/icon-horizontal-dots';
-import IconMenuDashboard from '@/components/icon/menu/icon-menu-dashboard';
 import IconMenuCharts from '@/components/icon/menu/icon-menu-charts';
 import IconMenuComponents from '@/components/icon/menu/icon-menu-components';
 import IconMenuNotes from '@/components/icon/menu/icon-menu-notes';
-import IconSettings from '@/components/icon/icon-settings';
-import IconUser from '@/components/icon/icon-user';
-import IconCreditCard from '@/components/icon/icon-credit-card';
-import IconCash from '@/components/icon/icon-cash-banknotes';
 
-interface Stats {
-    shops: number;
-    products: number;
-    users: number;
-    orders: number;
-    revenue: number;
-    shopGrowth: number;
-    productGrowth: number;
-    userGrowth: number;
-    orderGrowth: number;
+interface DashboardStats {
+    totalCars: number;
+    totalDeals: number;
+    totalCustomers: number;
+    totalProviders: number;
+    totalRevenue: number;
+    monthlyRevenue: number;
+    carsGrowth: number;
+    dealsGrowth: number;
+    customersGrowth: number;
     revenueGrowth: number;
-    recentActivity: any[];
     loading: boolean;
-    performanceData: {
+    chartData: {
         months: string[];
         sales: number[];
+        deals: number[];
+        revenue: number[];
     };
+    recentActivity: any[];
+    dealsByType: { [key: string]: number };
+    carsByStatus: { [key: string]: number };
 }
+
+type TimeFilter = 'week' | 'month' | 'year' | 'all';
 
 const HomePage = () => {
     const isDark = useSelector((state: IRootState) => state.themeConfig.theme === 'dark' || state.themeConfig.isDarkMode);
     const isRtl = useSelector((state: IRootState) => state.themeConfig.rtlClass) === 'rtl';
     const [isMounted, setIsMounted] = useState(false);
+    const [timeFilter, setTimeFilter] = useState<TimeFilter>('month');
     const { t } = getTranslation();
-    const [stats, setStats] = useState<Stats>({
-        shops: 0,
-        products: 0,
-        users: 0,
-        orders: 0,
-        revenue: 0,
-        shopGrowth: 0,
-        productGrowth: 0,
-        userGrowth: 0,
-        orderGrowth: 0,
+
+    const [stats, setStats] = useState<DashboardStats>({
+        totalCars: 0,
+        totalDeals: 0,
+        totalCustomers: 0,
+        totalProviders: 0,
+        totalRevenue: 0,
+        monthlyRevenue: 0,
+        carsGrowth: 0,
+        dealsGrowth: 0,
+        customersGrowth: 0,
         revenueGrowth: 0,
-        recentActivity: [],
         loading: true,
-        performanceData: {
+        chartData: {
             months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
             sales: [0, 0, 0, 0, 0, 0],
+            deals: [0, 0, 0, 0, 0, 0],
+            revenue: [0, 0, 0, 0, 0, 0],
         },
+        recentActivity: [],
+        dealsByType: {},
+        carsByStatus: {},
     });
 
     // Set is mounted for client-side rendering of charts
@@ -80,157 +101,408 @@ const HomePage = () => {
 
     // Calculate growth percentage
     const calculateGrowth = (current: number, previous: number) => {
-        if (previous === 0) return 100; // If there was nothing before, it's 100% growth
+        if (previous === 0) return current > 0 ? 100 : 0;
         return ((current - previous) / previous) * 100;
     };
 
+    // Get date range based on filter
+    const getDateRange = (filter: TimeFilter) => {
+        const now = new Date();
+        let startDate: Date;
+        let previousStartDate: Date;
+        let previousEndDate: Date;
+
+        switch (filter) {
+            case 'week':
+                // Current week (Sunday to Saturday)
+                const currentDayOfWeek = now.getDay();
+                startDate = new Date(now);
+                startDate.setDate(now.getDate() - currentDayOfWeek);
+                startDate.setHours(0, 0, 0, 0);
+
+                // Previous week
+                previousStartDate = new Date(startDate);
+                previousStartDate.setDate(startDate.getDate() - 7);
+                previousEndDate = new Date(startDate);
+                break;
+
+            case 'month':
+                // Current month
+                startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+
+                // Previous month
+                previousStartDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                previousEndDate = new Date(startDate);
+                break;
+
+            case 'year':
+                // Current year
+                startDate = new Date(now.getFullYear(), 0, 1);
+
+                // Previous year
+                previousStartDate = new Date(now.getFullYear() - 1, 0, 1);
+                previousEndDate = new Date(startDate);
+                break;
+
+            case 'all':
+            default:
+                // All time - use a very old date
+                startDate = new Date('2000-01-01');
+                previousStartDate = new Date('2000-01-01');
+                previousEndDate = new Date('2000-01-01');
+                break;
+        }
+
+        return {
+            currentStart: startDate,
+            previousStart: previousStartDate,
+            previousEnd: previousEndDate,
+        };
+    };
+
     useEffect(() => {
-        const fetchStats = async () => {
+        const fetchDashboardStats = async () => {
             try {
-                // Get current date and previous month's date
-                const now = new Date();
-                const currentMonth = now.toISOString();
-                const lastMonth = new Date(now);
-                lastMonth.setMonth(lastMonth.getMonth() - 1);
-                const previousMonth = lastMonth.toISOString();
+                setStats((prev) => ({ ...prev, loading: true }));
 
-                // Fetch current stats
-                const [{ data: currentShops }, { data: currentProducts }, { data: currentUsers }, { data: currentOrders }] = await Promise.all([
-                    supabase.from('shops').select('count'),
-                    supabase.from('products').select('count'),
-                    supabase.from('users').select('count'),
-                    supabase.from('orders').select('count'),
-                ]);
+                // Get date ranges based on current filter
+                const { currentStart, previousStart, previousEnd } = getDateRange(timeFilter);
 
-                // Fetch previous month's stats for growth calculation
-                const [{ data: previousShops }, { data: previousProducts }, { data: previousUsers }, { data: previousOrders }] = await Promise.all([
-                    supabase.from('shops').select('count').lt('created_at', previousMonth),
-                    supabase.from('products').select('count').lt('created_at', previousMonth),
-                    supabase.from('users').select('count').lt('registration_date', previousMonth),
-                    supabase.from('orders').select('count').lt('created_at', previousMonth),
-                ]);
+                // Fetch basic counts with individual error handling
+                let carsQuery = supabase.from('cars').select('*', { count: 'exact', head: true });
+                let dealsQuery = supabase.from('deals').select('*', { count: 'exact', head: true });
+                let customersQuery = supabase.from('customers').select('*', { count: 'exact', head: true });
+                let providersQuery = supabase.from('providers').select('*', { count: 'exact', head: true });
 
-                // Calculate total revenue
-                const { data: orders } = await supabase.from('orders').select('total_amount');
-                const totalRevenue = orders ? orders.reduce((sum, order) => sum + (order.total_amount || 0), 0) : 0;
-
-                // Calculate previous month's revenue
-                const { data: previousOrdersRevenue } = await supabase.from('orders').select('total_amount').lt('created_at', previousMonth);
-                const previousRevenue = previousOrdersRevenue ? previousOrdersRevenue.reduce((sum, order) => sum + (order.total_amount || 0), 0) : 0;
-
-                // Get performance data for the last 6 months
-                const performanceData = { months: [] as string[], sales: [] as number[] };
-                for (let i = 5; i >= 0; i--) {
-                    const date = new Date();
-                    date.setMonth(date.getMonth() - i);
-                    const monthName = date.toLocaleString('default', { month: 'short' });
-                    performanceData.months.push(monthName);
-
-                    const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
-                    const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString();
-
-                    const { data: monthlyOrders } = await supabase.from('orders').select('total_amount').gte('created_at', startOfMonth).lt('created_at', endOfMonth);
-
-                    const monthlySales = monthlyOrders ? monthlyOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0) : 0;
-                    performanceData.sales.push(monthlySales);
+                // Apply date filters if not "all time"
+                if (timeFilter !== 'all') {
+                    carsQuery = carsQuery.gte('created_at', currentStart.toISOString());
+                    dealsQuery = dealsQuery.gte('created_at', currentStart.toISOString());
+                    customersQuery = customersQuery.gte('created_at', currentStart.toISOString());
+                    providersQuery = providersQuery.gte('created_at', currentStart.toISOString());
                 }
 
-                // Get recent activity (newest 5 items from any category)
-                const [{ data: recentOrders }, { data: recentUsers }, { data: recentProducts }, { data: recentShops }] = await Promise.all([
-                    supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(3),
-                    supabase.from('users').select('*').order('registration_date', { ascending: false }).limit(3),
-                    supabase.from('products').select('*').order('created_at', { ascending: false }).limit(3),
-                    supabase.from('shops').select('*').order('created_at', { ascending: false }).limit(3),
-                ]);
+                const [carsResult, dealsResult, customersResult, providersResult] = await Promise.all([carsQuery, dealsQuery, customersQuery, providersQuery]);
 
-                // Combine all recent activity and sort by date
-                const allRecentActivity = [
-                    ...(recentOrders || []).map((item) => ({ ...item, type: 'order' })),
-                    ...(recentUsers || []).map((item) => ({ ...item, type: 'user' })),
-                    ...(recentProducts || []).map((item) => ({ ...item, type: 'product' })),
-                    ...(recentShops || []).map((item) => ({ ...item, type: 'shop' })),
-                ];
+                if (carsResult.error) console.error('Cars query error:', carsResult.error);
+                if (dealsResult.error) console.error('Deals query error:', dealsResult.error);
+                if (customersResult.error) console.error('Customers query error:', customersResult.error);
+                if (providersResult.error) console.error('Providers query error:', providersResult.error);
 
-                // Sort by date, considering different date fields for different types
-                const sortedActivity = allRecentActivity
-                    .sort((a, b) => {
-                        const dateA = a.type === 'user' ? new Date(a.registration_date || a.created_at) : new Date(a.created_at);
-                        const dateB = b.type === 'user' ? new Date(b.registration_date || b.created_at) : new Date(b.created_at);
-                        return dateB.getTime() - dateA.getTime();
-                    })
-                    .slice(0, 5);
+                console.log('Raw Supabase Results:', { carsResult, dealsResult, customersResult, providersResult });
+
+                const totalCars = carsResult.count || 0;
+                const totalDeals = dealsResult.count || 0;
+                const totalCustomers = customersResult.count || 0;
+                const totalProviders = providersResult.count || 0;
+
+                console.log('Dashboard Stats:', { totalCars, totalDeals, totalCustomers, totalProviders });
+
+                // Fetch current period data
+                let currentCarsQuery = supabase.from('cars').select('*', { count: 'exact', head: true });
+                let currentDealsQuery = supabase.from('deals').select('*', { count: 'exact', head: true });
+                let currentCustomersQuery = supabase.from('customers').select('*', { count: 'exact', head: true });
+
+                if (timeFilter !== 'all') {
+                    currentCarsQuery = currentCarsQuery.gte('created_at', currentStart.toISOString());
+                    currentDealsQuery = currentDealsQuery.gte('created_at', currentStart.toISOString());
+                    currentCustomersQuery = currentCustomersQuery.gte('created_at', currentStart.toISOString());
+                }
+
+                const [currentCarsResult, currentDealsResult, currentCustomersResult] = await Promise.all([currentCarsQuery, currentDealsQuery, currentCustomersQuery]);
+
+                const currentCars = currentCarsResult.count || 0;
+                const currentDeals = currentDealsResult.count || 0;
+                const currentCustomers = currentCustomersResult.count || 0;
+
+                // Fetch previous period data for growth calculation
+                let previousCarsResult, previousDealsResult, previousCustomersResult;
+
+                if (timeFilter === 'all') {
+                    // For "all time", we can't calculate meaningful growth
+                    previousCarsResult = { count: 0 };
+                    previousDealsResult = { count: 0 };
+                    previousCustomersResult = { count: 0 };
+                } else {
+                    [previousCarsResult, previousDealsResult, previousCustomersResult] = await Promise.all([
+                        supabase.from('cars').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
+                        supabase.from('deals').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
+                        supabase.from('customers').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
+                    ]);
+                }
+
+                const previousCars = previousCarsResult.count || 0;
+                const previousDeals = previousDealsResult.count || 0;
+                const previousCustomers = previousCustomersResult.count || 0;
+
+                // Fetch revenue data from deals
+                let revenueQuery = supabase.from('deals').select('amount, created_at').not('amount', 'is', null);
+                if (timeFilter !== 'all') {
+                    revenueQuery = revenueQuery.gte('created_at', currentStart.toISOString());
+                }
+
+                const { data: revenueData } = await revenueQuery;
+
+                const totalRevenue = revenueData?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0;
+                const monthlyRevenue = totalRevenue; // Since we're already filtering by time period
+
+                // Get previous period revenue for growth calculation
+                let previousMonthRevenue = 0;
+                if (timeFilter !== 'all') {
+                    const { data: previousRevenueData } = await supabase
+                        .from('deals')
+                        .select('amount')
+                        .gte('created_at', previousStart.toISOString())
+                        .lt('created_at', previousEnd.toISOString())
+                        .not('amount', 'is', null);
+
+                    previousMonthRevenue = previousRevenueData?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0;
+                }
 
                 // Calculate growth rates
-                const shopGrowth = calculateGrowth(currentShops?.[0]?.count || 0, previousShops?.[0]?.count || 0);
-                const productGrowth = calculateGrowth(currentProducts?.[0]?.count || 0, previousProducts?.[0]?.count || 0);
-                const userGrowth = calculateGrowth(currentUsers?.[0]?.count || 0, previousUsers?.[0]?.count || 0);
-                const orderGrowth = calculateGrowth(currentOrders?.[0]?.count || 0, previousOrders?.[0]?.count || 0);
-                const revenueGrowth = calculateGrowth(totalRevenue, previousRevenue);
+                const carsGrowth = timeFilter === 'all' ? 0 : calculateGrowth(currentCars || 0, previousCars || 0);
+                const dealsGrowth = timeFilter === 'all' ? 0 : calculateGrowth(currentDeals || 0, previousDeals || 0);
+                const customersGrowth = timeFilter === 'all' ? 0 : calculateGrowth(currentCustomers || 0, previousCustomers || 0);
+                const revenueGrowth = timeFilter === 'all' ? 0 : calculateGrowth(monthlyRevenue, previousMonthRevenue);
+
+                // Fetch chart data for last 6 months (keep this consistent regardless of filter)
+                const now = new Date();
+                const chartMonths = [];
+                const chartSales = [];
+                const chartDeals = [];
+                const chartRevenue = [];
+
+                for (let i = 5; i >= 0; i--) {
+                    const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+
+                    chartMonths.push(month.toLocaleDateString('en-US', { month: 'short' }));
+
+                    const monthDealsResult = await supabase.from('deals').select('*', { count: 'exact', head: true }).gte('created_at', month.toISOString()).lt('created_at', nextMonth.toISOString());
+                    const monthDeals = monthDealsResult.count || 0;
+
+                    const { data: monthRevenueData } = await supabase
+                        .from('deals')
+                        .select('amount')
+                        .gte('created_at', month.toISOString())
+                        .lt('created_at', nextMonth.toISOString())
+                        .not('amount', 'is', null);
+
+                    const monthCarsResult = await supabase.from('cars').select('*', { count: 'exact', head: true }).gte('created_at', month.toISOString()).lt('created_at', nextMonth.toISOString());
+                    const monthCars = monthCarsResult.count || 0;
+
+                    chartDeals.push(monthDeals);
+                    chartSales.push(monthCars);
+                    chartRevenue.push(monthRevenueData?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0);
+                }
+
+                // Fetch deals by type
+                let dealTypesQuery = supabase.from('deals').select('deal_type');
+                if (timeFilter !== 'all') {
+                    dealTypesQuery = dealTypesQuery.gte('created_at', currentStart.toISOString());
+                }
+                const { data: dealTypesData } = await dealTypesQuery;
+
+                const dealsByType: { [key: string]: number } = {};
+                dealTypesData?.forEach((deal) => {
+                    dealsByType[deal.deal_type] = (dealsByType[deal.deal_type] || 0) + 1;
+                });
+
+                // Fetch cars by status
+                let carStatusQuery = supabase.from('cars').select('status');
+                if (timeFilter !== 'all') {
+                    carStatusQuery = carStatusQuery.gte('created_at', currentStart.toISOString());
+                }
+                const { data: carStatusData } = await carStatusQuery;
+
+                const carsByStatus: { [key: string]: number } = {};
+                carStatusData?.forEach((car) => {
+                    carsByStatus[car.status] = (carsByStatus[car.status] || 0) + 1;
+                });
+
+                // Fetch recent activity from logs
+                const { data: recentActivity } = await supabase.from('logs').select('*').order('created_at', { ascending: false }).limit(10);
 
                 setStats({
-                    shops: currentShops?.[0]?.count || 0,
-                    products: currentProducts?.[0]?.count || 0,
-                    users: currentUsers?.[0]?.count || 0,
-                    orders: currentOrders?.[0]?.count || 0,
-                    revenue: totalRevenue,
-                    shopGrowth,
-                    productGrowth,
-                    userGrowth,
-                    orderGrowth,
+                    totalCars: totalCars || 0,
+                    totalDeals: totalDeals || 0,
+                    totalCustomers: totalCustomers || 0,
+                    totalProviders: totalProviders || 0,
+                    totalRevenue,
+                    monthlyRevenue,
+                    carsGrowth,
+                    dealsGrowth,
+                    customersGrowth,
                     revenueGrowth,
-                    recentActivity: sortedActivity,
                     loading: false,
-                    performanceData,
+                    chartData: {
+                        months: chartMonths,
+                        sales: chartSales,
+                        deals: chartDeals,
+                        revenue: chartRevenue,
+                    },
+                    recentActivity: recentActivity || [],
+                    dealsByType,
+                    carsByStatus,
                 });
             } catch (error) {
-                console.error('Error fetching stats:', error);
+                console.error('Error fetching dashboard stats:', error);
                 setStats((prev) => ({ ...prev, loading: false }));
             }
         };
 
-        fetchStats();
-    }, []);
+        fetchDashboardStats();
+    }, [timeFilter]);
 
-    // Chart data for business performance
-    const performanceChartData: any = {
+    // Format currency
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(value);
+    };
+
+    // Format large numbers
+    const formatNumber = (value: number) => {
+        if (value >= 1000000) {
+            return (value / 1000000).toFixed(1) + 'M';
+        } else if (value >= 1000) {
+            return (value / 1000).toFixed(1) + 'K';
+        }
+        return value.toString();
+    };
+
+    // Get growth indicator
+    const getGrowthIndicator = (growth: number) => {
+        if (growth > 0) {
+            return {
+                icon: <IconTrendingUp className="w-4 h-4" />,
+                color: 'text-success',
+                bgColor: 'bg-success-light',
+            };
+        } else if (growth < 0) {
+            return {
+                icon: <IconTrendingDown className="w-4 h-4" />,
+                color: 'text-danger',
+                bgColor: 'bg-danger-light',
+            };
+        }
+        return {
+            icon: <IconTrendingUp className="w-4 h-4" />,
+            color: 'text-secondary',
+            bgColor: 'bg-secondary-light',
+        };
+    };
+
+    // Chart configurations
+    const salesChart = {
         series: [
             {
-                name: 'Monthly Revenue',
-                data: stats.performanceData.sales,
+                name: t('cars_added'),
+                data: stats.chartData.sales,
+            },
+            {
+                name: t('deals_closed'),
+                data: stats.chartData.deals,
             },
         ],
         options: {
             chart: {
-                type: 'area',
-                height: 200,
+                height: 325,
+                type: 'area' as const,
+                fontFamily: 'Nunito, sans-serif',
                 zoom: {
                     enabled: false,
                 },
                 toolbar: {
                     show: false,
                 },
-                fontFamily: 'Nunito, sans-serif',
             },
             dataLabels: {
                 enabled: false,
             },
             stroke: {
-                curve: 'smooth',
+                show: true,
+                curve: 'smooth' as const,
                 width: 2,
+                lineCap: 'square' as const,
             },
-            colors: ['#4361ee'],
-            fill: {
-                type: 'gradient',
-                gradient: {
-                    shadeIntensity: 1,
-                    opacityFrom: 0.7,
-                    opacityTo: 0.3,
-                    stops: [0, 90, 100],
+            dropShadow: {
+                enabled: true,
+                opacity: 0.2,
+                blur: 10,
+                left: -7,
+                top: 22,
+            },
+            colors: isDark ? ['#2196F3', '#E7515A'] : ['#1B55E2', '#E7515A'],
+            markers: {
+                discrete: [
+                    {
+                        seriesIndex: 0,
+                        dataPointIndex: 6,
+                        fillColor: '#1B55E2',
+                        strokeColor: 'transparent',
+                        size: 7,
+                    },
+                    {
+                        seriesIndex: 1,
+                        dataPointIndex: 5,
+                        fillColor: '#E7515A',
+                        strokeColor: 'transparent',
+                        size: 7,
+                    },
+                ],
+            },
+            labels: stats.chartData.months,
+            xaxis: {
+                axisBorder: {
+                    show: false,
+                },
+                axisTicks: {
+                    show: false,
+                },
+                crosshairs: {
+                    show: true,
+                },
+                labels: {
+                    offsetX: isRtl ? 2 : 0,
+                    offsetY: 5,
+                    style: {
+                        fontSize: '12px',
+                        cssClass: 'apexcharts-xaxis-title',
+                    },
                 },
             },
+            yaxis: {
+                tickAmount: 7,
+                labels: {
+                    formatter: (value: number) => {
+                        return formatNumber(value);
+                    },
+                    offsetX: isRtl ? -30 : -10,
+                    offsetY: 0,
+                    style: {
+                        fontSize: '12px',
+                        cssClass: 'apexcharts-yaxis-title',
+                    },
+                },
+                opposite: isRtl ? true : false,
+            },
             grid: {
-                borderColor: isDark ? '#191e3a' : '#e0e6ed',
+                borderColor: isDark ? '#191E3A' : '#E0E6ED',
                 strokeDashArray: 5,
+                xaxis: {
+                    lines: {
+                        show: true,
+                    },
+                },
+                yaxis: {
+                    lines: {
+                        show: false,
+                    },
+                },
                 padding: {
                     top: 0,
                     right: 0,
@@ -238,468 +510,466 @@ const HomePage = () => {
                     left: 0,
                 },
             },
-            xaxis: {
-                categories: stats.performanceData.months,
-                axisBorder: {
-                    show: false,
-                },
-                labels: {
-                    style: {
-                        colors: isDark ? '#888ea8' : '#3b3f5c',
-                    },
-                },
-            },
-            yaxis: {
-                opposite: isRtl ? true : false,
-                labels: {
-                    style: {
-                        colors: isDark ? '#888ea8' : '#3b3f5c',
-                    },
-                    formatter: function (value: number) {
-                        return '$' + value.toFixed(0);
-                    },
-                },
-            },
-            tooltip: {
-                x: {
-                    format: 'MMM',
-                },
-            },
             legend: {
-                position: 'top',
-                horizontalAlign: 'right',
-                offsetY: -15,
+                position: 'top' as const,
+                horizontalAlign: 'right' as const,
+                fontSize: '16px',
                 markers: {
                     width: 10,
                     height: 10,
-                    radius: 12,
+                    offsetX: -2,
                 },
                 itemMargin: {
-                    horizontal: 0,
-                    vertical: 20,
+                    horizontal: 10,
+                    vertical: 5,
                 },
-                fontFamily: 'Nunito, sans-serif',
-                fontSize: '13px',
-                labels: {
-                    colors: isDark ? '#bfc9d4' : '#3b3f5c',
+            },
+            tooltip: {
+                marker: {
+                    show: true,
+                },
+                x: {
+                    show: false,
+                },
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    inverseColors: !1,
+                    opacityFrom: isDark ? 0.19 : 0.28,
+                    opacityTo: 0.05,
+                    stops: isDark ? [100, 100] : [45, 100],
                 },
             },
         },
     };
 
-    const getActivityIcon = (type: string) => {
-        switch (type) {
-            case 'order':
-                return <IconShoppingCart className="h-4 w-4" />;
-            case 'user':
-                return <IconUsersGroup className="h-4 w-4" />;
-            case 'product':
-                return <IconBox className="h-4 w-4" />;
-            case 'shop':
-                return <IconStore className="h-4 w-4" />;
-            default:
-                return <IconHorizontalDots className="h-4 w-4" />;
-        }
+    const revenueChart = {
+        series: [
+            {
+                name: t('revenue'),
+                data: stats.chartData.revenue,
+            },
+        ],
+        options: {
+            chart: {
+                height: 300,
+                type: 'line' as const,
+                fontFamily: 'Nunito, sans-serif',
+                toolbar: {
+                    show: false,
+                },
+            },
+            colors: ['#00AB55'],
+            stroke: {
+                curve: 'smooth' as const,
+                width: 2,
+            },
+            xaxis: {
+                categories: stats.chartData.months,
+            },
+            yaxis: {
+                labels: {
+                    formatter: (value: number) => formatCurrency(value),
+                },
+            },
+            tooltip: {
+                y: {
+                    formatter: (value: number) => formatCurrency(value),
+                },
+            },
+        },
     };
 
-    const getActivityColor = (type: string) => {
-        switch (type) {
-            case 'order':
-                return 'success';
-            case 'user':
-                return 'primary';
-            case 'product':
-                return 'warning';
-            case 'shop':
-                return 'info';
-            default:
-                return 'secondary';
-        }
+    const dealTypeChart = {
+        series: Object.values(stats.dealsByType),
+        options: {
+            chart: {
+                height: 300,
+                type: 'donut' as const,
+                fontFamily: 'Almarai, sans-serif',
+            },
+            labels: Object.keys(stats.dealsByType).map((type) => t(`deal_type_${type}`)),
+            colors: ['#4361EE', '#805DCA', '#00AB55', '#E7515A', '#E2A03F', '#2196F3'],
+            responsive: [
+                {
+                    breakpoint: 480,
+                    options: {
+                        chart: {
+                            width: 200,
+                        },
+                        legend: {
+                            position: 'bottom' as const,
+                        },
+                    },
+                },
+            ],
+            stroke: {
+                show: false,
+            },
+            legend: {
+                position: 'bottom' as const,
+            },
+        },
     };
 
-    const getActivityTitle = (item: any) => {
-        switch (item.type) {
-            case 'order':
-                return `${t('new_order_placed')}: $${item.total_amount?.toFixed(2) || '0.00'}`;
-            case 'user':
-                return `${t('new_user_registered')}: ${item.email || t('unknown')}`;
-            case 'product':
-                return `${t('new_product_added')}: ${item.title || t('unknown')}`;
-            case 'shop':
-                return `${t('new_shop_created')}: ${item.shop_name || t('unknown')}`;
-            default:
-                return t('unknown_activity');
-        }
-    };
+    if (stats.loading) {
+        return (
+            <div className="pt-5 max-w-[1500px]">
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('overview_analytics')}</p>
+                    </div>
+                    <div className="flex gap-2 bg-white dark:bg-[#1b2e4b] rounded-lg p-1 border border-gray-200 dark:border-gray-600">
+                        {(['week', 'month', 'year', 'all'] as TimeFilter[]).map((filter) => (
+                            <button
+                                key={filter}
+                                onClick={() => setTimeFilter(filter)}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                                    timeFilter === filter ? 'bg-primary text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                {t(`time_filter_${filter}`)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="space-y-6">
+                    {/* Loading skeleton for summary cards */}
+                    <div className="mb-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                        {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className="panel">
+                                <div className="flex items-center justify-between mb-5">
+                                    <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+                                    <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-12 animate-pulse"></div>
+                                </div>
+                                <div className="mb-5">
+                                    <div className="h-7 bg-gray-400/60 dark:bg-gray-600 rounded w-16 animate-pulse"></div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="h-4 w-4 bg-gray-300/60 dark:bg-gray-700 rounded mr-2 animate-pulse"></div>
+                                    <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
 
-    const getActivityDate = (item: any) => {
-        const date = item.type === 'user' ? new Date(item.registration_date || item.created_at) : new Date(item.created_at);
-        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    };
+                    {/* Loading skeleton for deals by type and quick actions */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                        {/* Deals by type skeleton */}
+                        <div className="panel">
+                            <div className="mb-5">
+                                <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+                            </div>
+                            <div className="flex justify-center">
+                                <div className="h-64 w-64 bg-gray-300/60 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                            </div>
+                        </div>
+
+                        {/* Quick actions skeleton */}
+                        <div className="panel lg:col-span-2">
+                            <div className="mb-5">
+                                <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                                {[1, 2, 3, 4].map((i) => (
+                                    <div key={i} className="flex flex-col items-center rounded-md border border-gray-200 dark:border-gray-600 p-4">
+                                        <div className="h-12 w-12 bg-gray-300/60 dark:bg-gray-700 rounded-lg mb-3 animate-pulse"></div>
+                                        <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-16 mb-2 animate-pulse"></div>
+                                        <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+                                    </div>
+                                ))} 
+                            </div>
+                            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                {[1, 2, 3, 4].map((i) => (
+                                    <div key={i} className="flex items-center rounded-md border border-gray-200 dark:border-gray-600 p-4 gap-2">
+                                        <div className="h-12 w-12 bg-gray-300/60 dark:bg-gray-700 rounded-lg mr-4 animate-pulse"></div>
+                                        <div className="flex-1">
+                                            <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-20 mb-2 animate-pulse"></div>
+                                            <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Loading skeleton for charts */}
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                        {[1, 2].map((i) => (
+                            <div key={i} className="panel">
+                                <div className="mb-5">
+                                    <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-28 animate-pulse"></div>
+                                </div>
+                                <div className="h-64 bg-gray-300/60 dark:bg-gray-700 rounded animate-pulse"></div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <></>
-        // <div>
-        //     <div className="pt-5 max-w-[1600px]">
-        //         {/* Welcome Banner */}
-        //         <div className="mb-6">
-        //             <div className="panel h-full dark:!border-[#191e3a] !bg-gradient-to-r from-blue-500/25 via-sky-500/25 to-cyan-500/25 dark:!bg-gradient-to-r dark:from-blue-500/10 dark:via-sky-500/10 dark:to-cyan-500/10">
-        //                 <div className="flex flex-col sm:flex-row items-start justify-between mb-5">
-        //                     <div>
-        //                         <h5 className="font-semibold text-lg dark:text-white-light">{t('welcome_to_dashboard')}</h5>
-        //                         <p className="text-white-dark mt-1">{t('track_metrics')}</p>
-        //                     </div>
-        //                     <div className="dropdown mt-4 sm:mt-0">
-        //                         <span className="badge bg-primary text-white text-xs rounded-full px-3 py-1.5">
-        //                             {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-        //                         </span>
-        //                     </div>
-        //                 </div>
+        <div>
+            <div className="pt-5 max-w-[1500px]">
+                {/* Time Filter Buttons */}
+                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('overview_analytics')}</p>
+                    </div>
+                    <div className="flex gap-2 bg-white dark:bg-[#1b2e4b] rounded-lg p-1 border border-gray-200 dark:border-gray-600">
+                        {(['week', 'month', 'year', 'all'] as TimeFilter[]).map((filter) => (
+                            <button
+                                key={filter}
+                                onClick={() => setTimeFilter(filter)}
+                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                                    timeFilter === filter ? 'bg-primary text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                {t(`time_filter_${filter}`)}
+                            </button>
+                        ))}
+                    </div>
+                </div>
 
-        //                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        //                     <div className="md:col-span-2">
-        //                         <div className="mb-5">
-        //                             <h4 className="text-2xl font-bold text-gray-600 dark:text-white-dark">{t('business_performance')}</h4>
-        //                             <p className="text-white-dark mt-2">{t('business_growing')}</p>
-        //                         </div>
+                {/* Summary Cards */}
+                <div className="mb-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                    {/* Total Revenue */}
+                    <div className="panel">
+                        <div className="flex items-center justify-between dark:text-white-light">
+                            <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_revenue')}</div>
+                            <div className="dropdown">
+                                <span className={`badge ${stats.revenueGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+                                    {stats.revenueGrowth >= 0 ? '+' : ''}
+                                    {stats.revenueGrowth.toFixed(1)}%
+                                </span>
+                            </div>
+                        </div>
+                        <div className="mt-5 flex items-center">
+                            <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatCurrency(stats.totalRevenue)}</div>
+                        </div>
+                        <div className="mt-5 flex items-center font-semibold">
+                            <IconCash className="h-5 w-5 text-success ltr:mr-2 rtl:ml-2" />
+                            <p className="text-xs text-success">
+                                + {formatCurrency(stats.monthlyRevenue)} {t('this_month')}
+                            </p>
+                        </div>
+                    </div>
 
-        //                         <div className="flex flex-wrap gap-3 mt-5">
-        //                             <Link href="/analytics" className="btn btn-primary">
-        //                                 <IconMenuCharts className="ltr:mr-2 rtl:ml-2" />
-        //                                 {t('analytics')}
-        //                             </Link>
-        //                             <Link href="/products" className="btn btn-outline-primary">
-        //                                 <IconMenuComponents className="ltr:mr-2 rtl:ml-2" />
-        //                                 {t('products')}
-        //                             </Link>
-        //                             <Link href="/orders" className="btn btn-outline-primary">
-        //                                 <IconMenuNotes className="ltr:mr-2 rtl:ml-2" />
-        //                                 {t('orders')}
-        //                             </Link>
-        //                         </div>
+                    {/* Total Cars */}
+                    <div className="panel">
+                        <div className="flex items-center justify-between dark:text-white-light">
+                            <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_cars')}</div>
+                            <div className="dropdown">
+                                <span className={`badge ${stats.carsGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+                                    {stats.carsGrowth >= 0 ? '+' : ''}
+                                    {stats.carsGrowth.toFixed(1)}%
+                                </span>
+                            </div>
+                        </div>
+                        <div className="mt-5 flex items-center">
+                            <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalCars)}</div>
+                        </div>
+                        <div className="mt-5 flex items-center font-semibold">
+                            <IconCar className="h-5 w-5 text-primary ltr:mr-2 rtl:ml-2" />
+                            <p className="text-xs text-primary">{t('total_inventory')}</p>
+                        </div>
+                    </div>
 
-        //                         <div className="absolute bottom-6 left-2 flex flex-wrap justify-start items-center gap-4 pt-5 mt-5 border-t border-white-light dark:border-[#191e3a]">
-        //                             <div className="flex space-x-3">
-        //                                 <div className="flex flex-col items-center justify-center px-4">
-        //                                     <svg className="h-5 w-5 text-success mb-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        //                                         <circle opacity="0.5" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-        //                                         <path d="M8.5 12.5L10.5 14.5L15.5 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        //                                     </svg>
-        //                                     <p className="text-xs font-semibold">{t('system_normal')}</p>
-        //                                 </div>
-        //                                 <div className="flex flex-col items-center justify-center px-4">
-        //                                     <svg className="h-5 w-5 text-info mb-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        //                                         <path d="M12 7V13L15 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        //                                         <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
-        //                                     </svg>
-        //                                     <p className="text-xs font-semibold">
-        //                                         {t('last_update')}: <span className="text-info">{t('today')}</span>
-        //                                     </p>
-        //                                 </div>
-        //                             </div>
-        //                         </div>
-        //                     </div>
-        //                     <div className="relative">
-        //                         <h4 className="text-lg font-semibold dark:text-white-light mb-4">{t('revenue_trend')}</h4>
-        //                         <div className="h-[200px] mb-3">
-        //                             {isMounted && typeof window !== 'undefined' && (
-        //                                 <ReactApexChart series={performanceChartData.series} options={performanceChartData.options} type="area" height={200} />
-        //                             )}
-        //                         </div>
-        //                         <div className="absolute bottom-0 left-0 right-0 text-center text-xs text-gray-500 dark:text-gray-400">{t('performance_last_months')}</div>
-        //                     </div>
-        //                 </div>
-        //             </div>
-        //         </div>
+                    {/* Total Deals */}
+                    <div className="panel">
+                        <div className="flex items-center justify-between dark:text-white-light">
+                            <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_deals')}</div>
+                            <div className="dropdown">
+                                <span className={`badge ${stats.dealsGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+                                    {stats.dealsGrowth >= 0 ? '+' : ''}
+                                    {stats.dealsGrowth.toFixed(1)}%
+                                </span>
+                            </div>
+                        </div>
+                        <div className="mt-5 flex items-center">
+                            <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalDeals)}</div>
+                        </div>
+                        <div className="mt-5 flex items-center font-semibold">
+                            <IconMenuInvoice className="h-5 w-5 text-warning ltr:mr-2 rtl:ml-2" />
+                            <p className="text-xs text-warning">{t('total_transactions')}</p>
+                        </div>
+                    </div>
 
-        //         {/* Stats Cards */}
-        //         <div className="mb-6 grid gap-6">
-        //             {/* First row: Revenue and Users - 2 cards */}
-        //             <div className="grid gap-6 sm:grid-cols-2">
-        //                 {/* Revenue */}
-        //                 <div className="panel !border-0 border-l-4 !border-l-primary bg-primary/10">
-        //                     <div className="flex items-center">
-        //                         <div className="flex-none">
-        //                             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-white">
-        //                                 <IconCash className="h-7 w-7" />
-        //                             </div>
-        //                         </div>
-        //                         <div className="ltr:ml-5 rtl:mr-5 w-full">
-        //                             <div className="flex items-center justify-between">
-        //                                 <h5 className="text-[15px] font-semibold dark:text-white-light">{t('total_revenue')}</h5>
-        //                                 <div className={`badge ${stats.revenueGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-        //                                     {stats.revenueGrowth >= 0 ? '+' : ''}
-        //                                     {stats.revenueGrowth.toFixed(1)}%
-        //                                 </div>
-        //                             </div>
-        //                             <div className="mt-2 flex items-center">
-        //                                 <div className="text-xl font-bold ltr:mr-3 rtl:ml-3 dark:text-white-light">${stats.revenue.toFixed(2)}</div>
-        //                                 <div className="badge bg-primary/30 text-primary dark:bg-primary dark:text-white-light">{t('ytd')}</div>
-        //                             </div>
-        //                             <div className="mt-4 h-1 bg-[#d3d3d3] dark:bg-dark/40">
-        //                                 <div className={`h-full rounded-full bg-gradient-to-r from-[#4361ee] to-[#805dca]`} style={{ width: `${Math.min(100, Math.abs(stats.revenueGrowth))}%` }}></div>
-        //                             </div>
-        //                         </div>
-        //                     </div>
-        //                 </div>
+                    {/* Total Customers */}
+                    <div className="panel">
+                        <div className="flex items-center justify-between dark:text-white-light">
+                            <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_customers')}</div>
+                            <div className="dropdown">
+                                <span className={`badge ${stats.customersGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+                                    {stats.customersGrowth >= 0 ? '+' : ''}
+                                    {stats.customersGrowth.toFixed(1)}%
+                                </span>
+                            </div>
+                        </div>
+                        <div className="mt-5 flex items-center">
+                            <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalCustomers)}</div>
+                        </div>
+                        <div className="mt-5 flex items-center font-semibold">
+                            <IconUsersGroup className="h-5 w-5 text-danger ltr:mr-2 rtl:ml-2" />
+                            <p className="text-xs text-danger">{t('registered_customers')}</p>
+                        </div>
+                    </div>
+                </div>
 
-        //                 {/* Users */}
-        //                 <div className="panel !border-0 border-l-4 !border-l-primary bg-primary/10">
-        //                     <div className="flex items-center">
-        //                         <div className="flex-none">
-        //                             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary text-white">
-        //                                 <IconUsersGroup className="h-7 w-7" />
-        //                             </div>
-        //                         </div>
-        //                         <div className="ltr:ml-5 rtl:mr-5 w-full">
-        //                             <div className="flex items-center justify-between">
-        //                                 <h5 className="text-[15px] font-semibold dark:text-white-light">{t('users')}</h5>
-        //                                 <div className={`badge ${stats.userGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-        //                                     {stats.userGrowth >= 0 ? '+' : ''}
-        //                                     {stats.userGrowth.toFixed(1)}%
-        //                                 </div>
-        //                             </div>
-        //                             <div className="mt-2 flex items-center">
-        //                                 <div className="text-xl font-bold ltr:mr-3 rtl:ml-3 dark:text-white-light">{stats.users}</div>
-        //                                 <div className="badge bg-primary/30 text-primary dark:bg-primary dark:text-white-light">{t('total')}</div>
-        //                             </div>
-        //                             <div className="mt-4 h-1 bg-[#d3d3d3] dark:bg-dark/40">
-        //                                 <div className={`h-full rounded-full bg-gradient-to-r from-[#4361ee] to-[#805dca]`} style={{ width: `${Math.min(100, Math.abs(stats.userGrowth))}%` }}></div>
-        //                             </div>
-        //                         </div>
-        //                     </div>
-        //                 </div>
-        //             </div>
+                {/* Deals by Type & Quick Actions */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 my-6">
+                    {/* Deals by Type */}
+                    <div className="panel">
+                        <div className="mb-5 flex items-center justify-between">
+                            <h5 className="text-lg font-semibold dark:text-white-light">{t('deals_by_type')}</h5>
+                        </div>
+                        <div className="mb-5">
+                            {isMounted && Object.keys(stats.dealsByType).length > 0 && <ReactApexChart options={dealTypeChart.options} series={dealTypeChart.series} type="donut" height={350} />}
+                            {Object.keys(stats.dealsByType).length === 0 && (
+                                <div className="flex h-72 items-center justify-center">
+                                    <div className="text-lg text-gray-500">{t('no_deals_data')}</div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
 
-        //             {/* Second row: Shops, Orders, Products - 3 cards */}
-        //             <div className="grid gap-6 sm:grid-cols-3">
-        //                 {/* Shops */}
-        //                 <div className="panel !border-0 border-l-4 !border-l-success bg-success/10">
-        //                     <div className="flex items-center">
-        //                         <div className="flex-none">
-        //                             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-success text-white">
-        //                                 <IconStore className="h-7 w-7" />
-        //                             </div>
-        //                         </div>
-        //                         <div className="ltr:ml-5 rtl:mr-5 w-full">
-        //                             <div className="flex items-center justify-between">
-        //                                 <h5 className="text-[15px] font-semibold dark:text-white-light">{t('shops')}</h5>
-        //                                 <div className={`badge ${stats.shopGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-        //                                     {stats.shopGrowth >= 0 ? '+' : ''}
-        //                                     {stats.shopGrowth.toFixed(1)}%
-        //                                 </div>
-        //                             </div>
-        //                             <div className="mt-2 flex items-center">
-        //                                 <div className="text-xl font-bold ltr:mr-3 rtl:ml-3 dark:text-white-light">{stats.shops}</div>
-        //                                 <div className="badge bg-success/30 text-success dark:bg-success dark:text-white-light">{t('total')}</div>
-        //                             </div>
-        //                             <div className="mt-4 h-1 bg-[#d3d3d3] dark:bg-dark/40">
-        //                                 <div className={`h-full rounded-full bg-gradient-to-r from-[#1abc9c] to-[#0ead69]`} style={{ width: `${Math.min(100, Math.abs(stats.shopGrowth))}%` }}></div>
-        //                             </div>
-        //                         </div>
-        //                     </div>
-        //                 </div>
+                    {/* Quick Actions */}
+                    <div className="panel lg:col-span-2">
+                        <div className="mb-5 flex items-center justify-between">
+                            <h5 className="text-lg font-semibold dark:text-white-light">{t('quick_actions')}</h5>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {/* Add New Car */}
+                            <Link href="/cars/add" className="group">
+                                <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-primary hover:bg-primary/5 dark:border-[#191e3a] dark:hover:border-primary">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary mb-3">
+                                        <IconPlus className="h-6 w-6" />
+                                    </div>
+                                    <div className="text-center">
+                                        <h6 className="font-semibold text-[#515365] group-hover:text-primary dark:text-white-light text-sm">{t('add_new_car')}</h6>
+                                        <p className="text-xs text-white-dark mt-1">{t('create_new_car')}</p>
+                                    </div>
+                                </div>
+                            </Link>
 
-        //                 {/* Orders */}
-        //                 <div className="panel !border-0 border-l-4 !border-l-danger bg-danger/10">
-        //                     <div className="flex items-center">
-        //                         <div className="flex-none">
-        //                             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-danger text-white">
-        //                                 <IconShoppingCart className="h-7 w-7" />
-        //                             </div>
-        //                         </div>
-        //                         <div className="ltr:ml-5 rtl:mr-5 w-full">
-        //                             <div className="flex items-center justify-between">
-        //                                 <h5 className="text-[15px] font-semibold dark:text-white-light">{t('orders')}</h5>
-        //                                 <div className={`badge ${stats.orderGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-        //                                     {stats.orderGrowth >= 0 ? '+' : ''}
-        //                                     {stats.orderGrowth.toFixed(1)}%
-        //                                 </div>
-        //                             </div>
-        //                             <div className="mt-2 flex items-center">
-        //                                 <div className="text-xl font-bold ltr:mr-3 rtl:ml-3 dark:text-white-light">{stats.orders}</div>
-        //                                 <div className="badge bg-danger/30 text-danger dark:bg-danger dark:text-white-light">{t('total')}</div>
-        //                             </div>
-        //                             <div className="mt-4 h-1 bg-[#d3d3d3] dark:bg-dark/40">
-        //                                 <div className={`h-full rounded-full bg-gradient-to-r from-[#e7515a] to-[#f07178]`} style={{ width: `${Math.min(100, Math.abs(stats.orderGrowth))}%` }}></div>
-        //                             </div>
-        //                         </div>
-        //                     </div>
-        //                 </div>
+                            {/* Add New Deal */}
+                            <Link href="/deals/add" className="group">
+                                <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-warning hover:bg-warning/5 dark:border-[#191e3a] dark:hover:border-warning">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10 text-warning mb-3">
+                                        <IconPlus className="h-6 w-6" />
+                                    </div>
+                                    <div className="text-center">
+                                        <h6 className="font-semibold text-[#515365] group-hover:text-warning dark:text-white-light text-sm">{t('add_new_deal')}</h6>
+                                        <p className="text-xs text-white-dark mt-1">{t('create_new_deal')}</p>
+                                    </div>
+                                </div>
+                            </Link>
 
-        //                 {/* Products */}
-        //                 <div className="panel !border-0 border-l-4 !border-l-warning bg-warning/10">
-        //                     <div className="flex items-center">
-        //                         <div className="flex-none">
-        //                             <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-warning text-white">
-        //                                 <IconBox className="h-7 w-7" />
-        //                             </div>
-        //                         </div>
-        //                         <div className="ltr:ml-5 rtl:mr-5 w-full">
-        //                             <div className="flex items-center justify-between">
-        //                                 <h5 className="text-[15px] font-semibold dark:text-white-light">{t('products')}</h5>
-        //                                 <div className={`badge ${stats.productGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-        //                                     {stats.productGrowth >= 0 ? '+' : ''}
-        //                                     {stats.productGrowth.toFixed(1)}%
-        //                                 </div>
-        //                             </div>
-        //                             <div className="mt-2 flex items-center">
-        //                                 <div className="text-xl font-bold ltr:mr-3 rtl:ml-3 dark:text-white-light">{stats.products}</div>
-        //                                 <div className="badge bg-warning/30 text-warning dark:bg-warning dark:text-white-light">{t('total')}</div>
-        //                             </div>
-        //                             <div className="mt-4 h-1 bg-[#d3d3d3] dark:bg-dark/40">
-        //                                 <div className={`h-full rounded-full bg-gradient-to-r from-[#e2a03f] to-[#ffbd5a]`} style={{ width: `${Math.min(100, Math.abs(stats.productGrowth))}%` }}></div>
-        //                             </div>
-        //                         </div>
-        //                     </div>
-        //                 </div>
-        //             </div>
-        //         </div>
+                            {/* Add New Bill */}
+                            <Link href="/bills/add" className="group">
+                                <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-info hover:bg-info/5 dark:border-[#191e3a] dark:hover:border-info">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-info/10 text-info mb-3">
+                                        <IconPlus className="h-6 w-6" />
+                                    </div>
+                                    <div className="text-center">
+                                        <h6 className="font-semibold text-[#515365] group-hover:text-info dark:text-white-light text-sm">{t('add_new_bill')}</h6>
+                                        <p className="text-xs text-white-dark mt-1">{t('create_new_bill')}</p>
+                                    </div>
+                                </div>
+                            </Link>
 
-        //         {/* Quick Links and Recent Activity */}
-        //         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        //             {/* Quick Links */}
-        //             <div className="panel h-full lg:col-span-1">
-        //                 <div className="mb-5 flex items-center justify-between">
-        //                     <h5 className="text-lg font-semibold dark:text-white-light">{t('quick_links')}</h5>
-        //                 </div>
-        //                 <div className="mb-5 space-y-4">
-        //                     <Link
-        //                         href="/shops"
-        //                         className="flex items-center justify-between p-3 transition-all duration-300 bg-white-light/30 hover:bg-white-light/50 dark:bg-dark dark:hover:bg-dark-light/10 rounded"
-        //                     >
-        //                         <div className="flex items-center">
-        //                             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-success-light dark:bg-success text-success dark:text-success-light">
-        //                                 <IconStore className="h-5 w-5" />
-        //                             </div>
-        //                             <div className="ltr:ml-3 rtl:mr-3">
-        //                                 <h5 className="text-sm font-semibold dark:text-white-light">{t('manage_shops')}</h5>
-        //                             </div>
-        //                         </div>
-        //                         <div className="text-success">
-        //                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        //                                 <path d="M9 5L15 12L9 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        //                             </svg>
-        //                         </div>
-        //                     </Link>
-        //                     <Link
-        //                         href="/products"
-        //                         className="flex items-center justify-between p-3 transition-all duration-300 bg-white-light/30 hover:bg-white-light/50 dark:bg-dark dark:hover:bg-dark-light/10 rounded"
-        //                     >
-        //                         <div className="flex items-center">
-        //                             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-warning-light dark:bg-warning text-warning dark:text-warning-light">
-        //                                 <IconBox className="h-5 w-5" />
-        //                             </div>
-        //                             <div className="ltr:ml-3 rtl:mr-3">
-        //                                 <h5 className="text-sm font-semibold dark:text-white-light">{t('view_products')}</h5>
-        //                             </div>
-        //                         </div>
-        //                         <div className="text-warning">
-        //                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        //                                 <path d="M9 5L15 12L9 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        //                             </svg>
-        //                         </div>
-        //                     </Link>
-        //                     <Link
-        //                         href="/orders"
-        //                         className="flex items-center justify-between p-3 transition-all duration-300 bg-white-light/30 hover:bg-white-light/50 dark:bg-dark dark:hover:bg-dark-light/10 rounded"
-        //                     >
-        //                         <div className="flex items-center">
-        //                             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-danger-light dark:bg-danger text-danger dark:text-danger-light">
-        //                                 <IconShoppingCart className="h-5 w-5" />
-        //                             </div>
-        //                             <div className="ltr:ml-3 rtl:mr-3">
-        //                                 <h5 className="text-sm font-semibold dark:text-white-light">{t('check_orders')}</h5>
-        //                             </div>
-        //                         </div>
-        //                         <div className="text-danger">
-        //                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        //                                 <path d="M9 5L15 12L9 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        //                             </svg>
-        //                         </div>
-        //                     </Link>
-        //                     <Link
-        //                         href="/users"
-        //                         className="flex items-center justify-between p-3 transition-all duration-300 bg-white-light/30 hover:bg-white-light/50 dark:bg-dark dark:hover:bg-dark-light/10 rounded"
-        //                     >
-        //                         <div className="flex items-center">
-        //                             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary-light dark:bg-primary text-primary dark:text-primary-light">
-        //                                 <IconUsersGroup className="h-5 w-5" />
-        //                             </div>
-        //                             <div className="ltr:ml-3 rtl:mr-3">
-        //                                 <h5 className="text-sm font-semibold dark:text-white-light">{t('user_management')}</h5>
-        //                             </div>
-        //                         </div>
-        //                         <div className="text-primary">
-        //                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        //                                 <path d="M9 5L15 12L9 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        //                             </svg>
-        //                         </div>
-        //                     </Link>
-        //                     <Link
-        //                         href="/settings"
-        //                         className="flex items-center justify-between p-3 transition-all duration-300 bg-white-light/30 hover:bg-white-light/50 dark:bg-dark dark:hover:bg-dark-light/10 rounded"
-        //                     >
-        //                         <div className="flex items-center">
-        //                             <div className="flex h-9 w-9 items-center justify-center rounded-md bg-info-light dark:bg-info text-info dark:text-info-light">
-        //                                 <IconSettings className="h-5 w-5" />
-        //                             </div>
-        //                             <div className="ltr:ml-3 rtl:mr-3">
-        //                                 <h5 className="text-sm font-semibold dark:text-white-light">Settings</h5>
-        //                             </div>
-        //                         </div>
-        //                         <div className="text-info">
-        //                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        //                                 <path d="M9 5L15 12L9 19" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        //                             </svg>
-        //                         </div>
-        //                     </Link>
-        //                 </div>
-        //             </div>
+                            {/* Add New Client */}
+                            <Link href="/customers/add" className="group">
+                                <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-success hover:bg-success/5 dark:border-[#191e3a] dark:hover:border-success">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success mb-3">
+                                        <IconPlus className="h-6 w-6" />
+                                    </div>
+                                    <div className="text-center">
+                                        <h6 className="font-semibold text-[#515365] group-hover:text-success dark:text-white-light text-sm">{t('add_new_client')}</h6>
+                                        <p className="text-xs text-white-dark mt-1">{t('create_new_client')}</p>
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
 
-        //             {/* Recent Activity */}
-        //             <div className="panel h-full lg:col-span-2">
-        //                 <div className="mb-5 flex items-center justify-between">
-        //                     <h5 className="text-lg font-semibold dark:text-white-light">{t('recent_activity')}</h5>
-        //                 </div>
+                        {/* Quick Management Links */}
+                        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Link href="/cars" className="group">
+                                <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-primary hover:bg-primary/5 dark:border-[#191e3a] dark:hover:border-primary">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                        <IconCar className="h-6 w-6" />
+                                    </div>
+                                    <div className="ltr:ml-4 rtl:mr-4">
+                                        <h6 className="font-semibold text-[#515365] group-hover:text-primary dark:text-white-light">{t('manage_cars')}</h6>
+                                        <p className="text-xs text-white-dark">{t('add_edit_cars')}</p>
+                                    </div>
+                                </div>
+                            </Link>
 
-        //                 <div className="space-y-7">
-        //                     {stats.loading ? (
-        //                         <div className="flex h-32 items-center justify-center">
-        //                             <div className="text-lg text-gray-500">Loading activity data...</div>
-        //                         </div>
-        //                     ) : stats.recentActivity.length > 0 ? (
-        //                         stats.recentActivity.map((item, index) => {
-        //                             const isLast = index === stats.recentActivity.length - 1;
-        //                             const color = getActivityColor(item.type);
-        //                             return (
-        //                                 <div className="flex" key={`${item.type}-${index}`}>
-        //                                     <div
-        //                                         className={`relative z-10 shrink-0 ${
-        //                                             !isLast ? `before:absolute before:left-4 before:top-10 before:h-[calc(100%-24px)] before:w-[2px] before:bg-white-dark/30` : ''
-        //                                         } ltr:mr-2 rtl:ml-2`}
-        //                                     >
-        //                                         <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-${color} text-white shadow shadow-${color}`}>
-        //                                             {getActivityIcon(item.type)}
-        //                                         </div>
-        //                                     </div>
-        //                                     <div>
-        //                                         <h5 className="font-semibold dark:text-white-light">{getActivityTitle(item)}</h5>
-        //                                         <p className="text-xs text-white-dark">{getActivityDate(item)}</p>
-        //                                     </div>
-        //                                 </div>
-        //                             );
-        //                         })
-        //                     ) : (
-        //                         <div className="flex h-32 items-center justify-center">
-        //                             <div className="text-lg text-gray-500">No recent activity</div>
-        //                         </div>
-        //                     )}
-        //                 </div>
-        //             </div>
-        //         </div>
-        //     </div>
-        // </div>
+                            <Link href="/deals" className="group">
+                                <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-warning hover:bg-warning/5 dark:border-[#191e3a] dark:hover:border-warning">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10 text-warning">
+                                        <IconMenuInvoice className="h-6 w-6" />
+                                    </div>
+                                    <div className="ltr:ml-4 rtl:mr-4">
+                                        <h6 className="font-semibold text-[#515365] group-hover:text-warning dark:text-white-light">{t('manage_deals')}</h6>
+                                        <p className="text-xs text-white-dark">{t('create_track_deals')}</p>
+                                    </div>
+                                </div>
+                            </Link>
+
+                            <Link href="/customers" className="group">
+                                <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-success hover:bg-success/5 dark:border-[#191e3a] dark:hover:border-success">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success">
+                                        <IconUsersGroup className="h-6 w-6" />
+                                    </div>
+                                    <div className="ltr:ml-4 rtl:mr-4">
+                                        <h6 className="font-semibold text-[#515365] group-hover:text-success dark:text-white-light">{t('manage_customers')}</h6>
+                                        <p className="text-xs text-white-dark">{t('view_customer_info')}</p>
+                                    </div>
+                                </div>
+                            </Link>
+
+                            <Link href="/analytics" className="group">
+                                <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-danger hover:bg-danger/5 dark:border-[#191e3a] dark:hover:border-danger">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-danger/10 text-danger">
+                                        <IconEye className="h-6 w-6" />
+                                    </div>
+                                    <div className="ltr:ml-4 rtl:mr-4">
+                                        <h6 className="font-semibold text-[#515365] group-hover:text-danger dark:text-white-light">{t('view_analytics')}</h6>
+                                        <p className="text-xs text-white-dark">{t('detailed_reports')}</p>
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Charts Section */}
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    {/* Sales & Deals Chart */}
+                    <div className="panel">
+                        <div className="mb-5 flex items-center justify-between">
+                            <h5 className="text-lg font-semibold dark:text-white-light">{t('sales_deals_chart')}</h5>
+                        </div>
+                        <div className="mb-5">{isMounted && <ReactApexChart options={salesChart.options} series={salesChart.series} type="area" height={325} />}</div>
+                    </div>
+
+                    {/* Revenue Trend Chart */}
+                    <div className="panel">
+                        <div className="mb-5 flex items-center justify-between">
+                            <h5 className="text-lg font-semibold dark:text-white-light">{t('revenue_trend')}</h5>
+                        </div>
+                        <div className="mb-5">{isMounted && <ReactApexChart options={revenueChart.options} series={revenueChart.series} type="line" height={300} />}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
 
