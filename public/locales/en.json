@@ -76,6 +76,10 @@
     "buyer_name": "Buyer Name",
     "receipt_number": "Receipt Number",
     "invoice_number": "Invoice Number",
+    "car_model_details": "Car Model & Details",
+    "purchase_date": "Purchase Date",
+    "sale_date": "Sale Date",
+    "payment_receipt_type": "Payment Receipt Type",
     "view_related_item": "View Related Item",
     "no_details_available": "No details available",
 
@@ -750,6 +754,7 @@
     "total_with_tax": "Total with Tax",
     "payment_type": "Payment Type",
     "visa": "Visa",
+    "visa_card": "Visa Card",
     "cash": "Cash",
     "bank_transfer": "Bank Transfer",
     "check": "Check",
@@ -957,7 +962,7 @@
     "valid_year_required": "Valid year required",
     "valid_kilometers_required": "Valid kilometers required",
     "valid_price_required": "Valid price required",
-    "provider_required": "Provider required",
+    "provider_required": "Provider is required",
     "enter_market_price": "Enter market price",
     "enter_buy_price": "Enter buy price",
     "enter_sale_price": "Enter sale price",
@@ -973,5 +978,6 @@
     "no_bills_connected": "No bills connected to this deal yet",
     "unknown_customer": "Unknown Customer",
     "bill_number": "Bill Number",
-    "update_deal": "Update Deal"
+    "update_deal": "Update Deal",
+    "no_car_number": "No Car Number"
 }

@@ -43,7 +43,6 @@
     "cards": "البطاقات",
     "carousel": "دائري",
     "countdown": "العد التنازلي",
-    "counter": "عداد",
     "logs": "السجلات",
     "log": "السجل",
     "activity_logs": "سجل الأنشطة",
@@ -72,6 +71,10 @@
     "buyer_name": "اسم المشتري",
     "receipt_number": "رقم الإيصال",
     "invoice_number": "رقم الفاتورة",
+    "car_model_details": "موديل السيارة والتفاصيل",
+    "purchase_date": "تاريخ الشراء",
+    "sale_date": "تاريخ البيع",
+    "payment_receipt_type": "نوع سند القبض",
     "view_related_item": "عرض العنصر المرتبط",
     "no_details_available": "لا توجد تفاصيل متاحة",
     "sweet_alerts": "تنبيهات حلوة",
@@ -1087,7 +1090,7 @@
     "valid_year_required": "مطلوب سنة صحيحة",
     "valid_kilometers_required": "مطلوب عدد كيلومترات صحيح",
     "valid_price_required": "مطلوب سعر صحيح",
-    "provider_required": "المزود مطلوب",
+    "provider_required": "المورد مطلوب",
     "confirm_bulk_deletion": "تأكيد الحذف",
     "bulk_delete_success": "تم حذف العناصر المحددة بنجاح",
     "bulk_delete_error": "حدث خطأ أثناء حذف العناصر المحددة",
@@ -1117,5 +1120,6 @@
     "close": "إغلاق",
     "not_applicable": "-",
     "received_value": "المبلغ المستلم",
-    "details": "التفاصيل"
+    "details": "التفاصيل",
+    "tax_invoice": "فاتورة ضريبية"
 }

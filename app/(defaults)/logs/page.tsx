@@ -85,18 +85,112 @@ const LogsPage = () => {
     }, [sortStatus, initialRecords]);
 
     const formatDate = (dateString: string) => {
+        if (!dateString) return t('not_available');
         const date = new Date(dateString);
         return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
         });
+    };
+
+    const getCarModelDetails = (log: Log) => {
+        if (!log.car) return t('not_available');
+
+        const car = log.car;
+        return (
+            <div className="text-sm">
+                <div className="font-medium">
+                    {car.brand} {car.title}
+                </div>
+                <div className="text-gray-500 dark:text-gray-400">
+                    {car.year} - {car.car_number || t('no_car_number')}
+                </div>
+            </div>
+        );
+    };
+
+    const getPurchaseInfo = (log: Log) => {
+        if (!log.car) return t('not_available');
+
+        const car = log.car;
+        const provider = car.providers || car.provider_details;
+
+        return (
+            <div className="text-sm">
+                <div className="font-medium">{formatDate(car.created_at)}</div>
+                <div className="text-gray-500 dark:text-gray-400">{provider?.name || car.provider || t('not_available')}</div>
+                <div className="text-gray-500 dark:text-gray-400">${car.buy_price?.toLocaleString() || '0'}</div>
+            </div>
+        );
+    };
+
+    const getSaleInfo = (log: Log) => {
+        if (!log.deal) return t('not_available');
+
+        const deal = log.deal;
+        const customer = deal.customer || deal.customers;
+
+        return (
+            <div className="text-sm">
+                <div className="font-medium">{formatDate(deal.created_at)}</div>
+                <div className="text-gray-500 dark:text-gray-400">{customer?.name || deal.customer_name || t('not_available')}</div>
+                <div className="text-gray-500 dark:text-gray-400">${deal.amount?.toLocaleString() || '0'}</div>
+            </div>
+        );
+    };
+
+    const getPaymentReceiptInfo = (log: Log) => {
+        if (!log.bill) return t('not_available');
+
+        const bill = log.bill;
+
+        return (
+            <div className="text-sm">
+                <div className="font-medium">{bill.payment_type ? getLocalizedPaymentType(bill.payment_type) : t('not_available')}</div>
+                <div className="text-gray-500 dark:text-gray-400">${bill.total_with_tax?.toLocaleString() || '0'}</div>
+            </div>
+        );
+    };
+
+    const getInvoiceInfo = (log: Log) => {
+        if (!log.bill) return t('not_available');
+
+        const bill = log.bill;
+
+        return (
+            <div className="text-sm">
+                <div className="font-medium">#{bill.id || t('not_available')}</div>
+                <div className="text-gray-500 dark:text-gray-400">{bill.bill_type ? getLocalizedBillType(bill.bill_type) : t('not_available')}</div>
+                <div className="text-gray-500 dark:text-gray-400">${bill.total_with_tax?.toLocaleString() || '0'}</div>
+            </div>
+        );
     };
 
     const getActivityTypeLabel = (type: string) => {
         return t(type) || type.replace('_', ' ');
+    };
+
+    const getLocalizedDealType = (dealType: string) => {
+        return t(`deal_type_${dealType}`) || dealType.replace('_', ' ');
+    };
+
+    const getLocalizedBillType = (billType: string) => {
+        return t(`bill_type_${billType}`) || billType.replace('_', ' ');
+    };
+
+    const getLocalizedPaymentType = (paymentType: string) => {
+        // Common payment types - use the exact translation keys
+        const paymentTypeMap: { [key: string]: string } = {
+            cash: 'cash',
+            visa: 'visa',
+            bank_transfer: 'bank_transfer',
+            transfer: 'transfer_description',
+            check: 'check',
+        };
+
+        const translationKey = paymentTypeMap[paymentType];
+        return translationKey ? t(translationKey) : t(paymentType) || paymentType.replace('_', ' ');
     };
 
     const getActivityIcon = (type: string) => {
@@ -128,7 +222,7 @@ const LogsPage = () => {
                 <div className="text-sm">
                     <div className="font-medium">{log.deal.title}</div>
                     <div className="text-gray-500 dark:text-gray-400">
-                        {t('deal_type')}: {log.deal.deal_type} | {t('amount')}: {log.deal.amount?.toLocaleString()}
+                        {t('deal_type')}: {log.deal.deal_type ? getLocalizedDealType(log.deal.deal_type) : t('not_available')} | {t('amount')}: {log.deal.amount?.toLocaleString()}
                     </div>
                     {log.deal.customer_name && (
                         <div className="text-gray-500 dark:text-gray-400">
@@ -142,13 +236,13 @@ const LogsPage = () => {
         if (log.bill) {
             return (
                 <div className="text-sm">
-                    <div className="font-medium">{log.bill.bill_type}</div>
+                    <div className="font-medium">{log.bill.bill_type ? getLocalizedBillType(log.bill.bill_type) : t('not_available')}</div>
                     <div className="text-gray-500 dark:text-gray-400">
                         {t('customer')}: {log.bill.customer_name}
                     </div>
                     <div className="text-gray-500 dark:text-gray-400">
                         {t('amount')}: {log.bill.total_with_tax?.toLocaleString()}
-                        {log.bill.payment_type && ` | ${t('payment_type')}: ${log.bill.payment_type}`}
+                        {log.bill.payment_type && ` | ${t('payment_type')}: ${getLocalizedPaymentType(log.bill.payment_type)}`}
                     </div>
                 </div>
             );
@@ -186,16 +280,35 @@ const LogsPage = () => {
                         records={records}
                         columns={[
                             {
-                                accessor: 'id',
-                                title: t('id'),
-                                sortable: true,
-                                render: ({ id }) => <strong className="text-info">#{id}</strong>,
-                            },
-                            {
                                 accessor: 'created_at',
                                 title: t('log_date'),
                                 sortable: true,
                                 render: ({ created_at }) => <div className="text-sm">{formatDate(created_at)}</div>,
+                            },
+                            {
+                                accessor: 'car_details',
+                                title: t('car_model_details'),
+                                render: (log) => getCarModelDetails(log),
+                            },
+                            {
+                                accessor: 'purchase_info',
+                                title: t('purchase_date') + ' / ' + t('provider_name') + ' / ' + t('purchase_price'),
+                                render: (log) => getPurchaseInfo(log),
+                            },
+                            {
+                                accessor: 'sale_info',
+                                title: t('sale_date') + ' / ' + t('buyer_name') + ' / ' + t('sale_price'),
+                                render: (log) => getSaleInfo(log),
+                            },
+                            {
+                                accessor: 'payment_info',
+                                title: t('payment_receipt_type') + ' / ' + t('amount'),
+                                render: (log) => getPaymentReceiptInfo(log),
+                            },
+                            {
+                                accessor: 'invoice_info',
+                                title: t('invoice_number') + ' / ' + t('amount'),
+                                render: (log) => getInvoiceInfo(log),
                             },
                             {
                                 accessor: 'type',
@@ -204,14 +317,9 @@ const LogsPage = () => {
                                 render: ({ type }) => (
                                     <div className="flex items-center gap-2">
                                         {getActivityIcon(type)}
-                                        <span className="font-medium">{getActivityTypeLabel(type)}</span>
+                                        <span className="font-medium text-xs">{getActivityTypeLabel(type)}</span>
                                     </div>
                                 ),
-                            },
-                            {
-                                accessor: 'details',
-                                title: t('details'),
-                                render: (log) => getActivityDetails(log),
                             },
                         ]}
                         totalRecords={initialRecords.length}

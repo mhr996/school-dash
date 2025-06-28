@@ -254,6 +254,14 @@ const EditCar = () => {
             setAlert({ visible: true, message: t('car_status_required'), type: 'danger' });
             return false;
         }
+        if (!form.car_number.trim()) {
+            setAlert({ visible: true, message: t('car_number_required'), type: 'danger' });
+            return false;
+        }
+        if (!form.provider.trim()) {
+            setAlert({ visible: true, message: t('provider_required'), type: 'danger' });
+            return false;
+        }
         if (form.kilometers && parseFloat(form.kilometers) < 0) {
             setAlert({ visible: true, message: t('kilometers_must_be_positive'), type: 'danger' });
             return false;
@@ -616,7 +624,7 @@ const EditCar = () => {
                                 {/* Car Number */}
                                 <div>
                                     <label htmlFor="car_number" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                        {t('car_number')}
+                                        {t('car_number')} <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -626,6 +634,7 @@ const EditCar = () => {
                                         onChange={handleInputChange}
                                         className="form-input"
                                         placeholder={t('enter_car_number')}
+                                        required
                                     />
                                 </div>
                                 {/* Brand */}
@@ -652,7 +661,7 @@ const EditCar = () => {
                                 {/* Provider */}
                                 <div>
                                     <label htmlFor="provider" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                        {t('provider')}
+                                        {t('provider')} <span className="text-red-500">*</span>
                                     </label>
                                     <ProviderSelect defaultValue={form.provider} className="form-input" name="provider" onChange={handleInputChange} />
                                 </div>
