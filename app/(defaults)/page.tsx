@@ -46,6 +46,7 @@ interface DashboardStats {
     totalProviders: number;
     totalRevenue: number;
     monthlyRevenue: number;
+    totalCarsSalePrice: number;
     carsGrowth: number;
     dealsGrowth: number;
     customersGrowth: number;
@@ -78,6 +79,7 @@ const HomePage = () => {
         totalProviders: 0,
         totalRevenue: 0,
         monthlyRevenue: 0,
+        totalCarsSalePrice: 0,
         carsGrowth: 0,
         dealsGrowth: 0,
         customersGrowth: 0,
@@ -259,6 +261,11 @@ const HomePage = () => {
                     previousMonthRevenue = previousRevenueData?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0;
                 }
 
+                // Fetch total cars sale price (all cars regardless of date filter)
+                const { data: carsWithSalePrices } = await supabase.from('cars').select('sale_price').not('sale_price', 'is', null);
+
+                const totalCarsSalePrice = carsWithSalePrices?.reduce((sum, car) => sum + (car.sale_price || 0), 0) || 0;
+
                 // Calculate growth rates
                 const carsGrowth = timeFilter === 'all' ? 0 : calculateGrowth(currentCars || 0, previousCars || 0);
                 const dealsGrowth = timeFilter === 'all' ? 0 : calculateGrowth(currentDeals || 0, previousDeals || 0);
@@ -330,6 +337,7 @@ const HomePage = () => {
                     totalProviders: totalProviders || 0,
                     totalRevenue,
                     monthlyRevenue,
+                    totalCarsSalePrice,
                     carsGrowth,
                     dealsGrowth,
                     customersGrowth,
@@ -680,7 +688,7 @@ const HomePage = () => {
                                         <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-16 mb-2 animate-pulse"></div>
                                         <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
                                     </div>
-                                ))} 
+                                ))}
                             </div>
                             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 {[1, 2, 3, 4].map((i) => (
@@ -773,6 +781,10 @@ const HomePage = () => {
                         </div>
                         <div className="mt-5 flex items-center">
                             <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalCars)}</div>
+                        </div>
+                        <div className="mt-2 mb-2">
+                            <div className="text-lg font-semibold text-success">{formatCurrency(stats.totalCarsSalePrice)}</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{t('total_sale_value')}</div>
                         </div>
                         <div className="mt-5 flex items-center font-semibold">
                             <IconCar className="h-5 w-5 text-primary ltr:mr-2 rtl:ml-2" />

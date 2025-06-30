@@ -40,6 +40,7 @@ interface Car {
     sale_price: number;
     car_number?: string; // Car number field
     desc?: string; // New description field
+    public: boolean; // Public visibility field
     features?: Feature[]; // New features field
     images: string[];
     colors?: Array<{
@@ -76,6 +77,7 @@ const EditCar = () => {
         sale_price: '',
         car_number: '', // Car number field
         desc: '', // New description field
+        public: false, // Public visibility field
     }); // Separate states for thumbnail and gallery images
     const [thumbnailImage, setThumbnailImage] = useState<File | null>(null);
     const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
@@ -117,6 +119,7 @@ const EditCar = () => {
                         sale_price: data.sale_price?.toString() || '',
                         car_number: data.car_number || '', // Car number field
                         desc: data.desc || '', // New description field
+                        public: data.public || false, // Public visibility field
                     }); // Convert relative paths to full URLs for display and keep original paths
                     if (data.images && data.images.length > 0) {
                         setExistingImagePaths(data.images); // Store original relative paths
@@ -465,6 +468,7 @@ const EditCar = () => {
                 sale_price: form.sale_price ? parseFloat(form.sale_price) : 0,
                 car_number: form.car_number.trim() || null, // Car number field
                 desc: form.desc.trim() || null, // New description field
+                public: form.public, // Public visibility field
                 features: features.filter((f) => f.label.trim() && f.value.trim()).map((f) => ({ label: f.label.trim(), value: f.value.trim() })), // New features field
                 images: allImageUrls,
             };
@@ -754,6 +758,24 @@ const EditCar = () => {
                                     {t('car_description')}
                                 </label>
                                 <textarea id="desc" name="desc" value={form.desc} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_description')} rows={4} />
+                            </div>
+
+                            {/* Public Visibility Toggle */}
+                            <div className="mt-5">
+                                <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('public_visibility')}</label>
+                                <div className="flex items-center">
+                                    <label className="w-12 h-6 relative">
+                                        <input
+                                            type="checkbox"
+                                            className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
+                                            checked={form.public}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, public: e.target.checked }))}
+                                        />
+                                        <span className="bg-[#ebedf2] dark:bg-dark block h-full rounded-full before:absolute before:left-1 before:bg-white dark:before:bg-white-dark dark:peer-checked:before:bg-white before:bottom-1 before:w-4 before:h-4 before:rounded-full peer-checked:before:left-7 peer-checked:bg-primary before:transition-all before:duration-300"></span>
+                                    </label>
+                                    <span className="ltr:ml-3 rtl:mr-3 text-sm text-gray-600 dark:text-gray-400">{form.public ? t('car_is_public') : t('car_is_private')}</span>
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('public_visibility_description')}</p>
                             </div>
                             {/* Car Images */}
                             <div className="space-y-6">

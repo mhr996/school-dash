@@ -25,6 +25,7 @@ interface Car {
     kilometers: number;
     provider: string;
     brand: string;
+    public: boolean;
     desc?: string; // New description field
     features?: Array<{ label: string; value: string }>; // New features field
     images: string[];
@@ -198,6 +199,31 @@ const CarsList = () => {
         return new Intl.NumberFormat('en-US').format(value);
     };
 
+    const togglePublicStatus = async (car: Car) => {
+        try {
+            const newPublicStatus = !car.public;
+            const { error } = await supabase.from('cars').update({ public: newPublicStatus }).eq('id', car.id);
+
+            if (error) throw error;
+
+            // Update the local state
+            setItems((prevItems) => prevItems.map((item) => (item.id === car.id ? { ...item, public: newPublicStatus } : item)));
+
+            setAlert({
+                visible: true,
+                message: newPublicStatus ? t('car_made_public') : t('car_made_private'),
+                type: 'success',
+            });
+        } catch (error) {
+            console.error('Error updating car public status:', error);
+            setAlert({
+                visible: true,
+                message: t('error_updating_car_visibility'),
+                type: 'danger',
+            });
+        }
+    };
+
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
             {alert.visible && (
@@ -316,6 +342,25 @@ const CarsList = () => {
                                 title: t('created_date'),
                                 sortable: true,
                                 render: ({ created_at }) => <span>{new Date(created_at).toLocaleDateString()}</span>,
+                            },
+                            {
+                                accessor: 'public',
+                                title: t('public'),
+                                sortable: true,
+                                textAlignment: 'center',
+                                render: (car) => (
+                                    <div className="flex justify-center">
+                                        <label className="w-12 h-6 relative">
+                                            <input
+                                                type="checkbox"
+                                                className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
+                                                checked={car.public || false}
+                                                onChange={() => togglePublicStatus(car)}
+                                            />
+                                            <span className="bg-[#ebedf2] dark:bg-dark block h-full rounded-full before:absolute before:left-1 before:bg-white dark:before:bg-white-dark dark:peer-checked:before:bg-white before:bottom-1 before:w-4 before:h-4 before:rounded-full peer-checked:before:left-7 peer-checked:bg-primary before:transition-all before:duration-300"></span>
+                                        </label>
+                                    </div>
+                                ),
                             },
                             {
                                 accessor: 'action',

@@ -40,6 +40,7 @@ const AddCar = () => {
         sale_price: '',
         car_number: '', // Car number field
         desc: '', // New description field
+        public: false, // Public visibility field with default false
     });
 
     // Separate states for thumbnail and gallery images
@@ -330,6 +331,7 @@ const AddCar = () => {
                 sale_price: form.sale_price ? parseFloat(form.sale_price) : 0,
                 car_number: form.car_number.trim() || null, // Car number field
                 desc: form.desc.trim() || null, // New description field
+                public: form.public, // Public visibility field
                 features: features.filter((f) => f.label.trim() && f.value.trim()).map((f) => ({ label: f.label.trim(), value: f.value.trim() })), // New features field
                 images: [], // Initially empty
                 colors: [], // Initially empty, will be updated after upload
@@ -645,6 +647,24 @@ const AddCar = () => {
                                     {t('car_description')}
                                 </label>
                                 <textarea id="desc" name="desc" value={form.desc} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_description')} rows={4} />
+                            </div>
+
+                            {/* Public Visibility Toggle */}
+                            <div className="mt-5">
+                                <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('public_visibility')}</label>
+                                <div className="flex items-center">
+                                    <label className="w-12 h-6 relative">
+                                        <input
+                                            type="checkbox"
+                                            className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
+                                            checked={form.public}
+                                            onChange={(e) => setForm((prev) => ({ ...prev, public: e.target.checked }))}
+                                        />
+                                        <span className="bg-[#ebedf2] dark:bg-dark block h-full rounded-full before:absolute before:left-1 before:bg-white dark:before:bg-white-dark dark:peer-checked:before:bg-white before:bottom-1 before:w-4 before:h-4 before:rounded-full peer-checked:before:left-7 peer-checked:bg-primary before:transition-all before:duration-300"></span>
+                                    </label>
+                                    <span className="ltr:ml-3 rtl:mr-3 text-sm text-gray-600 dark:text-gray-400">{form.public ? t('car_is_public') : t('car_is_private')}</span>
+                                </div>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('public_visibility_description')}</p>
                             </div>
 
                             {/* Car Images */}
