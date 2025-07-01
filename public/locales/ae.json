@@ -1155,5 +1155,8 @@
     "cars_added": "السيارات المضافة",
     "deals_closed": "الصفقات المغلقة",
     "no_deals_data": "لا توجد بيانات صفقات متاحة",
-    "total_transactions": "إجمالي المعاملات"
+    "total_transactions": "إجمالي المعاملات",
+    "deal_completed_notice": "هذه الصفقة مكتملة ولا يمكن تعديلها أو حذفها. تم إنشاء فاتورة لهذه الصفقة بالفعل.",
+    "deal_completed_no_edit": "لا يمكن تعديل الصفقة المكتملة",
+    "deal_completed_no_delete": "لا يمكن حذف الصفقة المكتملة"
 }

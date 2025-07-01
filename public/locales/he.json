@@ -713,5 +713,8 @@
     "time_filter_week": "השבוע",
     "time_filter_month": "החודש",
     "time_filter_year": "השנה",
-    "time_filter_all": "כל הזמן"
+    "time_filter_all": "כל הזמן",
+    "deal_completed_notice": "עסקה זו הושלמה ולא ניתן לערוך או למחוק אותה. כבר נוצרה חשבונית עבור עסקה זו.",
+    "deal_completed_no_edit": "לא ניתן לערוך עסקה שהושלמה",
+    "deal_completed_no_delete": "לא ניתן למחוק עסקה שהושלמה"
 }

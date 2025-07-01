@@ -1018,5 +1018,8 @@
     "detailed_reports": "Detailed Reports",
     "cars_added": "Cars Added",
     "deals_closed": "Deals Closed",
-    "no_deals_data": "No deals data available"
+    "no_deals_data": "No deals data available",
+    "deal_completed_notice": "This deal has been completed and cannot be edited or deleted. A bill has already been created for this deal.",
+    "deal_completed_no_edit": "Cannot edit completed deal",
+    "deal_completed_no_delete": "Cannot delete completed deal"
 }
