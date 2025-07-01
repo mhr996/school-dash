@@ -719,6 +719,8 @@
     "deal_completed_no_delete": "לא ניתן למחוק עסקה שהושלמה",
     "seller": "מוכר",
     "buyer": "קונה",
+    "no_seller": "אין מוכר",
+    "no_buyer": "אין קונה",
     "seller_required": "מוכר נדרש",
     "buyer_required": "קונה נדרש",
     "deal_participants": "משתתפי העסקה",

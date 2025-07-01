@@ -1030,5 +1030,7 @@
     "deal_completed_no_edit": "Cannot edit completed deal",
     "deal_completed_no_delete": "Cannot delete completed deal",
     "seller": "Seller",
-    "buyer": "Buyer"
+    "buyer": "Buyer",
+    "no_seller": "No Seller",
+    "no_buyer": "No Buyer"
 }

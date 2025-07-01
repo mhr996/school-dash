@@ -1161,6 +1161,8 @@
     "deal_completed_no_delete": "لا يمكن حذف الصفقة المكتملة",
     "seller": "البائع",
     "buyer": "المشتري",
+    "no_seller": "لا يوجد بائع",
+    "no_buyer": "لا يوجد مشتري",
     "seller_required": "البائع مطلوب",
     "buyer_required": "المشتري مطلوب",
     "deal_participants": "أطراف الصفقة",

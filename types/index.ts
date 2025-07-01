@@ -21,11 +21,25 @@ export interface Deal {
     customer_id?: string;
     customer_name?: string;
     car_id?: string;
+    seller_id?: string;
+    buyer_id?: string;
     car_taken_from_client?: string; // For exchange deals - links to the car received from client
     attachments?: DealAttachment[];
 
     // Joined customer data from the customers table
     customers?: {
+        name: string;
+        id_number?: string;
+    };
+
+    // Joined seller data from the customers table (for intermediary deals)
+    seller?: {
+        name: string;
+        id_number?: string;
+    };
+
+    // Joined buyer data from the customers table (for intermediary deals)
+    buyer?: {
         name: string;
         id_number?: string;
     };

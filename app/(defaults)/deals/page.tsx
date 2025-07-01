@@ -49,6 +49,14 @@ const DealsList = () => {
                         customers!deals_customer_id_fkey (
                             name,
                             id_number
+                        ),
+                        seller:customers!deals_seller_id_fkey (
+                            name,
+                            id_number
+                        ),
+                        buyer:customers!deals_buyer_id_fkey (
+                            name,
+                            id_number
                         )
                     `,
                     )
@@ -85,7 +93,11 @@ const DealsList = () => {
                     item.deal_type.toLowerCase().includes(search.toLowerCase()) ||
                     item.status.toLowerCase().includes(search.toLowerCase()) ||
                     (item.customers?.name && item.customers.name.toLowerCase().includes(search.toLowerCase())) ||
-                    (item.customers?.id_number && item.customers.id_number.toLowerCase().includes(search.toLowerCase()))
+                    (item.customers?.id_number && item.customers.id_number.toLowerCase().includes(search.toLowerCase())) ||
+                    (item.seller?.name && item.seller.name.toLowerCase().includes(search.toLowerCase())) ||
+                    (item.seller?.id_number && item.seller.id_number.toLowerCase().includes(search.toLowerCase())) ||
+                    (item.buyer?.name && item.buyer.name.toLowerCase().includes(search.toLowerCase())) ||
+                    (item.buyer?.id_number && item.buyer.id_number.toLowerCase().includes(search.toLowerCase()))
                 );
             }),
         );
@@ -244,11 +256,24 @@ const DealsList = () => {
                             },
                             {
                                 accessor: 'customer_name',
-                                title: 'اسم الزبون',
+                                title: t('customer'),
                                 sortable: true,
-                                render: ({ customers, title }) => (
+                                render: ({ customers, seller, buyer, deal_type, title }) => (
                                     <div>
-                                        <div className="font-semibold">{customers?.name || t('no_customer')}</div>
+                                        {deal_type === 'intermediary' ? (
+                                            <div>
+                                                <div className="font-semibold text-sm">
+                                                    <span className="text-blue-600">{t('seller')}: </span>
+                                                    {seller?.name || t('no_seller')}
+                                                </div>
+                                                <div className="font-semibold text-sm mt-1">
+                                                    <span className="text-green-600">{t('buyer')}: </span>
+                                                    {buyer?.name || t('no_buyer')}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="font-semibold">{customers?.name || t('no_customer')}</div>
+                                        )}
                                         <div className="text-xs text-gray-500 mt-1">{title}</div>
                                     </div>
                                 ),
@@ -257,7 +282,18 @@ const DealsList = () => {
                                 accessor: 'customer_identity',
                                 title: t('id_number'),
                                 sortable: true,
-                                render: ({ customers }) => <div className="text-sm">{customers?.id_number || '-'}</div>,
+                                render: ({ customers, seller, buyer, deal_type }) => (
+                                    <div className="text-sm">
+                                        {deal_type === 'intermediary' ? (
+                                            <div>
+                                                <div className="text-blue-600">{seller?.id_number || '-'}</div>
+                                                <div className="text-green-600 mt-1">{buyer?.id_number || '-'}</div>
+                                            </div>
+                                        ) : (
+                                            customers?.id_number || '-'
+                                        )}
+                                    </div>
+                                ),
                             },
                             {
                                 accessor: 'deal_type',
