@@ -1391,13 +1391,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                 <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                                                     <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>{' '}
                                                                     <div className="text-center">
-                                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(form.amount || '0'))}</span>
+                                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(form.selling_price || '0'))}</span>
                                                                     </div>
                                                                     <div className="text-center">
                                                                         <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                                     </div>
                                                                     <div className="text-center">
-                                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(form.amount || '0'))}</span>
+                                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(parseFloat(form.selling_price || '0'))}</span>
                                                                     </div>
                                                                 </div>
                                                                 {/* Row 4: Loss */}
@@ -1608,25 +1608,49 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         {/* Separator */}
                                                         <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
                                                         {/* Tax Calculations */}
-                                                        <div className="space-y-3">
-                                                            {/* Price Before Tax */}
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                                                <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount - deal?.amount * 0.18 || 0)}</span>
-                                                            </div>
+                                                        {deal.deal_type === 'new_used_sale_tax_inclusive' ? (
+                                                          
+                                                                <div className="space-y-3">
+                                                                    {/* Price Before Tax */}
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.selling_price - deal?.selling_price * 0.18 || 0)}</span>
+                                                                    </div>
 
-                                                            {/* Tax */}
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                                                <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.amount || 0) * 0.18)}</span>
-                                                            </div>
+                                                                    {/* Tax */}
+                                                                    <div className="flex justify-between items-center">
+                                                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.selling_price || 0) * 0.18)}</span>
+                                                                    </div>
 
-                                                            {/* Total Including Tax */}
-                                                            <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
-                                                                <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                                                <span className="text-lg font-bold text-primary">{formatCurrency(deal?.amount || 0)}</span>
+                                                                    {/* Total Including Tax */}
+                                                                    <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                                                        <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                                                        <span className="text-lg font-bold text-primary">{formatCurrency(deal?.selling_price || 0)}</span>
+                                                                    </div>
+                                                                </div>
+                                                          
+                                                        ) : (
+                                                            <div className="space-y-3">
+                                                                {/* Price Before Tax */}
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount - deal?.amount * 0.18 || 0)}</span>
+                                                                </div>
+
+                                                                {/* Tax */}
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.amount || 0) * 0.18)}</span>
+                                                                </div>
+
+                                                                {/* Total Including Tax */}
+                                                                <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                                                    <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                                                    <span className="text-lg font-bold text-primary">{formatCurrency(deal?.amount || 0)}</span>
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}

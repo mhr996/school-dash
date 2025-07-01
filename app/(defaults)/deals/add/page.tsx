@@ -449,16 +449,27 @@ const AddDeal = () => {
                 if (carError) {
                     throw new Error(`Failed to create car record: ${carError.message}`);
                 }
-                const exchangeAmount = selectedCar ? selectedCar.sale_price - parseFloat(exchangeForm.old_car_purchase_price || '0') : 0;
+
+                // Calculate profit for exchange deal:
+                // Profit = New car sale price - New car buy price - Old car purchase price - Loss amount
+                const newCarSalePrice = selectedCar?.sale_price || 0;
+                const newCarBuyPrice = selectedCar?.buy_price || 0;
+                const oldCarPurchasePrice = parseFloat(exchangeForm.old_car_purchase_price || '0');
+                const lossAmount = parseFloat(exchangeForm.loss_amount || '0');
+                const exchangeProfit = newCarSalePrice - newCarBuyPrice -  lossAmount;
+
                 // Note: customer_car_eval_value and additional_customer_amount are for display only
                 // and don't affect the actual deal amount or profit calculation
                 dealData = {
                     ...dealData,
                     title: exchangeForm.title.trim(),
                     description: exchangeForm.notes.trim() || `${t('exchange_deal_description')} ${selectedCar?.title}`,
-                    amount: exchangeAmount,
+                    amount: exchangeProfit, // This is the actual profit from the exchange
                     car_id: selectedCar?.id,
                     car_taken_from_client: newCarData.id, // Link the newly created car
+                    loss_amount: lossAmount || null,
+                    customer_car_eval_value: oldCarPurchasePrice || null,
+                    additional_customer_amount: Math.max(0, newCarSalePrice - oldCarPurchasePrice) || null,
                     notes: exchangeForm.notes.trim(),
                 };
             }

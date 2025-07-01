@@ -16,6 +16,7 @@ export interface Deal {
     title: string;
     description: string;
     amount: number;
+    selling_price: number;
     status: string;
     customer_id?: string;
     customer_name?: string;
