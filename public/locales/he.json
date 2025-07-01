@@ -716,5 +716,16 @@
     "time_filter_all": "כל הזמן",
     "deal_completed_notice": "עסקה זו הושלמה ולא ניתן לערוך או למחוק אותה. כבר נוצרה חשבונית עבור עסקה זו.",
     "deal_completed_no_edit": "לא ניתן לערוך עסקה שהושלמה",
-    "deal_completed_no_delete": "לא ניתן למחוק עסקה שהושלמה"
+    "deal_completed_no_delete": "לא ניתן למחוק עסקה שהושלמה",
+    "seller": "מוכר",
+    "buyer": "קונה",
+    "seller_required": "מוכר נדרש",
+    "buyer_required": "קונה נדרש",
+    "deal_participants": "משתתפי העסקה",
+    "seller_name": "שם המוכר",
+    "seller_phone": "טלפון המוכר",
+    "seller_country": "מדינת המוכר",
+    "buyer_name": "שם הקונה",
+    "buyer_phone": "טלפון הקונה",
+    "buyer_country": "מדינת הקונה"
 }

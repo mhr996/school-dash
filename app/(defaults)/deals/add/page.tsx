@@ -495,9 +495,8 @@ const AddDeal = () => {
                     customer_id: null, // No single customer for intermediary deals
                     // Intermediary specific fields
                     profit_commission: parseFloat(intermediaryForm.profit_commission),
-                    // Note: You may need to add seller_id and buyer_id fields to your database
-                    // seller_id: selectedSeller?.id,
-                    // buyer_id: selectedBuyer?.id,
+                    seller_id: selectedSeller?.id,
+                    buyer_id: selectedBuyer?.id,
                     notes: intermediaryForm.notes.trim(),
                 };
             }

@@ -1158,5 +1158,16 @@
     "total_transactions": "إجمالي المعاملات",
     "deal_completed_notice": "هذه الصفقة مكتملة ولا يمكن تعديلها أو حذفها. تم إنشاء فاتورة لهذه الصفقة بالفعل.",
     "deal_completed_no_edit": "لا يمكن تعديل الصفقة المكتملة",
-    "deal_completed_no_delete": "لا يمكن حذف الصفقة المكتملة"
+    "deal_completed_no_delete": "لا يمكن حذف الصفقة المكتملة",
+    "seller": "البائع",
+    "buyer": "المشتري",
+    "seller_required": "البائع مطلوب",
+    "buyer_required": "المشتري مطلوب",
+    "deal_participants": "أطراف الصفقة",
+    "seller_name": "اسم البائع",
+    "seller_phone": "رقم البائع",
+    "seller_country": "بلد البائع",
+    "buyer_name": "اسم المشتري",
+    "buyer_phone": "رقم المشتري",
+    "buyer_country": "بلد المشتري"
 }

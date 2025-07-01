@@ -833,6 +833,13 @@
     "select_buyer": "Select Buyer",
     "seller_required": "Seller is required",
     "buyer_required": "Buyer is required",
+    "deal_participants": "Deal Participants",
+    "seller_name": "Seller Name",
+    "seller_phone": "Seller Phone",
+    "seller_country": "Seller Country",
+    "buyer_name": "Buyer Name",
+    "buyer_phone": "Buyer Phone",
+    "buyer_country": "Buyer Country",
     "seller_information": "Seller Information",
     "buyer_information": "Buyer Information",
     "commission_details": "Commission Details",
@@ -1021,5 +1028,7 @@
     "no_deals_data": "No deals data available",
     "deal_completed_notice": "This deal has been completed and cannot be edited or deleted. A bill has already been created for this deal.",
     "deal_completed_no_edit": "Cannot edit completed deal",
-    "deal_completed_no_delete": "Cannot delete completed deal"
+    "deal_completed_no_delete": "Cannot delete completed deal",
+    "seller": "Seller",
+    "buyer": "Buyer"
 }
