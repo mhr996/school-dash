@@ -729,6 +729,7 @@
     "seller_country": "מדינת המוכר",
     "buyer_name": "שם הקונה",
     "buyer_phone": "טלפון הקונה",
+<<<<<<< HEAD
     "buyer_country": "מדינת הקונה",
     "filters": "מסננים",
     "clear_filters": "נקה מסננים",
@@ -746,4 +747,7 @@
     "in_inventory": "במלאי",
     "for_sale": "למכירה",
     "used": "משומש"
+=======
+    "buyer_country": "מדינת הקונה"
+>>>>>>> 270b19394ba9300734108aff7327deb9a6fee66a
 }

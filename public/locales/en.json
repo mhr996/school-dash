@@ -1032,6 +1032,7 @@
     "seller": "Seller",
     "buyer": "Buyer",
     "no_seller": "No Seller",
+<<<<<<< HEAD
     "no_buyer": "No Buyer",
     "filters": "Filters",
     "clear_filters": "Clear Filters",
@@ -1046,4 +1047,7 @@
     "received_from_client": "Received from Client",
     "in_inventory": "In Inventory",
     "for_sale": "For Sale"
+=======
+    "no_buyer": "No Buyer"
+>>>>>>> 270b19394ba9300734108aff7327deb9a6fee66a
 }

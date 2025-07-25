@@ -98,7 +98,11 @@
     "pagination": "ترقيم الصفحات",
     "popovers": "بوبوفرز",
     "progress_bar": "شريط التقدم",
+<<<<<<< HEAD
     "search": "ابحث",
+=======
+    "search": "يبحث",
+>>>>>>> 270b19394ba9300734108aff7327deb9a6fee66a
     "tooltips": "تلميحات",
     "treeview": "تريفيو",
     "typography": "الطباعة",
@@ -1163,10 +1167,16 @@
     "buyer": "المشتري",
     "no_seller": "لا يوجد بائع",
     "no_buyer": "لا يوجد مشتري",
+<<<<<<< HEAD
+=======
+    "seller_required": "البائع مطلوب",
+    "buyer_required": "المشتري مطلوب",
+>>>>>>> 270b19394ba9300734108aff7327deb9a6fee66a
     "deal_participants": "أطراف الصفقة",
     "seller_name": "اسم البائع",
     "seller_phone": "رقم البائع",
     "seller_country": "بلد البائع",
+<<<<<<< HEAD
     "buyer_phone": "رقم المشتري",
     "buyer_country": "بلد المشتري",
     "no_car_number": "لا يوجد رقم سيارة",
@@ -1184,4 +1194,9 @@
     "received_from_client": "مستلمة من العميل",
     "in_inventory": "في المخزون",
     "for_sale": "للبيع"
+=======
+    "buyer_name": "اسم المشتري",
+    "buyer_phone": "رقم المشتري",
+    "buyer_country": "بلد المشتري"
+>>>>>>> 270b19394ba9300734108aff7327deb9a6fee66a
 }
