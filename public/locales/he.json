@@ -745,5 +745,6 @@
     "received_from_client": "התקבל מהלקוח",
     "in_inventory": "במלאי",
     "for_sale": "למכירה",
-    "used": "משומש"
+    "used": "משומש",
+    "download_contract": "הורד חוזה"
 }

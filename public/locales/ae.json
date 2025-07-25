@@ -1,4 +1,7 @@
 {
+    "generate_contract": "عرض العقد",
+    "download_contract": "تحميل العقد",
+    "error_generating_contract": "خطأ في عرض العقد",
     "dashboard": "لوحة القيادة",
     "sales": "المبيعات",
     "analytics": "التحليلات",

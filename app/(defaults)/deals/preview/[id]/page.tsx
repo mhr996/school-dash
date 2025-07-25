@@ -19,6 +19,9 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconPaperclip from '@/components/icon/icon-paperclip';
 import { Deal, DealAttachment } from '@/types';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
+import ContractGenerator from '@/components/contracts/contract-generator';
+import { CarContract } from '@/types/contract';
+import IconDocument from '@/components/icon/icon-document';
 
 interface Customer {
     id: string;
@@ -66,6 +69,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const [bills, setBills] = useState<Bill[]>([]);
     const [carImageUrl, setCarImageUrl] = useState<string | null>(null);
     const [carTakenImageUrl, setCarTakenImageUrl] = useState<string | null>(null);
+    const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
     const dealId = params.id;
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -206,6 +210,56 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             default:
                 return <IconInvoice className="w-5 h-5" />;
         }
+    };
+
+    const createContractData = (bill: Bill): CarContract => {
+        if (!deal || !customer || !car) throw new Error('Missing required data');
+
+        return {
+            dealType: deal.deal_type === 'exchange' ? 'trade-in' : 'normal',
+            dealDate: new Date(deal.created_at).toISOString().split('T')[0],
+
+            // Provider info would come from your app settings
+            sellerName: t('company_name'),
+            sellerTaxNumber: t('company_tax_number'),
+            sellerAddress: t('company_address'),
+            sellerPhone: t('company_phone'),
+
+            // Customer info
+            buyerName: customer.name,
+            buyerId: customer.id,
+            buyerAddress: customer.country || '',
+            buyerPhone: customer.phone,
+
+            // Car info
+            carType: car.type || '',
+            carMake: car.brand,
+            carModel: car.title,
+            carYear: car.year,
+            carPlateNumber: car.car_number || '',
+            carVin: '', // Would need to be added to car data
+            carEngineNumber: '', // Would need to be added to car data
+            carKilometers: car.kilometers,
+
+            // Trade-in car info if applicable
+            ...(carTakenFromClient && {
+                tradeInCar: {
+                    type: carTakenFromClient.type || '',
+                    plateNumber: carTakenFromClient.car_number || '',
+                    year: carTakenFromClient.year,
+                    estimatedValue: carTakenFromClient.buy_price,
+                },
+            }),
+
+            // Payment info
+            totalAmount: bill.total_with_tax || bill.total,
+            paymentMethod: 'other',
+            paidAmount: bill.total_with_tax || bill.total,
+            remainingAmount: 0,
+
+            // Standard terms
+            ownershipTransferDays: 30,
+        };
     };
 
     if (loading) {
@@ -591,11 +645,13 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right flex flex-col gap-2">
                                         <div className="font-bold text-gray-900 dark:text-white text-lg">{formatCurrency(bill.total_with_tax || bill.total || 0)}</div>
-                                        <Link href={`/bills/preview/${bill.id}`} className="text-primary hover:underline text-sm">
-                                            {t('view_bill')}
-                                        </Link>
+                                        <div className="flex gap-2 justify-end">
+                                            <Link href={`/bills/preview/${bill.id}`} className="text-primary hover:underline text-sm">
+                                                {t('view_bill')}
+                                            </Link>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -625,12 +681,47 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                             <IconEdit className="w-4 h-4" />
                             {t('edit_deal')}
                         </Link>
+                        {bills.length > 0 && (
+                            <button className="btn btn-outline-info gap-2" onClick={() => setSelectedBill(bills[0])}>
+                                <IconDocument className="w-4 h-4" />
+                                {t('generate_contract')}
+                            </button>
+                        )}
                         <Link href="/deals" className="btn btn-outline-secondary">
                             {t('back_to_deals')}
                         </Link>
                     </div>
                 </div>
             </div>
+            {/* Contract Generator Modal */}
+            {selectedBill && (
+                <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+                        <div className="flex justify-between items-center p-4 border-b">
+                            <h3 className="text-lg font-bold">{t('generate_contract')}</h3>
+                            <button onClick={() => setSelectedBill(null)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div className="p-4">
+                            <ContractGenerator
+                                contract={createContractData(selectedBill)}
+                                onGenerateEnd={() => setSelectedBill(null)}
+                                onError={(error) => {
+                                    console.error('Error generating contract:', error);
+                                    setAlert({
+                                        visible: true,
+                                        message: t('error_generating_contract'),
+                                        type: 'danger',
+                                    });
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

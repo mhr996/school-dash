@@ -1,4 +1,6 @@
 {
+    "generate_contract": "Generate Contract",
+    "error_generating_contract": "Error generating contract",
     "dashboard": "Dashboard",
     "sales": "Sales",
     "home": "Home",
@@ -1045,5 +1047,6 @@
     "date_to": "Date To",
     "received_from_client": "Received from Client",
     "in_inventory": "In Inventory",
-    "for_sale": "For Sale"
+    "for_sale": "For Sale",
+    "download_contract": "Download Contract"
 }

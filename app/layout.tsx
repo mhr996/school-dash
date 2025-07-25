@@ -1,6 +1,7 @@
 import ProviderComponent from '@/components/layouts/provider-component';
 import 'react-perfect-scrollbar/dist/css/styles.css';
 import '../styles/tailwind.css';
+import '../styles/print.css';
 import { Metadata } from 'next';
 import { Almarai } from 'next/font/google';
 

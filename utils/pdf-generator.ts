@@ -28,6 +28,15 @@ export const generatePDFFromElement = async (elementId: string, options: PDFOpti
         element.style.display = 'block';
         element.style.visibility = 'visible';
 
+        // Apply print styles before generating canvas
+        const printStyle = document.createElement('style');
+        printStyle.textContent = `
+            #${elementId} input[type="checkbox"] {
+                margin-top: 25px !important;
+            }
+        `;
+        element.appendChild(printStyle);
+
         // Generate canvas from HTML element
         const canvas = await html2canvas(element, {
             scale: 2, // Higher scale for better quality
@@ -38,6 +47,9 @@ export const generatePDFFromElement = async (elementId: string, options: PDFOpti
             imageTimeout: 0,
             logging: false,
         });
+
+        // Remove the temporary style
+        element.removeChild(printStyle);
 
         // Restore original display properties
         element.style.display = originalDisplay;
