@@ -68,18 +68,14 @@ const ArabicContractTemplate: React.FC<ContractTemplateProps> = ({ contract }) =
             <div className="mb-8">
                 <h2 className="font-bold mb-4">2. طبيعة الصفقة</h2>
                 <p>
-                    <label>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px'}}>
-                            <input type="checkbox" checked={contract.dealType === 'normal'} readOnly /> بيع عادي
-                        </span>
-                    </label>
-                </p>
-                <p>
-                    <label>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px'}}>
-                            <input type="checkbox" checked={contract.dealType === 'trade-in'} readOnly /> صفقة استبدال (تريد إن)
-                        </span>
-                    </label>
+                    {contract.dealType === 'normal' ? 'بيع عادي' :
+                     contract.dealType === 'trade-in' ? 'صفقة استبدال' :
+                     contract.dealType === 'intermediary' ? 'وساطة' :
+                     contract.dealType === 'new_used_sale' ? 'بيع مركبة مستعملة' :
+                     contract.dealType === 'new_used_sale_tax_inclusive' ? 'بيع مركبة مستعملة (شامل الضريبة)' :
+                     contract.dealType === 'financing_assistance_intermediary' ? 'وساطة تمويل' :
+                     contract.dealType === 'company_commission' ? 'عمولة شركة' :
+                     'بيع عادي'}
                 </p>
 
                 {contract.dealType === 'trade-in' && contract.tradeInCar && (
@@ -99,37 +95,12 @@ const ArabicContractTemplate: React.FC<ContractTemplateProps> = ({ contract }) =
                 <p className="font-bold my-2">{formatCurrency(contract.totalAmount)}</p>
 
                 <div className="mt-4">
-                    <p>طريقة الدفع:</p>
-                    <p>
-                        <label>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px'}}>
-                                <input type="checkbox" checked={contract.paymentMethod === 'cash'} readOnly /> نقدًا
-                            </span>
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px'}}>
-                                <input type="checkbox" checked={contract.paymentMethod === 'bank_transfer'} readOnly /> تحويل بنكي
-                            </span>
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px'}}>
-                                <input type="checkbox" checked={contract.paymentMethod === 'check'} readOnly /> شيك/شيكات
-                            </span>
-                            {contract.paymentMethod === 'check' && contract.paymentDetails && <span> – أرقام الشيكات: {contract.paymentDetails}</span>}
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px'}}>
-                                <input type="checkbox" checked={contract.paymentMethod === 'other'} readOnly /> أخرى:
-                            </span>
-                            {contract.paymentMethod === 'other' && contract.paymentDetails && <span> {contract.paymentDetails}</span>}
-                        </label>
-                    </p>
+                    <p>طريقة الدفع: {
+                        contract.paymentMethod === 'cash' ? 'نقدًا' :
+                        contract.paymentMethod === 'bank_transfer' ? 'تحويل بنكي' :
+                        contract.paymentMethod === 'check' ? `شيك/شيكات${contract.paymentDetails ? ` – أرقام الشيكات: ${contract.paymentDetails}` : ''}` :
+                        contract.paymentMethod === 'other' ? `أخرى${contract.paymentDetails ? `: ${contract.paymentDetails}` : ''}` : ''
+                    }</p>
                 </div>
 
                 <div className="mt-4">

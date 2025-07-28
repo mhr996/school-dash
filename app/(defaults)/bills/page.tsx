@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
+import Cookies from 'universal-cookie';
 import { sortBy } from 'lodash';
 import { DataTable, DataTableSortStatus, DataTableColumn } from 'mantine-datatable';
 import IconPlus from '@/components/icon/icon-plus';
@@ -16,7 +17,7 @@ import { generateBillPDF } from '@/utils/pdf-generator';
 import { logActivity } from '@/utils/activity-logger';
 
 interface Bill {
-    id: string;
+    id: string; 
     deal_id: string;
     bill_type: string;
     customer_name: string;
@@ -261,8 +262,13 @@ const Bills = () => {
     const handleDownloadPDF = async (bill: Bill) => {
         setDownloadingPDF(bill.id);
         try {
+            const cookies = new Cookies();
+            const currentLang = cookies.get('i18nextLng') || 'he';
+            const language = currentLang === 'ae' ? 'ar' : currentLang === 'he' ? 'he' : 'en';
+            
             await generateBillPDF(bill, {
                 filename: `bill-${bill.id}-${bill.customer_name.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+                language,
             });
         } catch (error) {
             console.error('Error generating PDF:', error);

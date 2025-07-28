@@ -58,11 +58,10 @@ const AddBill = () => {
     const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
-    // Billing form state
+    // Billing form state matching database schema exactly
     const [billForm, setBillForm] = useState({
         bill_type: '',
         status: 'pending',
-        // Invoice fields
         customer_name: '',
         phone: '',
         date: new Date().toISOString().split('T')[0],
@@ -73,16 +72,16 @@ const AddBill = () => {
         total: '',
         tax_amount: '',
         total_with_tax: '',
-        // Receipt fields
         payment_type: '',
+        // Visa payment fields
         visa_amount: '',
         visa_installments: '',
         visa_card_type: '',
         visa_last_four: '',
+        // Bank transfer fields
         bank_amount: '',
         bank_name: '',
         bank_branch: '',
-        approval_number: '',
         account_number: '',
         transfer_number: '',
         transfer_holder_name: '',
@@ -91,6 +90,7 @@ const AddBill = () => {
         transfer_branch: '',
         transfer_account_number: '',
         transfer_branch_number: '',
+        // Check fields
         check_amount: '',
         check_bank_name: '',
         check_branch_number: '',
@@ -100,6 +100,8 @@ const AddBill = () => {
         check_branch: '',
         // Cash fields
         cash_amount: '',
+        // Approval number (common for various payment types)
+        approval_number: '',
     });
     useEffect(() => {
         fetchDeals();
@@ -806,53 +808,9 @@ const AddBill = () => {
                             {billForm.payment_type === 'bank_transfer' && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_amount')}</label>
-                                        <input
-                                            name="bank_amount"
-                                            type="number"
-                                            step="0.01"
-                                            value={billForm.bank_amount}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('bank_amount')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_name')}</label>
-                                        <input name="bank_name" value={billForm.bank_name} onChange={handleFormChange} className="form-input" placeholder={t('bank_name')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_branch')}</label>
-                                        <input name="bank_branch" value={billForm.bank_branch} onChange={handleFormChange} className="form-input" placeholder={t('bank_branch')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('approval_number')}</label>
-                                        <input name="approval_number" value={billForm.approval_number} onChange={handleFormChange} className="form-input" placeholder={t('approval_number')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('account_number')}</label>
-                                        <input name="account_number" value={billForm.account_number} onChange={handleFormChange} className="form-input" placeholder={t('account_number')} />
-                                    </div>
-                                </>
-                            )}
-                            {billForm.payment_type === 'transfer' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_number')}</label>
-                                        <input name="transfer_number" value={billForm.transfer_number} onChange={handleFormChange} className="form-input" placeholder={t('transfer_number')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_holder_name')}</label>
-                                        <input
-                                            name="transfer_holder_name"
-                                            value={billForm.transfer_holder_name}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('transfer_holder_name')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_amount')}</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {t('transfer_amount')}
+                                        </label>
                                         <input
                                             name="transfer_amount"
                                             type="number"
@@ -860,35 +818,67 @@ const AddBill = () => {
                                             value={billForm.transfer_amount}
                                             onChange={handleFormChange}
                                             className="form-input"
-                                            placeholder={t('transfer_amount')}
+                                            placeholder={t('transfer_amount_placeholder')}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_bank_name')}</label>
-                                        <input name="transfer_bank_name" value={billForm.transfer_bank_name} onChange={handleFormChange} className="form-input" placeholder={t('transfer_bank_name')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_branch')}</label>
-                                        <input name="transfer_branch" value={billForm.transfer_branch} onChange={handleFormChange} className="form-input" placeholder={t('transfer_branch')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_account_number')}</label>
-                                        <input
-                                            name="transfer_account_number"
-                                            value={billForm.transfer_account_number}
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {t('transfer_bank_name')}
+                                        </label>
+                                        <input 
+                                            name="transfer_bank_name"
+                                            value={billForm.transfer_bank_name}
                                             onChange={handleFormChange}
                                             className="form-input"
-                                            placeholder={t('transfer_account_number')}
+                                            placeholder={t('transfer_bank_name_placeholder')}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_branch_number')}</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {t('transfer_branch_number')}
+                                        </label>
                                         <input
                                             name="transfer_branch_number"
                                             value={billForm.transfer_branch_number}
                                             onChange={handleFormChange}
                                             className="form-input"
-                                            placeholder={t('transfer_branch_number')}
+                                            placeholder={t('transfer_branch_number_placeholder')}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {t('transfer_account_number')}
+                                        </label>
+                                        <input
+                                            name="transfer_account_number"
+                                            value={billForm.transfer_account_number}
+                                            onChange={handleFormChange}
+                                            className="form-input"
+                                            placeholder={t('transfer_account_number_placeholder')}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {t('transfer_number')}
+                                        </label>
+                                        <input
+                                            name="transfer_number"
+                                            value={billForm.transfer_number}
+                                            onChange={handleFormChange}
+                                            className="form-input"
+                                            placeholder={t('transfer_number_placeholder')}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            {t('transfer_holder_name')}
+                                        </label>
+                                        <input
+                                            name="transfer_holder_name"
+                                            value={billForm.transfer_holder_name}
+                                            onChange={handleFormChange}
+                                            className="form-input"
+                                            placeholder={t('transfer_holder_name_placeholder')}
                                         />
                                     </div>
                                 </>

@@ -65,18 +65,14 @@ const HebrewContractTemplate: React.FC<ContractTemplateProps> = ({ contract }) =
             <div className="mb-8">
                 <h2 className="font-bold mb-4">2. מהות העסקה</h2>
                 <p>
-                    <label>
-                        <span style={{ display: 'flex', alignItems: "center", gap: '5px', }}>
-                            <input type="checkbox" checked={contract.dealType === 'normal'} readOnly /> מכירה רגילה
-                        </span>
-                    </label>
-                </p>
-                <p>
-                    <label>
-                        <span style={{ display: 'flex', alignItems: "center", gap: '5px', }}>
-                            <input type="checkbox" checked={contract.dealType === 'trade-in'} readOnly /> עסקת טרייד אין / החלפה
-                        </span>
-                    </label>
+                    {contract.dealType === 'normal' ? 'מכירה רגילה' :
+                     contract.dealType === 'trade-in' ? 'עסקת טרייד אין / החלפה' :
+                     contract.dealType === 'intermediary' ? 'תיווך' :
+                     contract.dealType === 'new_used_sale' ? 'מכירת רכב משומש' :
+                     contract.dealType === 'new_used_sale_tax_inclusive' ? 'מכירת רכב משומש (כולל מע"מ)' :
+                     contract.dealType === 'financing_assistance_intermediary' ? 'תיווך מימון' :
+                     contract.dealType === 'company_commission' ? 'עמלת חברה' :
+                     'מכירה רגילה'}
                 </p>
 
                 {contract.dealType === 'trade-in' && contract.tradeInCar && (
@@ -96,37 +92,12 @@ const HebrewContractTemplate: React.FC<ContractTemplateProps> = ({ contract }) =
                 <p className="font-bold my-2">{formatCurrency(contract.totalAmount)}</p>
 
                 <div className="mt-4">
-                    <p>צורת התשלום:</p>
-                    <p>
-                        <label>
-                            <span style={{ display: 'flex', alignItems: "center", gap: '5px', }}>
-                                <input type="checkbox" checked={contract.paymentMethod === 'cash'} readOnly /> מזומן
-                            </span>
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            <span style={{ display: 'flex', alignItems: "center", gap: '5px', }}>
-                                <input type="checkbox" checked={contract.paymentMethod === 'bank_transfer'} readOnly /> העברה בנקאית
-                            </span>
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            <span style={{ display: 'flex', alignItems: "center", gap: '5px', }}>
-                                <input type="checkbox" checked={contract.paymentMethod === 'check'} readOnly /> צ'ק/ים
-                            </span>
-                            {contract.paymentMethod === 'check' && contract.paymentDetails && <span> – מספרי הצ'קים: {contract.paymentDetails}</span>}
-                        </label>
-                    </p>
-                    <p>
-                        <label>
-                            <span style={{ display: 'flex', alignItems: "center", gap: '5px', }}>
-                                <input type="checkbox" checked={contract.paymentMethod === 'other'} readOnly /> אחר:
-                            </span>
-                            {contract.paymentMethod === 'other' && contract.paymentDetails && <span> {contract.paymentDetails}</span>}
-                        </label>
-                    </p>
+                    <p>צורת התשלום: {
+                        contract.paymentMethod === 'cash' ? 'מזומן' :
+                        contract.paymentMethod === 'bank_transfer' ? 'העברה בנקאית' :
+                        contract.paymentMethod === 'check' ? `צ'ק/ים${contract.paymentDetails ? ` – מספרי הצ'קים: ${contract.paymentDetails}` : ''}` :
+                        contract.paymentMethod === 'other' ? `אחר${contract.paymentDetails ? `: ${contract.paymentDetails}` : ''}` : ''
+                    }</p>
                 </div>
 
                 <div className="mt-4">

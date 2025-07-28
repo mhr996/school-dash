@@ -30,7 +30,7 @@ interface Deal {
         car_number?: string;
         buy_price?: number;
         sale_price?: number;
-    };
+    };  
 }
 
 interface Bill {
