@@ -708,25 +708,20 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                             return null;
                                         };
                                         let lang = getCookie('i18nextLng') || 'ar';
-                                        console.log('Current language from cookie:', lang);
                                         let ContractTemplate;
 
                                         // Normalize language code
                                         const normalizedLang = lang.toLowerCase().split('-')[0];
-                                        console.log('Normalized language:', normalizedLang);
 
                                         // Load template based on normalized language
                                         try {
                                             if (normalizedLang === 'ar') {
-                                                console.log('Loading Arabic template...');
                                                 ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
-                                                console.log('Arabic template loaded successfully');
                                             } else if (normalizedLang === 'he') {
                                                 ContractTemplate = (await import('@/components/contracts/hebrew-contract-template')).default;
                                             } else if (normalizedLang === 'en') {
                                                 ContractTemplate = (await import('@/components/contracts/english-contract-template')).default;
                                             } else {
-                                                console.log('Unrecognized language, defaulting to Arabic');
                                                 ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
                                             }
                                         } catch (error) {
@@ -734,7 +729,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                             throw error;
                                         }
                                         const root = reactDomClient.createRoot(container);
-                                        console.log('Rendering template...');
                                         root.render(React.createElement(ContractTemplate, { contract: contractData }));
 
                                         // Wait longer for Arabic text rendering
@@ -745,19 +739,28 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                             throw new Error('Template failed to render');
                                         }
 
-                                        console.log('Template rendered, generating canvas...');
                                         const canvas = await html2canvas.default(container, {
-                                            scale: 2,
+                                            scale: 1.5,
                                             logging: true,
                                             useCORS: true,
+                                            windowWidth: 1024, // Set a fixed width for consistent rendering
                                         });
                                         const imgData = canvas.toDataURL('image/png');
                                         const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
                                         const pageWidth = pdf.internal.pageSize.getWidth();
                                         const pageHeight = pdf.internal.pageSize.getHeight();
-                                        const imgWidth = pageWidth;
-                                        const imgHeight = (canvas.height * pageWidth) / canvas.width;
-                                        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+                                        // Calculate scaling to fit content on one page
+                                        const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+
+                                        const imgWidth = canvas.width * scale;
+                                        const imgHeight = canvas.height * scale;
+
+                                        // Center the image on the page
+                                        const x = (pageWidth - imgWidth) / 2;
+                                        const y = (pageHeight - imgHeight) / 2;
+
+                                        pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
                                         const filename = `car-contract-${contractData.carPlateNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
                                         const pdfBlob = pdf.output('blob');
                                         const pdfUrl = URL.createObjectURL(pdfBlob);
