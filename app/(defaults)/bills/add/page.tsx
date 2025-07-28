@@ -239,7 +239,7 @@ const AddBill = () => {
                 account_number: billForm.account_number || null,
                 transfer_number: billForm.transfer_number || null,
                 transfer_holder_name: billForm.transfer_holder_name || null,
-                transfer_amount: parseFloat(billForm.transfer_amount) || null,
+                transfer_amount: parseFloat(billForm.bank_amount) || null,
                 transfer_bank_name: billForm.transfer_bank_name || null,
                 transfer_branch: billForm.transfer_branch || null,
                 transfer_account_number: billForm.transfer_account_number || null,
