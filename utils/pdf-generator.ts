@@ -35,8 +35,99 @@ export const generatePDFFromElement = async (elementId: string, options: PDFOpti
             #${elementId} input[type="checkbox"] {
                 margin-top: 25px !important;
             }
+            .pdf-header {
+                width: 100%;
+                padding: 32px 40px;
+                margin-bottom: 40px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 2px solid #eaeaea;
+            }
+            .pdf-header-left {
+                display: flex;
+                align-items: center;
+                gap: 24px;
+            }
+            .pdf-header img {
+                width: 150px;
+                height: auto;
+                object-fit: contain;
+                margin-top: 14px;
+            }
+            .pdf-header-content {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .pdf-header-title {
+                font-size: 28px;
+                font-weight: bold;
+                margin: 0;
+                color: #1a1a1a;
+            }
+            .pdf-header-subtitle {
+                font-size: 14px;
+                color: #666666;
+                margin: 0;
+            }
+            .pdf-header-date {
+                font-size: 14px;
+                color: #666666;
+                text-align: right;
+            }
         `;
         element.appendChild(printStyle);
+
+        // Add logo and title to the header if it doesn't exist
+        if (!element.querySelector('.pdf-header')) {
+            const header = document.createElement('div');
+            header.className = 'pdf-header';
+
+            // Left section with logo and titles
+            const leftSection = document.createElement('div');
+            leftSection.className = 'pdf-header-left';
+
+            const logo = document.createElement('img');
+            logo.src = '/assets/images/logo.png';
+            logo.alt = 'Company Logo';
+            leftSection.appendChild(logo);
+
+            const contentSection = document.createElement('div');
+            contentSection.className = 'pdf-header-content';
+
+            const title = document.createElement('h1');
+            title.className = 'pdf-header-title';
+            title.textContent = element.querySelector('h1')?.textContent || 'Invoice';
+            contentSection.appendChild(title);
+
+            const subtitle = document.createElement('p');
+            subtitle.className = 'pdf-header-subtitle';
+            subtitle.textContent = 'Car Dealership Management';
+            contentSection.appendChild(subtitle);
+
+            leftSection.appendChild(contentSection);
+            header.appendChild(leftSection);
+
+            // Right section with date
+            const dateSection = document.createElement('div');
+            dateSection.className = 'pdf-header-date';
+            const currentDate = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+            });
+            dateSection.textContent = currentDate;
+            header.appendChild(dateSection);
+
+            element.insertBefore(header, element.firstChild);
+
+            // Remove the original title if it exists
+            const originalTitle = element.querySelector('h1:not(.pdf-header-title)');
+            if (originalTitle) {
+                originalTitle.remove();
+            }
+        }
 
         // Generate canvas from HTML element
         const canvas = await html2canvas(element, {
@@ -216,9 +307,9 @@ export const generateOrderReceiptPDF = async (orderData: any, options: PDFOption
  * @returns Promise<void>
  */
 export const generateBillPDF = async (billData: any, options: PDFOptions = {}): Promise<void> => {
-    const { 
+    const {
         filename = `bill-${billData.id}.pdf`,
-        language = 'he' // Default to Hebrew if not specified
+        language = 'he', // Default to Hebrew if not specified
     } = options;
 
     try {
@@ -279,7 +370,7 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                 payment_bank_transfer: 'تحويل بنكي',
                 payment_check: 'شيك',
                 payment_visa: 'فيزا',
-                payment_other: 'أخرى'
+                payment_other: 'أخرى',
             },
             he: {
                 documentInfo: 'פרטי המסמך',
@@ -318,7 +409,7 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                 payment_bank_transfer: 'העברה בנקאית',
                 payment_check: "צ'ק",
                 payment_visa: 'ויזה',
-                payment_other: 'אחר'
+                payment_other: 'אחר',
             },
             en: {
                 documentInfo: 'Document Information',
@@ -357,16 +448,15 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                 payment_bank_transfer: 'Bank Transfer',
                 payment_check: 'Check',
                 payment_visa: 'Visa',
-                payment_other: 'Other'
-            }
+                payment_other: 'Other',
+            },
         };
 
         const t = (key: string) => translations[language]?.[key] || translations.en[key];
 
         const formatDate = (dateString: string) => {
             if (!dateString) return t('notAvailable');
-            const locale = language === 'ar' ? 'ar-EG' :
-                          language === 'he' ? 'he-IL' : 'en-US';
+            const locale = language === 'ar' ? 'ar-EG' : language === 'he' ? 'he-IL' : 'en-US';
             const date = new Date(dateString).toLocaleDateString(locale, {
                 year: 'numeric',
                 month: 'long',
@@ -383,7 +473,7 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                 style: 'currency',
                 currency: 'ILS',
                 maximumFractionDigits: 0,
-                currencyDisplay: 'symbol'
+                currencyDisplay: 'symbol',
             }).format(amount);
         };
 
@@ -406,17 +496,11 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
         const getBillTypeLabel = (type: string) => {
             switch (type) {
                 case 'tax_invoice':
-                    return language === 'ar' ? 'فاتورة ضريبية' :
-                           language === 'he' ? 'חשבונית מס' :
-                           'Tax Invoice';
+                    return language === 'ar' ? 'فاتورة ضريبية' : language === 'he' ? 'חשבונית מס' : 'Tax Invoice';
                 case 'receipt_only':
-                    return language === 'ar' ? 'إيصال' :
-                           language === 'he' ? 'קבלה' :
-                           'Receipt';
+                    return language === 'ar' ? 'إيصال' : language === 'he' ? 'קבלה' : 'Receipt';
                 case 'tax_invoice_receipt':
-                    return language === 'ar' ? 'فاتورة ضريبية وإيصال' :
-                           language === 'he' ? 'חשבונית מס וקבלה' :
-                           'Tax Invoice & Receipt';
+                    return language === 'ar' ? 'فاتورة ضريبية وإيصال' : language === 'he' ? 'חשבונית מס וקבלה' : 'Tax Invoice & Receipt';
                 default:
                     return type;
             }
@@ -425,28 +509,16 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
         const getDealTypeLabel = (type: string) => {
             switch (type) {
                 case 'sale':
-                    return language === 'ar' ? 'بيع' :
-                           language === 'he' ? 'מכירה' :
-                           'Sale';
+                    return language === 'ar' ? 'بيع' : language === 'he' ? 'מכירה' : 'Sale';
                 case 'purchase':
-                    return language === 'ar' ? 'شراء' :
-                           language === 'he' ? 'קנייה' :
-                           'Purchase';
+                    return language === 'ar' ? 'شراء' : language === 'he' ? 'קנייה' : 'Purchase';
                 case 'lease':
-                    return language === 'ar' ? 'تأجير' :
-                           language === 'he' ? 'השכרה' :
-                           'Lease';
+                    return language === 'ar' ? 'تأجير' : language === 'he' ? 'השכרה' : 'Lease';
                 case 'trade_in':
-                    return language === 'ar' ? 'استبدال' :
-                           language === 'he' ? 'טרייד אין' :
-                           'Trade-in';
+                    return language === 'ar' ? 'استبدال' : language === 'he' ? 'טרייד אין' : 'Trade-in';
                 default:
                     return type;
             }
-        };
-
-        const getStatusLabel = (status: string) => {
-            return t(`status_${status}`) || status;
         };
 
         const getPaymentMethodLabel = (method: string) => {
@@ -457,29 +529,17 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
         const billHTML = `
             <div style="max-width: 800px; margin: 0 auto; padding: 48px; background: #ffffff; direction: ${language === 'en' ? 'ltr' : 'rtl'};">
                 <!-- Header -->
-                <div style="text-align: center; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
+                <div style="text-align: center; margin-bottom: 8px; padding-bottom: 24px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                         <div style="flex: 1;">
                             <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #1e3a8a;">
-                                Cars CRM
+                                My Dream Car
                             </h1>
-                            <p style="margin: 4px 0 0 0; font-size: 16px; color: #6b7280; text-transform: uppercase; font-weight: 600;">
-                                ${getBillTypeLabel(billData.bill_type)}
-                            </p>
-                            ${billData.bill_type === 'tax_invoice_receipt' ? 
-                                `<p style="margin: 4px 0 0 0; font-size: 14px; color: #4f46e5;">
-                                    ${language === 'ar' ? 'فاتورة ضريبية وإيصال مدمج' :
-                                      language === 'he' ? 'חשבונית מס וקבלה משולבת' :
-                                      'Combined Tax Invoice & Receipt'}
-                                </p>` : ''}
+                       
+                          
                         </div>
-                        <div style="flex: 1; text-align: ${language === 'en' ? 'right' : 'left'};">
-                            <p style="margin: 0; font-size: 14px; color: #374151; font-weight: 500;">
-                                #${billData.id}
-                            </p>
-                            <p style="margin: 4px 0 0 0; font-size: 14px; color: #6b7280;">
-                                ${formatDate(billData.date || billData.created_at)}
-                            </p>
+                        <div style="text-align: ${language === 'en' ? 'right' : 'left'};">
+                          
                         </div>
                     </div>
                    
@@ -489,45 +549,43 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-bottom: 48px;">
                     <div>
                         <h2 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; ${language !== 'en' ? 'direction: rtl;' : ''}">
-                            ${language === 'ar' ? 'معلومات المستند' :
-                              language === 'he' ? 'פרטי המסמך' :
-                              'Document Information'}
+                            ${language === 'ar' ? 'معلومات المستند' : language === 'he' ? 'פרטי המסמך' : 'Document Information'}
                         </h2>
                         <div style="space-y: 8px;">
                             <div style="margin-bottom: 8px; ${language !== 'en' ? 'direction: rtl;' : ''}">
                                 <span style="display: inline-block; width: 80px; color: #6b7280; font-size: 13px;">
-                                    ${language === 'ar' ? 'رقم:' :
-                                      language === 'he' ? 'מספר:' :
-                                      'ID:'}
+                                    ${language === 'ar' ? 'رقم:' : language === 'he' ? 'מספר:' : 'ID:'}
                                 </span>
                                 <span style="color: #111827; font-weight: 500;">#${billData.id}</span>
                             </div>
                             <div style="margin-bottom: 8px; ${language !== 'en' ? 'direction: rtl;' : ''}">
                                 <span style="display: inline-block; width: 80px; color: #6b7280; font-size: 13px;">
-                                    ${language === 'ar' ? 'التاريخ:' :
-                                      language === 'he' ? 'תאריך:' :
-                                      'Date:'}
+                                    ${language === 'ar' ? 'التاريخ:' : language === 'he' ? 'תאריך:' : 'Date:'}
                                 </span>
                                 <span style="color: #111827; font-weight: 500;">${formatDate(billData.date || billData.created_at)}</span>
                             </div>
                             <div style="margin-bottom: 8px; ${language !== 'en' ? 'direction: rtl;' : ''}">
                                 <span style="display: inline-block; width: 80px; color: #6b7280; font-size: 13px;">
-                                    ${language === 'ar' ? 'الحالة:' :
-                                      language === 'he' ? 'סטטוס:' :
-                                      'Status:'}
+                                    ${language === 'ar' ? 'الحالة:' : language === 'he' ? 'סטטוס:' : 'Status:'}
                                 </span>
                                 <span style="color: #111827; font-weight: 500;">${
-                                    language === 'ar' ? 
-                                        billData.status === 'paid' ? 'مدفوع' :
-                                        billData.status === 'pending' ? 'قيد الانتظار' :
-                                        billData.status === 'cancelled' ? 'ملغي' :
-                                        billData.status :
-                                    language === 'he' ?
-                                        billData.status === 'paid' ? 'שולם' :
-                                        billData.status === 'pending' ? 'ממתין' :
-                                        billData.status === 'cancelled' ? 'מבוטל' :
-                                        billData.status :
-                                    billData.status
+                                    language === 'ar'
+                                        ? billData.status === 'paid'
+                                            ? 'مدفوع'
+                                            : billData.status === 'pending'
+                                              ? 'قيد الانتظار'
+                                              : billData.status === 'cancelled'
+                                                ? 'ملغي'
+                                                : billData.status
+                                        : language === 'he'
+                                          ? billData.status === 'paid'
+                                              ? 'שולם'
+                                              : billData.status === 'pending'
+                                                ? 'ממתין'
+                                                : billData.status === 'cancelled'
+                                                  ? 'מבוטל'
+                                                  : billData.status
+                                          : billData.status
                                 }</span>
                             </div>
                         </div>
@@ -535,34 +593,20 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                     
                     <div>
                         <h2 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; ${language !== 'en' ? 'direction: rtl;' : ''}">
-                            ${language === 'ar' ? 'تفاصيل العميل' :
-                              language === 'he' ? 'פרטי הלקוח' :
-                              'Customer Details'}
+                            ${language === 'ar' ? 'تفاصيل العميل' : language === 'he' ? 'פרטי הלקוח' : 'Customer Details'}
                         </h2>
                         <div style="space-y: 8px;">
                             <div style="margin-bottom: 8px; ${language !== 'en' ? 'direction: rtl;' : ''}">
                                 <span style="display: inline-block; width: 80px; color: #6b7280; font-size: 13px;">
-                                    ${language === 'ar' ? 'الاسم:' :
-                                      language === 'he' ? 'שם:' :
-                                      'Name:'}
+                                    ${language === 'ar' ? 'الاسم:' : language === 'he' ? 'שם:' : 'Name:'}
                                 </span>
-                                <span style="color: #111827; font-weight: 500;">${billData.customer_name || (
-                                    language === 'ar' ? 'غير متوفر' :
-                                    language === 'he' ? 'לא זמין' :
-                                    'N/A'
-                                )}</span>
+                                <span style="color: #111827; font-weight: 500;">${billData.customer_name || (language === 'ar' ? 'غير متوفر' : language === 'he' ? 'לא זמין' : 'N/A')}</span>
                             </div>
                             <div style="margin-bottom: 8px; ${language !== 'en' ? 'direction: rtl;' : ''}">
                                 <span style="display: inline-block; width: 80px; color: #6b7280; font-size: 13px;">
-                                    ${language === 'ar' ? 'الهاتف:' :
-                                      language === 'he' ? 'טלפון:' :
-                                      'Phone:'}
+                                    ${language === 'ar' ? 'الهاتف:' : language === 'he' ? 'טלפון:' : 'Phone:'}
                                 </span>
-                                <span style="color: #111827; font-weight: 500;">${billData.phone || (
-                                    language === 'ar' ? 'غير متوفر' :
-                                    language === 'he' ? 'לא זמין' :
-                                    'N/A'
-                                )}</span>
+                                <span style="color: #111827; font-weight: 500;">${billData.phone || (language === 'ar' ? 'غير متوفر' : language === 'he' ? 'לא זמין' : 'N/A')}</span>
                             </div>
                             <div style="margin-bottom: 8px;">
                                 <span style="display: inline-block; width: 80px; color: #6b7280; font-size: 13px;">ID:</span>
@@ -576,17 +620,13 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                 <!-- Financial Summary -->
                 <div style="margin-bottom: ${billData.bill_type === 'tax_invoice_receipt' ? '24px' : '40px'};">
                     <h2 style="margin: 0 0 24px 0; font-size: 18px; font-weight: 600; color: #111827; ${language !== 'en' ? 'direction: rtl;' : ''}">
-                        ${billData.bill_type === 'receipt_only' ? t('paymentDetails') : 
-                          billData.bill_type === 'tax_invoice_receipt' ? t('invoiceDetails') : 
-                          t('financialSummary')}
+                        ${billData.bill_type === 'receipt_only' ? t('paymentDetails') : billData.bill_type === 'tax_invoice_receipt' ? t('invoiceDetails') : t('financialSummary')}
                     </h2>
                     <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; ${language !== 'en' ? 'direction: rtl;' : ''}">
                         <thead>
                             <tr style="background: #374151;">
                                 <th style="padding: 16px; text-align: ${language === 'en' ? 'left' : 'right'}; font-weight: 600; color: #ffffff; border-bottom: 1px solid #e5e7eb;">
-                                    ${language === 'ar' ? 'البيان' : 
-                                      language === 'he' ? 'תיאור' : 
-                                      'Description'}
+                                    ${language === 'ar' ? 'البيان' : language === 'he' ? 'תיאור' : 'Description'}
                                 </th>
                                 <th style="padding: 16px; text-align: ${language === 'en' ? 'right' : 'left'}; font-weight: 600; color: #ffffff; border-bottom: 1px solid #e5e7eb;">
                                     ${t('amount')}
@@ -594,8 +634,11 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                             </tr>
                         </thead>
                         <tbody>
-                            ${billData.bill_type !== 'receipt_only' && billData.items ? 
-                                billData.items.map((item: any) => `
+                            ${
+                                billData.bill_type !== 'receipt_only' && billData.items
+                                    ? billData.items
+                                          .map(
+                                              (item: any) => `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${item.description || item.name}
@@ -604,231 +647,358 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                                             ${formatCurrency(item.amount || item.price)}
                                         </td>
                                     </tr>
-                                `).join('') 
-                            : ''}
-                            ${billData.bill_type !== 'receipt_only' && billData.sale_price ? `
+                                `,
+                                          )
+                                          .join('')
+                                    : ''
+                            }
+                            ${
+                                billData.bill_type !== 'receipt_only' && billData.sale_price
+                                    ? `
                             <tr>
                                 <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                    ${language === 'ar' ? 'سعر البيع' :
-                                      language === 'he' ? 'מחיר מכירה' :
-                                      'Sale Price'}
+                                    ${language === 'ar' ? 'سعر البيع' : language === 'he' ? 'מחיר מכירה' : 'Sale Price'}
                                 </td>
                                 <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.sale_price)}</td>
-                            </tr>` : ''}
-                            ${billData.bill_type !== 'receipt_only' && billData.commission ? `
+                            </tr>`
+                                    : ''
+                            }
+                            ${
+                                billData.bill_type !== 'receipt_only' && billData.commission
+                                    ? `
                             <tr>
                                 <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                    ${language === 'ar' ? 'العمولة' :
-                                      language === 'he' ? 'עמלה' :
-                                      'Commission'}
+                                    ${language === 'ar' ? 'العمولة' : language === 'he' ? 'עמלה' : 'Commission'}
                                 </td>
                                 <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.commission)}</td>
-                            </tr>` : ''}
+                            </tr>`
+                                    : ''
+                            }
                             <!-- Invoice Totals -->
-                            ${billData.bill_type !== 'receipt_only' ? `
-                                ${billData.total ? `
+                            ${
+                                billData.bill_type !== 'receipt_only'
+                                    ? `
+                                ${
+                                    billData.total
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${t('subTotal')}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.total)}</td>
-                                </tr>` : ''}
-                                ${billData.tax_amount ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.tax_amount
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                        ${language === 'ar' ? 'الضريبة (18%)' :
-                                          language === 'he' ? 'מע"מ (18%)' :
-                                          'Tax (18%)'}
+                                        ${language === 'ar' ? 'الضريبة (18%)' : language === 'he' ? 'מע"מ (18%)' : 'Tax (18%)'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.tax_amount)}</td>
-                                </tr>` : ''}
-                                ${billData.total_with_tax ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.total_with_tax
+                                        ? `
                                 <tr style="background: #f9fafb;">
                                     <td style="padding: 16px; font-weight: 600; color: #111827; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${t('totalAmount')}
                                     </td>
                                     <td style="padding: 16px; text-align: ${language === 'en' ? 'right' : 'left'}; font-weight: 700; color: #111827; font-size: 16px; border-bottom: 1px solid #ddd;">${formatCurrency(billData.total_with_tax)}</td>
-                                </tr>` : ''}
-                            ` : ''}
+                                </tr>`
+                                        : ''
+                                }
+                            `
+                                    : ''
+                            }
                             
                             <!-- Receipt Payment Details (Inside Invoice Table) -->
-                            ${billData.bill_type === 'receipt_only' ? `
+                            ${
+                                billData.bill_type === 'receipt_only'
+                                    ? `
                                 
-                                ${billData.payment_type ? `
+                                ${
+                                    billData.payment_type
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${t('paymentMethod')}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${getPaymentMethodLabel(billData.payment_type)}</td>
-                                </tr>` : ''}
-                                ${billData.payment_date ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.payment_date
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${t('paymentDate')}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatDate(billData.payment_date)}</td>
-                                </tr>` : ''}
+                                </tr>`
+                                        : ''
+                                }
                                 
                                 <!-- Visa Payment Details -->
-                                ${billData.payment_type === 'visa' ? `
-                                    ${billData.visa_amount ? `
+                                ${
+                                    billData.payment_type === 'visa'
+                                        ? `
+                                    ${
+                                        billData.visa_amount
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'مبلغ البطاقة' : language === 'he' ? 'סכום כרטיס' : 'Card Amount'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.visa_amount)}</td>
-                                    </tr>` : ''}
-                                    ${billData.visa_card_type ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.visa_card_type
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'نوع البطاقة' : language === 'he' ? 'סוג כרטיס' : 'Card Type'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.visa_card_type || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.visa_last_four ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.visa_last_four
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? '4 أرقام الأخيرة' : language === 'he' ? '4 ספרות אחרונות' : 'Last 4 Digits'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.visa_last_four || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.visa_installments ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.visa_installments
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'عدد الأقساط' : language === 'he' ? 'מספר תשלומים' : 'Installments'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.visa_installments || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.approval_number ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.approval_number
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'رقم الموافقة' : language === 'he' ? 'מספר אישור' : 'Approval Number'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.approval_number || '-'}</td>
-                                    </tr>` : ''}
-                                ` : ''}
+                                    </tr>`
+                                            : ''
+                                    }
+                                `
+                                        : ''
+                                }
 
                                 <!-- Bank Transfer Details -->
-                                ${billData.payment_type === 'bank_transfer' ? `
-                                    ${billData.transfer_amount ? `
+                                ${
+                                    billData.payment_type === 'bank_transfer'
+                                        ? `
+                                    ${
+                                        billData.transfer_amount
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'مبلغ التحويل' : language === 'he' ? 'סכום העברה' : 'Transfer Amount'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.transfer_amount)}</td>
-                                    </tr>` : ''}
-                                    ${billData.transfer_bank_name ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.transfer_bank_name
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'اسم البنك' : language === 'he' ? 'שם הבנק' : 'Bank Name'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_bank_name || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.transfer_branch ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.transfer_branch
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'فرع البنك' : language === 'he' ? 'סניף' : 'Branch'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_branch || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.transfer_branch_number ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.transfer_branch_number
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'رقم الفرع' : language === 'he' ? 'מספר סניף' : 'Branch Number'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_branch_number || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.transfer_account_number ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.transfer_account_number
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'رقم الحساب' : language === 'he' ? 'מספר חשבון' : 'Account Number'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_account_number || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.transfer_number ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.transfer_number
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'رقم التحويل' : language === 'he' ? 'מספר העברה' : 'Transfer Number'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_number || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.transfer_holder_name ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.transfer_holder_name
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'اسم صاحب الحساب' : language === 'he' ? 'שם בעל החשבון' : 'Account Holder'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_holder_name || '-'}</td>
-                                    </tr>` : ''}
-                                ` : ''}
+                                    </tr>`
+                                            : ''
+                                    }
+                                `
+                                        : ''
+                                }
 
                                 <!-- Check Details -->
-                                ${billData.payment_type === 'check' ? `
-                                    ${billData.check_amount ? `
+                                ${
+                                    billData.payment_type === 'check'
+                                        ? `
+                                    ${
+                                        billData.check_amount
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'مبلغ الشيك' : language === 'he' ? "סכום הצ'ק" : 'Check Amount'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.check_amount)}</td>
-                                    </tr>` : ''}
-                                    ${billData.check_bank_name ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.check_bank_name
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'اسم البنك' : language === 'he' ? 'שם הבנק' : 'Bank Name'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_bank_name || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.check_branch ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.check_branch
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'فرع البنك' : language === 'he' ? 'סניף' : 'Branch'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_branch || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.check_branch_number ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.check_branch_number
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'رقم الفرع' : language === 'he' ? 'מספר סניף' : 'Branch Number'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_branch_number || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.check_account_number ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.check_account_number
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'رقم الحساب' : language === 'he' ? 'מספר חשבון' : 'Account Number'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_account_number || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.check_number ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.check_number
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'رقم الشيك' : language === 'he' ? "מספר צ'ק" : 'Check Number'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_number || '-'}</td>
-                                    </tr>` : ''}
-                                    ${billData.check_holder_name ? `
+                                    </tr>`
+                                            : ''
+                                    }
+                                    ${
+                                        billData.check_holder_name
+                                            ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'اسم صاحب الشيك' : language === 'he' ? "שם בעל הצ'ק" : 'Check Holder'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_holder_name || '-'}</td>
-                                    </tr>` : ''}
-                                ` : ''}
+                                    </tr>`
+                                            : ''
+                                    }
+                                `
+                                        : ''
+                                }
 
                                 <!-- Cash Amount -->
-                                ${billData.payment_type === 'cash' && billData.cash_amount ? `
+                                ${
+                                    billData.payment_type === 'cash' && billData.cash_amount
+                                        ? `
                                     <tr>
                                         <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                             ${language === 'ar' ? 'المبلغ النقدي' : language === 'he' ? 'סכום במזומן' : 'Cash Amount'}
                                         </td>
                                         <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.cash_amount)}</td>
                                     </tr>
-                                ` : ''}
-                            ` : ''}
+                                `
+                                        : ''
+                                }
+                            `
+                                    : ''
+                            }
                         </tbody>
                     </table>
                 </div>
 
-                ${billData.bill_type === 'tax_invoice_receipt' ? `
+                ${
+                    billData.bill_type === 'tax_invoice_receipt'
+                        ? `
                 <!-- Receipt Details for Combined Invoice+Receipt -->
                 <div style="margin-bottom: 40px;">
                     <h2 style="margin: 24px 0; font-size: 18px; font-weight: 600; color: #111827; ${language !== 'en' ? 'direction: rtl;' : ''}">
@@ -838,9 +1008,7 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                         <thead>
                             <tr style="background: #374151;">
                                 <th style="padding: 16px; text-align: ${language === 'en' ? 'left' : 'right'}; font-weight: 600; color: #ffffff; border-bottom: 1px solid #e5e7eb;">
-                                    ${language === 'ar' ? 'البيان' : 
-                                      language === 'he' ? 'תיאור' : 
-                                      'Description'}
+                                    ${language === 'ar' ? 'البيان' : language === 'he' ? 'תיאור' : 'Description'}
                                 </th>
                                 <th style="padding: 16px; text-align: ${language === 'en' ? 'right' : 'left'}; font-weight: 600; color: #ffffff; border-bottom: 1px solid #e5e7eb;">
                                     ${t('amount')}
@@ -854,179 +1022,281 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                                 </td>
                                 <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(getPaymentAmount(billData))}</td>
                             </tr>
-                            ${billData.payment_type ? `
+                            ${
+                                billData.payment_type
+                                    ? `
                             <tr>
                                 <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                     ${t('paymentMethod')}
                                 </td>
                                 <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${getPaymentMethodLabel(billData.payment_type)}</td>
-                            </tr>` : ''}
-                            ${billData.payment_date ? `
+                            </tr>`
+                                    : ''
+                            }
+                            ${
+                                billData.payment_date
+                                    ? `
                             <tr>
                                 <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                     ${t('paymentDate')}
                                 </td>
                                 <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatDate(billData.payment_date)}</td>
-                            </tr>` : ''}
+                            </tr>`
+                                    : ''
+                            }
                             
                             <!-- Visa Payment Details -->
-                            ${billData.payment_type === 'visa' ? `
-                                ${billData.visa_amount ? `
+                            ${
+                                billData.payment_type === 'visa'
+                                    ? `
+                                ${
+                                    billData.visa_amount
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'مبلغ البطاقة' : language === 'he' ? 'סכום כרטיס' : 'Card Amount'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.visa_amount)}</td>
-                                </tr>` : ''}
-                                ${billData.visa_card_type ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.visa_card_type
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'نوع البطاقة' : language === 'he' ? 'סוג כרטיס' : 'Card Type'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.visa_card_type || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.visa_last_four ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.visa_last_four
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? '4 أرقام الأخيرة' : language === 'he' ? '4 ספרות אחרונות' : 'Last 4 Digits'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.visa_last_four || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.visa_installments ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.visa_installments
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'عدد الأقساط' : language === 'he' ? 'מספר תשלומים' : 'Installments'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.visa_installments || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.approval_number ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.approval_number
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'رقم الموافقة' : language === 'he' ? 'מספר אישור' : 'Approval Number'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.approval_number || '-'}</td>
-                                </tr>` : ''}
-                            ` : ''}
+                                </tr>`
+                                        : ''
+                                }
+                            `
+                                    : ''
+                            }
 
                             <!-- Bank Transfer Details -->
-                            ${billData.payment_type === 'bank_transfer' ? `
-                                ${billData.transfer_amount ? `
+                            ${
+                                billData.payment_type === 'bank_transfer'
+                                    ? `
+                                ${
+                                    billData.transfer_amount
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'مبلغ التحويل' : language === 'he' ? 'סכום העברה' : 'Transfer Amount'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.transfer_amount)}</td>
-                                </tr>` : ''}
-                                ${billData.transfer_bank_name ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.transfer_bank_name
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'اسم البنك' : language === 'he' ? 'שם הבנק' : 'Bank Name'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_bank_name || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.transfer_branch ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.transfer_branch
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'فرع البنك' : language === 'he' ? 'סניף' : 'Branch'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_branch || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.transfer_branch_number ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.transfer_branch_number
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'رقم الفرع' : language === 'he' ? 'מספר סניף' : 'Branch Number'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_branch_number || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.transfer_account_number ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.transfer_account_number
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'رقم الحساب' : language === 'he' ? 'מספר חשבון' : 'Account Number'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_account_number || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.transfer_number ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.transfer_number
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'رقم التحويل' : language === 'he' ? 'מספר העברה' : 'Transfer Number'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_number || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.transfer_holder_name ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.transfer_holder_name
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'اسم صاحب الحساب' : language === 'he' ? 'שם בעל החשבון' : 'Account Holder'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.transfer_holder_name || '-'}</td>
-                                </tr>` : ''}
-                            ` : ''}
+                                </tr>`
+                                        : ''
+                                }
+                            `
+                                    : ''
+                            }
 
                             <!-- Check Details -->
-                            ${billData.payment_type === 'check' ? `
-                                ${billData.check_amount ? `
+                            ${
+                                billData.payment_type === 'check'
+                                    ? `
+                                ${
+                                    billData.check_amount
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'مبلغ الشيك' : language === 'he' ? "סכום הצ'ק" : 'Check Amount'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.check_amount)}</td>
-                                </tr>` : ''}
-                                ${billData.check_bank_name ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.check_bank_name
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'اسم البنك' : language === 'he' ? 'שם הבנק' : 'Bank Name'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_bank_name || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.check_branch ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.check_branch
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'فرع البنك' : language === 'he' ? 'סניף' : 'Branch'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_branch || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.check_branch_number ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.check_branch_number
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'رقم الفرع' : language === 'he' ? 'מספר סניף' : 'Branch Number'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_branch_number || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.check_account_number ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.check_account_number
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'رقم الحساب' : language === 'he' ? 'מספר חשבון' : 'Account Number'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_account_number || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.check_number ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.check_number
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'رقم الشيك' : language === 'he' ? "מספר צ'ק" : 'Check Number'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_number || '-'}</td>
-                                </tr>` : ''}
-                                ${billData.check_holder_name ? `
+                                </tr>`
+                                        : ''
+                                }
+                                ${
+                                    billData.check_holder_name
+                                        ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'اسم صاحب الشيك' : language === 'he' ? "שם בעל הצ'ק" : 'Check Holder'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.check_holder_name || '-'}</td>
-                                </tr>` : ''}
-                            ` : ''}
+                                </tr>`
+                                        : ''
+                                }
+                            `
+                                    : ''
+                            }
 
                             <!-- Cash Amount -->
-                            ${billData.payment_type === 'cash' && billData.cash_amount ? `
+                            ${
+                                billData.payment_type === 'cash' && billData.cash_amount
+                                    ? `
                                 <tr>
                                     <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                         ${language === 'ar' ? 'المبلغ النقدي' : language === 'he' ? 'סכום במזומן' : 'Cash Amount'}
                                     </td>
                                     <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(billData.cash_amount)}</td>
                                 </tr>
-                            ` : ''}
+                            `
+                                    : ''
+                            }
                         </tbody>
                     </table>
                 </div>
-                ` : ''}
+                `
+                        : ''
+                }
 
                 <!-- Additional Information -->
                 ${
@@ -1063,9 +1333,7 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                         ? `
                 <div style="margin-bottom: 32px;">
                     <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.05em; ${language !== 'en' ? 'direction: rtl;' : ''}">
-                        ${language === 'ar' ? 'ملاحظات' :
-                          language === 'he' ? 'הערות' :
-                          'Notes'}
+                        ${language === 'ar' ? 'ملاحظات' : language === 'he' ? 'הערות' : 'Notes'}
                     </h3>
                     <p style="margin: 0; color: #6b7280; line-height: 1.6; ${language !== 'en' ? 'direction: rtl;' : ''}">${billData.free_text}</p>
                 </div>
@@ -1074,44 +1342,40 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                 }
 
                 <!-- Signature Section for Receipts -->
-                ${(billData.bill_type === 'receipt_only' || billData.bill_type === 'tax_invoice_receipt') ? `
+                ${
+                    billData.bill_type === 'receipt_only' || billData.bill_type === 'tax_invoice_receipt'
+                        ? `
                 <div style="margin-top: 48px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
                     <div style="display: flex; justify-content: space-between; ${language !== 'en' ? 'direction: rtl;' : ''}">
                         <div style="flex: 1;">
                             <p style="margin: 0 0 24px 0; color: #374151;">
-                                ${language === 'ar' ? 'توقيع المستلم' :
-                                  language === 'he' ? 'חתימת המקבל' :
-                                  'Recipient Signature'}
+                                ${language === 'ar' ? 'توقيع المستلم' : language === 'he' ? 'חתימת המקבל' : 'Recipient Signature'}
                             </p>
                             <div style="border-bottom: 1px solid #9ca3af; width: 200px;"></div>
                         </div>
                         <div style="flex: 1; text-align: ${language === 'en' ? 'right' : 'left'};">
                             <p style="margin: 0 0 24px 0; color: #374151;">
-                                ${language === 'ar' ? 'توقيع المصدر' :
-                                  language === 'he' ? 'חתימת המוציא' :
-                                  'Issuer Signature'}
+                                ${language === 'ar' ? 'توقيع المصدر' : language === 'he' ? 'חתימת המוציא' : 'Issuer Signature'}
                             </p>
                             <div style="border-bottom: 1px solid #9ca3af; width: 200px; margin-${language === 'en' ? 'left' : 'right'}: auto;"></div>
                         </div>
                     </div>
                 </div>
-                ` : ''}
+                `
+                        : ''
+                }
 
                 <!-- Footer -->
                 <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; margin-top: 48px; text-align: center;">
                     <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 13px;">
-                        ${language === 'ar' ? 'شكراً لتعاملكم معنا' :
-                          language === 'he' ? 'תודה על העסקים' :
-                          'Thank you for your business'}
+                        ${language === 'ar' ? 'شكراً لتعاملكم معنا' : language === 'he' ? 'תודה על העסקים' : 'Thank you for your business'}
                     </p>
                     <p style="margin: 0; color: #9ca3af; font-size: 11px;">
                         ${t('generatedBy')} ${formatDate(new Date().toISOString())} • Cars CRM System
                     </p>
                 </div>
             </div>
-        `
-        ;
-
+        `;
         tempContainer.innerHTML = billHTML;
         document.body.appendChild(tempContainer);
 
