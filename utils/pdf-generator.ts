@@ -1371,7 +1371,7 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                         ${language === 'ar' ? 'شكراً لتعاملكم معنا' : language === 'he' ? 'תודה על העסקים' : 'Thank you for your business'}
                     </p>
                     <p style="margin: 0; color: #9ca3af; font-size: 11px;">
-                        ${t('generatedBy')} ${formatDate(new Date().toISOString())} • Cars CRM System
+                        ${t('generatedBy')} • My Dream Car
                     </p>
                 </div>
             </div>
