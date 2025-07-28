@@ -70,6 +70,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const [carImageUrl, setCarImageUrl] = useState<string | null>(null);
     const [carTakenImageUrl, setCarTakenImageUrl] = useState<string | null>(null);
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+    const [generatingContract, setGeneratingContract] = useState(false);
     const dealId = params.id;
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -682,9 +683,103 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                             {t('edit_deal')}
                         </Link>
                         {bills.length > 0 && (
-                            <button className="btn btn-outline-info gap-2" onClick={() => setSelectedBill(bills[0])}>
-                                <IconDocument className="w-4 h-4" />
-                                {t('generate_contract')}
+                            <button
+                                className={`btn btn-outline-info gap-2${generatingContract ? ' opacity-60 pointer-events-none' : ''}`}
+                                disabled={generatingContract}
+                                onClick={async () => {
+                                    setGeneratingContract(true);
+                                    try {
+                                        const contractData = createContractData(bills[0]);
+                                        const [{ default: jsPDF }, html2canvas, reactDomClient] = await Promise.all([import('jspdf'), import('html2canvas'), import('react-dom/client')]);
+                                        const container = document.createElement('div');
+                                        container.style.position = 'fixed';
+                                        container.style.left = '-9999px';
+                                        document.body.appendChild(container);
+                                        // Get language from i18nextLng cookie
+                                        const getCookie = (name: string) => {
+                                            const value = `; ${document.cookie}`;
+                                            const parts = value.split(`; ${name}=`);
+                                            if (parts.length === 2) {
+                                                const part = parts.pop();
+                                                if (part) {
+                                                    return part.split(';').shift();
+                                                }
+                                            }
+                                            return null;
+                                        };
+                                        let lang = getCookie('i18nextLng') || 'ar';
+                                        console.log('Current language from cookie:', lang);
+                                        let ContractTemplate;
+
+                                        // Normalize language code
+                                        const normalizedLang = lang.toLowerCase().split('-')[0];
+                                        console.log('Normalized language:', normalizedLang);
+
+                                        // Load template based on normalized language
+                                        try {
+                                            if (normalizedLang === 'ar') {
+                                                console.log('Loading Arabic template...');
+                                                ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
+                                                console.log('Arabic template loaded successfully');
+                                            } else if (normalizedLang === 'he') {
+                                                ContractTemplate = (await import('@/components/contracts/hebrew-contract-template')).default;
+                                            } else if (normalizedLang === 'en') {
+                                                ContractTemplate = (await import('@/components/contracts/english-contract-template')).default;
+                                            } else {
+                                                console.log('Unrecognized language, defaulting to Arabic');
+                                                ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
+                                            }
+                                        } catch (error) {
+                                            console.error('Error loading template:', error);
+                                            throw error;
+                                        }
+                                        const root = reactDomClient.createRoot(container);
+                                        console.log('Rendering template...');
+                                        root.render(React.createElement(ContractTemplate, { contract: contractData }));
+
+                                        // Wait longer for Arabic text rendering
+                                        await new Promise((r) => setTimeout(r, 500));
+
+                                        // Verify container has content
+                                        if (!container.innerHTML) {
+                                            throw new Error('Template failed to render');
+                                        }
+
+                                        console.log('Template rendered, generating canvas...');
+                                        const canvas = await html2canvas.default(container, {
+                                            scale: 2,
+                                            logging: true,
+                                            useCORS: true,
+                                        });
+                                        const imgData = canvas.toDataURL('image/png');
+                                        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+                                        const pageWidth = pdf.internal.pageSize.getWidth();
+                                        const pageHeight = pdf.internal.pageSize.getHeight();
+                                        const imgWidth = pageWidth;
+                                        const imgHeight = (canvas.height * pageWidth) / canvas.width;
+                                        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                                        const filename = `car-contract-${contractData.carPlateNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
+                                        const pdfBlob = pdf.output('blob');
+                                        const pdfUrl = URL.createObjectURL(pdfBlob);
+                                        window.open(pdfUrl, '_blank');
+                                        root.unmount();
+                                        document.body.removeChild(container);
+                                    } catch (error) {
+                                        setAlert({ visible: true, message: t('error_generating_pdf') || 'Error generating PDF', type: 'danger' });
+                                    } finally {
+                                        setGeneratingContract(false);
+                                    }
+                                }}
+                            >
+                                {generatingContract ? (
+                                    <svg className="animate-spin h-4 w-4 text-info" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                    </svg>
+                                ) : (
+                                    <IconDocument className="w-4 h-4" />
+                                )}
+                                {generatingContract ? t('generating_pdf') : t('generate_contract')}
                             </button>
                         )}
                         <Link href="/deals" className="btn btn-outline-secondary">
@@ -693,35 +788,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                     </div>
                 </div>
             </div>
-            {/* Contract Generator Modal */}
-            {selectedBill && (
-                <div className="fixed inset-0 z-50 overflow-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto">
-                        <div className="flex justify-between items-center p-4 border-b">
-                            <h3 className="text-lg font-bold">{t('generate_contract')}</h3>
-                            <button onClick={() => setSelectedBill(null)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                        <div className="p-4">
-                            <ContractGenerator
-                                contract={createContractData(selectedBill)}
-                                onGenerateEnd={() => setSelectedBill(null)}
-                                onError={(error) => {
-                                    console.error('Error generating contract:', error);
-                                    setAlert({
-                                        visible: true,
-                                        message: t('error_generating_contract'),
-                                        type: 'danger',
-                                    });
-                                }}
-                            />
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Contract Generator Modal removed: now opens in new tab */}
         </div>
     );
 };

@@ -65,6 +65,7 @@ const ContractGenerator: React.FC<ContractGeneratorProps> = ({ contract, languag
             </div>
 
             {/* Template Container */}
+
             <div className="contract-template-container bg-white">{renderTemplate()}</div>
         </div>
     );
