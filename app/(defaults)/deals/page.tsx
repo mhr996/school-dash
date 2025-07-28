@@ -30,9 +30,16 @@ const DealsList = () => {
 
     const [search, setSearch] = useState('');
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'title',
-        direction: 'asc',
+        columnAccessor: 'id',
+        direction: 'desc',
     }); // Modal and alert states
+
+    // Always default sort by ID in descending order
+    useEffect(() => {
+        if (sortStatus.columnAccessor !== 'id') {
+            setSortStatus({ columnAccessor: 'id', direction: 'desc' });
+        }
+    }, []);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [dealToDelete, setDealToDelete] = useState<Deal | null>(null);

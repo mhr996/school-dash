@@ -55,10 +55,17 @@ const Bills = () => {
     const [initialRecords, setInitialRecords] = useState<Bill[]>([]);
     const [records, setRecords] = useState<Bill[]>([]);
     const [search, setSearch] = useState('');
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({ columnAccessor: 'created_at', direction: 'desc' });
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({ columnAccessor: 'id', direction: 'desc' });
     const [selectedRecords, setSelectedRecords] = useState<Bill[]>([]);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+
+    // Always default sort by ID in descending order
+    useEffect(() => {
+        if (sortStatus.columnAccessor !== 'id') {
+            setSortStatus({ columnAccessor: 'id', direction: 'desc' });
+        }
+    }, []);
     const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
     const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
     const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
@@ -231,32 +238,44 @@ const Bills = () => {
             return t('not_applicable');
         }
 
-        if (!bill.payment_type) {
-            return t('not_applicable');
+        // If there's no payment type or if all payment amounts are 0
+        if (!bill.payment_type || 
+            (!bill.visa_amount && 
+             !bill.cash_amount && 
+             !bill.bank_amount && 
+             !bill.transfer_amount && 
+             !bill.check_amount)) {
+            return t('no_payment_yet');
         }
 
         let amount = 0;
+        let paymentType = '';
         switch (bill.payment_type) {
             case 'visa':
                 amount = bill.visa_amount || 0;
+                paymentType = t('visa');
                 break;
             case 'cash':
                 amount = bill.cash_amount || 0;
+                paymentType = t('cash');
                 break;
             case 'bank_transfer':
                 amount = bill.bank_amount || 0;
+                paymentType = t('bank_transfer');
                 break;
             case 'transfer':
                 amount = bill.transfer_amount || 0;
+                paymentType = t('transfer');
                 break;
             case 'check':
                 amount = bill.check_amount || 0;
+                paymentType = t('check');
                 break;
             default:
-                return t('not_applicable');
+                return t('no_payment_yet');
         }
 
-        return amount > 0 ? `$${amount.toFixed(2)}` : t('not_applicable');
+        return amount > 0 ? `$${amount.toFixed(2)} (${paymentType})` : t('no_payment_yet');
     };
 
     const handleDownloadPDF = async (bill: Bill) => {

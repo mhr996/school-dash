@@ -809,16 +809,16 @@ const AddBill = () => {
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('transfer_amount')}
+                                            {t('bank_amount')}
                                         </label>
                                         <input
-                                            name="transfer_amount"
+                                            name="bank_amount"
                                             type="number"
                                             step="0.01"
-                                            value={billForm.transfer_amount}
+                                            value={billForm.bank_amount}
                                             onChange={handleFormChange}
                                             className="form-input"
-                                            placeholder={t('transfer_amount_placeholder')}
+                                            placeholder={t('bank_amount_placeholder')}
                                         />
                                     </div>
                                     <div>

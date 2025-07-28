@@ -25,9 +25,16 @@ const LogsPage = () => {
     const [records, setRecords] = useState<Log[]>([]);
     const [search, setSearch] = useState('');
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'created_at',
+        columnAccessor: 'id',
         direction: 'desc',
     });
+
+    // Always default sort by ID in descending order
+    useEffect(() => {
+        if (sortStatus.columnAccessor !== 'id') {
+            setSortStatus({ columnAccessor: 'id', direction: 'desc' });
+        }
+    }, []);
     const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
     useEffect(() => {

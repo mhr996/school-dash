@@ -36,9 +36,16 @@ const UsersList = () => {
 
     const [search, setSearch] = useState('');
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'full_name',
-        direction: 'asc',
+        columnAccessor: 'id',
+        direction: 'desc',
     }); // New state for confirm modal and alert.
+
+    // Always default sort by ID in descending order
+    useEffect(() => {
+        if (sortStatus.columnAccessor !== 'id') {
+            setSortStatus({ columnAccessor: 'id', direction: 'desc' });
+        }
+    }, []);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [userToDelete, setUserToDelete] = useState<any>(null);
