@@ -146,7 +146,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'ILS',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
         }).format(value);

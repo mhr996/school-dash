@@ -22,11 +22,11 @@ export const formatNumberWithCommas = (num: number | string | null | undefined, 
 };
 
 /**
- * Format a currency value with thousands separators and dollar sign
+ * Format a currency value with thousands separators and shekel sign
  * @param num - The number to format
  * @param decimals - Number of decimal places (default: 2)
  * @returns Formatted currency string
  */
 export const formatCurrency = (num: number | string | null | undefined, decimals: number = 2): string => {
-    return `$${formatNumberWithCommas(num, decimals)}`;
+    return `₪${formatNumberWithCommas(num, decimals)}`;
 };

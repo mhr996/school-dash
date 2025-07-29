@@ -88,7 +88,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'ILS',
         }).format(amount);
     };
 

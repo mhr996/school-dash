@@ -246,8 +246,8 @@ export const generateOrderReceiptPDF = async (orderData: any, options: PDFOption
                                 <tr>
                                     <td style="padding: 12px; border: 1px solid #ddd;">${item.name}</td>
                                     <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">${item.quantity}</td>
-                                    <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">$${item.price.toFixed(2)}</td>
-                                    <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">$${(item.price * item.quantity).toFixed(2)}</td>
+                                    <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">₪${item.price.toFixed(2)}</td>
+                                    <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">₪${(item.price * item.quantity).toFixed(2)}</td>
                                 </tr>
                             `,
                                 )
@@ -261,15 +261,15 @@ export const generateOrderReceiptPDF = async (orderData: any, options: PDFOption
                     <div style="border: 1px solid #ddd; padding: 20px; background-color: #f8f9fa;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span style="color: #666;">Subtotal:</span>
-                            <span style="color: #666;">$${orderData.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0).toFixed(2)}</span>
+                            <span style="color: #666;">₪${orderData.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0).toFixed(2)}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                             <span style="color: #666;">Tax (10%):</span>
-                            <span style="color: #666;">$${(orderData.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0) * 0.1).toFixed(2)}</span>
+                            <span style="color: #666;">₪${(orderData.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0) * 0.1).toFixed(2)}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid #ddd; font-weight: bold; font-size: 18px;">
                             <span style="color: #333;">Total:</span>
-                            <span style="color: #4f46e5;">$${(orderData.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0) * 1.1).toFixed(2)}</span>
+                            <span style="color: #4f46e5;">₪${(orderData.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0) * 1.1).toFixed(2)}</span>
                         </div>
                     </div>
                 </div>

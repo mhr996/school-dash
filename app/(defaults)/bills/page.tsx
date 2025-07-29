@@ -17,7 +17,7 @@ import { generateBillPDF } from '@/utils/pdf-generator';
 import { logActivity } from '@/utils/activity-logger';
 
 interface Bill {
-    id: string; 
+    id: string;
     deal_id: string;
     bill_type: string;
     customer_name: string;
@@ -239,12 +239,7 @@ const Bills = () => {
         }
 
         // If there's no payment type or if all payment amounts are 0
-        if (!bill.payment_type || 
-            (!bill.visa_amount && 
-             !bill.cash_amount && 
-             !bill.bank_amount && 
-             !bill.transfer_amount && 
-             !bill.check_amount)) {
+        if (!bill.payment_type || (!bill.visa_amount && !bill.cash_amount && !bill.bank_amount && !bill.transfer_amount && !bill.check_amount)) {
             return t('no_payment_yet');
         }
 
@@ -275,7 +270,7 @@ const Bills = () => {
                 return t('no_payment_yet');
         }
 
-        return amount > 0 ? `$${amount.toFixed(2)} (${paymentType})` : t('no_payment_yet');
+        return amount > 0 ? `₪${amount.toFixed(2)} (${paymentType})` : t('no_payment_yet');
     };
 
     const handleDownloadPDF = async (bill: Bill) => {
@@ -284,7 +279,7 @@ const Bills = () => {
             const cookies = new Cookies();
             const currentLang = cookies.get('i18nextLng') || 'he';
             const language = currentLang === 'ae' ? 'ar' : currentLang === 'he' ? 'he' : 'en';
-            
+
             await generateBillPDF(bill, {
                 filename: `bill-${bill.id}-${bill.customer_name.replace(/\s+/g, '-').toLowerCase()}.pdf`,
                 language,
@@ -336,7 +331,7 @@ const Bills = () => {
             accessor: 'total_with_tax',
             title: t('total_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className="font-bold">{'$' + bill.total_with_tax}</span>,
+            render: (bill: Bill) => <span className="font-bold">{'₪' + bill.total_with_tax}</span>,
         },
         {
             accessor: 'payment_type',

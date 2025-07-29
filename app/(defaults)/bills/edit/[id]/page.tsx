@@ -487,9 +487,9 @@ const EditBill = () => {
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</label>
                                     <p className="text-sm text-gray-900 dark:text-white">
-                                        {new Intl.NumberFormat('en-US', {
+                                        {new Intl.NumberFormat('he-IL', {
                                             style: 'currency',
-                                            currency: 'USD',
+                                            currency: 'ILS',
                                         }).format(selectedDeal.amount)}
                                     </p>
                                 </div>

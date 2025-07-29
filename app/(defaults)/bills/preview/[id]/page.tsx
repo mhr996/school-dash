@@ -30,7 +30,7 @@ interface Deal {
         car_number?: string;
         buy_price?: number;
         sale_price?: number;
-    };  
+    };
 }
 
 interface Bill {
@@ -592,7 +592,7 @@ const BillPreview = () => {
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">${new Intl.NumberFormat('en-US').format(bill.visa_amount || 0)}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.visa_amount || 0)}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_installments')}</label>
@@ -613,7 +613,7 @@ const BillPreview = () => {
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">${new Intl.NumberFormat('en-US').format(bill.bank_amount || 0)}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.bank_amount || 0)}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_name')}</label>
@@ -634,7 +634,7 @@ const BillPreview = () => {
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">${new Intl.NumberFormat('en-US').format(bill.check_amount || 0)}</p>
+                                        <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.check_amount || 0)}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_number')}</label>

@@ -456,7 +456,7 @@ const AddDeal = () => {
                 const newCarBuyPrice = selectedCar?.buy_price || 0;
                 const oldCarPurchasePrice = parseFloat(exchangeForm.old_car_purchase_price || '0');
                 const lossAmount = parseFloat(exchangeForm.loss_amount || '0');
-                const exchangeProfit = newCarSalePrice - newCarBuyPrice -  lossAmount;
+                const exchangeProfit = newCarSalePrice - newCarBuyPrice - lossAmount;
 
                 // Note: customer_car_eval_value and additional_customer_amount are for display only
                 // and don't affect the actual deal amount or profit calculation
@@ -628,7 +628,7 @@ const AddDeal = () => {
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'ILS',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
         }).format(value);
