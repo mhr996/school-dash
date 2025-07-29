@@ -150,22 +150,31 @@ const EnglishContractTemplate: React.FC<ContractProps> = ({ contract }) => {
                 <h2 className="text-sm font-bold mb-3 border-b pb-1">Payment Details</h2>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <p className="grid grid-cols-2">
-                        <span className="font-semibold">Total Amount:</span>
-                        {formatCurrency(contract.totalAmount)}
-                    </p>
-                    <p className="grid grid-cols-2">
-                        <span className="font-semibold">Payment Method:</span>
-                        {contract.paymentMethod}
-                    </p>
-                    <p className="grid grid-cols-2">
-                        <span className="font-semibold">Amount Paid:</span>
-                        {formatCurrency(contract.paidAmount)}
-                    </p>
-                    <p className="grid grid-cols-2">
-                        <span className="font-semibold">Remaining Balance:</span>
-                        {formatCurrency(contract.remainingAmount)}
+                        <span className="font-semibold">Agreed Total Amount:</span>
+                        {formatCurrency(contract.dealAmount)}
                     </p>
                 </div>
+
+                {contract.totalAmount !== undefined && contract.totalAmount !== null && contract.paymentMethod && (
+                    <div className="grid grid-cols-2 gap-4 text-sm mt-4">
+                        <p className="grid grid-cols-2">
+                            <span className="font-semibold">Payment Method:</span>
+                            {contract.paymentMethod}
+                        </p>
+                        {contract.paidAmount !== undefined && contract.paidAmount !== null && (
+                            <p className="grid grid-cols-2">
+                                <span className="font-semibold">Amount Paid:</span>
+                                {formatCurrency(contract.paidAmount)}
+                            </p>
+                        )}
+                        {contract.remainingAmount !== undefined && contract.remainingAmount !== null && contract.remainingAmount > 0 && (
+                            <p className="grid grid-cols-2">
+                                <span className="font-semibold">Remaining Balance:</span>
+                                {formatCurrency(contract.remainingAmount)}
+                            </p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Terms and Conditions */}

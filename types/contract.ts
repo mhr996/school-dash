@@ -33,12 +33,15 @@ export interface CarContract {
         estimatedValue: number;
     };
 
-    // Payment Info
-    totalAmount: number;
-    paymentMethod: 'cash' | 'bank_transfer' | 'check' | 'other';
+    // Deal Amount (from deal.amount - always available)
+    dealAmount: number;
+
+    // Payment Info (optional - for deals with bills)
+    totalAmount?: number;
+    paymentMethod?: 'cash' | 'bank_transfer' | 'check' | 'other';
     paymentDetails?: string; // For check numbers or other details
-    paidAmount: number;
-    remainingAmount: number;
+    paidAmount?: number;
+    remainingAmount?: number;
     remainingPaymentDate?: string;
 
     // Additional Terms

@@ -65,14 +65,21 @@ const HebrewContractTemplate: React.FC<ContractTemplateProps> = ({ contract }) =
             <div className="mb-8">
                 <h2 className="font-bold mb-4">2. מהות העסקה</h2>
                 <p>
-                    {contract.dealType === 'normal' ? 'מכירה רגילה' :
-                     contract.dealType === 'trade-in' ? 'עסקת טרייד אין / החלפה' :
-                     contract.dealType === 'intermediary' ? 'תיווך' :
-                     contract.dealType === 'new_used_sale' ? 'מכירת רכב משומש' :
-                     contract.dealType === 'new_used_sale_tax_inclusive' ? 'מכירת רכב משומש (כולל מע"מ)' :
-                     contract.dealType === 'financing_assistance_intermediary' ? 'תיווך מימון' :
-                     contract.dealType === 'company_commission' ? 'עמלת חברה' :
-                     'מכירה רגילה'}
+                    {contract.dealType === 'normal'
+                        ? 'מכירה רגילה'
+                        : contract.dealType === 'trade-in'
+                          ? 'עסקת טרייד אין / החלפה'
+                          : contract.dealType === 'intermediary'
+                            ? 'תיווך'
+                            : contract.dealType === 'new_used_sale'
+                              ? 'מכירת רכב משומש'
+                              : contract.dealType === 'new_used_sale_tax_inclusive'
+                                ? 'מכירת רכב משומש (כולל מע"מ)'
+                                : contract.dealType === 'financing_assistance_intermediary'
+                                  ? 'תיווך מימון'
+                                  : contract.dealType === 'company_commission'
+                                    ? 'עמלת חברה'
+                                    : 'מכירה רגילה'}
                 </p>
 
                 {contract.dealType === 'trade-in' && contract.tradeInCar && (
@@ -89,46 +96,62 @@ const HebrewContractTemplate: React.FC<ContractTemplateProps> = ({ contract }) =
             <div className="mb-8">
                 <h2 className="font-bold mb-4">3. תמורה</h2>
                 <p>הצדדים מסכימים כי תמורת הרכב, ישלם הקונה למוכר את הסכום הכולל של:</p>
-                <p className="font-bold my-2">{formatCurrency(contract.totalAmount)}</p>
+                <p className="font-bold my-2">{formatCurrency(contract.dealAmount)}</p>
 
-                <div className="mt-4">
-                    <p>צורת התשלום: {
-                        contract.paymentMethod === 'cash' ? 'מזומן' :
-                        contract.paymentMethod === 'bank_transfer' ? 'העברה בנקאית' :
-                        contract.paymentMethod === 'check' ? `צ'ק/ים${contract.paymentDetails ? ` – מספרי הצ'קים: ${contract.paymentDetails}` : ''}` :
-                        contract.paymentMethod === 'other' ? `אחר${contract.paymentDetails ? `: ${contract.paymentDetails}` : ''}` : ''
-                    }</p>
-                </div>
+                {contract.totalAmount !== undefined && contract.totalAmount !== null && contract.paymentMethod && (
+                    <>
+                        <div className="mt-4">
+                            <p>
+                                צורת התשלום:{' '}
+                                {contract.paymentMethod === 'cash'
+                                    ? 'מזומן'
+                                    : contract.paymentMethod === 'bank_transfer'
+                                      ? 'העברה בנקאית'
+                                      : contract.paymentMethod === 'check'
+                                        ? `צ'ק/ים${contract.paymentDetails ? ` – מספרי הצ'קים: ${contract.paymentDetails}` : ''}`
+                                        : contract.paymentMethod === 'other'
+                                          ? `אחר${contract.paymentDetails ? `: ${contract.paymentDetails}` : ''}`
+                                          : ''}
+                            </p>
+                        </div>
 
-                <div className="mt-4">
-                    <p>סכום ששולם במעמד החתימה: {formatCurrency(contract.paidAmount)}</p>
-                    {contract.remainingAmount > 0 && (
-                        <p>
-                            יתרה לתשלום: {formatCurrency(contract.remainingAmount)}
-                            {contract.remainingPaymentDate && ` עד תאריך ${formatDate(contract.remainingPaymentDate)}`}
-                        </p>
+                        {contract.paidAmount !== undefined && contract.paidAmount !== null && (
+                            <div className="mt-4">
+                                <p>סכום ששולם במעמד החתימה: {formatCurrency(contract.paidAmount)}</p>
+                                {contract.remainingAmount && contract.remainingAmount > 0 && (
+                                    <p>
+                                        יתרה לתשלום: {formatCurrency(contract.remainingAmount)}
+                                        {contract.remainingPaymentDate && ` עד תאריך ${formatDate(contract.remainingPaymentDate)}`}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+
+            <div className="mb-8">
+                <h2 className="font-bold mb-4">4. תנאי העסקה</h2>
+                <div className="space-y-2" style={{ direction: 'rtl', textAlign: 'right' }}>
+                    <div style={{ textAlign: 'right', direction: 'rtl' }}>• הרכב נמכר במצבו הנוכחי ("כמות שהוא").</div>
+                    <div style={{ textAlign: 'right', direction: 'rtl' }}>• הקונה מצהיר כי בדק את הרכב, נסע בו, ואין לו טענות באשר למצבו המכני או החזותי.</div>
+                    <div style={{ textAlign: 'right', direction: 'rtl' }}>• המוכר מתחייב להעביר את בעלות הרכב תוך {contract.ownershipTransferDays} ימי עסקים.</div>
+                    <div style={{ textAlign: 'right', direction: 'rtl' }}>• הקונה יהיה אחראי על כל התחייבות/קנס/אגרה/נזק שיגיע לאחר מועד החתימה.</div>
+                    <div style={{ textAlign: 'right', direction: 'rtl' }}>• במידה והרכב נמצא תחת שעבוד או עיקול – המוכר מתחייב להסירו לפני העברת הבעלות.</div>
+                    {contract.dealType === 'trade-in' && (
+                        <div style={{ textAlign: 'right', direction: 'rtl' }}>
+                            • במידה ועסקה זו כוללת טרייד אין – האחריות למצב הרכב שנמסר חלה על הקונה, והוא מצהיר כי מסר את הרכב למגרש לאחר גילוי מלא.
+                        </div>
                     )}
                 </div>
             </div>
 
             <div className="mb-8">
-                <h2 className="font-bold mb-4">4. תנאי העסקה</h2>
-                <ul className="list-disc mr-6 space-y-2">
-                    <li>הרכב נמכר במצבו הנוכחי ("כמות שהוא").</li>
-                    <li>הקונה מצהיר כי בדק את הרכב, נסע בו, ואין לו טענות באשר למצבו המכני או החזותי.</li>
-                    <li>המוכר מתחייב להעביר את בעלות הרכב תוך {contract.ownershipTransferDays} ימי עסקים.</li>
-                    <li>הקונה יהיה אחראי על כל התחייבות/קנס/אגרה/נזק שיגיע לאחר מועד החתימה.</li>
-                    <li>במידה והרכב נמצא תחת שעבוד או עיקול – המוכר מתחייב להסירו לפני העברת הבעלות.</li>
-                    {contract.dealType === 'trade-in' && <li>במידה ועסקה זו כוללת טרייד אין – האחריות למצב הרכב שנמסר חלה על הקונה, והוא מצהיר כי מסר את הרכב למגרש לאחר גילוי מלא.</li>}
-                </ul>
-            </div>
-
-            <div className="mb-8">
                 <h2 className="font-bold mb-4">5. הצהרות</h2>
-                <ul className="list-disc mr-6 space-y-2">
-                    <li>הצדדים מאשרים שכל הפרטים נכונים ושהם חותמים על ההסכם מרצונם החופשי.</li>
-                    <li>הצדדים מודעים כי הסכם זה מחייב מבחינה משפטית.</li>
-                </ul>
+                <div className="space-y-2" style={{ direction: 'rtl', textAlign: 'right' }}>
+                    <div style={{ textAlign: 'right', direction: 'rtl' }}>• הצדדים מאשרים שכל הפרטים נכונים ושהם חותמים על ההסכם מרצונם החופשי.</div>
+                    <div style={{ textAlign: 'right', direction: 'rtl' }}>• הצדדים מודעים כי הסכם זה מחייב מבחינה משפטית.</div>
+                </div>
             </div>
 
             <div className="mt-12">

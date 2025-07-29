@@ -213,7 +213,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
         }
     };
 
-    const createContractData = (bill: Bill): CarContract => {
+    const createContractData = (bill?: Bill): CarContract => {
         if (!deal || !customer || !car) throw new Error('Missing required data');
 
         return {
@@ -242,6 +242,9 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             carEngineNumber: '', // Would need to be added to car data
             carKilometers: car.kilometers,
 
+            // Deal amount (always available)
+            dealAmount: deal.amount || 0,
+
             // Trade-in car info if applicable
             ...(carTakenFromClient && {
                 tradeInCar: {
@@ -252,17 +255,18 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                 },
             }),
 
-            // Payment info
-            totalAmount: bill.total_with_tax || bill.total,
-            paymentMethod: 'other',
-            paidAmount: bill.total_with_tax || bill.total,
-            remainingAmount: 0,
+            // Payment info - only include if bill exists
+            ...(bill && {
+                totalAmount: bill.total_with_tax || bill.total,
+                paymentMethod: 'other' as const,
+                paidAmount: bill.total_with_tax || bill.total,
+                remainingAmount: 0,
+            }),
 
             // Standard terms
             ownershipTransferDays: 30,
         };
     };
-
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -682,109 +686,108 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                             <IconEdit className="w-4 h-4" />
                             {t('edit_deal')}
                         </Link>
-                        {bills.length > 0 && (
-                            <button
-                                className={`btn btn-outline-info gap-2${generatingContract ? ' opacity-60 pointer-events-none' : ''}`}
-                                disabled={generatingContract}
-                                onClick={async () => {
-                                    setGeneratingContract(true);
+                        <button
+                            className={`btn btn-outline-success gap-2${generatingContract ? ' opacity-60 pointer-events-none' : ''}`}
+                            disabled={generatingContract}
+                            onClick={async () => {
+                                setGeneratingContract(true);
+                                try {
+                                    // Create contract - include bill if available, otherwise create without payment info
+                                    const contractData = createContractData(bills.length > 0 ? bills[0] : undefined);
+                                    const [{ default: jsPDF }, html2canvas, reactDomClient] = await Promise.all([import('jspdf'), import('html2canvas'), import('react-dom/client')]);
+                                    const container = document.createElement('div');
+                                    container.style.position = 'fixed';
+                                    container.style.left = '-9999px';
+                                    document.body.appendChild(container);
+                                    // Get language from i18nextLng cookie
+                                    const getCookie = (name: string) => {
+                                        const value = `; ${document.cookie}`;
+                                        const parts = value.split(`; ${name}=`);
+                                        if (parts.length === 2) {
+                                            const part = parts.pop();
+                                            if (part) {
+                                                return part.split(';').shift();
+                                            }
+                                        }
+                                        return null;
+                                    };
+                                    let lang = getCookie('i18nextLng') || 'ar';
+                                    let ContractTemplate;
+
+                                    // Normalize language code
+                                    const normalizedLang = lang.toLowerCase().split('-')[0];
+
+                                    // Load template based on normalized language
                                     try {
-                                        const contractData = createContractData(bills[0]);
-                                        const [{ default: jsPDF }, html2canvas, reactDomClient] = await Promise.all([import('jspdf'), import('html2canvas'), import('react-dom/client')]);
-                                        const container = document.createElement('div');
-                                        container.style.position = 'fixed';
-                                        container.style.left = '-9999px';
-                                        document.body.appendChild(container);
-                                        // Get language from i18nextLng cookie
-                                        const getCookie = (name: string) => {
-                                            const value = `; ${document.cookie}`;
-                                            const parts = value.split(`; ${name}=`);
-                                            if (parts.length === 2) {
-                                                const part = parts.pop();
-                                                if (part) {
-                                                    return part.split(';').shift();
-                                                }
-                                            }
-                                            return null;
-                                        };
-                                        let lang = getCookie('i18nextLng') || 'ar';
-                                        let ContractTemplate;
-
-                                        // Normalize language code
-                                        const normalizedLang = lang.toLowerCase().split('-')[0];
-
-                                        // Load template based on normalized language
-                                        try {
-                                            if (normalizedLang === 'ar') {
-                                                ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
-                                            } else if (normalizedLang === 'he') {
-                                                ContractTemplate = (await import('@/components/contracts/hebrew-contract-template')).default;
-                                            } else if (normalizedLang === 'en') {
-                                                ContractTemplate = (await import('@/components/contracts/english-contract-template')).default;
-                                            } else {
-                                                ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
-                                            }
-                                        } catch (error) {
-                                            console.error('Error loading template:', error);
-                                            throw error;
+                                        if (normalizedLang === 'ar') {
+                                            ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
+                                        } else if (normalizedLang === 'he') {
+                                            ContractTemplate = (await import('@/components/contracts/hebrew-contract-template')).default;
+                                        } else if (normalizedLang === 'en') {
+                                            ContractTemplate = (await import('@/components/contracts/english-contract-template')).default;
+                                        } else {
+                                            ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
                                         }
-                                        const root = reactDomClient.createRoot(container);
-                                        root.render(React.createElement(ContractTemplate, { contract: contractData }));
-
-                                        // Wait longer for Arabic text rendering
-                                        await new Promise((r) => setTimeout(r, 500));
-
-                                        // Verify container has content
-                                        if (!container.innerHTML) {
-                                            throw new Error('Template failed to render');
-                                        }
-
-                                        const canvas = await html2canvas.default(container, {
-                                            scale: 1.5,
-                                            logging: true,
-                                            useCORS: true,
-                                            windowWidth: 1024, // Set a fixed width for consistent rendering
-                                        });
-                                        const imgData = canvas.toDataURL('image/png');
-                                        const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-                                        const pageWidth = pdf.internal.pageSize.getWidth();
-                                        const pageHeight = pdf.internal.pageSize.getHeight();
-
-                                        // Calculate scaling to fit content on one page
-                                        const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
-
-                                        const imgWidth = canvas.width * scale;
-                                        const imgHeight = canvas.height * scale;
-
-                                        // Center the image on the page
-                                        const x = (pageWidth - imgWidth) / 2;
-                                        const y = (pageHeight - imgHeight) / 2;
-
-                                        pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-                                        const filename = `car-contract-${contractData.carPlateNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
-                                        const pdfBlob = pdf.output('blob');
-                                        const pdfUrl = URL.createObjectURL(pdfBlob);
-                                        window.open(pdfUrl, '_blank');
-                                        root.unmount();
-                                        document.body.removeChild(container);
                                     } catch (error) {
-                                        setAlert({ visible: true, message: t('error_generating_pdf') || 'Error generating PDF', type: 'danger' });
-                                    } finally {
-                                        setGeneratingContract(false);
+                                        console.error('Error loading template:', error);
+                                        throw error;
                                     }
-                                }}
-                            >
-                                {generatingContract ? (
-                                    <svg className="animate-spin h-4 w-4 text-info" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                    </svg>
-                                ) : (
-                                    <IconDocument className="w-4 h-4" />
-                                )}
-                                {generatingContract ? t('generating_pdf') : t('generate_contract')}
-                            </button>
-                        )}
+                                    const root = reactDomClient.createRoot(container);
+                                    root.render(React.createElement(ContractTemplate, { contract: contractData }));
+
+                                    // Wait longer for Arabic text rendering
+                                    await new Promise((r) => setTimeout(r, 500));
+
+                                    // Verify container has content
+                                    if (!container.innerHTML) {
+                                        throw new Error('Template failed to render');
+                                    }
+
+                                    const canvas = await html2canvas.default(container, {
+                                        scale: 1.5,
+                                        logging: true,
+                                        useCORS: true,
+                                        windowWidth: 1024, // Set a fixed width for consistent rendering
+                                    });
+                                    const imgData = canvas.toDataURL('image/png');
+                                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+                                    const pageWidth = pdf.internal.pageSize.getWidth();
+                                    const pageHeight = pdf.internal.pageSize.getHeight();
+
+                                    // Calculate scaling to fit content on one page
+                                    const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+
+                                    const imgWidth = canvas.width * scale;
+                                    const imgHeight = canvas.height * scale;
+
+                                    // Center the image on the page
+                                    const x = (pageWidth - imgWidth) / 2;
+                                    const y = (pageHeight - imgHeight) / 2;
+
+                                    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
+                                    const filename = `car-contract-${contractData.carPlateNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
+                                    const pdfBlob = pdf.output('blob');
+                                    const pdfUrl = URL.createObjectURL(pdfBlob);
+                                    window.open(pdfUrl, '_blank');
+                                    root.unmount();
+                                    document.body.removeChild(container);
+                                } catch (error) {
+                                    setAlert({ visible: true, message: t('error_generating_pdf') || 'Error generating PDF', type: 'danger' });
+                                } finally {
+                                    setGeneratingContract(false);
+                                }
+                            }}
+                        >
+                            {generatingContract ? (
+                                <svg className="animate-spin h-4 w-4 text-success" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                            ) : (
+                                <IconDocument className="w-4 h-4" />
+                            )}
+                            {generatingContract ? t('generating_contract') : t('generate_contract')}
+                        </button>
                         <Link href="/deals" className="btn btn-outline-secondary">
                             {t('back_to_deals')}
                         </Link>
