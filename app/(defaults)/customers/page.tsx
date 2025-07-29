@@ -11,6 +11,7 @@ import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
+import CustomerFilters from '@/components/customer-filters/customer-filters';
 
 interface Customer {
     id: string;
@@ -37,7 +38,6 @@ const CustomersList = () => {
     const [records, setRecords] = useState<Customer[]>([]);
     const [selectedRecords, setSelectedRecords] = useState<Customer[]>([]);
 
-    const [search, setSearch] = useState('');
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'id',
         direction: 'desc',
@@ -49,6 +49,16 @@ const CustomersList = () => {
             setSortStatus({ columnAccessor: 'id', direction: 'desc' });
         }
     }, []);
+
+    const [filters, setFilters] = useState({
+        search: '',
+        country: '',
+        customerType: '',
+        balanceFrom: '',
+        balanceTo: '',
+        dateFrom: '',
+        dateTo: '',
+    });
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
     const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
@@ -88,16 +98,40 @@ const CustomersList = () => {
     useEffect(() => {
         setInitialRecords(
             items.filter((item) => {
-                return (
-                    item.name.toLowerCase().includes(search.toLowerCase()) ||
-                    item.phone.toLowerCase().includes(search.toLowerCase()) ||
-                    item.car_number.toLowerCase().includes(search.toLowerCase()) ||
-                    item.country.toLowerCase().includes(search.toLowerCase()) ||
-                    item.customer_type.toLowerCase().includes(search.toLowerCase())
-                );
+                // Search filter
+                const searchTerm = filters.search.toLowerCase();
+                const matchesSearch =
+                    !searchTerm ||
+                    item.name.toLowerCase().includes(searchTerm) ||
+                    item.phone.toLowerCase().includes(searchTerm) ||
+                    item.car_number.toLowerCase().includes(searchTerm) ||
+                    item.country.toLowerCase().includes(searchTerm) ||
+                    item.customer_type.toLowerCase().includes(searchTerm);
+
+                // Country filter
+                const matchesCountry = !filters.country || item.country === filters.country;
+
+                // Customer type filter
+                const matchesCustomerType = !filters.customerType || item.customer_type === filters.customerType;
+
+                // Age range filter
+                const age = item.age || 0;
+          
+
+                // Balance range filter
+                const balance = item.balance || 0;
+                const matchesBalanceFrom = !filters.balanceFrom || balance >= parseFloat(filters.balanceFrom);
+                const matchesBalanceTo = !filters.balanceTo || balance <= parseFloat(filters.balanceTo);
+
+                // Date range filter
+                const itemDate = new Date(item.created_at);
+                const matchesDateFrom = !filters.dateFrom || itemDate >= new Date(filters.dateFrom);
+                const matchesDateTo = !filters.dateTo || itemDate <= new Date(filters.dateTo + 'T23:59:59');
+
+                return matchesSearch && matchesCountry && matchesCustomerType && matchesBalanceFrom && matchesBalanceTo && matchesDateFrom && matchesDateTo;
             }),
         );
-    }, [items, search]);
+    }, [items, filters]);
 
     useEffect(() => {
         const sorted = sortBy(initialRecords, sortStatus.columnAccessor);
@@ -179,8 +213,8 @@ const CustomersList = () => {
                 </div>
             )}
             <div className="invoice-table">
-                <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
-                    <div className="flex items-center gap-2">
+                <div className="mb-4.5 flex flex-wrap items-start justify-between gap-4 px-5">
+                    <div className="flex items-center gap-2 ml-auto">
                         <button type="button" className="btn btn-danger gap-2" disabled={selectedRecords.length === 0} onClick={handleBulkDelete}>
                             <IconTrashLines />
                             {t('delete')}
@@ -190,8 +224,21 @@ const CustomersList = () => {
                             {t('add_new')}
                         </Link>
                     </div>
-                    <div className="ltr:ml-auto rtl:mr-auto">
-                        <input type="text" className="form-input w-auto" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <div className="flex-grow">
+                        <CustomerFilters
+                            onFilterChange={setFilters}
+                            onClearFilters={() =>
+                                setFilters({
+                                    search: '',
+                                    country: '',
+                                    customerType: '',
+                                    balanceFrom: '',
+                                    balanceTo: '',
+                                    dateFrom: '',
+                                    dateTo: '',
+                                })
+                            }
+                        />
                     </div>
                 </div>
 

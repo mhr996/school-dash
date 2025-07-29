@@ -1,4 +1,10 @@
 {
+    "amount_from": "Amount From",
+    "amount_to": "Amount To",
+    "selling_price_from": "Selling Price From",
+    "selling_price_to": "Selling Price To",
+    "balance_from": "Balance From",
+    "balance_to": "Balance To",
     "generate_contract": "Generate Contract",
     "error_generating_contract": "Error generating contract",
     "dashboard": "Dashboard",
@@ -94,7 +100,7 @@
     "transfer_number_placeholder": "Enter transfer number",
     "transfer_holder_name_placeholder": "Enter account holder name",
     "no_details_available": "No details available",
-    
+
     "add_new_bill": "Add New Bill",
     "create_bill_description": "Create a new bill by selecting a deal and filling in the required information",
     "select_deal": "Select Deal",

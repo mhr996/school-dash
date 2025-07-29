@@ -15,6 +15,21 @@ import { deleteFolder } from '@/utils/file-upload';
 import { Deal } from '@/types';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
 import { logActivity } from '@/utils/activity-logger';
+import DealFilters from '@/components/deal-filters/deal-filters';
+
+type DealType = 'new_used_sale' | 'new_used_sale_tax_inclusive' | 'exchange' | 'intermediary' | 'financing_assistance_intermediary' | 'company_commission' | '';
+
+type DealStatus = 'pending' | 'active' | 'completed' | 'cancelled' | '';
+
+interface DealFilters {
+    search: string;
+    dealType: string;
+    status: string;
+    dateFrom: string;
+    dateTo: string;
+    sellerId: string;
+    buyerId: string;
+}
 
 const DealsList = () => {
     const { t } = getTranslation();
@@ -32,6 +47,15 @@ const DealsList = () => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'id',
         direction: 'desc',
+    });
+    const [activeFilters, setActiveFilters] = useState<DealFilters>({
+        search: '',
+        dealType: '',
+        status: '',
+        dateFrom: '',
+        dateTo: '',
+        sellerId: '',
+        buyerId: '',
     }); // Modal and alert states
 
     // Always default sort by ID in descending order
@@ -94,21 +118,37 @@ const DealsList = () => {
     useEffect(() => {
         setInitialRecords(
             items.filter((item) => {
-                return (
-                    item.title.toLowerCase().includes(search.toLowerCase()) ||
-                    item.description.toLowerCase().includes(search.toLowerCase()) ||
-                    item.deal_type.toLowerCase().includes(search.toLowerCase()) ||
-                    item.status.toLowerCase().includes(search.toLowerCase()) ||
-                    (item.customers?.name && item.customers.name.toLowerCase().includes(search.toLowerCase())) ||
-                    (item.customers?.id_number && item.customers.id_number.toLowerCase().includes(search.toLowerCase())) ||
-                    (item.seller?.name && item.seller.name.toLowerCase().includes(search.toLowerCase())) ||
-                    (item.seller?.id_number && item.seller.id_number.toLowerCase().includes(search.toLowerCase())) ||
-                    (item.buyer?.name && item.buyer.name.toLowerCase().includes(search.toLowerCase())) ||
-                    (item.buyer?.id_number && item.buyer.id_number.toLowerCase().includes(search.toLowerCase()))
-                );
+                // Search filter
+                const matchesSearch = search.toLowerCase();
+                const searchMatch =
+                    !search ||
+                    item.title?.toLowerCase().includes(matchesSearch) ||
+                    item.description?.toLowerCase().includes(matchesSearch) ||
+                    item.deal_type?.toLowerCase().includes(matchesSearch) ||
+                    item.status?.toLowerCase().includes(matchesSearch) ||
+                    item.customers?.name?.toLowerCase().includes(matchesSearch) ||
+                    item.customers?.id_number?.toLowerCase().includes(matchesSearch) ||
+                    item.seller?.name?.toLowerCase().includes(matchesSearch) ||
+                    item.seller?.id_number?.toLowerCase().includes(matchesSearch) ||
+                    item.buyer?.name?.toLowerCase().includes(matchesSearch) ||
+                    item.buyer?.id_number?.toLowerCase().includes(matchesSearch);
+
+                // Deal filters
+                const dealTypeMatch = !activeFilters.dealType || item.deal_type === activeFilters.dealType;
+                const statusMatch = !activeFilters.status || item.status === activeFilters.status;
+                const sellerMatch = !activeFilters.sellerId || item.seller?.id === activeFilters.sellerId;
+                const buyerMatch = !activeFilters.buyerId || item.buyer?.id === activeFilters.buyerId;
+
+                // Date range
+                const dateFrom = activeFilters.dateFrom ? new Date(activeFilters.dateFrom) : null;
+                const dateTo = activeFilters.dateTo ? new Date(activeFilters.dateTo) : null;
+                const itemDate = new Date(item.created_at);
+                const dateMatch = (!dateFrom || itemDate >= dateFrom) && (!dateTo || itemDate <= dateTo);
+
+                return searchMatch && dealTypeMatch && statusMatch && sellerMatch && buyerMatch && dateMatch;
             }),
         );
-    }, [items, search]);
+    }, [items, search, activeFilters]);
 
     useEffect(() => {
         const sorted = sortBy(initialRecords, sortStatus.columnAccessor);
@@ -234,19 +274,42 @@ const DealsList = () => {
                 </div>
             )}
             <div className="invoice-table">
-                <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
-                    <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-danger gap-2" onClick={handleBulkDelete} disabled={selectedRecords.length === 0}>
-                            <IconTrashLines />
-                            {t('delete')}
-                        </button>
-                        <Link href="/deals/add" className="btn btn-primary gap-2">
-                            <IconPlus />
-                            {t('add_new')}
-                        </Link>
+                <div className="mb-4.5 flex flex-col gap-5 px-5">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex items-center gap-2">
+                            <button type="button" className="btn btn-danger gap-2" onClick={handleBulkDelete} disabled={selectedRecords.length === 0}>
+                                <IconTrashLines />
+                                {t('delete')}
+                            </button>
+                            <Link href="/deals/add" className="btn btn-primary gap-2">
+                                <IconPlus />
+                                {t('add_new')}
+                            </Link>
+                        </div>
+                        <div>
+                            <input type="text" className="form-input w-auto" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+                        </div>
                     </div>
-                    <div className="ltr:ml-auto rtl:mr-auto">
-                        <input type="text" className="form-input w-auto" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+                    <div className="border-t border-[#e0e6ed] dark:border-[#1b2e4b] pt-5">
+                        <DealFilters
+                            onFilterChange={(newFilters) => {
+                                setActiveFilters(newFilters);
+                                // Also update the search state to keep it in sync
+                                setSearch(newFilters.search);
+                            }}
+                            onClearFilters={() => {
+                                setActiveFilters({
+                                    search: '',
+                                    dealType: '',
+                                    status: '',
+                                    dateFrom: '',
+                                    dateTo: '',
+                                    sellerId: '',
+                                    buyerId: '',
+                                });
+                                setSearch('');
+                            }}
+                        />
                     </div>
                 </div>
 

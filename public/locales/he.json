@@ -1,5 +1,5 @@
 {
-    "dashboard": "לוח מחוונים",
+    "dashboard": "לוח בקרה",
     "sales": "מכירות",
     "home": "בית",
     "products": "מוצרים",
@@ -753,5 +753,57 @@
     "in_inventory": "במלאי",
     "for_sale": "למכירה",
     "used": "משומש",
-    "download_contract": "הורד חוזה"
+    "download_contract": "הורד חוזה",
+    "cars": "מכוניות",
+    "add_new_car": "הוספת רכב חדש",
+    "create_new_car": "הכנסת רכב חדש",
+    "add_new_bill" : "יצירת חשבונית חדשה",
+    "total_transactions": "סה״כ עסקאות",
+    "revenue_trend": "תחזית רווחים",
+    "deals": "עסקאות",
+    "bills": "חשבוניות",
+    "logs" : "יומן",
+    "created_at" : "נוצר בתאריך",
+    "car_title" : "סוג הרכב",
+    "brand" : "יצרן",
+    "year": "שנה",
+    "car_status": "סטטוס הרכב" ,
+    "provider": "ספק" ,
+    "kilometers": "קמ" ,
+    "deal_type": "סוג העסקה" ,
+    "status_active": "פעיל" ,
+    "status_complete": "הושלם" ,
+    "deal": "עסקה",
+    "bill_type": "סוג חשבונית",
+    "total_amount": "סה״כ סכום",
+    "bank_transfer" : "העברה בנקאית",
+    "not_applicable" : "לא שולם",
+    "cash": "מזומן",
+    "bill_status_pending": "ממתין לתשלום",
+    "tax_invoice_and_receipt" :"חשבונית מס קבלה",
+    "tax_invoice_only": "חשבונית מס",
+    "receipt_only": "קבלה",
+    "select_deal_type": "בחירת סוג עסקה",
+    "select_deal_type_desc": "תיאור סוג עסקה",
+    "deal_date": "תאריך עסקה",
+    "select_deal_date_desc": "תיאור",
+    "select_customer": "בחירת לקוח",
+    "search_customer": "חיפוש לקוח",
+    "create_new_customer": "יצירת לקוח חדש",
+    "car_information" : "פרטי הרכב",
+    "select_car" : "בחירת רכב",
+    "deal_details": "פרטי עסקה",
+    "deal_title": "כותרת העסקה",
+    "enter_deal_title": "הכנס כותרת לעסקה",
+    "enter_deal_notes": "הכנס הערות לעסקה",
+    "create_deal": "יצירת עסקה",
+    "overview_analytics": "סקירה כללית"
+
+
+
+    
+    
+    
+
+
 }

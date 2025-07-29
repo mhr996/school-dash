@@ -1,4 +1,10 @@
 {
+    "amount_from": "المبلغ من",
+    "amount_to": "المبلغ إلى",
+    "selling_price_from": "سعر البيع من",
+    "selling_price_to": "سعر البيع إلى",
+    "balance_from": "الرصيد من",
+    "balance_to": "الرصيد إلى",
     "generate_contract": "عرض العقد",
     "download_contract": "تحميل العقد",
     "error_generating_contract": "خطأ في عرض العقد",
@@ -90,7 +96,7 @@
     "transfer_number_placeholder": "أدخل رقم الحوالة",
     "transfer_holder_name_placeholder": "أدخل اسم صاحب الحساب",
     "no_details_available": "لا توجد تفاصيل متاحة",
-    
+
     "add_new_bill": "إضافة فاتورة جديدة",
     "create_bill_description": "قم بإنشاء فاتورة جديدة عن طريق اختيار صفقة وتعبئة المعلومات المطلوبة",
     "select_deal": "اختر صفقة",
