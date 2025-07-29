@@ -167,10 +167,10 @@ const CarFilters: React.FC<FilterProps> = ({ onFilterChange, onClearFilters }) =
     const hasActiveFilters = Object.values(filters).some((value) => value !== '');
 
     return (
-        <div className="mb-5">
-            <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
+        <div className="">
+            <div className="mb-4.5 flex flex-col gap-5 md:flex-row md:items-center">
                 <div className="flex items-center gap-2">
-                    <button type="button" className={`btn ${isExpanded ? 'btn-secondary' : 'btn-outline-secondary'} gap-2`} onClick={() => setIsExpanded(!isExpanded)}>
+                    <button type="button" className={`btn btn-secondary gap-2`} onClick={() => setIsExpanded(!isExpanded)}>
                         <IconFilter className="w-4 h-4" />
                         {t('filters')}
                         {hasActiveFilters && <span className="badge bg-primary text-white rounded-full text-xs px-2">{Object.values(filters).filter((v) => v !== '').length}</span>}

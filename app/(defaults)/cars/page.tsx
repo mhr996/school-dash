@@ -342,10 +342,8 @@ const CarsList = () => {
                 </div>
             )}
             <div className="invoice-table">
-                <CarFilters onFilterChange={handleFilterChange} onClearFilters={handleClearFilters} />
-
-                <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
-                    <div className="flex items-center gap-2">
+                <div className="mb-4.5 flex flex-wrap items-start justify-between gap-4 px-5">
+                    <div className="flex items-center gap-2 ml-auto">
                         <button type="button" className="btn btn-danger gap-2" disabled={selectedRecords.length === 0} onClick={handleBulkDelete}>
                             <IconTrashLines />
                             {t('delete')}
@@ -354,6 +352,9 @@ const CarsList = () => {
                             <IconPlus />
                             {t('add_new')}
                         </Link>
+                    </div>
+                    <div className="flex-grow">
+                        <CarFilters onFilterChange={handleFilterChange} onClearFilters={handleClearFilters} />
                     </div>
                 </div>
 
