@@ -15,6 +15,7 @@ import ConfirmModal from '@/components/modals/confirm-modal';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { generateBillPDF } from '@/utils/pdf-generator';
 import { logActivity } from '@/utils/activity-logger';
+import { handleReceiptDeleted } from '@/utils/balance-manager';
 
 interface Bill {
     id: string;
@@ -147,6 +148,16 @@ const Bills = () => {
                 bill: billToDelete,
             });
 
+            // Update customer balance before deleting the bill (reverse the payment)
+            if (billToDelete.deal?.customer?.id) {
+                const balanceUpdateSuccess = await handleReceiptDeleted(billToDelete.id, billToDelete.deal.customer.id.toString(), billToDelete, billToDelete.customer_name || 'Customer');
+
+                if (!balanceUpdateSuccess) {
+                    console.warn('Failed to update customer balance for deleted bill:', billToDelete.id);
+                    // Don't fail the deletion, just log the warning
+                }
+            }
+
             const { error } = await supabase.from('bills').delete().eq('id', billToDelete.id);
             if (error) throw error;
             setItems(items.filter((b) => b.id !== billToDelete.id));
@@ -167,6 +178,18 @@ const Bills = () => {
     const confirmBulkDeletion = async () => {
         const ids = selectedRecords.map((b) => b.id);
         try {
+            // Update customer balances for each bill before deletion (reverse the payments)
+            for (const bill of selectedRecords) {
+                if (bill.deal?.customer?.id) {
+                    const balanceUpdateSuccess = await handleReceiptDeleted(bill.id, bill.deal.customer.id.toString(), bill, bill.customer_name || 'Customer');
+
+                    if (!balanceUpdateSuccess) {
+                        console.warn('Failed to update customer balance for deleted bill:', bill.id);
+                        // Don't fail the deletion, just log the warning
+                    }
+                }
+            }
+
             const { error } = await supabase.from('bills').delete().in('id', ids);
             if (error) throw error;
             setItems(items.filter((b) => !ids.includes(b.id)));

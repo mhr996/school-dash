@@ -14,6 +14,7 @@ import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
 import BillStatusSelect from '@/components/bill-status-select/bill-status-select';
 import { logActivity } from '@/utils/activity-logger';
+import { handleReceiptCreated } from '@/utils/balance-manager';
 
 interface Deal {
     id: number;
@@ -272,6 +273,16 @@ const AddBill = () => {
                 type: 'bill_created',
                 bill: billLogData,
             });
+
+            // Update customer balance if this bill has payment amounts
+            if (selectedDeal?.customer_id) {
+                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, selectedDeal.customer_id.toString(), billData, billData.customer_name || 'Customer');
+
+                if (!balanceUpdateSuccess) {
+                    console.warn('Failed to update customer balance for bill:', billResult.id);
+                    // Don't fail the bill creation, just log the warning
+                }
+            }
 
             // Redirect to bills list after a short delay
             setTimeout(() => {
@@ -808,9 +819,7 @@ const AddBill = () => {
                             {billForm.payment_type === 'bank_transfer' && (
                                 <>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('bank_amount')}
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_amount')}</label>
                                         <input
                                             name="bank_amount"
                                             type="number"
@@ -822,10 +831,8 @@ const AddBill = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('transfer_bank_name')}
-                                        </label>
-                                        <input 
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_bank_name')}</label>
+                                        <input
                                             name="transfer_bank_name"
                                             value={billForm.transfer_bank_name}
                                             onChange={handleFormChange}
@@ -834,9 +841,7 @@ const AddBill = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('transfer_branch_number')}
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_branch_number')}</label>
                                         <input
                                             name="transfer_branch_number"
                                             value={billForm.transfer_branch_number}
@@ -846,9 +851,7 @@ const AddBill = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('transfer_account_number')}
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_account_number')}</label>
                                         <input
                                             name="transfer_account_number"
                                             value={billForm.transfer_account_number}
@@ -858,9 +861,7 @@ const AddBill = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('transfer_number')}
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_number')}</label>
                                         <input
                                             name="transfer_number"
                                             value={billForm.transfer_number}
@@ -870,9 +871,7 @@ const AddBill = () => {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('transfer_holder_name')}
-                                        </label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_holder_name')}</label>
                                         <input
                                             name="transfer_holder_name"
                                             value={billForm.transfer_holder_name}

@@ -27,6 +27,7 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconEye from '@/components/icon/icon-eye';
 import IconReceipt from '@/components/icon/icon-receipt';
 import IconCalendar from '@/components/icon/icon-calendar';
+import { handleReceiptCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
 
 const EditDeal = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
@@ -617,9 +618,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 cash_amount: billForm.cash_amount ? parseFloat(billForm.cash_amount) : null,
             };
 
-            const { error } = await supabase.from('bills').insert([billData]);
+            const { data: billResult, error } = await supabase.from('bills').insert([billData]).select().single();
 
             if (error) throw error;
+            if (!billResult) throw new Error('Failed to create bill');
 
             // Update the deal status to 'completed' after bill creation
             const { error: dealUpdateError } = await supabase.from('deals').update({ status: 'completed' }).eq('id', dealId);
@@ -640,6 +642,17 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             }
 
             setAlert({ message: t('bill_created_successfully'), type: 'success' });
+
+            // Update customer balance if this bill has payment amounts
+            const customerId = getCustomerIdFromDeal(deal);
+            if (customerId) {
+                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, customerId, billData, customerName || 'Customer');
+
+                if (!balanceUpdateSuccess) {
+                    console.warn('Failed to update customer balance for bill:', billResult.id);
+                    // Don't fail the bill creation, just log the warning
+                }
+            }
 
             // Refresh bills list
             fetchBills();

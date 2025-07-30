@@ -71,39 +71,29 @@ const CustomerPreview = () => {
             if (!params?.id) return;
 
             try {
-                // For now, we'll create mock data since transactions table might not exist yet
-                // In production, this would fetch from a transactions table
-                const mockTransactions: Transaction[] = [
-                    {
-                        id: '1',
-                        created_at: '2024-01-15T10:30:00Z',
-                        type: 'purchase',
-                        amount: -15000,
-                        description: 'Car Purchase - Toyota Camry 2020',
-                        reference_id: 'CAR-001',
-                        balance_after: 5000,
-                    },
-                    {
-                        id: '2',
-                        created_at: '2024-01-10T14:20:00Z',
-                        type: 'payment',
-                        amount: 20000,
-                        description: 'Initial Payment',
-                        balance_after: 20000,
-                    },
-                    {
-                        id: '3',
-                        created_at: '2024-01-20T09:15:00Z',
-                        type: 'adjustment',
-                        amount: 1000,
-                        description: 'Discount Applied',
-                        balance_after: 6000,
-                    },
-                ];
+                // Fetch real transaction data from customer_transactions table
+                const { data, error } = await supabase.from('customer_transactions').select('*').eq('customer_id', params.id).order('created_at', { ascending: false });
 
-                setTransactions(mockTransactions);
+                if (error) {
+                    console.error('Error fetching transactions:', error);
+                    // If table doesn't exist yet, use empty array
+                    setTransactions([]);
+                } else {
+                    // Convert the data to match our Transaction interface
+                    const convertedTransactions: Transaction[] = (data || []).map((tx) => ({
+                        id: tx.id,
+                        created_at: tx.created_at,
+                        type: getTransactionTypeFromDbType(tx.type),
+                        amount: tx.amount,
+                        description: tx.description || '',
+                        reference_id: tx.reference_id,
+                        balance_after: tx.balance_after,
+                    }));
+                    setTransactions(convertedTransactions);
+                }
             } catch (error) {
                 console.error('Error:', error);
+                setTransactions([]);
             } finally {
                 setTransactionsLoading(false);
             }
@@ -117,6 +107,22 @@ const CustomerPreview = () => {
 
     const getCustomerTypeBadgeClass = (type: string) => {
         return type === 'new' ? 'badge-outline-success' : 'badge-outline-primary';
+    };
+
+    // Helper function to convert database transaction types to UI types
+    const getTransactionTypeFromDbType = (dbType: string): 'purchase' | 'payment' | 'refund' | 'adjustment' => {
+        switch (dbType) {
+            case 'deal_created':
+                return 'purchase';
+            case 'deal_deleted':
+                return 'refund';
+            case 'receipt_created':
+                return 'payment';
+            case 'receipt_deleted':
+                return 'adjustment';
+            default:
+                return 'adjustment';
+        }
     };
 
     const getTransactionTypeColor = (type: string) => {

@@ -6,6 +6,7 @@ import { toggleSidebar } from '@/store/themeConfigSlice';
 import AnimateHeight from 'react-animate-height';
 import { IRootState } from '@/store';
 import { useState, useEffect } from 'react';
+import supabase from '@/lib/supabase';
 import IconCaretsDown from '@/components/icon/icon-carets-down';
 import IconMenuDashboard from '@/components/icon/menu/icon-menu-dashboard';
 import IconCaretDown from '@/components/icon/icon-caret-down';
@@ -31,6 +32,7 @@ import IconMenuUsers from '@/components/icon/menu/icon-menu-users';
 import IconUser from '@/components/icon/icon-user';
 import IconBox from '@/components/icon/icon-box';
 import IconSettings from '@/components/icon/icon-settings';
+import IconBuilding from '@/components/icon/icon-building';
 import IconListCheck from '@/components/icon/icon-list-check';
 
 import IconMenuPages from '@/components/icon/menu/icon-menu-pages';
@@ -45,6 +47,10 @@ const Sidebar = () => {
     const pathname = usePathname();
     const [currentMenu, setCurrentMenu] = useState<string>('');
     const [errorSubMenu, setErrorSubMenu] = useState(false);
+    const [companyInfo, setCompanyInfo] = useState<{ name: string; logo_url?: string }>({
+        name: 'TOP CAR',
+        logo_url: '/assets/images/logo.png',
+    });
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
     const toggleMenu = (value: string) => {
@@ -52,6 +58,27 @@ const Sidebar = () => {
             return oldValue === value ? '' : value;
         });
     };
+
+    // Fetch company information
+    useEffect(() => {
+        const fetchCompanyInfo = async () => {
+            try {
+                const { data, error } = await supabase.from('company_settings').select('name, logo_url').limit(1).single();
+
+                if (data && !error) {
+                    setCompanyInfo({
+                        name: data.name || 'TOP CAR',
+                        logo_url: data.logo_url || '/assets/images/logo.png',
+                    });
+                }
+            } catch (error) {
+                console.log('Using default company info');
+                // Keep default values if company_settings table doesn't exist yet
+            }
+        };
+
+        fetchCompanyInfo();
+    }, []);
 
     useEffect(() => {
         const selector = document.querySelector('.sidebar ul a[href="' + window.location.pathname + '"]');
@@ -95,8 +122,8 @@ const Sidebar = () => {
                 <div className="h-full bg-white dark:bg-black">
                     <div className="flex items-center justify-between px-4 py-3">
                         <Link href="/" className="main-logo flex shrink-0 items-center">
-                            <img className="ml-[5px] w-16 flex-none" src="/assets/images/logo.png" alt="logo" />
-                            <span className="align-middle text-2xl font-semibold ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light lg:inline">TOP CAR</span>
+                            <img className="ml-[5px] w-16 flex-none" src={companyInfo.logo_url} alt="logo" />
+                            <span className="align-middle text-2xl font-semibold ltr:ml-1.5 rtl:mr-1.5 dark:text-white-light lg:inline">{companyInfo.name}</span>
                         </Link>
 
                         <button
@@ -154,6 +181,14 @@ const Sidebar = () => {
                                             <div className="flex items-center">
                                                 <IconSettings className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('home_page_settings')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                    <li className="nav-item">
+                                        <Link href="/company-settings" className="group">
+                                            <div className="flex items-center">
+                                                <IconBuilding className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('company_settings')}</span>
                                             </div>
                                         </Link>
                                     </li>

@@ -21,6 +21,7 @@ import { uploadMultipleFiles } from '@/utils/file-upload';
 import { formatCurrency } from '@/utils/number-formatter';
 import { Customer, Car, FileItem, DealAttachments } from '@/types';
 import { logActivity } from '@/utils/activity-logger';
+import { handleDealCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
 
 const AddDeal = () => {
     const { t } = getTranslation();
@@ -609,6 +610,17 @@ const AddDeal = () => {
                 type: 'deal_created',
                 deal: dealLogData,
             });
+
+            // Update customer balance if applicable
+            const customerId = getCustomerIdFromDeal(dealData);
+            if (customerId && dealData.amount) {
+                const balanceUpdateSuccess = await handleDealCreated(dealId, customerId, dealData.amount, dealData.title || 'Deal');
+
+                if (!balanceUpdateSuccess) {
+                    console.warn('Failed to update customer balance for deal:', dealId);
+                    // Don't fail the deal creation, just log the warning
+                }
+            }
 
             // Redirect to the newly created deal's edit page after a short delay
             setTimeout(() => {

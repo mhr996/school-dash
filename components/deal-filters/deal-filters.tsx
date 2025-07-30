@@ -114,18 +114,20 @@ const DealFilters: React.FC<FilterProps> = ({ onFilterChange, onClearFilters }) 
 
     const dealTypeOptions = [
         { value: '', label: t('all') },
-        { value: 'sell', label: t('deal_type_sell') },
-        { value: 'buy', label: t('deal_type_buy') },
+        { value: 'new_used_sale', label: t('deal_type_new_used_sale') },
+        { value: 'new_used_sale_tax_inclusive', label: t('deal_type_new_used_sale_tax_inclusive') },
         { value: 'exchange', label: t('deal_type_exchange') },
         { value: 'intermediary', label: t('deal_type_intermediary') },
+        { value: 'financing_assistance_intermediary', label: t('deal_type_financing_assistance_intermediary') },
+        { value: 'company_commission', label: t('deal_type_company_commission') },
     ];
 
     const statusOptions = [
         { value: '', label: t('all') },
-        { value: 'pending', label: t('status_pending') },
-        { value: 'in_progress', label: t('status_in_progress') },
-        { value: 'completed', label: t('status_completed') },
-        { value: 'cancelled', label: t('status_cancelled') },
+        { value: 'pending', label: t('deal_status_pending') },
+        { value: 'active', label: t('deal_status_active') },
+        { value: 'completed', label: t('deal_status_completed') },
+        { value: 'cancelled', label: t('deal_status_cancelled') },
     ];
 
     useEffect(() => {

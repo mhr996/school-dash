@@ -13,9 +13,9 @@ import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { deleteFolder } from '@/utils/file-upload';
 import { Deal } from '@/types';
-import AttachmentsDisplay from '@/components/attachments/attachments-display';
 import { logActivity } from '@/utils/activity-logger';
 import DealFilters from '@/components/deal-filters/deal-filters';
+import { handleDealDeleted, getCustomerIdFromDeal } from '@/utils/balance-manager';
 
 type DealType = 'new_used_sale' | 'new_used_sale_tax_inclusive' | 'exchange' | 'intermediary' | 'financing_assistance_intermediary' | 'company_commission' | '';
 
@@ -174,6 +174,17 @@ const DealsList = () => {
                 deal: dealToDelete,
             });
 
+            // Update customer balance before deleting the deal
+            const customerId = getCustomerIdFromDeal(dealToDelete);
+            if (customerId && dealToDelete.amount) {
+                const balanceUpdateSuccess = await handleDealDeleted(dealToDelete.id, customerId, dealToDelete.amount, dealToDelete.title || 'Deal');
+
+                if (!balanceUpdateSuccess) {
+                    console.warn('Failed to update customer balance for deleted deal:', dealToDelete.id);
+                    // Don't fail the deletion, just log the warning
+                }
+            }
+
             // Delete the deal from database
             const { error } = await supabase.from('deals').delete().eq('id', dealToDelete.id);
             if (error) throw error;
@@ -204,6 +215,19 @@ const DealsList = () => {
     const confirmBulkDeletion = async () => {
         const ids = selectedRecords.map((d) => d.id);
         try {
+            // Update customer balances for each deal before deletion
+            for (const deal of selectedRecords) {
+                const customerId = getCustomerIdFromDeal(deal);
+                if (customerId && deal.amount) {
+                    const balanceUpdateSuccess = await handleDealDeleted(deal.id, customerId, deal.amount, deal.title || 'Deal');
+
+                    if (!balanceUpdateSuccess) {
+                        console.warn('Failed to update customer balance for deleted deal:', deal.id);
+                        // Don't fail the deletion, just log the warning
+                    }
+                }
+            }
+
             // Delete deals from database
             const { error } = await supabase.from('deals').delete().in('id', ids);
             if (error) throw error;
@@ -274,23 +298,18 @@ const DealsList = () => {
                 </div>
             )}
             <div className="invoice-table">
-                <div className="mb-4.5 flex flex-col gap-5 px-5">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex items-center gap-2">
-                            <button type="button" className="btn btn-danger gap-2" onClick={handleBulkDelete} disabled={selectedRecords.length === 0}>
-                                <IconTrashLines />
-                                {t('delete')}
-                            </button>
-                            <Link href="/deals/add" className="btn btn-primary gap-2">
-                                <IconPlus />
-                                {t('add_new')}
-                            </Link>
-                        </div>
-                        <div>
-                            <input type="text" className="form-input w-auto" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-                        </div>
+                <div className="mb-4.5 flex flex-wrap items-start justify-between gap-4 px-5">
+                    <div className="flex items-center gap-2 ml-auto">
+                        <button type="button" className="btn btn-danger gap-2" onClick={handleBulkDelete} disabled={selectedRecords.length === 0}>
+                            <IconTrashLines />
+                            {t('delete')}
+                        </button>
+                        <Link href="/deals/add" className="btn btn-primary gap-2">
+                            <IconPlus />
+                            {t('add_new')}
+                        </Link>
                     </div>
-                    <div className="border-t border-[#e0e6ed] dark:border-[#1b2e4b] pt-5">
+                    <div className="flex-grow">
                         <DealFilters
                             onFilterChange={(newFilters) => {
                                 setActiveFilters(newFilters);
