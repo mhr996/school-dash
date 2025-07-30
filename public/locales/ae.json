@@ -1240,5 +1240,6 @@
     "all": "الجميع",
     "received_from_client": "مستلمة من العميل",
     "in_inventory": "في المخزون",
-    "for_sale": "للبيع"
+    "for_sale": "للبيع",
+    "general_settings": "الإعدادات العامة"
 }
