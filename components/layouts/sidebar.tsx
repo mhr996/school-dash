@@ -48,8 +48,8 @@ const Sidebar = () => {
     const [currentMenu, setCurrentMenu] = useState<string>('');
     const [errorSubMenu, setErrorSubMenu] = useState(false);
     const [companyInfo, setCompanyInfo] = useState<{ name: string; logo_url?: string }>({
-        name: 'TOP CAR',
-        logo_url: '/assets/images/logo.png',
+        name: '',
+        logo_url: '',
     });
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
@@ -67,8 +67,8 @@ const Sidebar = () => {
 
                 if (data && !error) {
                     setCompanyInfo({
-                        name: data.name || 'TOP CAR',
-                        logo_url: data.logo_url || '/assets/images/logo.png',
+                        name: data.name || '',
+                        logo_url: data.logo_url || '',
                     });
                 }
             } catch (error) {

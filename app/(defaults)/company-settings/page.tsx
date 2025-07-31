@@ -14,7 +14,7 @@ import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import SingleFileUpload from '@/components/file-upload/single-file-upload';
-import { uploadFile } from '@/utils/file-upload';
+import { uploadFile, getPublicUrlFromPath } from '@/utils/file-upload';
 import { FileItem } from '@/types';
 
 interface CompanyInfo {
@@ -101,7 +101,8 @@ const CompanySettings = () => {
                 const uploadResult = await uploadFile(logoFile.file, 'company', 'logo', `logo.${logoFile.file.name.split('.').pop()}`);
 
                 if (uploadResult.success && uploadResult.url) {
-                    logoUrl = uploadResult.url;
+                    // Convert relative path to full Supabase public URL
+                    logoUrl = getPublicUrlFromPath(uploadResult.url);
                 } else {
                     throw new Error('Failed to upload logo');
                 }
