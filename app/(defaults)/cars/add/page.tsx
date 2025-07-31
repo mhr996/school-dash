@@ -49,7 +49,14 @@ const AddCar = () => {
     const [galleryImages, setGalleryImages] = useState<File[]>([]);
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
-    const galleryInputRef = useRef<HTMLInputElement>(null); // Colors state
+    const galleryInputRef = useRef<HTMLInputElement>(null);
+
+    // Contract image state
+    const [contractImage, setContractImage] = useState<File | null>(null);
+    const [contractPreview, setContractPreview] = useState<string>('');
+    const contractInputRef = useRef<HTMLInputElement>(null);
+
+    // Colors state
     const [colors, setColors] = useState<ColorVariant[]>([]);
 
     // Features state
@@ -111,9 +118,32 @@ const AddCar = () => {
         setThumbnailImage(null);
         setThumbnailPreview('');
     };
+
     const removeGalleryImage = (index: number) => {
         setGalleryImages((prev) => prev.filter((_, i) => i !== index));
         setGalleryPreviews((prev) => prev.filter((_, i) => i !== index));
+    };
+
+    // Contract image handlers
+    const handleContractSelect = () => {
+        contractInputRef.current?.click();
+    };
+
+    const handleContractChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setContractImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setContractPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removeContract = () => {
+        setContractImage(null);
+        setContractPreview('');
     };
 
     // Color management functions
@@ -223,7 +253,7 @@ const AddCar = () => {
             setAlert({ visible: true, message: t('car_number_required'), type: 'danger' });
             return false;
         }
-        if (!form.provider.trim()) {
+        if (!form.provider) {
             setAlert({ visible: true, message: t('provider_required'), type: 'danger' });
             return false;
         }
@@ -248,6 +278,22 @@ const AddCar = () => {
     const uploadImages = async (carId: string) => {
         const imageUrls: string[] = [];
         const colorData: Array<{ color: string; images: string[] }> = [];
+        let contractImageUrl: string | null = null;
+
+        // Upload contract image first
+        if (contractImage) {
+            const fileExt = contractImage.name.split('.').pop();
+            const fileName = `${carId}/contract.${fileExt}`;
+
+            const { data, error } = await supabase.storage.from('cars').upload(fileName, contractImage);
+
+            if (error) {
+                console.error('Error uploading contract image:', error);
+                throw error;
+            }
+
+            contractImageUrl = fileName;
+        }
 
         // Upload thumbnail first (it will be at index 0)
         if (thumbnailImage) {
@@ -309,7 +355,7 @@ const AddCar = () => {
             }
         }
 
-        return { imageUrls, colorData };
+        return { imageUrls, colorData, contractImageUrl };
     };
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -347,7 +393,7 @@ const AddCar = () => {
             const newCarId = data[0].id;
 
             // Now upload images using the car ID as folder name
-            const { imageUrls, colorData } = await uploadImages(newCarId);
+            const { imageUrls, colorData, contractImageUrl } = await uploadImages(newCarId);
 
             // Update the car record with image paths and color data
             const updateData: any = {};
@@ -356,6 +402,9 @@ const AddCar = () => {
             }
             if (colorData.length > 0) {
                 updateData.colors = colorData;
+            }
+            if (contractImageUrl) {
+                updateData.contract_image = contractImageUrl;
             }
 
             if (Object.keys(updateData).length > 0) {
@@ -580,7 +629,7 @@ const AddCar = () => {
                                     </label>
                                     <div className="flex">
                                         <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
-                                            $
+                                            ₪
                                         </span>
                                         <input
                                             type="number"
@@ -602,7 +651,7 @@ const AddCar = () => {
                                     </label>
                                     <div className="flex">
                                         <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
-                                            $
+                                            ₪
                                         </span>
                                         <input
                                             type="number"
@@ -624,7 +673,7 @@ const AddCar = () => {
                                     </label>
                                     <div className="flex">
                                         <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md ltr:border-r-0 rtl:border-l-0">
-                                            $
+                                            ₪
                                         </span>
                                         <input
                                             type="number"
@@ -668,36 +717,76 @@ const AddCar = () => {
                             </div>
 
                             {/* Car Images */}
-                            <div className="space-y-6">
-                                {/* Thumbnail Section */}
-                                <div>
-                                    <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_thumbnail')}</label>
-                                    <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">{t('thumbnail_description')}</p>
+                            <div className="space-y-8">
+                                {/* Thumbnail and Contract Images Row */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* Thumbnail Section */}
+                                    <div>
+                                        <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_thumbnail')}</label>
+                                        <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{t('thumbnail_description')}</p>
 
-                                    <div className="flex items-center gap-4">
-                                        {/* Thumbnail Preview */}
-                                        {thumbnailPreview ? (
-                                            <div className="group relative h-32 w-32">
-                                                <img src={thumbnailPreview} alt="Thumbnail preview" className="h-full w-full rounded-lg object-cover" />
-                                                <button
-                                                    type="button"
-                                                    className="absolute right-0 top-0 hidden rounded-full bg-red-500 p-1 text-white hover:bg-red-600 group-hover:block"
-                                                    onClick={removeThumbnail}
+                                        <div className="flex flex-col items-center gap-4">
+                                            {/* Thumbnail Preview */}
+                                            {thumbnailPreview ? (
+                                                <div className="group relative aspect-square w-full max-w-sm">
+                                                    <img
+                                                        src={thumbnailPreview}
+                                                        alt="Thumbnail preview"
+                                                        className="h-full w-full rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        className="absolute -right-2 -top-2 rounded-full bg-red-500 p-2 text-white hover:bg-red-600 transition-colors shadow-lg"
+                                                        onClick={removeThumbnail}
+                                                    >
+                                                        <IconX className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    onClick={handleThumbnailSelect}
+                                                    className="flex aspect-square w-full max-w-sm cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b] transition-colors"
                                                 >
-                                                    <IconX className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div
-                                                onClick={handleThumbnailSelect}
-                                                className="flex h-32 w-32 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b]"
-                                            >
-                                                <IconUpload className="mb-2 h-6 w-6" />
-                                                <p className="text-xs text-gray-600 dark:text-gray-400">{t('upload_thumbnail')}</p>
-                                            </div>
-                                        )}
+                                                    <IconUpload className="mb-3 h-8 w-8 text-gray-400" />
+                                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('upload_thumbnail')}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Recommended: 400x300px</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <input ref={thumbnailInputRef} type="file" className="hidden" accept="image/*" onChange={handleThumbnailChange} />
                                     </div>
-                                    <input ref={thumbnailInputRef} type="file" className="hidden" accept="image/*" onChange={handleThumbnailChange} />
+
+                                    {/* Contract Image Section */}
+                                    <div>
+                                        <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_contract_image')}</label>
+                                        <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{t('contract_image_description')}</p>
+
+                                        <div className="flex flex-col items-center gap-4">
+                                            {/* Contract Image Preview */}
+                                            {contractPreview ? (
+                                                <div className="group relative aspect-square w-full max-w-sm">
+                                                    <img src={contractPreview} alt="Contract preview" className="h-full w-full rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600" />
+                                                    <button
+                                                        type="button"
+                                                        className="absolute -right-2 -top-2 rounded-full bg-red-500 p-2 text-white hover:bg-red-600 transition-colors shadow-lg"
+                                                        onClick={removeContract}
+                                                    >
+                                                        <IconX className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    onClick={handleContractSelect}
+                                                    className="flex aspect-square w-full max-w-sm cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:border-primary hover:bg-gray-100 dark:border-[#1b2e4b] dark:bg-black dark:hover:border-primary dark:hover:bg-[#1b2e4b] transition-colors"
+                                                >
+                                                    <IconUpload className="mb-3 h-8 w-8 text-gray-400" />
+                                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('upload_contract_image')}</p>
+                                                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Optional document image</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <input ref={contractInputRef} type="file" className="hidden" accept="image/*" onChange={handleContractChange} />
+                                    </div>
                                 </div>
 
                                 {/* Gallery Section */}

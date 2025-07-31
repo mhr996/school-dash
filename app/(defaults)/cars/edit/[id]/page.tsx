@@ -43,6 +43,7 @@ interface Car {
     public: boolean; // Public visibility field
     features?: Feature[]; // New features field
     images: string[];
+    contract_image?: string; // Contract image field
     colors?: Array<{
         color: string;
         images: string[];
@@ -78,7 +79,9 @@ const EditCar = () => {
         car_number: '', // Car number field
         desc: '', // New description field
         public: false, // Public visibility field
-    }); // Separate states for thumbnail and gallery images
+    });
+
+    // Separate states for thumbnail and gallery images
     const [thumbnailImage, setThumbnailImage] = useState<File | null>(null);
     const [thumbnailPreview, setThumbnailPreview] = useState<string>('');
     const [galleryImages, setGalleryImages] = useState<File[]>([]);
@@ -86,7 +89,16 @@ const EditCar = () => {
     const [existingImages, setExistingImages] = useState<string[]>([]); // Display URLs for existing images
     const [existingImagePaths, setExistingImagePaths] = useState<string[]>([]); // Original relative paths
     const thumbnailInputRef = useRef<HTMLInputElement>(null);
-    const galleryInputRef = useRef<HTMLInputElement>(null); // Colors state
+    const galleryInputRef = useRef<HTMLInputElement>(null);
+
+    // Contract image state
+    const [contractImage, setContractImage] = useState<File | null>(null);
+    const [contractPreview, setContractPreview] = useState<string>('');
+    const [existingContractImage, setExistingContractImage] = useState<string>('');
+    const [existingContractImagePath, setExistingContractImagePath] = useState<string>('');
+    const contractInputRef = useRef<HTMLInputElement>(null);
+
+    // Colors state
     const [colors, setColors] = useState<ColorVariant[]>([]);
 
     // Features state
@@ -133,6 +145,13 @@ const EditCar = () => {
                             setThumbnailPreview(imageUrls[0]);
                         }
                         setExistingImages(imageUrls); // Store full URLs for display
+                    }
+
+                    // Load existing contract image
+                    if (data.contract_image) {
+                        setExistingContractImagePath(data.contract_image); // Store original relative path
+                        const { data: urlData } = supabase.storage.from('cars').getPublicUrl(data.contract_image);
+                        setExistingContractImage(urlData.publicUrl);
                     }
 
                     // Load existing colors
@@ -240,6 +259,33 @@ const EditCar = () => {
         setExistingImagePaths((prev) => prev.filter((_, i) => i !== index));
     };
 
+    // Contract image handlers
+    const handleContractSelect = () => {
+        contractInputRef.current?.click();
+    };
+
+    const handleContractChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setContractImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setContractPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const removeContract = () => {
+        setContractImage(null);
+        setContractPreview('');
+    };
+
+    const removeExistingContract = () => {
+        setExistingContractImage('');
+        setExistingContractImagePath('');
+    };
+
     const validateForm = () => {
         if (!form.title.trim()) {
             setAlert({ visible: true, message: t('car_title_required'), type: 'danger' });
@@ -285,6 +331,22 @@ const EditCar = () => {
     };
     const uploadNewImages = async (carId: string) => {
         const imageUrls: string[] = [];
+        let contractImageUrl: string | null = null;
+
+        // Upload new contract image if provided
+        if (contractImage) {
+            const fileExt = contractImage.name.split('.').pop();
+            const fileName = `${carId}/contract.${fileExt}`;
+
+            const { data, error } = await supabase.storage.from('cars').upload(fileName, contractImage);
+
+            if (error) {
+                console.error('Error uploading contract image:', error);
+                throw error;
+            }
+
+            contractImageUrl = fileName;
+        }
 
         // Upload new thumbnail if provided
         if (thumbnailImage) {
@@ -317,7 +379,7 @@ const EditCar = () => {
             imageUrls.push(fileName);
         }
 
-        return imageUrls;
+        return { imageUrls, contractImageUrl };
     };
 
     // Color management functions
@@ -448,13 +510,18 @@ const EditCar = () => {
         setSaving(true);
         try {
             // Upload new images if any
-            const newImageUrls = await uploadNewImages(carId);
+            const { imageUrls: newImageUrls, contractImageUrl: newContractImageUrl } = await uploadNewImages(carId);
 
             // Upload color images if any
             const colorData = await uploadColorImages(carId);
 
             // Combine existing image paths and new images
-            const allImageUrls = [...existingImagePaths, ...newImageUrls]; // Prepare car data
+            const allImageUrls = [...existingImagePaths, ...newImageUrls];
+
+            // Handle contract image - use new one if uploaded, otherwise keep existing
+            const finalContractImageUrl = newContractImageUrl || existingContractImagePath;
+
+            // Prepare car data
             const carData: any = {
                 title: form.title.trim(),
                 year: parseInt(form.year),
@@ -472,6 +539,11 @@ const EditCar = () => {
                 features: features.filter((f) => f.label.trim() && f.value.trim()).map((f) => ({ label: f.label.trim(), value: f.value.trim() })), // New features field
                 images: allImageUrls,
             };
+
+            // Add contract image if exists
+            if (finalContractImageUrl) {
+                carData.contract_image = finalContractImageUrl;
+            }
 
             // Add colors data if there are any
             if (colorData.length > 0) {
@@ -692,7 +764,7 @@ const EditCar = () => {
                                     </label>
                                     <div className="flex">
                                         <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
-                                            $
+                                            ₪
                                         </span>
                                         <input
                                             type="number"
@@ -714,7 +786,7 @@ const EditCar = () => {
                                     </label>
                                     <div className="flex">
                                         <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
-                                            $
+                                            ₪
                                         </span>
                                         <input
                                             type="number"
@@ -736,7 +808,7 @@ const EditCar = () => {
                                     </label>
                                     <div className="flex">
                                         <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
-                                            $
+                                            ₪
                                         </span>
                                         <input
                                             type="number"
@@ -814,6 +886,43 @@ const EditCar = () => {
                                         </div>
                                     </div>
                                     <input ref={thumbnailInputRef} type="file" accept="image/*" onChange={handleThumbnailChange} className="hidden" />
+                                </div>
+
+                                {/* Contract Image Section */}
+                                <div>
+                                    <h6 className="text-sm font-medium text-gray-700 dark:text-white mb-3">
+                                        {t('contract_image')} <span className="text-xs text-gray-500">({t('optional')})</span>
+                                    </h6>
+                                    <div className="flex items-center gap-4">
+                                        {/* Contract Image Preview or Upload Button */}
+                                        {contractPreview || existingContractImage ? (
+                                            <div className="relative group">
+                                                <img src={contractPreview || existingContractImage} alt="Contract preview" className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200" />
+                                                <button
+                                                    type="button"
+                                                    onClick={contractPreview ? removeContract : removeExistingContract}
+                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <IconX className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div
+                                                onClick={handleContractSelect}
+                                                className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 dark:border-gray-600 dark:hover:border-primary dark:hover:bg-gray-800 transition-colors"
+                                            >
+                                                <IconUpload className="w-6 h-6 text-gray-400" />
+                                            </div>
+                                        )}
+                                        <div className="flex-1">
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{t('upload_contract_image')}</p>
+                                            <p className="text-xs text-gray-500">{t('contract_image_description')}</p>
+                                            <button type="button" onClick={handleContractSelect} className="btn btn-outline-primary btn-sm mt-2">
+                                                {contractPreview || existingContractImage ? t('change_contract_image') : t('select_contract_image')}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <input ref={contractInputRef} type="file" accept="image/*" onChange={handleContractChange} className="hidden" />
                                 </div>
 
                                 {/* Gallery Section */}

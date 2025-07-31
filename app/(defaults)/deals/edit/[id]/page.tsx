@@ -1618,7 +1618,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                                     return profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
                                                                                 })()}`}
                                                                             >
-                                                                                ${' '}
+                                                                                ₪{' '}
                                                                                 {(() => {
                                                                                     const buyPrice = selectedCar.buy_price || 0;
                                                                                     const sellPrice = parseFloat(form.amount || '0');
@@ -2209,7 +2209,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                     </span>
                                                 </td>{' '}
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{bill.deals?.customers?.name || bill.customer_name || t('unknown_customer')}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">${bill.total_with_tax || bill.total || '0.00'}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₪{bill.total_with_tax || bill.total || '0.00'}</td>
                                                 <td className="px-4 py-3 text-sm">
                                                     <span
                                                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -2322,16 +2322,16 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center">
                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">${selectedBill.total || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedBill.total || '0.00'}</span>
                                         </div>
                                         <div className="flex justify-between items-center">
                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('tax_amount')}</span>
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">${selectedBill.tax_amount || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedBill.tax_amount || '0.00'}</span>
                                         </div>
                                         <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
                                             <div className="flex justify-between items-center">
                                                 <span className="text-lg font-bold text-gray-900 dark:text-white">{t('total_amount')}</span>
-                                                <span className="text-lg font-bold text-primary">${selectedBill.total_with_tax || selectedBill.total || '0.00'}</span>
+                                                <span className="text-lg font-bold text-primary">₪{selectedBill.total_with_tax || selectedBill.total || '0.00'}</span>
                                             </div>
                                         </div>
                                     </div>

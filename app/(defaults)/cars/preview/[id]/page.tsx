@@ -30,6 +30,7 @@ interface Car {
     desc?: string; // New description field
     features?: Array<{ label: string; value: string }>; // New features field
     images: string[];
+    contract_image?: string; // Contract image field
     colors?: Array<{
         color: string;
         images: string[];
@@ -49,6 +50,7 @@ const CarPreview = () => {
     const [car, setCar] = useState<Car | null>(null);
     const [loading, setLoading] = useState(true);
     const [imageUrls, setImageUrls] = useState<string[]>([]);
+    const [contractImageUrl, setContractImageUrl] = useState<string>('');
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [selectedColorIndex, setSelectedColorIndex] = useState(0);
     const [colorImageUrls, setColorImageUrls] = useState<Record<number, string[]>>({});
@@ -65,7 +67,9 @@ const CarPreview = () => {
                     return;
                 }
 
-                setCar(data); // Get image URLs from Supabase storage
+                setCar(data);
+
+                // Get image URLs from Supabase storage
                 if (data.images && data.images.length > 0) {
                     const urls = await Promise.all(
                         data.images.map(async (imagePath: string) => {
@@ -74,6 +78,12 @@ const CarPreview = () => {
                         }),
                     );
                     setImageUrls(urls);
+                }
+
+                // Get contract image URL from Supabase storage
+                if (data.contract_image) {
+                    const { data: urlData } = supabase.storage.from('cars').getPublicUrl(data.contract_image);
+                    setContractImageUrl(urlData.publicUrl);
                 }
 
                 // Get color image URLs from Supabase storage
@@ -295,6 +305,18 @@ const CarPreview = () => {
                                             </p>
                                         </div>
                                     )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Contract Image */}
+                        {contractImageUrl && (
+                            <div className="panel mt-6">
+                                <div className="mb-5">
+                                    <h3 className="text-lg font-semibold">{t('contract_image')}</h3>
+                                </div>
+                                <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-100">
+                                    <Image src={contractImageUrl} alt={`${car?.title} contract`} fill className="object-contain hover:scale-105 transition-transform cursor-pointer" />
                                 </div>
                             </div>
                         )}
