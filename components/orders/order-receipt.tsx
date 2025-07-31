@@ -105,8 +105,8 @@ const OrderReceipt: React.FC<OrderReceiptProps> = ({ order }) => {
                             <tr key={index} className="hover:bg-gray-50">
                                 <td className="border border-gray-300 px-4 py-3">{item.name}</td>
                                 <td className="border border-gray-300 px-4 py-3 text-center">{item.quantity}</td>
-                                <td className="border border-gray-300 px-4 py-3 text-right">${item.price.toFixed(2)}</td>
-                                <td className="border border-gray-300 px-4 py-3 text-right font-semibold">${(item.price * item.quantity).toFixed(2)}</td>
+                                <td className="border border-gray-300 px-4 py-3 text-right">₪{item.price.toFixed(2)}</td>
+                                <td className="border border-gray-300 px-4 py-3 text-right font-semibold">₪{(item.price * item.quantity).toFixed(2)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -119,16 +119,16 @@ const OrderReceipt: React.FC<OrderReceiptProps> = ({ order }) => {
                     <div className="bg-gray-50 p-4 rounded">
                         <div className="flex justify-between mb-2">
                             <span className="text-gray-700">{t('subtotal')}:</span>
-                            <span className="font-semibold">${calculateSubtotal().toFixed(2)}</span>
+                            <span className="font-semibold">₪{calculateSubtotal().toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between mb-2">
                             <span className="text-gray-700">{t('tax')} (10%):</span>
-                            <span className="font-semibold">${calculateTax().toFixed(2)}</span>
+                            <span className="font-semibold">₪{calculateTax().toFixed(2)}</span>
                         </div>
                         <div className="border-t border-gray-300 pt-2">
                             <div className="flex justify-between">
                                 <span className="text-lg font-bold text-gray-800">{t('total')}:</span>
-                                <span className="text-lg font-bold text-green-600">${calculateTotal().toFixed(2)}</span>
+                                <span className="text-lg font-bold text-green-600">₪{calculateTotal().toFixed(2)}</span>
                             </div>
                         </div>
                     </div>

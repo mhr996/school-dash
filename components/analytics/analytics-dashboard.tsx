@@ -1030,7 +1030,7 @@ const AnalyticsDashboard = () => {
                         <div className="mb-5 flex flex-col sm:flex-row">
                             <div className="mb-5 sm:mb-0 sm:w-1/3">
                                 <div className="mb-2 text-lg font-semibold dark:text-white-light">{t('total_revenue')}</div>
-                                <div className="text-3xl font-bold text-[#009688]">${analytics.revenue.total.toFixed(2)}</div>
+                                <div className="text-3xl font-bold text-[#009688]">₪{analytics.revenue.total.toFixed(2)}</div>
                                 <div className={`mt-2 inline-flex items-center ${analytics.revenue.growth >= 0 ? 'text-success' : 'text-danger'}`}>
                                     {analytics.revenue.growth >= 0 ? <IconTrendingUp className="h-4 w-4 stroke-current mr-1" /> : <IconTrendingDown className="h-4 w-4 stroke-current mr-1" />}
                                     <span>{Math.abs(analytics.revenue.growth).toFixed(1)}%</span>

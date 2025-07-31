@@ -104,7 +104,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                 <span className="truncate">{selectedDeal.customer?.name || t('no_customer')}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                                <span>{'$' + selectedDeal.amount}</span>
+                                <span>{'₪' + selectedDeal.amount}</span>
                             </div>
                         </div>
                     </div>
@@ -158,7 +158,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                             </div>
                                             <div className="text-right">
                                                 <div className="flex items-center gap-1 text-lg font-bold text-green-600 dark:text-green-400">
-                                                    <span>{'$' + deal.amount}</span>
+                                                    <span>{'₪' + deal.amount}</span>
                                                 </div>
                                             </div>
                                         </div>

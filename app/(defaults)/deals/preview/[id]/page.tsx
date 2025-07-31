@@ -411,7 +411,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                             <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price')}</div>
                                 <div className="text-center">
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">${car.buy_price?.toFixed(2) || '0.00'}</span>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{car.buy_price?.toFixed(2) || '0.00'}</span>
                                 </div>
                             </div>
 
@@ -419,7 +419,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                             <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('deal_amount')}</div>
                                 <div className="text-center">
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">${deal.amount?.toFixed(2) || '0.00'}</span>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{deal.amount?.toFixed(2) || '0.00'}</span>
                                 </div>
                             </div>
 
@@ -428,7 +428,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                 <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
                                 <div className="text-center">
                                     <span className={`text-sm font-bold ${(deal.amount || 0) - (car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        ${((deal.amount || 0) - (car.buy_price || 0)).toFixed(2)}
+                                        ₪{((deal.amount || 0) - (car.buy_price || 0)).toFixed(2)}
                                     </span>
                                 </div>
                             </div>

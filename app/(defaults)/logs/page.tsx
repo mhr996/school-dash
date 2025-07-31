@@ -127,7 +127,7 @@ const LogsPage = () => {
             <div className="text-sm">
                 <div className="font-medium">{formatDate(car.created_at)}</div>
                 <div className="text-gray-500 dark:text-gray-400">{provider?.name || car.provider || t('not_available')}</div>
-                <div className="text-gray-500 dark:text-gray-400">${car.buy_price?.toLocaleString() || '0'}</div>
+                <div className="text-gray-500 dark:text-gray-400">₪{car.buy_price?.toLocaleString() || '0'}</div>
             </div>
         );
     };
@@ -142,7 +142,7 @@ const LogsPage = () => {
             <div className="text-sm">
                 <div className="font-medium">{formatDate(deal.created_at)}</div>
                 <div className="text-gray-500 dark:text-gray-400">{customer?.name || deal.customer_name || t('not_available')}</div>
-                <div className="text-gray-500 dark:text-gray-400">${deal.amount?.toLocaleString() || '0'}</div>
+                <div className="text-gray-500 dark:text-gray-400">₪{deal.amount?.toLocaleString() || '0'}</div>
             </div>
         );
     };
@@ -155,7 +155,7 @@ const LogsPage = () => {
         return (
             <div className="text-sm">
                 <div className="font-medium">{bill.payment_type ? getLocalizedPaymentType(bill.payment_type) : t('not_available')}</div>
-                <div className="text-gray-500 dark:text-gray-400">${bill.total_with_tax?.toLocaleString() || '0'}</div>
+                <div className="text-gray-500 dark:text-gray-400">₪{bill.total_with_tax?.toLocaleString() || '0'}</div>
             </div>
         );
     };
@@ -169,7 +169,7 @@ const LogsPage = () => {
             <div className="text-sm">
                 <div className="font-medium">#{bill.id || t('not_available')}</div>
                 <div className="text-gray-500 dark:text-gray-400">{bill.bill_type ? getLocalizedBillType(bill.bill_type) : t('not_available')}</div>
-                <div className="text-gray-500 dark:text-gray-400">${bill.total_with_tax?.toLocaleString() || '0'}</div>
+                <div className="text-gray-500 dark:text-gray-400">₪{bill.total_with_tax?.toLocaleString() || '0'}</div>
             </div>
         );
     };

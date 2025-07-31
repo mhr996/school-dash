@@ -921,7 +921,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
                                             </div>
                                         </div>
 
@@ -931,7 +931,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-center">
                                                 <div className="flex justify-center">
                                                     <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                        $
+                                                        ₪
                                                     </span>
                                                     <input
                                                         type="number"
@@ -954,7 +954,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-center">
                                                 <div className="flex justify-center">
                                                     <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                        $
+                                                        ₪
                                                     </span>
                                                     <input
                                                         type="number"
@@ -977,7 +977,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
                                             <div className="text-center">
                                                 {(() => {
-                                                    if (!form.amount || !selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
+                                                    if (!form.amount || !selectedCar) return <span className="text-sm text-gray-700 dark:text-gray-300">₪0.00</span>;
 
                                                     const buyPrice = selectedCar.buy_price || 0;
                                                     const sellPrice = parseFloat(form.selling_price || '0') || 0;
@@ -986,7 +986,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
                                                     return (
                                                         <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                            {profitCommission >= 0 ? '+' : ''}${profitCommission.toFixed(2)}
+                                                            {profitCommission >= 0 ? '+' : ''}₪{profitCommission.toFixed(2)}
                                                         </span>
                                                     );
                                                 })()}
@@ -1014,7 +1014,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
                                             </div>
                                         </div>
 
@@ -1022,7 +1022,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">${selectedCar.sale_price?.toFixed(2) || '0.00'}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.sale_price?.toFixed(2) || '0.00'}</span>
                                             </div>
                                         </div>
 
@@ -1032,7 +1032,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                 <div className="font-medium">{t('customer_car_evaluation')}</div>
                                             </div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">${parseFloat(form.customer_car_eval_value || '0').toFixed(2)}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.customer_car_eval_value || '0').toFixed(2)}</span>
                                             </div>
                                         </div>
 
@@ -1040,7 +1040,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('additional_amount_from_customer')}</div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">${parseFloat(form.additional_customer_amount || '0').toFixed(2)}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.additional_customer_amount || '0').toFixed(2)}</span>
                                             </div>
                                         </div>
 
@@ -1050,7 +1050,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-center">
                                                 <div className="flex justify-center">
                                                     <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                        $
+                                                        ₪
                                                     </span>
                                                     <input
                                                         type="number"
@@ -1072,7 +1072,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
                                             <div className="text-center">
                                                 {(() => {
-                                                    if (!selectedCar || !carTakenFromClient) return <span className="text-sm text-gray-700 dark:text-gray-300">$0.00</span>;
+                                                    if (!selectedCar || !carTakenFromClient) return <span className="text-sm text-gray-700 dark:text-gray-300">₪0.00</span>;
 
                                                     const buyPrice = selectedCar.buy_price || 0;
                                                     const sellPrice = selectedCar.sale_price || 0;
@@ -1085,7 +1085,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
                                                     return (
                                                         <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                            {profitCommission >= 0 ? '+' : ''}${profitCommission.toFixed(2)}
+                                                            {profitCommission >= 0 ? '+' : ''}₪{profitCommission.toFixed(2)}
                                                         </span>
                                                     );
                                                 })()}
@@ -1115,7 +1115,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-center">
                                                 <div className="flex justify-center">
                                                     <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                        $
+                                                        ₪
                                                     </span>
                                                     <input
                                                         type="number"
@@ -1156,7 +1156,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-center">
                                                 <div className="flex justify-center">
                                                     <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                        $
+                                                        ₪
                                                     </span>
                                                     <input
                                                         type="number"
@@ -1187,7 +1187,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-center">
                                                 <div className="flex justify-center">
                                                     <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
-                                                        $
+                                                        ₪
                                                     </span>
                                                     <input
                                                         type="number"
