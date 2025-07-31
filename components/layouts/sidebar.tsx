@@ -49,7 +49,7 @@ const Sidebar = () => {
     const [errorSubMenu, setErrorSubMenu] = useState(false);
     const [companyInfo, setCompanyInfo] = useState<{ name: string; logo_url?: string }>({
         name: '',
-        logo_url: '',
+        logo_url: '/public/assets/images/logo-placeholder.png',
     });
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const semidark = useSelector((state: IRootState) => state.themeConfig.semidark);
@@ -68,7 +68,7 @@ const Sidebar = () => {
                 if (data && !error) {
                     setCompanyInfo({
                         name: data.name || '',
-                        logo_url: data.logo_url || '',
+                        logo_url: data.logo_url || '/public/assets/images/logo-placeholder.png',
                     });
                 }
             } catch (error) {
