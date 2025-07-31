@@ -35,9 +35,6 @@ import IconSettings from '@/components/icon/icon-settings';
 import IconBuilding from '@/components/icon/icon-building';
 import IconListCheck from '@/components/icon/icon-list-check';
 
-import IconMenuPages from '@/components/icon/menu/icon-menu-pages';
-import IconMenuAuthentication from '@/components/icon/menu/icon-menu-authentication';
-import IconMenuDocumentation from '@/components/icon/menu/icon-menu-documentation';
 import { usePathname } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 
@@ -46,7 +43,6 @@ const Sidebar = () => {
     const { t } = getTranslation();
     const pathname = usePathname();
     const [currentMenu, setCurrentMenu] = useState<string>('');
-    const [errorSubMenu, setErrorSubMenu] = useState(false);
     const [companyInfo, setCompanyInfo] = useState<{ name: string; logo_url?: string }>({
         name: '',
         logo_url: '/public/assets/images/logo-placeholder.png',
