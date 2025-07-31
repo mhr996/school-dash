@@ -243,7 +243,14 @@ const UsersList = () => {
                                 accessor: 'id',
                                 title: t('id'),
                                 sortable: true,
-                                render: ({ id }) => <strong className="text-info">#{id.toString().slice(0, 8)}</strong>,
+                                render: ({ id }) => (
+                                    <div className="flex items-center gap-2">
+                                        <strong className="text-info">#{id.toString().slice(0, 8)}</strong>
+                                        <Link href={`/users/preview/${id}`} className="flex hover:text-info" title={t('view')}>
+                                            <IconEye className="h-4 w-4" />
+                                        </Link>
+                                    </div>
+                                ),
                             },
                             {
                                 accessor: 'full_name',
@@ -284,9 +291,6 @@ const UsersList = () => {
                                     <div className="mx-auto flex w-max items-center gap-4">
                                         <Link href={`/users/edit/${id}`} className="flex hover:text-info">
                                             <IconEdit />
-                                        </Link>
-                                        <Link href={`/users/preview/${id}`} className="flex hover:text-primary">
-                                            <IconEye />
                                         </Link>
                                         <button type="button" className="flex hover:text-danger" onClick={() => deleteRow(id)}>
                                             <IconTrashLines />

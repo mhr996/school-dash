@@ -6,7 +6,6 @@ import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconUser from '@/components/icon/icon-user';
-import IconEdit from '@/components/icon/icon-edit';
 import IconDownload from '@/components/icon/icon-download';
 import { generateBillPDF } from '@/utils/pdf-generator';
 
@@ -217,10 +216,6 @@ const BillPreview = () => {
                             <IconDownload className="w-4 h-4" />
                             {downloadingPDF ? t('generating_pdf') : t('download_pdf')}
                         </button>
-                        <Link href={`/bills/edit/${bill.id}`} className="btn btn-primary gap-2">
-                            <IconEdit className="w-4 h-4" />
-                            {t('edit')}
-                        </Link>
                     </div>
                 </div>
             </div>

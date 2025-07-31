@@ -7,15 +7,10 @@ import Cookies from 'universal-cookie';
 import { sortBy } from 'lodash';
 import { DataTable, DataTableSortStatus, DataTableColumn } from 'mantine-datatable';
 import IconPlus from '@/components/icon/icon-plus';
-import IconEdit from '@/components/icon/icon-edit';
 import IconEye from '@/components/icon/icon-eye';
-import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconPdf from '@/components/icon/icon-pdf';
-import ConfirmModal from '@/components/modals/confirm-modal';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { generateBillPDF } from '@/utils/pdf-generator';
-import { logActivity } from '@/utils/activity-logger';
-import { handleReceiptDeleted } from '@/utils/balance-manager';
 
 interface Bill {
     id: string;
@@ -58,16 +53,6 @@ const Bills = () => {
     const [search, setSearch] = useState('');
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({ columnAccessor: 'id', direction: 'desc' });
     const [selectedRecords, setSelectedRecords] = useState<Bill[]>([]);
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-
-    // Always default sort by ID in descending order
-    useEffect(() => {
-        if (sortStatus.columnAccessor !== 'id') {
-            setSortStatus({ columnAccessor: 'id', direction: 'desc' });
-        }
-    }, []);
-    const [billToDelete, setBillToDelete] = useState<Bill | null>(null);
     const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
     const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
@@ -133,75 +118,6 @@ const Bills = () => {
         setRecords(sortStatus.direction === 'desc' ? sorted.reverse() : sorted);
         setPage(1);
     }, [sortStatus, initialRecords]);
-
-    const handleDelete = (bill: Bill) => {
-        setBillToDelete(bill);
-        setShowConfirmModal(true);
-    };
-
-    const confirmDeletion = async () => {
-        if (!billToDelete) return;
-        try {
-            // Log the activity before deletion (to preserve bill data)
-            await logActivity({
-                type: 'bill_deleted',
-                bill: billToDelete,
-            });
-
-            // Update customer balance before deleting the bill (reverse the payment)
-            if (billToDelete.deal?.customer?.id) {
-                const balanceUpdateSuccess = await handleReceiptDeleted(billToDelete.id, billToDelete.deal.customer.id.toString(), billToDelete, billToDelete.customer_name || 'Customer');
-
-                if (!balanceUpdateSuccess) {
-                    console.warn('Failed to update customer balance for deleted bill:', billToDelete.id);
-                    // Don't fail the deletion, just log the warning
-                }
-            }
-
-            const { error } = await supabase.from('bills').delete().eq('id', billToDelete.id);
-            if (error) throw error;
-            setItems(items.filter((b) => b.id !== billToDelete.id));
-            setAlertState({ message: t('bill_deleted_successfully'), type: 'success' });
-        } catch (error) {
-            console.error('Error deleting bill:', error);
-            setAlertState({ message: t('error_deleting_bill'), type: 'danger' });
-        } finally {
-            setShowConfirmModal(false);
-            setBillToDelete(null);
-        }
-    };
-    const handleBulkDelete = () => {
-        if (selectedRecords.length === 0) return;
-        setShowBulkDeleteModal(true);
-    };
-
-    const confirmBulkDeletion = async () => {
-        const ids = selectedRecords.map((b) => b.id);
-        try {
-            // Update customer balances for each bill before deletion (reverse the payments)
-            for (const bill of selectedRecords) {
-                if (bill.deal?.customer?.id) {
-                    const balanceUpdateSuccess = await handleReceiptDeleted(bill.id, bill.deal.customer.id.toString(), bill, bill.customer_name || 'Customer');
-
-                    if (!balanceUpdateSuccess) {
-                        console.warn('Failed to update customer balance for deleted bill:', bill.id);
-                        // Don't fail the deletion, just log the warning
-                    }
-                }
-            }
-
-            const { error } = await supabase.from('bills').delete().in('id', ids);
-            if (error) throw error;
-            setItems(items.filter((b) => !ids.includes(b.id)));
-            setSelectedRecords([]);
-            setAlertState({ message: t('bills_deleted_successfully'), type: 'success' });
-        } catch (error) {
-            console.error('Error deleting bills:', error);
-            setAlertState({ message: t('error_deleting_bill'), type: 'danger' });
-        } finally {
-            setShowBulkDeleteModal(false);
-        }
-    };
 
     const getBillTypeLabel = (type: string) => {
         switch (type) {
@@ -320,7 +236,14 @@ const Bills = () => {
             accessor: 'id',
             title: t('id'),
             sortable: true,
-            render: ({ id }) => <strong className="text-info">#{id}</strong>,
+            render: ({ id }) => (
+                <div className="flex items-center gap-2">
+                    <strong className="text-info">#{id}</strong>
+                    <Link href={`/bills/preview/${id}`} className="flex hover:text-info" title={t('view')}>
+                        <IconEye className="h-4 w-4" />
+                    </Link>
+                </div>
+            ),
         },
         {
             accessor: 'customer_name',
@@ -387,17 +310,8 @@ const Bills = () => {
             textAlignment: 'center',
             render: (bill: Bill) => (
                 <div className="mx-auto flex w-max items-center gap-4">
-                    <Link href={`/bills/preview/${bill.id}`} className="flex hover:text-info" title={t('view')}>
-                        <IconEye className="h-4.5 w-4.5" />
-                    </Link>
-                    <Link href={`/bills/edit/${bill.id}`} className="flex hover:text-primary" title={t('edit')}>
-                        <IconEdit className="h-4.5 w-4.5" />
-                    </Link>
                     <button type="button" className="flex hover:text-success" onClick={() => handleDownloadPDF(bill)} title={t('download_pdf')} disabled={downloadingPDF === bill.id}>
                         {downloadingPDF === bill.id ? <div className="animate-spin rounded-full h-4.5 w-4.5 border-b-2 border-success"></div> : <IconPdf className="h-4.5 w-4.5" />}
-                    </button>
-                    <button type="button" className="flex hover:text-danger" onClick={() => handleDelete(bill)} title={t('delete')}>
-                        <IconTrashLines />
                     </button>
                 </div>
             ),
@@ -414,10 +328,6 @@ const Bills = () => {
             <div className="invoice-table">
                 <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
                     <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-danger gap-2" onClick={handleBulkDelete} disabled={selectedRecords.length === 0}>
-                            <IconTrashLines />
-                            {t('delete')}
-                        </button>
                         <Link href="/bills/add" className="btn btn-primary gap-2">
                             <IconPlus />
                             {t('add_new_bill')}
@@ -439,35 +349,12 @@ const Bills = () => {
                         onRecordsPerPageChange={setPageSize}
                         sortStatus={sortStatus}
                         onSortStatusChange={setSortStatus}
-                        selectedRecords={selectedRecords}
-                        onSelectedRecordsChange={setSelectedRecords}
                         className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
                         highlightOnHover
                         minHeight={300}
                     />
                 </div>
-            </div>{' '}
-            <ConfirmModal
-                isOpen={showConfirmModal}
-                title={t('confirm')}
-                message={t('confirm_delete')}
-                onCancel={() => {
-                    setShowConfirmModal(false);
-                    setBillToDelete(null);
-                }}
-                onConfirm={confirmDeletion}
-            />
-            {/* Bulk Delete Confirmation Modal */}
-            <ConfirmModal
-                isOpen={showBulkDeleteModal}
-                title={t('confirm_bulk_deletion')}
-                message={`${t('confirm_delete_selected_bills')}`}
-                onCancel={() => setShowBulkDeleteModal(false)}
-                onConfirm={confirmBulkDeletion}
-                confirmLabel={t('delete')}
-                cancelLabel={t('cancel')}
-                size="sm"
-            />
+            </div>
         </div>
     );
 };

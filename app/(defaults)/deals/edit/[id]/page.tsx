@@ -2365,9 +2365,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                             <button onClick={closeBillModal} className="btn btn-outline-secondary">
                                 {t('close')}
                             </button>
-                            <Link href={`/bills/edit/${selectedBill.id}`} className="btn btn-primary">
-                                {t('edit_bill')}
-                            </Link>
                         </div>
                     </div>
                 </div>

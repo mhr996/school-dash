@@ -341,7 +341,14 @@ const DealsList = () => {
                                 accessor: 'id',
                                 title: t('id'),
                                 sortable: true,
-                                render: ({ id }) => <strong className="text-info">#{id}</strong>,
+                                render: ({ id }) => (
+                                    <div className="flex items-center gap-2">
+                                        <strong className="text-info">#{id}</strong>
+                                        <Link href={`/deals/preview/${id}`} className="flex hover:text-info" title={t('view')}>
+                                            <IconEye className="h-4 w-4" />
+                                        </Link>
+                                    </div>
+                                ),
                             },
                             {
                                 accessor: 'customer_name',
@@ -422,9 +429,6 @@ const DealsList = () => {
                                             title={status === 'completed' ? t('deal_completed_no_edit') : t('edit')}
                                         >
                                             <IconEdit className="h-4.5 w-4.5" />
-                                        </Link>
-                                        <Link href={`/deals/preview/${id}`} className="flex hover:text-primary">
-                                            <IconEye />
                                         </Link>
                                         <button
                                             type="button"
