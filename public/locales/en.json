@@ -954,6 +954,13 @@
     "tax_invoice_description": "Generate tax invoice document",
     "receipt_description": "Generate receipt document",
     "both_documents_description": "Generate both tax invoice and receipt",
+    "general_bill": "General Bill",
+    "general_bill_description": "Create a general bill with custom description and amount",
+    "general_bill_details": "General Bill Details",
+    "bill_description": "Bill Description",
+    "enter_bill_description": "Enter bill description",
+    "bill_amount": "Bill Amount",
+    "enter_bill_amount": "Enter bill amount",
     "visa_description": "Payment via credit/debit card",
     "bank_transfer_description": "Direct bank transfer",
     "transfer_description": "Money transfer service",
@@ -1104,5 +1111,6 @@
     "from_provider": "From Provider",
     "from_customer": "From Customer",
     "select_customer": "Select Customer",
-    "customer_required": "Customer selection is required"
+    "customer_required": "Customer selection is required",
+    "general": "General"
 }

@@ -74,6 +74,9 @@ const AddBill = () => {
         tax_amount: '',
         total_with_tax: '',
         payment_type: '',
+        // General bill fields
+        bill_description: '',
+        bill_amount: '',
         // Visa payment fields
         visa_amount: '',
         visa_installments: '',
@@ -193,12 +196,27 @@ const AddBill = () => {
     };
 
     const validateForm = () => {
-        if (!selectedDeal) {
-            setAlert({ message: t('deal_required'), type: 'danger' });
-            return false;
-        }
         if (!billForm.bill_type) {
             setAlert({ message: t('bill_type_required'), type: 'danger' });
+            return false;
+        }
+
+        // For general bills, we don't need a deal
+        if (billForm.bill_type === 'general') {
+            if (!billForm.bill_description.trim()) {
+                setAlert({ message: t('bill_description') + ' ' + t('required'), type: 'danger' });
+                return false;
+            }
+            if (!billForm.bill_amount || parseFloat(billForm.bill_amount) <= 0) {
+                setAlert({ message: t('bill_amount') + ' ' + t('required'), type: 'danger' });
+                return false;
+            }
+            return true;
+        }
+
+        // For other bill types, we need a deal
+        if (!selectedDeal) {
+            setAlert({ message: t('deal_required'), type: 'danger' });
             return false;
         }
         if (!billForm.customer_name) {
@@ -215,7 +233,7 @@ const AddBill = () => {
         setSaving(true);
         try {
             const billData = {
-                deal_id: selectedDeal?.id,
+                deal_id: selectedDeal?.id || null,
                 bill_type: billForm.bill_type,
                 status: billForm.status,
                 customer_name: billForm.customer_name,
@@ -229,6 +247,9 @@ const AddBill = () => {
                 tax_amount: parseFloat(billForm.tax_amount) || null,
                 total_with_tax: parseFloat(billForm.total_with_tax) || null,
                 payment_type: billForm.payment_type || null,
+                // General bill fields
+                bill_description: billForm.bill_description || null,
+                bill_amount: parseFloat(billForm.bill_amount) || null,
                 visa_amount: parseFloat(billForm.visa_amount) || null,
                 visa_installments: parseInt(billForm.visa_installments) || null,
                 visa_card_type: billForm.visa_card_type || null,
@@ -397,7 +418,7 @@ const AddBill = () => {
                             </div>
                         )}
                     </div>
-                </div>{' '}
+                </div>
                 {/* Bill Type Selection */}
                 {selectedDeal && (
                     <div className="panel">
@@ -435,6 +456,56 @@ const AddBill = () => {
                             />
                             <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
                                 <IconCalendar className="w-5 h-5 text-gray-400" />
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {/* General Bill Section */}
+                {billForm.bill_type === 'general' && selectedDeal && (
+                    <div className="panel">
+                        <div className="mb-5 flex items-center gap-3">
+                            <IconDollarSign className="w-5 h-5 text-primary" />
+                            <h5 className="text-lg font-semibold dark:text-white-light">{t('general_bill_details')}</h5>
+                        </div>
+                        <div className="space-y-4">
+                            {/* Bill Description */}
+                            <div>
+                                <label htmlFor="bill_description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    {t('bill_description')} <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    id="bill_description"
+                                    name="bill_description"
+                                    rows={4}
+                                    value={billForm.bill_description}
+                                    onChange={handleFormChange}
+                                    className="form-textarea"
+                                    placeholder={t('enter_bill_description')}
+                                    required
+                                />
+                            </div>
+                            {/* Bill Amount */}
+                            <div>
+                                <label htmlFor="bill_amount" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    {t('bill_amount')} <span className="text-red-500">*</span>
+                                </label>
+                                <div className="flex">
+                                    <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
+                                        ₪
+                                    </span>
+                                    <input
+                                        type="number"
+                                        id="bill_amount"
+                                        name="bill_amount"
+                                        step="0.01"
+                                        min="0"
+                                        value={billForm.bill_amount}
+                                        onChange={handleFormChange}
+                                        className="form-input ltr:rounded-l-none rtl:rounded-r-none"
+                                        placeholder={t('enter_bill_amount')}
+                                        required
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

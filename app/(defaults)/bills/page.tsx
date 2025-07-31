@@ -127,6 +127,8 @@ const Bills = () => {
                 return t('receipt_only');
             case 'tax_invoice_receipt':
                 return t('tax_invoice_and_receipt');
+            case 'general':
+                return t('general_bill');
             default:
                 return type;
         }

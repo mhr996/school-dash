@@ -51,16 +51,25 @@ const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white
             borderColor: 'border-purple-200 dark:border-purple-800',
             description: t('both_documents_description') || 'Generate both tax invoice and receipt',
         },
+        {
+            value: 'general',
+            label: t('general_bill'),
+            icon: IconReceipt,
+            color: 'text-orange-600 dark:text-orange-400',
+            bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+            borderColor: 'border-orange-200 dark:border-orange-800',
+            description: t('general_bill_description') || 'Create a general bill with custom description and amount',
+        },
     ];
 
     // Filter bill types based on deal type
     const getFilteredBillTypes = () => {
         if (dealType === 'intermediary') {
-            // For intermediary deals, only show tax_invoice_receipt
-            return billTypes.filter((type) => type.value === 'tax_invoice_receipt');
+            // For intermediary deals, show tax_invoice_receipt and general
+            return billTypes.filter((type) => type.value === 'tax_invoice_receipt' || type.value === 'general');
         } else {
-            // For all other deal types, show tax_invoice and receipt_only
-            return billTypes.filter((type) => type.value === 'tax_invoice' || type.value === 'receipt_only');
+            // For all other deal types, show tax_invoice, receipt_only, and general
+            return billTypes.filter((type) => type.value === 'tax_invoice' || type.value === 'receipt_only' || type.value === 'general');
         }
     };
 

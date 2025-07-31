@@ -848,5 +848,14 @@
     "car_source_description": "בחר אם הרכב נרכש מספק או נקנה מלקוח",
     "from_provider": "מספק",
     "from_customer": "מלקוח",
-    "customer_required": "בחירת לקוח נדרשת"
+    "customer_required": "בחירת לקוח נדרשת",
+    "general_bill": "חשבונית כללית",
+    "general_bill_description": "צור חשבונית כללית עם תיאור ומחיר מותאמים אישית",
+    "general_bill_details": "פרטי החשבונית הכללית",
+    "bill_description": "תיאור החשבונית",
+    "enter_bill_description": "הזן תיאור החשבונית",
+    "bill_amount": "סכום החשבונית",
+    "enter_bill_amount": "הזן סכום החשבונית",
+    "general": "כללי",
+    "bill_status_paid": "שולם"
 }

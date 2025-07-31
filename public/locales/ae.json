@@ -1247,5 +1247,13 @@
     "car_source": "مصدر السيارة",
     "car_source_description": "اختر ما إذا كانت السيارة تم الحصول عليها من مزود أو شراؤها من عميل",
     "from_provider": "من مزود",
-    "from_customer": "من عميل"
+    "from_customer": "من عميل",
+    "general_bill": "فاتورة عامة",
+    "general_bill_description": "إنشاء فاتورة عامة مع وصف ومبلغ مخصص",
+    "general_bill_details": "تفاصيل الفاتورة العامة",
+    "bill_description": "وصف الفاتورة",
+    "enter_bill_description": "أدخل وصف الفاتورة",
+    "bill_amount": "مبلغ الفاتورة",
+    "enter_bill_amount": "أدخل مبلغ الفاتورة",
+    "general": "عام"
 }
