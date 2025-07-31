@@ -26,6 +26,8 @@ interface Car {
     sale_price: number;
     kilometers: number;
     provider: string;
+    source_type?: 'provider' | 'customer';
+    source_customer_id?: string;
     brand: string;
     desc?: string; // New description field
     features?: Array<{ label: string; value: string }>; // New features field
@@ -40,6 +42,14 @@ interface Car {
         name: string;
         address: string;
         phone: string;
+    };
+    customers?: {
+        id: string;
+        name: string;
+        phone: string;
+        country: string;
+        age: number;
+        id_number?: string;
     };
 }
 
@@ -60,7 +70,7 @@ const CarPreview = () => {
             if (!params?.id) return;
 
             try {
-                const { data, error } = await supabase.from('cars').select('*, providers(id, name, address, phone)').eq('id', params.id).single();
+                const { data, error } = await supabase.from('cars').select('*, providers(id, name, address, phone), customers(id, name, phone, country, age, id_number)').eq('id', params.id).single();
 
                 if (error) {
                     console.error('Error fetching car:', error);
@@ -360,13 +370,29 @@ const CarPreview = () => {
                                     </div>
                                     <div className="flex items-center">
                                         <IconUser className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
-                                        <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('provider')}:</span>
+                                        <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('car_source')}:</span>
                                         <div className="font-medium">
-                                            {car.providers ? (
+                                            {car.source_type === 'customer' && car.customers ? (
                                                 <div>
-                                                    <div>{car.providers.name}</div>
-                                                    <div className="text-xs text-gray-500">{car.providers.address}</div>
-                                                    <div className="text-xs text-gray-500">{car.providers.phone}</div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="badge badge-outline-info text-xs">{t('from_customer')}</span>
+                                                    </div>
+                                                    <div className="mt-1">
+                                                        <div>{car.customers.name}</div>
+                                                        <div className="text-xs text-gray-500">{car.customers.phone}</div>
+                                                        <div className="text-xs text-gray-500">{car.customers.country}</div>
+                                                    </div>
+                                                </div>
+                                            ) : car.providers ? (
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="badge badge-outline-primary text-xs">{t('from_provider')}</span>
+                                                    </div>
+                                                    <div className="mt-1">
+                                                        <div>{car.providers.name}</div>
+                                                        <div className="text-xs text-gray-500">{car.providers.address}</div>
+                                                        <div className="text-xs text-gray-500">{car.providers.phone}</div>
+                                                    </div>
                                                 </div>
                                             ) : (
                                                 <span>{car.provider || '-'}</span>

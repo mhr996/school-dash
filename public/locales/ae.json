@@ -1243,5 +1243,9 @@
     "contract_image_description": "ارفع صورة لوثيقة عقد السيارة (اختياري)",
     "contract_image": "صورة العقد",
     "change_contract_image": "تغيير صورة العقد",
-    "select_contract_image": "اختر صورة العقد"
+    "select_contract_image": "اختر صورة العقد",
+    "car_source": "مصدر السيارة",
+    "car_source_description": "اختر ما إذا كانت السيارة تم الحصول عليها من مزود أو شراؤها من عميل",
+    "from_provider": "من مزود",
+    "from_customer": "من عميل"
 }

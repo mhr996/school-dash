@@ -1098,5 +1098,11 @@
     "contract_image_description": "Upload an image of the car contract document (optional)",
     "contract_image": "Contract Image",
     "change_contract_image": "Change Contract Image",
-    "select_contract_image": "Select Contract Image"
+    "select_contract_image": "Select Contract Image",
+    "car_source": "Car Source",
+    "car_source_description": "Select whether this car was acquired from a provider or purchased from a customer",
+    "from_provider": "From Provider",
+    "from_customer": "From Customer",
+    "select_customer": "Select Customer",
+    "customer_required": "Customer selection is required"
 }

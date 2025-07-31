@@ -12,7 +12,9 @@ import IconGallery from '@/components/icon/icon-gallery';
 import BrandSelect from '@/components/brand-select/brand-select';
 import StatusSelect from '@/components/status-select/status-select';
 import ProviderSelect from '@/components/provider-select/provider-select';
+import CustomerSelect from '@/components/customer-select/customer-select';
 import TypeSelect from '@/components/type-select/type-select';
+import CreateCustomerModal from '@/components/modals/create-customer-modal';
 import { logActivity } from '@/utils/activity-logger';
 
 interface ColorVariant {
@@ -22,11 +24,26 @@ interface ColorVariant {
     previews: string[];
 }
 
+interface Customer {
+    id: string;
+    id_number?: string;
+    name: string;
+    phone: string;
+    country: string;
+    age: number;
+}
+
 const AddCar = () => {
     const { t } = getTranslation();
     const router = useRouter();
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState(1);
+
+    // Car source state (provider or customer)
+    const [carSource, setCarSource] = useState<'provider' | 'customer'>('provider');
+    const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+    const [isCreateCustomerModalOpen, setIsCreateCustomerModalOpen] = useState(false);
+
     const [form, setForm] = useState({
         title: '',
         year: '',
@@ -146,6 +163,31 @@ const AddCar = () => {
         setContractPreview('');
     };
 
+    // Car source handlers
+    const handleCarSourceChange = (source: 'provider' | 'customer') => {
+        setCarSource(source);
+        // Reset the other selection when switching
+        if (source === 'provider') {
+            setSelectedCustomer(null);
+        } else {
+            setForm((prev) => ({ ...prev, provider: '' }));
+        }
+    };
+
+    const handleCustomerSelect = (customer: Customer | null) => {
+        setSelectedCustomer(customer);
+    };
+
+    const handleCreateNewCustomer = () => {
+        setIsCreateCustomerModalOpen(true);
+    };
+
+    const handleCustomerCreated = (newCustomer: Customer) => {
+        setSelectedCustomer(newCustomer);
+        setIsCreateCustomerModalOpen(false);
+        setAlert({ visible: true, message: t('customer_added_successfully'), type: 'success' });
+    };
+
     // Color management functions
     const addColor = () => {
         const newColor: ColorVariant = {
@@ -253,8 +295,13 @@ const AddCar = () => {
             setAlert({ visible: true, message: t('car_number_required'), type: 'danger' });
             return false;
         }
-        if (!form.provider) {
+        // Validate car source selection
+        if (carSource === 'provider' && !form.provider) {
             setAlert({ visible: true, message: t('provider_required'), type: 'danger' });
+            return false;
+        }
+        if (carSource === 'customer' && !selectedCustomer) {
+            setAlert({ visible: true, message: t('customer_required'), type: 'danger' });
             return false;
         }
         if (form.kilometers && parseFloat(form.kilometers) < 0) {
@@ -370,7 +417,10 @@ const AddCar = () => {
                 brand: form.brand.trim(),
                 status: form.status,
                 type: form.type || null,
-                provider: form.provider || null,
+                // Handle provider/customer based on source selection
+                provider: carSource === 'provider' ? form.provider : null,
+                source_customer_id: carSource === 'customer' ? selectedCustomer?.id : null,
+                source_type: carSource, // 'provider' or 'customer'
                 kilometers: form.kilometers ? parseFloat(form.kilometers) : 0,
                 market_price: form.market_price ? parseFloat(form.market_price) : 0,
                 buy_price: form.buy_price ? parseFloat(form.buy_price) : 0,
@@ -599,13 +649,6 @@ const AddCar = () => {
                                     </label>
                                     <TypeSelect defaultValue={form.type} className="form-input" name="type" onChange={handleInputChange} />
                                 </div>
-                                {/* Provider */}
-                                <div>
-                                    <label htmlFor="provider" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                        {t('provider')} <span className="text-red-500">*</span>
-                                    </label>
-                                    <ProviderSelect defaultValue={form.provider} className="form-input" name="provider" onChange={handleInputChange} />
-                                </div>
                                 {/* Kilometers */}
                                 <div>
                                     <label htmlFor="kilometers" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
@@ -688,6 +731,60 @@ const AddCar = () => {
                                         />
                                     </div>
                                 </div>
+                                {/* Car Source Selection */}
+                                <div className="">
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-3">
+                                        {t('car_source')} <span className="text-red-500">*</span>
+                                    </label>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{t('car_source_description')}</p>
+
+                                    {/* Toggle Buttons */}
+                                    <div className="flex gap-3 mb-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleCarSourceChange('provider')}
+                                            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
+                                                carSource === 'provider'
+                                                    ? 'border-primary bg-primary text-white'
+                                                    : 'border-gray-300 bg-white text-gray-700 hover:border-primary hover:bg-primary hover:text-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                                            }`}
+                                        >
+                                            <div className="text-center">
+                                                <div className="font-medium">{t('from_provider')}</div>
+                                            </div>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleCarSourceChange('customer')}
+                                            className={`flex-1 px-4 py-3 rounded-lg border-2 transition-colors ${
+                                                carSource === 'customer'
+                                                    ? 'border-primary bg-primary text-white'
+                                                    : 'border-gray-300 bg-white text-gray-700 hover:border-primary hover:bg-primary hover:text-white dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300'
+                                            }`}
+                                        >
+                                            <div className="text-center">
+                                                <div className="font-medium">{t('from_customer')}</div>
+                                            </div>
+                                        </button>
+                                    </div>
+
+                                    {/* Conditional Selectors */}
+                                    {carSource === 'provider' ? (
+                                        <div>
+                                            <label htmlFor="provider" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                {t('select_provider')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <ProviderSelect defaultValue={form.provider} className="form-input" name="provider" onChange={handleInputChange} />
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                {t('select_customer')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <CustomerSelect selectedCustomer={selectedCustomer} onCustomerSelect={handleCustomerSelect} onCreateNew={handleCreateNewCustomer} className="form-input" />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Car Description */}
@@ -725,7 +822,7 @@ const AddCar = () => {
                                         <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_thumbnail')}</label>
                                         <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{t('thumbnail_description')}</p>
 
-                                        <div className="flex flex-col items-center gap-4">
+                                        <div className="flex flex-col items-start gap-4">
                                             {/* Thumbnail Preview */}
                                             {thumbnailPreview ? (
                                                 <div className="group relative aspect-square w-full max-w-sm">
@@ -761,7 +858,7 @@ const AddCar = () => {
                                         <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_contract_image')}</label>
                                         <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{t('contract_image_description')}</p>
 
-                                        <div className="flex flex-col items-center gap-4">
+                                        <div className="flex flex-col items-start gap-4">
                                             {/* Contract Image Preview */}
                                             {contractPreview ? (
                                                 <div className="group relative aspect-square w-full max-w-sm">
@@ -1013,6 +1110,9 @@ const AddCar = () => {
                     </div>
                 </form>
             </div>
+
+            {/* Create Customer Modal */}
+            <CreateCustomerModal isOpen={isCreateCustomerModalOpen} onClose={() => setIsCreateCustomerModalOpen(false)} onCustomerCreated={handleCustomerCreated} />
         </div>
     );
 };

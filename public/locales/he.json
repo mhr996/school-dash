@@ -843,5 +843,10 @@
     "market_price": "מחיר שוק",
     "additional_information": "מידע נוסף",
     "car_id": "מזהה רכב",
-    "edit_car": "ערוך רכב"
+    "edit_car": "ערוך רכב",
+    "car_source": "מקור הרכב",
+    "car_source_description": "בחר אם הרכב נרכש מספק או נקנה מלקוח",
+    "from_provider": "מספק",
+    "from_customer": "מלקוח",
+    "customer_required": "בחירת לקוח נדרשת"
 }
