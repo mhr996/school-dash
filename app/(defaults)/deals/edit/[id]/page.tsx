@@ -7,7 +7,7 @@ import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import DealTypeSelect from '@/components/deal-type-select/deal-type-select';
-import DealStatusSelect from '@/components/deal-status-select/deal-status-select';
+
 import CustomerSelect from '@/components/customer-select/customer-select';
 import CarSelect from '@/components/car-select/car-select';
 import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
@@ -136,6 +136,11 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const [loadingBills, setLoadingBills] = useState(false);
     const [selectedBill, setSelectedBill] = useState<any>(null);
     const [showBillModal, setShowBillModal] = useState(false);
+
+    // Cancel deal confirmation modal state
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancellingDeal, setCancellingDeal] = useState(false);
 
     useEffect(() => {
         const fetchDeal = async () => {
@@ -268,9 +273,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     }, [dealType, carTakenFromClient, selectedCar]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        // Prevent any input changes if deal is completed
+        // Prevent any input changes if deal is completed or cancelled
         if (deal?.status === 'completed') {
             setAlert({ message: t('deal_completed_no_edit'), type: 'danger' });
+            return;
+        }
+        if (deal?.status === 'cancelled') {
+            setAlert({ message: t('deal_cancelled_no_edit'), type: 'danger' });
             return;
         }
 
@@ -338,10 +347,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const handleDealTypeChange = (type: string) => {
         setDealType(type);
     };
-    const handleStatusChange = (status: string) => {
-        setForm((prev) => ({ ...prev, status }));
-    };
-
     const handleCustomerSelect = (customer: Customer | null) => {
         setSelectedCustomer(customer);
         setForm((prev) => ({ ...prev, customer_id: customer?.id || '' }));
@@ -379,6 +384,73 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         // Navigate to create customer page
         // This can be implemented later
         console.log('Create new customer');
+    };
+
+    // Handle cancel deal with confirmation modal
+    const handleCancelDealClick = () => {
+        setShowCancelModal(true);
+        setCancelReason('');
+    };
+
+    const handleCancelDealConfirm = async () => {
+        if (!cancelReason.trim()) {
+            setAlert({ message: t('cancel_reason_required'), type: 'danger' });
+            return;
+        }
+
+        setCancellingDeal(true);
+        try {
+            // Check if deal has bills to determine if we need to create a refund bill
+            const hasBills = bills && bills.length > 0;
+
+            // Update deal status to cancelled with reason
+            const { error: dealError } = await supabase
+                .from('deals')
+                .update({
+                    status: 'cancelled',
+                    cancellation_reason: cancelReason.trim(),
+                })
+                .eq('id', dealId);
+
+            if (dealError) throw dealError;
+
+            // If deal has bills, create a refund bill
+            if (hasBills && deal) {
+                const refundBillData = {
+                    deal_id: dealId,
+                    bill_type: 'general',
+                    status: 'pending',
+                    customer_name: selectedCustomer?.name || 'Customer',
+                    phone: selectedCustomer?.phone || '',
+                    date: new Date().toISOString().split('T')[0],
+                    bill_description: `${t('refund_bill_for_deal')}: ${deal.title}`,
+                    bill_amount: parseFloat(deal.amount?.toString() || '0'),
+                    free_text: `${t('deal_cancelled_refund')} - ${cancelReason.trim()}`,
+                    created_at: new Date().toISOString(),
+                };
+
+                const { error: billError } = await supabase.from('bills').insert([refundBillData]);
+
+                if (billError) {
+                    console.error('Error creating refund bill:', billError);
+                    setAlert({ message: t('deal_cancelled_bill_creation_failed'), type: 'danger' });
+                } else {
+                    setAlert({ message: t('deal_cancelled_with_refund_bill'), type: 'success' });
+                }
+            } else {
+                setAlert({ message: t('deal_cancelled_successfully'), type: 'success' });
+            }
+
+            // Update local state
+            setForm((prev) => ({ ...prev, status: 'cancelled' }));
+            setShowCancelModal(false);
+            setCancelReason('');
+        } catch (error) {
+            console.error('Error cancelling deal:', error);
+            setAlert({ message: t('error_cancelling_deal'), type: 'danger' });
+        } finally {
+            setCancellingDeal(false);
+        }
     }; // Handle file upload for new attachments
     const handleFileUpload = (type: string, fileItem: FileItem | null) => {
         if (fileItem) {
@@ -467,9 +539,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Prevent form submission if deal is completed
+        // Prevent form submission if deal is completed or cancelled
         if (deal?.status === 'completed') {
             setAlert({ message: t('deal_completed_no_edit'), type: 'danger' });
+            return;
+        }
+        if (deal?.status === 'cancelled') {
+            setAlert({ message: t('deal_cancelled_no_edit'), type: 'danger' });
             return;
         }
 
@@ -802,6 +878,30 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         </p>
                     </div>
                 )}
+
+                {deal?.status === 'cancelled' && (
+                    <div className="mt-3 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-lg">
+                        <p className="text-red-800 dark:text-red-200 text-sm font-medium">
+                            <span className="inline-flex items-center mr-2">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </span>
+                            {t('deal_cancelled_notice')}
+                        </p>
+                        {deal.cancellation_reason && (
+                            <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-200 dark:border-red-800">
+                                <p className="text-red-700 dark:text-red-300 text-sm">
+                                    <span className="font-medium">{t('reason')}:</span> {deal.cancellation_reason}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {alert && (
@@ -821,7 +921,12 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         <label className="block text-lg font-bold text-gray-700 dark:text-white mb-4">
                             {t('deal_type')} <span className="text-red-500">*</span>
                         </label>
-                        <DealTypeSelect defaultValue={dealType} className="form-input text-lg py-3" name="deal_type" onChange={deal?.status === 'completed' ? () => {} : handleDealTypeChange} />
+                        <DealTypeSelect
+                            defaultValue={dealType}
+                            className="form-input text-lg py-3"
+                            name="deal_type"
+                            onChange={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleDealTypeChange}
+                        />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {/* Deal Title */}
@@ -858,13 +963,36 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                             />
                         </div>
                     </div>
-                    {/* Deal Status Selector - Full Width */}
+                    {/* Deal Status Display/Cancel Option */}
                     <div className="panel">
                         <div className="mb-5">
                             <h5 className="text-lg font-bold text-gray-900 dark:text-white-light">{t('deal_status')}</h5>
-                            <p className="text-gray-600 dark:text-gray-400 mt-2">{t('select_deal_status_desc')}</p>
+                            <p className="text-gray-600 dark:text-gray-400 mt-2">{t('deal_status_automatic_desc')}</p>
                         </div>
-                        <DealStatusSelect defaultValue={form.status} className="form-input" name="status" onChange={deal?.status === 'completed' ? () => {} : handleStatusChange} />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div
+                                    className={`px-4 py-2 rounded-lg font-medium ${
+                                        form.status === 'active'
+                                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                                            : form.status === 'completed'
+                                              ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                                              : form.status === 'cancelled'
+                                                ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                                                : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                                    }`}
+                                >
+                                    {form.status === 'active'
+                                        ? t('deal_status_active')
+                                        : form.status === 'completed'
+                                          ? t('deal_status_completed')
+                                          : form.status === 'cancelled'
+                                            ? t('deal_status_cancelled')
+                                            : form.status}
+                                </div>
+                                {form.status === 'completed' && <span className="text-sm text-gray-600 dark:text-gray-400">{t('deal_completed_automatically')}</span>}
+                            </div>
+                        </div>
                     </div>
                     {/* Deal Date Selector */}
                     <div className="panel">
@@ -943,6 +1071,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
                                                         placeholder="0.00"
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
                                                     />
                                                 </div>
                                             </div>
@@ -966,7 +1095,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
                                                         placeholder="0.00"
-                                                        disabled={deal?.status === 'completed'}
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
                                                     />
                                                 </div>
                                             </div>
@@ -1062,6 +1191,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
                                                         placeholder="0.00"
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
                                                     />
                                                 </div>
                                             </div>
@@ -1127,7 +1257,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
                                                         placeholder="0.00"
-                                                        disabled={deal?.status === 'completed'}
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
                                                     />
                                                 </div>
                                             </div>
@@ -1168,7 +1298,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
                                                         placeholder="0.00"
-                                                        disabled={deal?.status === 'completed'}
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
                                                     />
                                                 </div>
                                             </div>
@@ -1199,7 +1329,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
                                                         placeholder="0.00"
-                                                        disabled={deal?.status === 'completed'}
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
                                                     />
                                                 </div>
                                             </div>
@@ -1218,8 +1348,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('seller')}</label>
                                     <CustomerSelect
                                         selectedCustomer={selectedSeller}
-                                        onCustomerSelect={deal?.status === 'completed' ? () => {} : handleSellerSelect}
-                                        onCreateNew={deal?.status === 'completed' ? () => {} : handleCreateNewCustomer}
+                                        onCustomerSelect={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleSellerSelect}
+                                        onCreateNew={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleCreateNewCustomer}
                                         className="form-input"
                                     />
                                 </div>
@@ -1228,8 +1358,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('buyer')}</label>
                                     <CustomerSelect
                                         selectedCustomer={selectedBuyer}
-                                        onCustomerSelect={deal?.status === 'completed' ? () => {} : handleBuyerSelect}
-                                        onCreateNew={deal?.status === 'completed' ? () => {} : handleCreateNewCustomer}
+                                        onCustomerSelect={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleBuyerSelect}
+                                        onCreateNew={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleCreateNewCustomer}
                                         className="form-input"
                                     />
                                 </div>
@@ -2243,9 +2373,14 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     </div>
                     {/* Submit Button */}
                     <div className="flex justify-end gap-4 mt-8">
-                        <button type="button" onClick={() => router.push('/deals')} className="btn btn-outline-danger">
+                        <button type="button" onClick={() => router.push('/deals')} className="btn btn-outline-secondary">
                             {t('cancel')}
                         </button>
+                        {form.status !== 'completed' && form.status !== 'cancelled' && (
+                            <button type="button" onClick={handleCancelDealClick} className="btn btn-outline-danger">
+                                {t('cancel_deal')}
+                            </button>
+                        )}
                         {deal?.status !== 'completed' ? (
                             <button type="submit" className="btn btn-primary" disabled={saving}>
                                 {saving ? t('updating') : t('update_deal')}
@@ -2364,6 +2499,58 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
                             <button onClick={closeBillModal} className="btn btn-outline-secondary">
                                 {t('close')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Cancel Deal Confirmation Modal */}
+            {showCancelModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('confirm_cancel_deal')}</h3>
+                            <button onClick={() => setShowCancelModal(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" disabled={cancellingDeal}>
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {bills && bills.length > 0 ? (
+                                    <div className="space-y-2">
+                                        <p className="font-medium text-amber-600 dark:text-amber-400">⚠️ {t('deal_has_bills_warning')}</p>
+                                        <p>{t('refund_bill_will_be_created')}</p>
+                                    </div>
+                                ) : (
+                                    <p>{t('deal_cancel_confirmation')}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label htmlFor="cancelReason" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                    {t('cancellation_reason')} <span className="text-red-500">*</span>
+                                </label>
+                                <textarea
+                                    id="cancelReason"
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    className="form-textarea min-h-[100px] w-full"
+                                    placeholder={t('enter_cancellation_reason')}
+                                    disabled={cancellingDeal}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700">
+                            <button onClick={() => setShowCancelModal(false)} className="btn btn-outline-secondary" disabled={cancellingDeal}>
+                                {t('cancel')}
+                            </button>
+                            <button onClick={handleCancelDealConfirm} className="btn btn-danger" disabled={cancellingDeal || !cancelReason.trim()}>
+                                {cancellingDeal ? t('cancelling') : t('confirm_cancel_deal')}
                             </button>
                         </div>
                     </div>

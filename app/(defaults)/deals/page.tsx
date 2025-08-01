@@ -425,16 +425,16 @@ const DealsList = () => {
                                     <div className="mx-auto flex w-max items-center gap-4">
                                         <Link
                                             href={`/deals/edit/${id}`}
-                                            className={`flex hover:text-info ${status === 'completed' ? 'opacity-50 pointer-events-none' : ''}`}
-                                            title={status === 'completed' ? t('deal_completed_no_edit') : t('edit')}
+                                            className={`flex hover:text-info ${status === 'completed' || status === 'cancelled' ? 'opacity-50 pointer-events-none' : ''}`}
+                                            title={status === 'completed' ? t('deal_completed_no_edit') : status === 'cancelled' ? t('deal_cancelled_no_edit') : t('edit')}
                                         >
                                             <IconEdit className="h-4.5 w-4.5" />
                                         </Link>
                                         <button
                                             type="button"
-                                            className={`flex hover:text-danger ${status === 'completed' ? 'opacity-50 pointer-events-none' : ''}`}
-                                            onClick={() => status !== 'completed' && deleteRow(id)}
-                                            title={status === 'completed' ? t('deal_completed_no_delete') : t('delete')}
+                                            className={`flex hover:text-danger ${status === 'completed' || status === 'cancelled' ? 'opacity-50 pointer-events-none' : ''}`}
+                                            onClick={() => status !== 'completed' && status !== 'cancelled' && deleteRow(id)}
+                                            title={status === 'completed' ? t('deal_completed_no_delete') : status === 'cancelled' ? t('deal_cancelled_no_delete') : t('delete')}
                                         >
                                             <IconTrashLines />
                                         </button>

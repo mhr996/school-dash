@@ -25,6 +25,7 @@ export interface Deal {
     buyer_id?: string;
     car_taken_from_client?: string; // For exchange deals - links to the car received from client
     attachments?: DealAttachment[];
+    cancellation_reason?: string;
 
     // Joined customer data from the customers table
     customers?: {

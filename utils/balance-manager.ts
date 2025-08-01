@@ -92,8 +92,18 @@ export const calculateTotalPaymentAmount = (bill: any): number => {
     const checkAmount = parseFloat(bill.check_amount || '0') || 0;
     const cashAmount = parseFloat(bill.cash_amount || '0') || 0;
     const bankAmount = parseFloat(bill.bank_amount || '0') || 0;
+    const billAmount = parseFloat(bill.bill_amount || '0') || 0; // For general bills
 
-    return visaAmount + transferAmount + checkAmount + cashAmount + bankAmount;
+    let totalAmount = visaAmount + transferAmount + checkAmount + cashAmount + bankAmount + billAmount;
+
+    // Apply bill direction: negative bills should have negative amounts
+    if (bill.bill_direction === 'negative') {
+        totalAmount = -Math.abs(totalAmount);
+    } else {
+        totalAmount = Math.abs(totalAmount); // Ensure positive for positive bills
+    }
+
+    return totalAmount;
 };
 
 /**
@@ -102,17 +112,20 @@ export const calculateTotalPaymentAmount = (bill: any): number => {
 export const handleReceiptCreated = async (billId: string, customerId: string, bill: any, customerName: string): Promise<boolean> => {
     const paymentAmount = calculateTotalPaymentAmount(bill);
 
-    if (paymentAmount <= 0) {
+    if (paymentAmount === 0) {
         console.log('No payment amount to process for receipt:', billId);
         return true; // Not an error, just no payment to process
     }
 
+    const description =
+        bill.bill_direction === 'negative' ? `Expense/Deduction for ${customerName}: ${getPaymentDescription(bill)}` : `Payment received from ${customerName}: ${getPaymentDescription(bill)}`;
+
     return await updateCustomerBalance({
         customerId,
-        amount: paymentAmount, // Positive because payment credits the customer
+        amount: paymentAmount, // Will be positive or negative based on bill_direction
         type: 'receipt_created',
         referenceId: billId,
-        description: `Payment received from ${customerName}: ${getPaymentDescription(bill)}`,
+        description,
     });
 };
 
@@ -122,17 +135,20 @@ export const handleReceiptCreated = async (billId: string, customerId: string, b
 export const handleReceiptDeleted = async (billId: string, customerId: string, bill: any, customerName: string): Promise<boolean> => {
     const paymentAmount = calculateTotalPaymentAmount(bill);
 
-    if (paymentAmount <= 0) {
+    if (paymentAmount === 0) {
         console.log('No payment amount to reverse for deleted receipt:', billId);
         return true; // Not an error, just no payment to reverse
     }
 
+    const description =
+        bill.bill_direction === 'negative' ? `Reversed expense/deduction for ${customerName}: ${getPaymentDescription(bill)}` : `Reversed payment from ${customerName}: ${getPaymentDescription(bill)}`;
+
     return await updateCustomerBalance({
         customerId,
-        amount: -paymentAmount, // Negative because we're reversing the credit
+        amount: -paymentAmount, // Reverse the original amount (flip the sign)
         type: 'receipt_deleted',
         referenceId: billId,
-        description: `Payment reversed for ${customerName}: ${getPaymentDescription(bill)}`,
+        description,
     });
 };
 

@@ -62,6 +62,7 @@ const AddBill = () => {
     // Billing form state matching database schema exactly
     const [billForm, setBillForm] = useState({
         bill_type: '',
+        bill_direction: 'positive', // Default to positive
         status: 'pending',
         customer_name: '',
         phone: '',
@@ -235,6 +236,7 @@ const AddBill = () => {
             const billData = {
                 deal_id: selectedDeal?.id || null,
                 bill_type: billForm.bill_type,
+                bill_direction: billForm.bill_direction,
                 status: billForm.status,
                 customer_name: billForm.customer_name,
                 phone: billForm.phone,
@@ -302,6 +304,22 @@ const AddBill = () => {
                 if (!balanceUpdateSuccess) {
                     console.warn('Failed to update customer balance for bill:', billResult.id);
                     // Don't fail the bill creation, just log the warning
+                }
+            }
+
+            // Automatically update deal status to 'completed' when a bill is created
+            if (selectedDeal?.id && selectedDeal.status !== 'completed') {
+                try {
+                    const { error: dealUpdateError } = await supabase.from('deals').update({ status: 'completed' }).eq('id', selectedDeal.id);
+
+                    if (dealUpdateError) {
+                        console.warn('Failed to update deal status to completed:', dealUpdateError);
+                        // Don't fail the bill creation, just log the warning
+                    } else {
+                        console.log(`Deal ${selectedDeal.id} status updated to completed after bill creation`);
+                    }
+                } catch (updateError) {
+                    console.warn('Error updating deal status:', updateError);
                 }
             }
 
@@ -436,8 +454,59 @@ const AddBill = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Bill Direction Selector */}
+                {((selectedDeal && billForm.bill_type) || billForm.bill_type === 'general') && (
+                    <div className="panel">
+                        <div className="mb-5 flex items-center gap-3">
+                            <IconDollarSign className="w-5 h-5 text-primary" />
+                            <div>
+                                <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_direction')}</h5>
+                                <p className="text-gray-600 dark:text-gray-400 mt-1">{t('select_bill_direction_desc')}</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                    billForm.bill_direction === 'positive'
+                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                                        : 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600'
+                                }`}
+                                onClick={() => handleFormChange({ target: { name: 'bill_direction', value: 'positive' } } as any)}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-4 h-4 rounded-full border-2 ${billForm.bill_direction === 'positive' ? 'border-green-500 bg-green-500' : 'border-gray-300'}`}>
+                                        {billForm.bill_direction === 'positive' && <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>}
+                                    </div>
+                                    <div>
+                                        <h6 className="font-semibold text-green-700 dark:text-green-300">+ {t('positive_bill')}</h6>
+                                        <p className="text-sm text-green-600 dark:text-green-400">{t('positive_bill_desc')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                                    billForm.bill_direction === 'negative'
+                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                        : 'border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600'
+                                }`}
+                                onClick={() => handleFormChange({ target: { name: 'bill_direction', value: 'negative' } } as any)}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-4 h-4 rounded-full border-2 ${billForm.bill_direction === 'negative' ? 'border-red-500 bg-red-500' : 'border-gray-300'}`}>
+                                        {billForm.bill_direction === 'negative' && <div className="w-2 h-2 bg-white rounded-full mx-auto mt-0.5"></div>}
+                                    </div>
+                                    <div>
+                                        <h6 className="font-semibold text-red-700 dark:text-red-300">- {t('negative_bill')}</h6>
+                                        <p className="text-sm text-red-600 dark:text-red-400">{t('negative_bill_desc')}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* Bill Date Selector */}
-                {selectedDeal && (
+                {(selectedDeal || billForm.bill_type === 'general') && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconCalendar className="w-5 h-5 text-primary" />
@@ -461,7 +530,7 @@ const AddBill = () => {
                     </div>
                 )}
                 {/* General Bill Section */}
-                {billForm.bill_type === 'general' && selectedDeal && (
+                {billForm.bill_type === 'general' && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
