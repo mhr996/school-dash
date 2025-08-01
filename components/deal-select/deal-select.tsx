@@ -3,6 +3,7 @@ import IconCaretDown from '@/components/icon/icon-caret-down';
 import IconUser from '@/components/icon/icon-user';
 import IconCar from '@/components/icon/icon-car';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconCalendar from '@/components/icon/icon-calendar';
 import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
 import { getTranslation } from '@/i18n';
 
@@ -12,6 +13,7 @@ interface Deal {
     deal_type: string;
     amount: number;
     status: string;
+    created_at?: string;
     customer_id?: number;
     customer_name?: string;
     car_id?: number;
@@ -70,6 +72,15 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
         }
     };
 
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return '';
+        try {
+            return new Date(dateString).toLocaleDateString();
+        } catch {
+            return '';
+        }
+    };
+
     const getDealTypeColor = (dealType: string) => {
         switch (dealType) {
             case 'buy':
@@ -104,8 +115,15 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                 <span className="truncate">{selectedDeal.customer?.name || t('no_customer')}</span>
                             </div>
                             <div className="flex items-center gap-1">
+                                <IconDollarSign className="w-3 h-3" />
                                 <span>{'₪' + selectedDeal.amount}</span>
                             </div>
+                            {selectedDeal.created_at && (
+                                <div className="flex items-center gap-1">
+                                    <IconCalendar className="w-3 h-3" />
+                                    <span>{formatDate(selectedDeal.created_at)}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -164,7 +182,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                         </div>
 
                                         {/* Deal Details */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                                             {/* Customer Info */}
                                             <div className="flex items-center gap-2">
                                                 <div className="p-1 rounded bg-blue-50 dark:bg-blue-900/20">
@@ -186,6 +204,18 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                                                     <span className="text-gray-900 dark:text-white font-medium">{deal.car ? `${deal.car.brand} ${deal.car.title}` : t('no_car')}</span>
                                                 </div>
                                             </div>
+
+                                            {/* Date Info */}
+                                            {deal.created_at && (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-1 rounded bg-green-50 dark:bg-green-900/20">
+                                                        <IconCalendar className="w-3 h-3 text-green-600 dark:text-green-400" />
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-900 dark:text-white font-medium">{formatDate(deal.created_at)}</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

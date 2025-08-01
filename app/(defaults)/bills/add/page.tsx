@@ -136,6 +136,7 @@ const AddBill = () => {
                     car:cars!deals_car_id_fkey(*)
                 `,
                 )
+                .neq('status', 'cancelled') // Exclude cancelled deals from bill selector
                 .order('created_at', { ascending: false });
 
             if (error) throw error;

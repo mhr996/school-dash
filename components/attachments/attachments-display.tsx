@@ -4,7 +4,6 @@ import { DealAttachment } from '@/types';
 import { getAttachmentTypeDisplayName, formatFileSize, getFileIconName, isImageFile, getPublicUrlFromPath } from '@/utils/file-upload';
 import { getTranslation } from '@/i18n';
 import IconEye from '@/components/icon/icon-eye';
-import IconDownload from '@/components/icon/icon-download';
 import IconPaperclip from '@/components/icon/icon-paperclip';
 import IconImage from '@/components/icon/icon-image';
 import IconFile from '@/components/icon/icon-file';
@@ -12,13 +11,17 @@ import IconNotesEdit from '@/components/icon/icon-notes-edit';
 import IconChartSquare from '@/components/icon/icon-chart-square';
 import IconZipFile from '@/components/icon/icon-zip-file';
 import IconTxtFile from '@/components/icon/icon-txt-file';
+import IconTrash from '@/components/icon/icon-trash';
 
 interface AttachmentsDisplayProps {
     attachments: DealAttachment[];
     compact?: boolean;
+    showDeleteButton?: boolean;
+    onDeleteAttachment?: (attachment: DealAttachment) => void;
+    isDeleting?: boolean;
 }
 
-const AttachmentsDisplay: React.FC<AttachmentsDisplayProps> = ({ attachments, compact = false }) => {
+const AttachmentsDisplay: React.FC<AttachmentsDisplayProps> = ({ attachments, compact = false, showDeleteButton = false, onDeleteAttachment, isDeleting = false }) => {
     const { t } = getTranslation();
 
     if (!attachments || attachments.length === 0) {
@@ -75,20 +78,23 @@ const AttachmentsDisplay: React.FC<AttachmentsDisplayProps> = ({ attachments, co
                             <button
                                 type="button"
                                 onClick={() => window.open(getPublicUrlFromPath(attachment.url), '_blank')}
-                                className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50"
+                                className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30"
                                 title={t('preview')}
                             >
                                 <IconEye className="w-4 h-4" />
                             </button>
                         )}
-                        <a
-                            href={getPublicUrlFromPath(attachment.url)}
-                            download={attachment.name}
-                            className="text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-50"
-                            title={t('download')}
-                        >
-                            <IconDownload className="w-4 h-4" />
-                        </a>
+                        {showDeleteButton && onDeleteAttachment && (
+                            <button
+                                type="button"
+                                onClick={() => onDeleteAttachment(attachment)}
+                                disabled={isDeleting}
+                                className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={t('delete')}
+                            >
+                                <IconTrash className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
             ))}

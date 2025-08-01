@@ -809,6 +809,9 @@
     "car_transfer_document": "Car Transfer Document",
     "car_transfer_document_desc": "Upload car transfer document",
     "deal_attachments": "Deal Attachments",
+    "add_more_attachments": "Add More Attachments",
+    "attachment_removed_successfully": "Attachment removed successfully",
+    "error_removing_attachment": "Error removing attachment",
     "car_details_info": "Car Details",
     "profit_loss": "Profit/Loss",
     "price_before_tax": "Price Before Tax",
@@ -1135,5 +1138,6 @@
     "from_customer": "From Customer",
     "select_customer": "Select Customer",
     "customer_required": "Customer selection is required",
-    "general": "General"
+    "general": "General",
+    "existing_attachments": "Existing Attachments"
 }

@@ -934,6 +934,9 @@
     "car_transfer_document": "سند تحويل السيارة",
     "car_transfer_document_desc": "ارفع مستند سند تحويل السيارة",
     "deal_attachments": "مرفقات الصفقة",
+    "add_more_attachments": "إضافة المزيد من المرفقات",
+    "attachment_removed_successfully": "تم حذف المرفق بنجاح",
+    "error_removing_attachment": "خطأ في حذف المرفق",
     "car_details_info": "تفاصيل السيارة",
     "profit_loss": "الربح/الخسارة",
     "price_before_tax": "السعر قبل الضريبة",
@@ -1278,5 +1281,6 @@
     "enter_bill_description": "أدخل وصف الفاتورة",
     "bill_amount": "مبلغ الفاتورة",
     "enter_bill_amount": "أدخل مبلغ الفاتورة",
-    "general": "عام"
+    "general": "عام",
+    "existing_attachments": "المرفقات الحالية"
 }

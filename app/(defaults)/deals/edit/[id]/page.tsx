@@ -115,6 +115,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     });
     const [existingAttachments, setExistingAttachments] = useState<DealAttachment[]>([]);
     const [newAttachments, setNewAttachments] = useState<{ [key: string]: FileItem }>({});
+    const [deletingAttachment, setDeletingAttachment] = useState<string | null>(null);
 
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
@@ -419,6 +420,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 const refundBillData = {
                     deal_id: dealId,
                     bill_type: 'general',
+                    bill_direction: 'negative', // Refund bills should be negative
                     status: 'pending',
                     customer_name: selectedCustomer?.name || 'Customer',
                     phone: selectedCustomer?.phone || '',
@@ -463,6 +465,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
     // Remove existing attachment
     const handleRemoveExistingAttachment = async (attachment: DealAttachment) => {
+        setDeletingAttachment(attachment.url);
         try {
             // Extract bucket and file path from the attachment URL
             const bucket = 'deals';
@@ -488,6 +491,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 message: t('error_removing_attachment'),
                 type: 'danger',
             });
+        } finally {
+            setDeletingAttachment(null);
         }
     };
 
@@ -1434,41 +1439,47 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         </div>
                     )}
                     {/* Deal Attachments */}
-                    {deal.attachments && deal.attachments.length > 0 && (
+                    {existingAttachments && existingAttachments.length > 0 && (
                         <div className="panel">
                             <div className="mb-5 flex items-center gap-3">
                                 <IconNotes className="w-5 h-5 text-primary" />
                                 <h5 className="text-lg font-semibold dark:text-white-light">{t('existing_attachments')}</h5>
                             </div>
-                            <AttachmentsDisplay attachments={deal.attachments} compact={false} />
+                            <AttachmentsDisplay
+                                attachments={existingAttachments}
+                                compact={false}
+                                showDeleteButton={deal?.status !== 'completed'}
+                                onDeleteAttachment={handleRemoveExistingAttachment}
+                                isDeleting={deletingAttachment !== null}
+                            />
                         </div>
                     )}
                     {/* Add New Attachments */}
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconNotes className="w-5 h-5 text-primary" />
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('deal_attachments')}</h5>
+                            <h5 className="text-lg font-semibold dark:text-white-light">{existingAttachments && existingAttachments.length > 0 ? t('add_more_attachments') : t('deal_attachments')}</h5>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <SingleFileUpload
-                                file={dealAttachments.carLicense}
-                                onFileChange={deal?.status === 'completed' ? () => {} : (file) => setDealAttachments((prev) => ({ ...prev, carLicense: file }))}
+                                file={newAttachments.car_license}
+                                onFileChange={deal?.status === 'completed' ? () => {} : (file) => handleFileUpload('car_license', file)}
                                 title={t('car_license')}
                                 description={t('car_license_desc')}
                                 accept="image/*,.pdf"
                                 className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                             />
                             <SingleFileUpload
-                                file={dealAttachments.driverLicense}
-                                onFileChange={deal?.status === 'completed' ? () => {} : (file) => setDealAttachments((prev) => ({ ...prev, driverLicense: file }))}
+                                file={newAttachments.driver_license}
+                                onFileChange={deal?.status === 'completed' ? () => {} : (file) => handleFileUpload('driver_license', file)}
                                 title={t('driver_license')}
                                 description={t('driver_license_desc')}
                                 accept="image/*,.pdf"
                                 className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                             />
                             <SingleFileUpload
-                                file={dealAttachments.carTransferDocument}
-                                onFileChange={deal?.status === 'completed' ? () => {} : (file) => setDealAttachments((prev) => ({ ...prev, carTransferDocument: file }))}
+                                file={newAttachments.car_transfer_document}
+                                onFileChange={deal?.status === 'completed' ? () => {} : (file) => handleFileUpload('car_transfer_document', file)}
                                 title={t('car_transfer_document')}
                                 description={t('car_transfer_document_desc')}
                                 accept="image/*,.pdf"

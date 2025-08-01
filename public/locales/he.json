@@ -685,6 +685,9 @@
     "car_transfer_document": "מסמך העברת רכב",
     "car_transfer_document_desc": "העלה מסמך העברת הרכב",
     "deal_attachments": "קבצים מצורפים לעסקה",
+    "add_more_attachments": "הוסף עוד קבצים מצורפים",
+    "attachment_removed_successfully": "הקובץ המצורף הוסר בהצלחה",
+    "error_removing_attachment": "שגיאה בהסרת הקובץ המצורף",
     "deal_item": "פריט",
     "deal_price": "מחיר",
     "deal_quantity": "כמות",
@@ -896,5 +899,6 @@
     "bill_status_overdue_desc": "התשלום של החשבונית באיחור",
     "tax_invoice_description": "חשבונית מס עם פרטי מס",
     "receipt_description": "קבלה עם פרטי תשלום",
-    "years_old": "שנים"
+    "years_old": "שנים",
+    "existing_attachments": "קבצים מצורפים קיימים"
 }
