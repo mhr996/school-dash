@@ -17,7 +17,7 @@ import { logActivity } from '@/utils/activity-logger';
 import DealFilters from '@/components/deal-filters/deal-filters';
 import { handleDealDeleted, getCustomerIdFromDeal } from '@/utils/balance-manager';
 
-type DealType = 'new_used_sale' | 'new_used_sale_tax_inclusive' | 'exchange' | 'intermediary' | 'financing_assistance_intermediary' | 'company_commission' | '';
+type DealType = 'new_used_sale' | 'new_sale' | 'used_sale' | 'new_used_sale_tax_inclusive' | 'exchange' | 'intermediary' | 'financing_assistance_intermediary' | 'company_commission' | '';
 
 type DealStatus = 'pending' | 'active' | 'completed' | 'cancelled' | '';
 
@@ -88,7 +88,8 @@ const DealsList = () => {
                         buyer:customers!deals_buyer_id_fkey (
                             name,
                             id_number
-                        )
+                        ),
+                        bills (id)
                     `,
                     )
                     .order('created_at', { ascending: false });
@@ -265,6 +266,8 @@ const DealsList = () => {
     const getDealTypeBadgeClass = (type: string) => {
         switch (type) {
             case 'new_used_sale':
+            case 'new_sale':
+            case 'used_sale':
                 return 'badge-outline-success';
             case 'exchange':
                 return 'badge-outline-primary';
@@ -410,6 +413,15 @@ const DealsList = () => {
                                 render: ({ status }) => <span className={`badge ${getStatusBadgeClass(status)}`}>{t(`status_${status}`)}</span>,
                             },
                             {
+                                accessor: 'bill_status',
+                                title: t('bill_status'),
+                                sortable: true,
+                                render: ({ bills }) => {
+                                    const hasBills = bills && bills.length > 0;
+                                    return <span className={`badge ${hasBills ? 'badge-outline-success' : 'badge-outline-warning'}`}>{hasBills ? t('bill_created') : t('no_bill_created')}</span>;
+                                },
+                            },
+                            {
                                 accessor: 'created_at',
                                 title: t('created_date'),
                                 sortable: true,
@@ -425,8 +437,8 @@ const DealsList = () => {
                                     <div className="mx-auto flex w-max items-center gap-4">
                                         <Link
                                             href={`/deals/edit/${id}`}
-                                            className={`flex hover:text-info ${status === 'completed' || status === 'cancelled' ? 'opacity-50 pointer-events-none' : ''}`}
-                                            title={status === 'completed' ? t('deal_completed_no_edit') : status === 'cancelled' ? t('deal_cancelled_no_edit') : t('edit')}
+                                            className={`flex hover:text-info ${status === 'cancelled' ? 'opacity-50 pointer-events-none' : ''}`}
+                                            title={status === 'cancelled' ? t('deal_cancelled_no_edit') : t('edit')}
                                         >
                                             <IconEdit className="h-4.5 w-4.5" />
                                         </Link>

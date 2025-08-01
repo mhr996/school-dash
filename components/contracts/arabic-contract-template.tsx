@@ -74,7 +74,7 @@ const ArabicContractTemplate: React.FC<ContractTemplateProps> = ({ contract }) =
                           ? 'صفقة استبدال'
                           : contract.dealType === 'intermediary'
                             ? 'وساطة'
-                            : contract.dealType === 'new_used_sale'
+                            : contract.dealType === 'new_used_sale' || contract.dealType === 'new_sale' || contract.dealType === 'used_sale'
                               ? 'بيع مركبة مستعملة'
                               : contract.dealType === 'new_used_sale_tax_inclusive'
                                 ? 'بيع مركبة مستعملة (شامل الضريبة)'

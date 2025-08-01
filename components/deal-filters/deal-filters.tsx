@@ -115,6 +115,8 @@ const DealFilters: React.FC<FilterProps> = ({ onFilterChange, onClearFilters }) 
     const dealTypeOptions = [
         { value: '', label: t('all') },
         { value: 'new_used_sale', label: t('deal_type_new_used_sale') },
+        { value: 'new_sale', label: t('deal_type_new_sale') },
+        { value: 'used_sale', label: t('deal_type_used_sale') },
         { value: 'new_used_sale_tax_inclusive', label: t('deal_type_new_used_sale_tax_inclusive') },
         { value: 'exchange', label: t('deal_type_exchange') },
         { value: 'intermediary', label: t('deal_type_intermediary') },

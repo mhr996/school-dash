@@ -12,7 +12,6 @@ import IconCalendar from '@/components/icon/icon-calendar';
 import DealSelect from '@/components/deal-select/deal-select';
 import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
-import BillStatusSelect from '@/components/bill-status-select/bill-status-select';
 import { logActivity } from '@/utils/activity-logger';
 import { handleReceiptCreated } from '@/utils/balance-manager';
 
@@ -457,7 +456,7 @@ const AddBill = () => {
                 )}
 
                 {/* Bill Direction Selector */}
-                {((selectedDeal && billForm.bill_type) || billForm.bill_type === 'general') && (
+                {billForm.bill_type && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
@@ -640,7 +639,10 @@ const AddBill = () => {
                                     </div>
 
                                     {/* Render table based on deal type */}
-                                    {(selectedDeal.deal_type === 'new_used_sale' || selectedDeal.deal_type === 'new_used_sale_tax_inclusive') && (
+                                    {(selectedDeal.deal_type === 'new_used_sale' ||
+                                        selectedDeal.deal_type === 'new_sale' ||
+                                        selectedDeal.deal_type === 'used_sale' ||
+                                        selectedDeal.deal_type === 'new_used_sale_tax_inclusive') && (
                                         <>
                                             {/* Row 1: Car for Sale */}
                                             <div className="grid grid-cols-4 gap-4 mb-3 py-2">
@@ -1091,18 +1093,6 @@ const AddBill = () => {
                                     </div>
                                 </>
                             )}
-                        </div>
-                    </div>
-                )}
-                {/* Status Selection */}
-                {billForm.bill_type && (
-                    <div className="panel">
-                        <div className="mb-5 flex items-center gap-3">
-                            <IconDollarSign className="w-5 h-5 text-primary" />
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('bill_status')}</h5>
-                        </div>
-                        <div className="space-y-4">
-                            <BillStatusSelect defaultValue={billForm.status} onChange={(status) => handleFormChange({ target: { name: 'status', value: status } } as any)} className="w-full" />
                         </div>
                     </div>
                 )}

@@ -112,7 +112,7 @@ const AddDeal = () => {
                 }));
             }
         } else if (selectedCar && selectedCustomer) {
-            if (dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') {
+            if (dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') {
                 setSaleForm((prev) => {
                     // Only auto-fill selling_price if:
                     // 1. It's a new car selection (different car ID), OR
@@ -378,7 +378,7 @@ const AddDeal = () => {
             setAlert({ message: t('deal_type_required'), type: 'danger' });
             return;
         } // Validate based on deal type
-        if ((dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') && !validateNewUsedSaleForm()) {
+        if ((dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') && !validateNewUsedSaleForm()) {
             return;
         }
         if (dealType === 'exchange' && !validateExchangeForm()) {
@@ -404,7 +404,7 @@ const AddDeal = () => {
                 created_at: new Date(dealDate + 'T' + new Date().toTimeString().split(' ')[0]).toISOString(),
             };
 
-            if (dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') {
+            if (dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') {
                 // Calculate profit commission (amount) = selling price - buy price - loss
                 const sellingPrice = parseFloat(saleForm.selling_price);
                 const buyPrice = selectedCar?.buy_price || 0;
@@ -2150,7 +2150,7 @@ const AddDeal = () => {
                     </div>
                 )}{' '}
                 {/* Render form based on deal type */}
-                {(dealType === 'new_used_sale' || dealType === 'new_used_sale_tax_inclusive') && renderNewUsedSaleForm()}
+                {(dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') && renderNewUsedSaleForm()}
                 {dealType === 'exchange' && renderExchangeForm()}
                 {dealType === 'company_commission' && renderCompanyCommissionForm()}
                 {dealType === 'intermediary' && renderIntermediaryForm()}
@@ -2158,6 +2158,8 @@ const AddDeal = () => {
                 {/* Other deal types placeholder */}
                 {dealType &&
                     dealType !== 'new_used_sale' &&
+                    dealType !== 'new_sale' &&
+                    dealType !== 'used_sale' &&
                     dealType !== 'new_used_sale_tax_inclusive' &&
                     dealType !== 'exchange' &&
                     dealType !== 'company_commission' &&

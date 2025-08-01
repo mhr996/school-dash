@@ -45,6 +45,11 @@ export interface Deal {
         id_number?: string;
     };
 
+    // Joined bills data from the bills table
+    bills?: {
+        id: string;
+    }[];
+
     // Legacy individual URL columns (for backwards compatibility)
     car_license_url?: string;
     driver_license_url?: string;

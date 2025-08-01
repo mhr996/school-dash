@@ -288,7 +288,10 @@ const BillPreview = () => {
                             </div>
 
                             {/* Render table based on deal type */}
-                            {(bill.deal.deal_type === 'new_used_sale' || bill.deal.deal_type === 'new_used_sale_tax_inclusive') && (
+                            {(bill.deal.deal_type === 'new_used_sale' ||
+                                bill.deal.deal_type === 'new_sale' ||
+                                bill.deal.deal_type === 'used_sale' ||
+                                bill.deal.deal_type === 'new_used_sale_tax_inclusive') && (
                                 <>
                                     {/* Row 1: Car for Sale */}
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">

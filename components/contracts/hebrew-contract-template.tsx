@@ -71,7 +71,7 @@ const HebrewContractTemplate: React.FC<ContractTemplateProps> = ({ contract }) =
                           ? 'עסקת טרייד אין / החלפה'
                           : contract.dealType === 'intermediary'
                             ? 'תיווך'
-                            : contract.dealType === 'new_used_sale'
+                            : contract.dealType === 'new_used_sale' || contract.dealType === 'new_sale' || contract.dealType === 'used_sale'
                               ? 'מכירת רכב משומש'
                               : contract.dealType === 'new_used_sale_tax_inclusive'
                                 ? 'מכירת רכב משומש (כולל מע"מ)'

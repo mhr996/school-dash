@@ -163,6 +163,8 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const getDealTypeBadgeClass = (type: string) => {
         switch (type) {
             case 'new_used_sale':
+            case 'new_sale':
+            case 'used_sale':
                 return 'badge-outline-success';
             case 'exchange':
                 return 'badge-outline-primary';

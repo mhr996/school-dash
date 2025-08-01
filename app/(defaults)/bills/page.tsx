@@ -294,12 +294,6 @@ const Bills = () => {
             render: (bill: Bill) => <span className="font-medium">{getPaymentAmount(bill)}</span>,
         },
         {
-            accessor: 'status',
-            title: t('status'),
-            sortable: true,
-            render: (bill: Bill) => <span className={`badge ${getStatusColor(bill.status)}`}>{t(`bill_status_${bill.status}`)}</span>,
-        },
-        {
             accessor: 'created_at',
             title: t('created_at'),
             sortable: true,
