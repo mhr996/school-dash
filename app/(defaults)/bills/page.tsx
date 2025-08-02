@@ -292,7 +292,7 @@ const Bills = () => {
             accessor: 'payment_amount',
             title: t('payment_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className="font-medium">{getPaymentAmount(bill)}</span>,
+            render: (bill: Bill) => <span className="font-medium">{bill.bill_type === 'general' ? '₪' + (bill.bill_amount || 0) : getPaymentAmount(bill)}</span>,
         },
         {
             accessor: 'created_at',
