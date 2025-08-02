@@ -29,6 +29,7 @@ interface Bill {
     transfer_amount?: number;
     check_amount?: number;
     cash_amount?: number;
+    bill_amount?: number;
     deal?: {
         title: string;
         deal_type: string;
@@ -279,7 +280,7 @@ const Bills = () => {
             accessor: 'total_with_tax',
             title: t('total_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className="font-bold">{'₪' + bill.total_with_tax}</span>,
+            render: (bill: Bill) => <span className="font-bold">{'₪' + (bill.bill_type === 'general' ? bill.bill_amount || 0 : bill.total_with_tax)}</span>,
         },
         {
             accessor: 'payment_type',

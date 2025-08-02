@@ -2491,7 +2491,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('bill_type')}</th>
                                             <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_name')}</th>
                                             <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</th>
-                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('status')}</th>
                                             <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('created_date')}</th>
                                             <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">{t('actions')}</th>
                                         </tr>
@@ -2505,19 +2504,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                     </span>
                                                 </td>{' '}
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{bill.deals?.customers?.name || bill.customer_name || t('unknown_customer')}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₪{bill.total_with_tax || bill.total || '0.00'}</td>
-                                                <td className="px-4 py-3 text-sm">
-                                                    <span
-                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                            bill.status === 'paid'
-                                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                                                                : bill.status === 'pending'
-                                                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                                                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                                                        }`}
-                                                    >
-                                                        {t(`bill_status_${bill.status}`)}
-                                                    </span>
+                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                                    ₪{bill.bill_type === 'general' ? bill.bill_amount || '0.00' : bill.total_with_tax || bill.total || '0.00'}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{new Date(bill.created_at).toLocaleDateString()}</td>{' '}
                                                 <td className="px-4 py-3 text-center">
