@@ -953,5 +953,6 @@
     "check_description": "תשלום בצ'ק",
     "cash_description": "תשלום במזומן",
     "check_payment": "תשלום בצ'ק",
-    "check": "צ'ק"
+    "check": "צ'ק",
+    "deal_summary": "סיכום עסקה"
 }
