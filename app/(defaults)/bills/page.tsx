@@ -215,6 +215,35 @@ const Bills = () => {
         return amount > 0 ? `₪${amount.toFixed(2)} (${paymentType})` : t('no_payment_yet');
     };
 
+    // Helper function to get bill amount based on bill type and payment method
+    const getBillAmount = (bill: Bill) => {
+        if (bill.bill_type === 'general') {
+            return parseFloat(String(bill.bill_amount || '0'));
+        }
+
+        if (bill.bill_type === 'tax_invoice') {
+            return parseFloat(String(bill.total_with_tax || '0'));
+        }
+
+        // For receipt types, return the payment amount based on payment method
+        if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') {
+            switch (bill.payment_type?.toLowerCase()) {
+                case 'bank_transfer':
+                    return parseFloat(String(bill.bank_amount || bill.transfer_amount || '0'));
+                case 'check':
+                    return parseFloat(String(bill.check_amount || '0'));
+                case 'visa':
+                    return parseFloat(String(bill.visa_amount || '0'));
+                case 'cash':
+                    return parseFloat(String(bill.cash_amount || '0'));
+                default:
+                    return parseFloat(String(bill.total_with_tax || '0'));
+            }
+        }
+
+        return 0;
+    };
+
     const handleDownloadPDF = async (bill: Bill) => {
         setDownloadingPDF(bill.id);
         try {
@@ -280,7 +309,7 @@ const Bills = () => {
             accessor: 'total_with_tax',
             title: t('total_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className="font-bold">{'₪' + (bill.bill_type === 'general' ? bill.bill_amount || 0 : bill.total_with_tax)}</span>,
+            render: (bill: Bill) => <span className="font-bold">₪{getBillAmount(bill).toFixed(2)}</span>,
         },
         {
             accessor: 'payment_type',
@@ -292,7 +321,7 @@ const Bills = () => {
             accessor: 'payment_amount',
             title: t('payment_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className="font-medium">{bill.bill_type === 'general' ? '₪' + (bill.bill_amount || 0) : getPaymentAmount(bill)}</span>,
+            render: (bill: Bill) => <span className="font-medium">{bill.bill_type === 'general' ? '₪' + getBillAmount(bill).toFixed(2) : getPaymentAmount(bill)}</span>,
         },
         {
             accessor: 'created_at',

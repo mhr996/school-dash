@@ -1290,5 +1290,6 @@
     "bill_amount": "مبلغ الفاتورة",
     "enter_bill_amount": "أدخل مبلغ الفاتورة",
     "general": "عام",
-    "existing_attachments": "المرفقات الحالية"
+    "existing_attachments": "المرفقات الحالية",
+    "bill_type_general": "فاتورة عامة"
 }

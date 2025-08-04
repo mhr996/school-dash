@@ -1148,5 +1148,6 @@
     "select_customer": "Select Customer",
     "customer_required": "Customer selection is required",
     "general": "General",
-    "existing_attachments": "Existing Attachments"
+    "existing_attachments": "Existing Attachments",
+    "bill_type_general": "General Bill"
 }

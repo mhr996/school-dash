@@ -909,5 +909,7 @@
     "tax_invoice_description": "חשבונית מס עם פרטי מס",
     "receipt_description": "קבלה עם פרטי תשלום",
     "years_old": "שנים",
-    "existing_attachments": "קבצים מצורפים קיימים"
+    "existing_attachments": "קבצים מצורפים קיימים",
+    "no_existing_attachments": "אין קבצים מצורפים קיימים",
+    "bill_type_general": "חשבונית כללית"
 }

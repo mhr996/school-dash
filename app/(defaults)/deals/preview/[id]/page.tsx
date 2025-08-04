@@ -123,7 +123,9 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                     // Fetch bills linked to this deal
                     const { data: billsData } = await supabase
                         .from('bills')
-                        .select('id, bill_type, status, customer_name, date, total_with_tax, total, created_at')
+                        .select(
+                            'id, bill_type, status, customer_name, date, total_with_tax, total, created_at, bill_amount, payment_type, visa_amount, cash_amount, bank_amount, transfer_amount, check_amount',
+                        )
                         .eq('deal_id', dealId)
                         .order('created_at', { ascending: false });
 
@@ -143,6 +145,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             fetchDeal();
         }
     }, [dealId]);
+
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -150,6 +153,35 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
         }).format(value);
+    };
+
+    // Helper function to get bill amount based on bill type and payment method
+    const getBillAmount = (bill: any) => {
+        if (bill.bill_type === 'general') {
+            return parseFloat(bill.bill_amount || '0');
+        }
+
+        if (bill.bill_type === 'tax_invoice') {
+            return parseFloat(bill.total_with_tax || '0');
+        }
+
+        // For receipt types, return the payment amount based on payment method
+        if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') {
+            switch (bill.payment_type?.toLowerCase()) {
+                case 'bank_transfer':
+                    return parseFloat(bill.bank_amount || bill.transfer_amount || '0');
+                case 'check':
+                    return parseFloat(bill.check_amount || '0');
+                case 'visa':
+                    return parseFloat(bill.visa_amount || '0');
+                case 'cash':
+                    return parseFloat(bill.cash_amount || '0');
+                default:
+                    return parseFloat(bill.total_with_tax || '0');
+            }
+        }
+
+        return 0;
     };
     const getCarImageUrl = async (images: string[] | string | null) => {
         if (!images) return null;
@@ -668,7 +700,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h4 className="font-semibold text-gray-900 dark:text-white">{t(`bill_type_${bill.bill_type}`)}</h4>
-                                                <span className={`badge ${getBillStatusBadgeClass(bill.status)} text-xs`}>{t(`bill_status_${bill.status}`)}</span>
                                             </div>
                                             <div className="text-sm text-gray-600 dark:text-gray-400">
                                                 {bill.customer_name} • {new Date(bill.date).toLocaleDateString()}
@@ -676,7 +707,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                         </div>
                                     </div>
                                     <div className="text-right flex flex-col gap-2">
-                                        <div className="font-bold text-gray-900 dark:text-white text-lg">{formatCurrency(bill.total_with_tax || bill.total || 0)}</div>
+                                        <div className="font-bold text-gray-900 dark:text-white text-lg">{formatCurrency(getBillAmount(bill))}</div>
                                         <div className="flex gap-2 justify-end">
                                             <Link href={`/bills/preview/${bill.id}`} className="text-primary hover:underline text-sm">
                                                 {t('view_bill')}

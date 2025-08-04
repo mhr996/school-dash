@@ -17,6 +17,7 @@ import { Deal, Customer, Car, FileItem, DealAttachments, DealAttachment } from '
 import { uploadMultipleFiles, deleteFile, uploadFile } from '@/utils/file-upload';
 import { formatCurrency } from '@/utils/number-formatter';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
+import { handleReceiptCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
 import IconNotes from '@/components/icon/icon-notes';
 import IconCar from '@/components/icon/icon-car';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
@@ -26,7 +27,9 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconEye from '@/components/icon/icon-eye';
 import IconReceipt from '@/components/icon/icon-receipt';
 import IconCalendar from '@/components/icon/icon-calendar';
-import { handleReceiptCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
+import IconPdf from '@/components/icon/icon-pdf';
+import { generateBillPDF } from '@/utils/pdf-generator';
+import Cookies from 'universal-cookie';
 
 const EditDeal = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
@@ -66,6 +69,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         bank_amount: '',
         bank_name: '',
         bank_branch: '',
+        approval_number: '',
         account_number: '',
         transfer_number: '',
         transfer_holder_name: '',
@@ -94,6 +98,35 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             style: 'currency',
             currency: 'ILS',
         }).format(amount);
+    };
+
+    // Helper function to get bill amount based on bill type and payment method
+    const getBillAmount = (bill: any) => {
+        if (bill.bill_type === 'general') {
+            return parseFloat(bill.bill_amount || '0');
+        }
+
+        if (bill.bill_type === 'tax_invoice') {
+            return parseFloat(bill.total_with_tax || '0');
+        }
+
+        // For receipt types, return the payment amount based on payment method
+        if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') {
+            switch (bill.payment_type?.toLowerCase()) {
+                case 'bank_transfer':
+                    return parseFloat(bill.bank_amount || bill.transfer_amount || '0');
+                case 'check':
+                    return parseFloat(bill.check_amount || '0');
+                case 'visa':
+                    return parseFloat(bill.visa_amount || '0');
+                case 'cash':
+                    return parseFloat(bill.cash_amount || '0');
+                default:
+                    return parseFloat(bill.total_with_tax || '0');
+            }
+        }
+
+        return 0;
     };
 
     const [dealType, setDealType] = useState('');
@@ -140,6 +173,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const [loadingBills, setLoadingBills] = useState(false);
     const [selectedBill, setSelectedBill] = useState<any>(null);
     const [showBillModal, setShowBillModal] = useState(false);
+    const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
 
     // Cancel deal confirmation modal state
     const [showCancelModal, setShowCancelModal] = useState(false);
@@ -347,6 +381,26 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const closeBillModal = () => {
         setShowBillModal(false);
         setSelectedBill(null);
+    };
+
+    // Handle PDF download
+    const handleDownloadPDF = async (bill: any) => {
+        setDownloadingPDF(bill.id);
+        try {
+            const cookies = new Cookies();
+            const currentLang = cookies.get('i18nextLng') || 'he';
+            const language = currentLang === 'ae' ? 'ar' : currentLang === 'he' ? 'he' : 'en';
+
+            await generateBillPDF(bill, {
+                filename: `bill-${bill.id}-${bill.customer_name.replace(/\s+/g, '-').toLowerCase()}.pdf`,
+                language,
+            });
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            setAlert({ message: t('error_downloading_pdf'), type: 'danger' });
+        } finally {
+            setDownloadingPDF(null);
+        }
     };
     const handleDealTypeChange = (type: string) => {
         setDealType(type);
@@ -749,20 +803,48 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
             const billData = {
                 deal_id: parseInt(dealId),
-                ...billForm,
+                bill_type: billForm.bill_type,
+                bill_direction: billForm.bill_direction,
+                status: billForm.status,
                 customer_name: customerName,
                 phone: customerPhone,
-                sale_price: parseFloat(billForm.sale_price) || deal?.amount || 0,
-                commission: parseFloat(billForm.commission) || 0,
-                total: parseFloat(billForm.total) || 0,
-                tax_amount: parseFloat(billForm.tax_amount) || 0,
-                total_with_tax: parseFloat(billForm.total_with_tax) || 0,
-                visa_amount: billForm.visa_amount ? parseFloat(billForm.visa_amount) : null,
-                visa_installments: billForm.visa_installments ? parseInt(billForm.visa_installments) : null,
-                bank_amount: billForm.bank_amount ? parseFloat(billForm.bank_amount) : null,
-                transfer_amount: billForm.transfer_amount ? parseFloat(billForm.transfer_amount) : null,
-                check_amount: billForm.check_amount ? parseFloat(billForm.check_amount) : null,
-                cash_amount: billForm.cash_amount ? parseFloat(billForm.cash_amount) : null,
+                date: billForm.date,
+                car_details: billForm.car_details,
+                sale_price: parseFloat(billForm.sale_price) || null,
+                commission: parseFloat(billForm.commission) || null,
+                free_text: billForm.free_text,
+                total: parseFloat(billForm.total) || null,
+                tax_amount: parseFloat(billForm.tax_amount) || null,
+                total_with_tax: parseFloat(billForm.total_with_tax) || null,
+                payment_type: billForm.payment_type || null,
+                // General bill fields
+                bill_description: billForm.bill_description || null,
+                bill_amount: parseFloat(billForm.bill_amount) || null,
+                visa_amount: parseFloat(billForm.visa_amount) || null,
+                visa_installments: parseInt(billForm.visa_installments) || null,
+                visa_card_type: billForm.visa_card_type || null,
+                visa_last_four: billForm.visa_last_four || null,
+                bank_amount: parseFloat(billForm.bank_amount) || null,
+                bank_name: billForm.bank_name || null,
+                bank_branch: billForm.bank_branch || null,
+                approval_number: billForm.approval_number || null,
+                account_number: billForm.account_number || null,
+                transfer_number: billForm.transfer_number || null,
+                transfer_holder_name: billForm.transfer_holder_name || null,
+                transfer_amount: parseFloat(billForm.transfer_amount) || null,
+                transfer_bank_name: billForm.transfer_bank_name || null,
+                transfer_branch: billForm.transfer_branch || null,
+                transfer_account_number: billForm.transfer_account_number || null,
+                transfer_branch_number: billForm.transfer_branch_number || null,
+                check_amount: parseFloat(billForm.check_amount) || null,
+                check_bank_name: billForm.check_bank_name || null,
+                check_branch_number: billForm.check_branch_number || null,
+                check_account_number: billForm.check_account_number || null,
+                check_number: billForm.check_number || null,
+                check_holder_name: billForm.check_holder_name || null,
+                check_branch: billForm.check_branch || null,
+                cash_amount: parseFloat(billForm.cash_amount) || null,
+                created_at: new Date().toISOString(),
             };
 
             const { data: billResult, error } = await supabase.from('bills').insert([billData]).select().single();
@@ -829,6 +911,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 bank_amount: '',
                 bank_name: '',
                 bank_branch: '',
+                approval_number: '',
                 account_number: '',
                 transfer_number: '',
                 transfer_holder_name: '',
@@ -2504,19 +2587,33 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                     </span>
                                                 </td>{' '}
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{bill.deals?.customers?.name || bill.customer_name || t('unknown_customer')}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                                    ₪{bill.bill_type === 'general' ? bill.bill_amount || '0.00' : bill.total_with_tax || bill.total || '0.00'}
-                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₪{getBillAmount(bill).toFixed(2)}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{new Date(bill.created_at).toLocaleDateString()}</td>{' '}
                                                 <td className="px-4 py-3 text-center">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleViewBill(bill)}
-                                                        className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors duration-200 text-xs"
-                                                    >
-                                                        <IconEye className="w-3 h-3" />
-                                                        {t('view')}
-                                                    </button>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleViewBill(bill)}
+                                                            className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors duration-200 text-xs"
+                                                        >
+                                                            <IconEye className="w-3 h-3" />
+                                                            {t('view')}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDownloadPDF(bill)}
+                                                            className="inline-flex items-center gap-1 px-3 py-1 bg-success text-white rounded-md hover:bg-success-dark transition-colors duration-200 text-xs"
+                                                            title={t('download_pdf')}
+                                                            disabled={downloadingPDF === bill.id}
+                                                        >
+                                                            {downloadingPDF === bill.id ? (
+                                                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                                                            ) : (
+                                                                <IconPdf className="w-3 h-3" />
+                                                            )}
+                                                            PDF
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
