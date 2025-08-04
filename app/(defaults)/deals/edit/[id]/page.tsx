@@ -2341,25 +2341,57 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             value={billForm.bank_amount}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('bank_amount')}
+                                                            placeholder={t('bank_amount_placeholder')}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_name')}</label>
-                                                        <input name="bank_name" value={billForm.bank_name} onChange={handleBillFormChange} className="form-input" placeholder={t('bank_name')} />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_branch')}</label>
-                                                        <input name="bank_branch" value={billForm.bank_branch} onChange={handleBillFormChange} className="form-input" placeholder={t('bank_branch')} />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('account_number')}</label>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_bank_name')}</label>
                                                         <input
-                                                            name="account_number"
-                                                            value={billForm.account_number}
+                                                            name="transfer_bank_name"
+                                                            value={billForm.transfer_bank_name}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('account_number')}
+                                                            placeholder={t('transfer_bank_name_placeholder')}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_branch_number')}</label>
+                                                        <input
+                                                            name="transfer_branch_number"
+                                                            value={billForm.transfer_branch_number}
+                                                            onChange={handleBillFormChange}
+                                                            className="form-input"
+                                                            placeholder={t('transfer_branch_number_placeholder')}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_account_number')}</label>
+                                                        <input
+                                                            name="transfer_account_number"
+                                                            value={billForm.transfer_account_number}
+                                                            onChange={handleBillFormChange}
+                                                            className="form-input"
+                                                            placeholder={t('transfer_account_number_placeholder')}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_number')}</label>
+                                                        <input
+                                                            name="transfer_number"
+                                                            value={billForm.transfer_number}
+                                                            onChange={handleBillFormChange}
+                                                            className="form-input"
+                                                            placeholder={t('transfer_number_placeholder')}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_holder_name')}</label>
+                                                        <input
+                                                            name="transfer_holder_name"
+                                                            value={billForm.transfer_holder_name}
+                                                            onChange={handleBillFormChange}
+                                                            className="form-input"
+                                                            placeholder={t('transfer_holder_name_placeholder')}
                                                         />
                                                     </div>
                                                 </>
@@ -2373,7 +2405,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             value={billForm.transfer_number}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('transfer_number')}
+                                                            placeholder={t('transfer_number_placeholder')}
                                                         />
                                                     </div>
                                                     <div>
@@ -2384,7 +2416,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             value={billForm.transfer_holder_name}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('transfer_holder_name')}
+                                                            placeholder={t('transfer_holder_name_placeholder')}
                                                         />
                                                     </div>
                                                     <div>
@@ -2396,7 +2428,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             value={billForm.transfer_amount}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('transfer_amount')}
+                                                            placeholder={t('transfer_amount_placeholder')}
                                                         />
                                                     </div>
                                                     <div>
@@ -2406,7 +2438,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             value={billForm.transfer_bank_name}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('transfer_bank_name')}
+                                                            placeholder={t('transfer_bank_name_placeholder')}
                                                         />
                                                     </div>
                                                     <div>
@@ -2416,7 +2448,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             value={billForm.transfer_branch}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('transfer_branch')}
+                                                            placeholder={t('transfer_branch_placeholder')}
                                                         />
                                                     </div>
                                                     <div>
@@ -2426,7 +2458,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             value={billForm.transfer_account_number}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('transfer_account_number')}
+                                                            placeholder={t('transfer_account_number_placeholder')}
                                                         />
                                                     </div>
                                                     <div>
@@ -2436,7 +2468,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                             value={billForm.transfer_branch_number}
                                                             onChange={handleBillFormChange}
                                                             className="form-input"
-                                                            placeholder={t('transfer_branch_number')}
+                                                            placeholder={t('transfer_branch_number_placeholder')}
                                                         />
                                                     </div>
                                                 </>
@@ -2665,24 +2697,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
                         <div className="p-6 space-y-6">
                             {/* Bill Header Info */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">{t('bill_number')}</label>
                                     <p className="text-lg font-semibold text-gray-900 dark:text-white">#{selectedBill.id}</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">{t('status')}</label>
-                                    <span
-                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                            selectedBill.status === 'paid'
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                                                : selectedBill.status === 'pending'
-                                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                                        }`}
-                                    >
-                                        {t(`bill_status_${selectedBill.status}`)}
-                                    </span>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">{t('created_date')}</label>
@@ -2694,7 +2712,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                             <div>
                                 <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('customer_information')}</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-                                    {' '}
                                     <div>
                                         <label className="block text-sm font-medium text-blue-600 dark:text-blue-400">{t('customer_name')}</label>
                                         <p className="text-blue-900 dark:text-blue-100 font-semibold">{selectedBill.deals?.customers?.name || selectedBill.customer_name || t('unknown_customer')}</p>
@@ -2706,28 +2723,144 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 </div>
                             </div>
 
-                            {/* Bill Summary */}
-                            <div>
-                                <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('bill_summary')}</h4>
-                                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedBill.total || '0.00'}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('tax_amount')}</span>
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedBill.tax_amount || '0.00'}</span>
-                                        </div>
-                                        <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
+                            {/* Bill Details Based on Type */}
+                            {selectedBill.bill_type === 'general' ? (
+                                /* General Bill Details */
+                                <div>
+                                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('general_bill_details')}</h4>
+                                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                                        <div className="space-y-3">
                                             <div className="flex justify-between items-center">
-                                                <span className="text-lg font-bold text-gray-900 dark:text-white">{t('total_amount')}</span>
-                                                <span className="text-lg font-bold text-primary">₪{selectedBill.total_with_tax || selectedBill.total || '0.00'}</span>
+                                                <span className="text-sm font-medium text-orange-700 dark:text-orange-300">{t('bill_description')}</span>
+                                                <span className="text-sm text-orange-900 dark:text-orange-100 max-w-xs text-right">{selectedBill.bill_description || '-'}</span>
+                                            </div>
+                                            <div className="border-t border-orange-300 dark:border-orange-700 pt-3">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-lg font-bold text-orange-900 dark:text-orange-100">{t('bill_amount')}</span>
+                                                    <span className="text-lg font-bold text-primary">₪{parseFloat(selectedBill.bill_amount || '0').toFixed(2)}</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            ) : selectedBill.bill_type === 'tax_invoice' ? (
+                                /* Tax Invoice Details */
+                                <div>
+                                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('tax_invoice_details')}</h4>
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                                        <div className="space-y-3">
+                                            {selectedBill.sale_price && parseFloat(selectedBill.sale_price) > 0 && (
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('sale_price')}</span>
+                                                    <span className="text-sm text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.sale_price).toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                            {selectedBill.commission && parseFloat(selectedBill.commission) > 0 && (
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('commission')}</span>
+                                                    <span className="text-sm text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.commission).toFixed(2)}</span>
+                                                </div>
+                                            )}
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('price_before_tax')}</span>
+                                                <span className="text-sm text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.total || '0').toFixed(2)}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('tax_amount')} (18%)</span>
+                                                <span className="text-sm text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.tax_amount || '0').toFixed(2)}</span>
+                                            </div>
+                                            <div className="border-t border-blue-300 dark:border-blue-700 pt-3">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-lg font-bold text-blue-900 dark:text-blue-100">{t('total_with_tax')}</span>
+                                                    <span className="text-lg font-bold text-primary">₪{parseFloat(selectedBill.total_with_tax || '0').toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : selectedBill.bill_type === 'receipt_only' ? (
+                                /* Receipt Only Details */
+                                <div>
+                                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('receipt_details')}</h4>
+                                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-green-700 dark:text-green-300">{t('payment_type')}</span>
+                                                <span className="text-sm text-green-900 dark:text-green-100">{selectedBill.payment_type ? t(`payment_type_${selectedBill.payment_type}`) : '-'}</span>
+                                            </div>
+                                            {selectedBill.payment_type && (
+                                                <div className="border-t border-green-300 dark:border-green-700 pt-3">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-lg font-bold text-green-900 dark:text-green-100">{t('payment_amount')}</span>
+                                                        <span className="text-lg font-bold text-primary">₪{getBillAmount(selectedBill).toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : selectedBill.bill_type === 'tax_invoice_receipt' ? (
+                                /* Tax Invoice + Receipt Details */
+                                <div className="space-y-6">
+                                    {/* Tax Invoice Section */}
+                                    <div>
+                                        <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('tax_invoice_details')}</h4>
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                                            <div className="space-y-3">
+                                                {selectedBill.sale_price && parseFloat(selectedBill.sale_price) > 0 && (
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('sale_price')}</span>
+                                                        <span className="text-sm text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.sale_price).toFixed(2)}</span>
+                                                    </div>
+                                                )}
+                                                {selectedBill.commission && parseFloat(selectedBill.commission) > 0 && (
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('commission')}</span>
+                                                        <span className="text-sm text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.commission).toFixed(2)}</span>
+                                                    </div>
+                                                )}
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('price_before_tax')}</span>
+                                                    <span className="text-sm text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.total || '0').toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{t('tax_amount')} (18%)</span>
+                                                    <span className="text-sm text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.tax_amount || '0').toFixed(2)}</span>
+                                                </div>
+                                                <div className="border-t border-blue-300 dark:border-blue-700 pt-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-md font-bold text-blue-900 dark:text-blue-100">{t('total_with_tax')}</span>
+                                                        <span className="text-md font-bold text-blue-900 dark:text-blue-100">₪{parseFloat(selectedBill.total_with_tax || '0').toFixed(2)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Receipt Section */}
+                                    <div>
+                                        <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('receipt_details')}</h4>
+                                        <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-sm font-medium text-green-700 dark:text-green-300">{t('payment_type')}</span>
+                                                    <span className="text-sm text-green-900 dark:text-green-100">
+                                                        {selectedBill.payment_type ? t(`payment_type_${selectedBill.payment_type}`) : '-'}
+                                                    </span>
+                                                </div>
+                                                {selectedBill.payment_type && (
+                                                    <div className="border-t border-green-300 dark:border-green-700 pt-3">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-lg font-bold text-green-900 dark:text-green-100">{t('payment_amount')}</span>
+                                                            <span className="text-lg font-bold text-primary">₪{getBillAmount(selectedBill).toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : null}
 
                             {/* Bill Notes */}
                             {selectedBill.free_text && (
@@ -2735,18 +2868,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('bill_notes')}</h4>
                                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                                         <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{selectedBill.free_text}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Payment Information */}
-                            {selectedBill.payment_type && (
-                                <div>
-                                    <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-3">{t('payment_information')}</h4>
-                                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-                                        <p className="text-green-800 dark:text-green-200 font-medium">
-                                            {t('payment_type')}: {t(`payment_type_${selectedBill.payment_type}`)}
-                                        </p>
                                     </div>
                                 </div>
                             )}
