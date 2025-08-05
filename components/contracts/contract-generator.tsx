@@ -2,7 +2,8 @@ import React, { useCallback, useState } from 'react';
 import { CarContract, ContractTemplateProps } from '@/types/contract';
 import ArabicContractTemplate from './arabic-contract-template';
 import HebrewContractTemplate from './hebrew-contract-template';
-import { generatePDFFromElement } from '@/utils/pdf-generator';
+import EnglishContractTemplate from './english-contract-template';
+import { ContractPDFGenerator } from '@/utils/contract-pdf-generator-new';
 import { getTranslation } from '@/i18n';
 
 interface ContractGeneratorProps extends ContractTemplateProps {
@@ -22,11 +23,12 @@ const ContractGenerator: React.FC<ContractGeneratorProps> = ({ contract, languag
             // Generate filename based on deal information
             const filename = `car-contract-${contract.carPlateNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
 
-            // Generate PDF
-            await generatePDFFromElement('contract-template', {
+            // Use the new optimized PDF generator
+            await ContractPDFGenerator.generateFromContract(contract, {
                 filename,
+                language: language as 'en' | 'ar' | 'he',
+                format: 'A4',
                 orientation: 'portrait',
-                format: 'a4',
             });
 
             onGenerateEnd?.();
@@ -34,7 +36,7 @@ const ContractGenerator: React.FC<ContractGeneratorProps> = ({ contract, languag
             console.error('Error generating contract:', error);
             onError?.(error as Error);
         }
-    }, [contract, onGenerateStart, onGenerateEnd, onError]);
+    }, [contract, language, onGenerateStart, onGenerateEnd, onError]);
 
     // Render the appropriate template based on language
     const renderTemplate = () => {
@@ -43,6 +45,8 @@ const ContractGenerator: React.FC<ContractGeneratorProps> = ({ contract, languag
                 return <ArabicContractTemplate contract={contract} />;
             case 'he':
                 return <HebrewContractTemplate contract={contract} />;
+            case 'en':
+                return <EnglishContractTemplate contract={contract} />;
             default:
                 return <ArabicContractTemplate contract={contract} />;
         }
@@ -61,12 +65,15 @@ const ContractGenerator: React.FC<ContractGeneratorProps> = ({ contract, languag
                     <button onClick={() => setLanguage('he')} className={`px-3 py-1 rounded ${language === 'he' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`}>
                         עברית
                     </button>
+                    <button onClick={() => setLanguage('en')} className={`px-3 py-1 rounded ${language === 'en' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`}>
+                        English
+                    </button>
                 </div>
             </div>
 
             {/* Template Container */}
             <div id="contract-template" className="contract-template-container bg-white">
-                {renderTemplate()}
+                {renderTemplate()} 
             </div>
         </div>
     );

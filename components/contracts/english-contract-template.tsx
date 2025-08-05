@@ -14,6 +14,7 @@ const EnglishContractTemplate: React.FC<ContractProps> = ({ contract }) => {
             try {
                 const info = await getCompanyInfo();
                 setCompanyInfo(info);
+                console.log('Company info loaded:', info);
             } catch (error) {
                 console.error('Failed to load company info:', error);
             }
@@ -39,15 +40,15 @@ const EnglishContractTemplate: React.FC<ContractProps> = ({ contract }) => {
     };
 
     return (
-        <div id="contract-template" className="bg-white min-h-screen" style={{ direction: 'ltr' }}>
+        <div id="contract-template" className="bg-white w-full max-w-none avoid-break-inside" style={{ direction: 'ltr' }}>
             {/* Modern Colorful Header */}
-            <div className="relative overflow-hidden">
+            <div className="relative overflow-hidden w-full">
                 {/* Background Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-700"></div>
 
                 {/* Header Content */}
-                <div className="relative px-8 py-6">
-                    <div className="flex items-center justify-between">
+                <div className="relative px-8 py-6 w-full">
+                    <div className="flex items-center justify-between w-full">
                         {/* Company Logo and Info */}
                         <div className="flex items-center gap-6 text-white">
                             {companyInfo?.logo_url && (
@@ -112,9 +113,9 @@ const EnglishContractTemplate: React.FC<ContractProps> = ({ contract }) => {
             </div>
 
             {/* Contract Content */}
-            <div className="p-8 space-y-6">
+            <div className="p-8 space-y-6 w-full">
                 {/* Parties Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-6 w-full">
                     {/* Seller */}
                     <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
                         <h2 className="font-bold mb-4 text-xl text-green-700 flex items-center gap-2">
@@ -283,7 +284,7 @@ const EnglishContractTemplate: React.FC<ContractProps> = ({ contract }) => {
                 </div>
 
                 {/* Signatures */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8">
+                <div className="grid grid-cols-2 gap-6 pt-8 w-full">
                     <div className="bg-gradient-to-br from-gray-50 to-slate-50 rounded-lg p-6 border border-gray-200 text-center">
                         <h3 className="font-bold mb-4 text-gray-700">Seller's Signature</h3>
                         <div className="border-b-2 border-gray-300 h-16 mb-4"></div>

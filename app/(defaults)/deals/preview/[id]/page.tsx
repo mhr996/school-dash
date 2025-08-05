@@ -21,7 +21,9 @@ import { Deal, DealAttachment } from '@/types';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
 import ContractGenerator from '@/components/contracts/contract-generator';
 import { CarContract } from '@/types/contract';
+import { ContractPDFGenerator } from '@/utils/contract-pdf-generator-new';
 import IconDocument from '@/components/icon/icon-document';
+import { getCompanyInfo, CompanyInfo } from '@/lib/company-info';
 
 interface Customer {
     id: string;
@@ -71,6 +73,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const [carTakenImageUrl, setCarTakenImageUrl] = useState<string | null>(null);
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
     const [generatingContract, setGeneratingContract] = useState(false);
+    const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
     const dealId = params.id;
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -145,6 +148,19 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             fetchDeal();
         }
     }, [dealId]);
+
+    // Load company information
+    useEffect(() => {
+        const loadCompanyInfo = async () => {
+            try {
+                const info = await getCompanyInfo();
+                setCompanyInfo(info);
+            } catch (error) {
+                console.error('Failed to load company info:', error);
+            }
+        };
+        loadCompanyInfo();
+    }, []);
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -254,11 +270,11 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             dealType: deal.deal_type === 'exchange' ? 'trade-in' : 'normal',
             dealDate: new Date(deal.created_at).toISOString().split('T')[0],
 
-            // Provider info would come from your app settings
-            sellerName: t('company_name'),
-            sellerTaxNumber: t('company_tax_number'),
-            sellerAddress: t('company_address'),
-            sellerPhone: t('company_phone'),
+            // Use real company info instead of translation keys
+            sellerName: companyInfo?.name || 'Car Dealership',
+            sellerTaxNumber: companyInfo?.tax_number || '',
+            sellerAddress: companyInfo?.address || '',
+            sellerPhone: companyInfo?.phone || '',
 
             // Customer info
             buyerName: customer.name,
@@ -752,11 +768,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                 try {
                                     // Create contract - include bill if available, otherwise create without payment info
                                     const contractData = createContractData(bills.length > 0 ? bills[0] : undefined);
-                                    const [{ default: jsPDF }, html2canvas, reactDomClient] = await Promise.all([import('jspdf'), import('html2canvas'), import('react-dom/client')]);
-                                    const container = document.createElement('div');
-                                    container.style.position = 'fixed';
-                                    container.style.left = '-9999px';
-                                    document.body.appendChild(container);
+
                                     // Get language from i18nextLng cookie
                                     const getCookie = (name: string) => {
                                         const value = `; ${document.cookie}`;
@@ -769,67 +781,21 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                         }
                                         return null;
                                     };
-                                    let lang = getCookie('i18nextLng') || 'ar';
-                                    let ContractTemplate;
 
-                                    // Normalize language code
-                                    const normalizedLang = lang.toLowerCase().split('-')[0];
+                                    const lang = getCookie('i18nextLng') || 'ar';
+                                    const normalizedLang = lang.toLowerCase().split('-')[0] as 'en' | 'ar' | 'he';
 
-                                    // Load template based on normalized language
-                                    try {
-                                        if (normalizedLang === 'ar') {
-                                            ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
-                                        } else if (normalizedLang === 'he') {
-                                            ContractTemplate = (await import('@/components/contracts/hebrew-contract-template')).default;
-                                        } else if (normalizedLang === 'en') {
-                                            ContractTemplate = (await import('@/components/contracts/english-contract-template')).default;
-                                        } else {
-                                            ContractTemplate = (await import('@/components/contracts/arabic-contract-template')).default;
-                                        }
-                                    } catch (error) {
-                                        console.error('Error loading template:', error);
-                                        throw error;
-                                    }
-                                    const root = reactDomClient.createRoot(container);
-                                    root.render(React.createElement(ContractTemplate, { contract: contractData }));
-
-                                    // Wait longer for Arabic text rendering
-                                    await new Promise((r) => setTimeout(r, 500));
-
-                                    // Verify container has content
-                                    if (!container.innerHTML) {
-                                        throw new Error('Template failed to render');
-                                    }
-
-                                    const canvas = await html2canvas.default(container, {
-                                        scale: 1.5,
-                                        logging: true,
-                                        useCORS: true,
-                                        windowWidth: 1024, // Set a fixed width for consistent rendering
-                                    });
-                                    const imgData = canvas.toDataURL('image/png');
-                                    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-                                    const pageWidth = pdf.internal.pageSize.getWidth();
-                                    const pageHeight = pdf.internal.pageSize.getHeight();
-
-                                    // Calculate scaling to fit content on one page
-                                    const scale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
-
-                                    const imgWidth = canvas.width * scale;
-                                    const imgHeight = canvas.height * scale;
-
-                                    // Center the image on the page
-                                    const x = (pageWidth - imgWidth) / 2;
-                                    const y = (pageHeight - imgHeight) / 2;
-
-                                    pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
                                     const filename = `car-contract-${contractData.carPlateNumber}-${new Date().toISOString().split('T')[0]}.pdf`;
-                                    const pdfBlob = pdf.output('blob');
-                                    const pdfUrl = URL.createObjectURL(pdfBlob);
-                                    window.open(pdfUrl, '_blank');
-                                    root.unmount();
-                                    document.body.removeChild(container);
+
+                                    // Use the new optimized PDF generator
+                                    await ContractPDFGenerator.generateFromContract(contractData, {
+                                        filename,
+                                        language: normalizedLang,
+                                        format: 'A4',
+                                        orientation: 'portrait',
+                                    });
                                 } catch (error) {
+                                    console.error('Error generating contract:', error);
                                     setAlert({ visible: true, message: t('error_generating_pdf') || 'Error generating PDF', type: 'danger' });
                                 } finally {
                                     setGeneratingContract(false);

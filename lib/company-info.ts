@@ -1,4 +1,5 @@
 import supabase from './supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export interface CompanyInfo {
     id?: string;
@@ -12,12 +13,46 @@ export interface CompanyInfo {
 }
 
 /**
+ * Get Supabase client with service role key for server-side operations
+ */
+const getSupabaseAdmin = () => {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl) {
+        console.error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+        throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable');
+    }
+
+    if (!serviceRoleKey) {
+        console.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+        throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable');
+    }
+
+    return createClient(supabaseUrl, serviceRoleKey);
+};
+
+/**
  * Fetch company information from the database
+ * @param useServiceRole - Whether to use service role key (for API routes) or regular client (for client-side)
  * @returns Promise<CompanyInfo> - Company information with fallback defaults
  */
-export const getCompanyInfo = async (): Promise<CompanyInfo> => {
+export const getCompanyInfo = async (useServiceRole: boolean = false): Promise<CompanyInfo> => {
     try {
-        const { data, error } = await supabase.from('company_settings').select('*').limit(1).single();
+        let client = supabase;
+
+        // Use service role client for API routes to bypass RLS, regular client for client-side
+        if (useServiceRole) {
+            try {
+                client = getSupabaseAdmin();
+            } catch (error) {
+                console.warn('Failed to create admin client, falling back to regular client:', error);
+                // Fallback to regular client if admin client creation fails
+                client = supabase;
+            }
+        }
+
+        const { data, error } = await client.from('company_settings').select('*').limit(1).single();
 
         if (error && error.code !== 'PGRST116') {
             console.error('Error fetching company info:', error);
@@ -52,10 +87,11 @@ export const getDefaultCompanyInfo = (): CompanyInfo => {
 
 /**
  * Get company info specifically for PDF contracts with proper formatting
+ * @param useServiceRole - Whether to use service role key (for API routes)
  * @returns Promise<CompanyInfo> - Formatted company information for contracts
  */
-export const getCompanyInfoForContract = async (): Promise<CompanyInfo> => {
-    const companyInfo = await getCompanyInfo();
+export const getCompanyInfoForContract = async (useServiceRole: boolean = false): Promise<CompanyInfo> => {
+    const companyInfo = await getCompanyInfo(useServiceRole);
 
     // Ensure we have fallback values for contract generation
     return {

@@ -1177,5 +1177,6 @@
     "existing_attachments": "Existing Attachments",
     "bill_type_general": "General Bill",
     "deal_fallback": "Deal",
-    "unknown_type": "Unknown type"
+    "unknown_type": "Unknown type",
+    "back_to_deals": "Back to Deals"
 }
