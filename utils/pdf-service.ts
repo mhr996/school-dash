@@ -1,62 +1,6 @@
-import puppeteer, { Browser, Page } from 'puppeteer-core';
-import chromium from '@sparticuz/chromium';
-
-// Function to get local Chrome path for development
-async function getLocalChromePath(): Promise<string | undefined> {
-    const { execSync } = require('child_process');
-
-    try {
-        // Windows paths
-        const windowsPaths = [
-            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-            process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
-        ];
-
-        for (const path of windowsPaths) {
-            const fs = require('fs');
-            if (fs.existsSync(path)) {
-                return path;
-            }
-        }
-
-        // Try to find Chrome using where command on Windows
-        if (process.platform === 'win32') {
-            try {
-                const result = execSync('where chrome', { encoding: 'utf8' });
-                return result.trim().split('\n')[0];
-            } catch (e) {
-                // Chrome not found in PATH
-            }
-        }
-
-        // macOS paths
-        if (process.platform === 'darwin') {
-            const macPaths = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Chromium.app/Contents/MacOS/Chromium'];
-            for (const path of macPaths) {
-                const fs = require('fs');
-                if (fs.existsSync(path)) {
-                    return path;
-                }
-            }
-        }
-
-        // Linux paths
-        if (process.platform === 'linux') {
-            const linuxPaths = ['/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/usr/bin/chromium-browser', '/usr/bin/chromium'];
-            for (const path of linuxPaths) {
-                const fs = require('fs');
-                if (fs.existsSync(path)) {
-                    return path;
-                }
-            }
-        }
-    } catch (error) {
-        console.warn('Error finding local Chrome:', error);
-    }
-
-    return undefined;
-}
+import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteerCore, { Browser as BrowserCore } from 'puppeteer-core';
+import chromium from '@sparticuz/chromium-min';
 
 interface PDFGenerationOptions {
     filename?: string;
@@ -82,7 +26,7 @@ interface ContractPDFOptions extends PDFGenerationOptions {
 
 export class PDFService {
     private static instance: PDFService;
-    private browser: Browser | null = null;
+    private browser: Browser | BrowserCore | null = null;
 
     private constructor() {}
 
@@ -93,147 +37,34 @@ export class PDFService {
         return PDFService.instance;
     }
 
-    private async getBrowser(): Promise<Browser> {
+    private async getBrowser(): Promise<Browser | BrowserCore> {
         if (!this.browser) {
-            console.log('Launching browser with puppeteer-core...');
+            console.log('Launching browser with the chromium-min solution...');
 
-            const isServerless = !!(process.env.AWS_EXECUTION_ENV || process.env.VERCEL);
-            let executablePath: string;
+            const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
 
-            if (isServerless) {
-                try {
-                    console.log('Configuring serverless Chromium...');
-                    console.log('Environment variables:');
-                    console.log('- VERCEL:', process.env.VERCEL);
-                    console.log('- AWS_EXECUTION_ENV:', process.env.AWS_EXECUTION_ENV);
-                    console.log('- process.cwd():', process.cwd());
+            if (isProduction) {
+                console.log('Production environment detected, using chromium-min with external binary...');
 
-                    // Debug: check if Chromium bin directory is present
-                    const fs = require('fs');
-                    const path = require('path');
+                // Use the latest version as recommended in the article (v133.0.0)
+                const executablePath = await chromium.executablePath('https://github.com/Sparticuz/chromium/releases/download/v133.0.0/chromium-v133.0.0-pack.tar');
+                console.log('Chromium executable path:', executablePath);
 
-                    // Check multiple possible locations
-                    const possiblePaths = [
-                        path.join(process.cwd(), 'node_modules', '@sparticuz', 'chromium', 'bin'),
-                        path.join('/', 'var', 'task', 'node_modules', '@sparticuz', 'chromium', 'bin'),
-                        path.join('/', 'vercel', 'path0', 'node_modules', '@sparticuz', 'chromium', 'bin'),
-                        path.join('/', 'tmp', 'node_modules', '@sparticuz', 'chromium', 'bin'),
-                    ];
-
-                    let binFound = false;
-                    for (const checkPath of possiblePaths) {
-                        console.log(`Checking Chromium bin directory: ${checkPath} exists: ${fs.existsSync(checkPath)}`);
-                        if (fs.existsSync(checkPath)) {
-                            console.log(`Chromium bin files in ${checkPath}:`, fs.readdirSync(checkPath));
-                            binFound = true;
-                        }
-                    }
-
-                    if (!binFound) {
-                        console.log('No Chromium bin directories found, attempting to use chromium.executablePath() with manual fallback...');
-
-                        // Try to set manual path for chromium
-                        try {
-                            // First, try the standard approach with explicit path
-                            console.log('Attempting to download/configure Chromium to /tmp...');
-                            executablePath = await chromium.executablePath('/tmp');
-                            console.log('Successfully configured Chromium with /tmp:', executablePath);
-                        } catch (tmpError) {
-                            console.log('Failed with /tmp, trying alternative approaches:', tmpError);
-
-                            // Second attempt: try with default path and let it auto-download
-                            try {
-                                console.log('Trying default chromium.executablePath()...');
-                                executablePath = await chromium.executablePath();
-                                console.log('Using default Chromium path:', executablePath);
-                            } catch (defaultError) {
-                                console.log('Default path failed, checking existing files:', defaultError);
-
-                                // Third attempt: check for existing chromium executables
-                                const possibleExecutables = ['/tmp/chromium', '/tmp/chrome', '/tmp/google-chrome', '/opt/chrome/chrome', '/usr/bin/chromium-browser'];
-
-                                let foundExecutable = null;
-                                for (const execPath of possibleExecutables) {
-                                    if (fs.existsSync(execPath)) {
-                                        try {
-                                            const stats = fs.statSync(execPath);
-                                            console.log(`Found potential executable: ${execPath}`, {
-                                                mode: stats.mode.toString(8),
-                                                size: stats.size,
-                                                isFile: stats.isFile(),
-                                            });
-
-                                            // Make sure it's executable
-                                            fs.chmodSync(execPath, 0o755);
-                                            foundExecutable = execPath;
-                                            break;
-                                        } catch (statError) {
-                                            console.log(`Failed to check ${execPath}:`, statError);
-                                        }
-                                    }
-                                }
-
-                                if (foundExecutable) {
-                                    executablePath = foundExecutable;
-                                    console.log('Using found executable:', executablePath);
-                                } else {
-                                    console.error('No viable Chromium executable found');
-                                    throw new Error('Cannot find or configure Chromium for serverless environment');
-                                }
-                            }
-                        }
-                    } else {
-                        // Bin directory found, use normal configuration
-                        executablePath = await chromium.executablePath();
-                        console.log('Using serverless Chromium at:', executablePath);
-                    }
-                } catch (chromiumError) {
-                    console.error('Failed to configure @sparticuz/chromium:', chromiumError);
-                    throw new Error(`Serverless Chromium configuration failed: ${chromiumError instanceof Error ? chromiumError.message : String(chromiumError)}`);
-                }
+                this.browser = await puppeteerCore.launch({
+                    executablePath,
+                    args: chromium.args,
+                    headless: chromium.headless,
+                    defaultViewport: chromium.defaultViewport,
+                });
+                console.log('Browser launched successfully with chromium-min');
             } else {
-                // Use local Chrome for development
-                const localChrome = await getLocalChromePath();
-                if (!localChrome) {
-                    throw new Error('No Chrome installation found. Please install Google Chrome for development.');
-                }
-                executablePath = localChrome;
-                console.log('Using local Chrome:', executablePath);
-            }
+                console.log('Development environment detected, using local puppeteer...');
 
-            const launchOptions: any = {
-                args: isServerless
-                    ? chromium.args
-                    : [
-                          '--no-sandbox',
-                          '--disable-setuid-sandbox',
-                          '--disable-dev-shm-usage',
-                          '--disable-accelerated-2d-canvas',
-                          '--no-first-run',
-                          '--no-zygote',
-                          '--disable-gpu',
-                          '--disable-web-security',
-                          '--disable-features=VizDisplayCompositor',
-                      ],
-                executablePath,
-                headless: true,
-                defaultViewport: { width: 1280, height: 720 },
-                ignoreHTTPSErrors: true,
-            };
-
-            console.log('Browser launch options:', {
-                executablePath: launchOptions.executablePath,
-                headless: launchOptions.headless,
-                argsCount: launchOptions.args.length,
-                isServerless,
-            });
-
-            try {
-                this.browser = await puppeteer.launch(launchOptions);
-                console.log('Browser launched successfully');
-            } catch (error) {
-                console.error('Failed to launch browser:', error);
-                throw new Error(`Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`);
+                this.browser = await puppeteer.launch({
+                    headless: true,
+                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                });
+                console.log('Browser launched successfully with local puppeteer');
             }
         }
 
