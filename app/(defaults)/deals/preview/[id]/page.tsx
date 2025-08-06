@@ -29,7 +29,6 @@ interface Customer {
     id: string;
     name: string;
     phone: string;
-    country: string;
     age: number;
 }
 
@@ -280,7 +279,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             // Customer info
             buyerName: customer.name,
             buyerId: customer.id,
-            buyerAddress: customer.country || '',
+            buyerAddress: '',
             buyerPhone: customer.phone,
 
             // Car info
@@ -538,18 +537,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                     <div>
                                         <p className="font-bold text-gray-900 dark:text-white text-lg">{customer.phone}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-400">{t('phone_number')}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {customer.country && (
-                                <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                                    <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
-                                        <IconMapPin className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-bold text-gray-900 dark:text-white text-lg">{customer.country}</p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">{t('country')}</p>
                                     </div>
                                 </div>
                             )}

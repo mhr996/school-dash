@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import IconX from '@/components/icon/icon-x';
 import IconUser from '@/components/icon/icon-user';
 import { getTranslation } from '@/i18n';
-import CountrySelect from '@/components/country-select/country-select';
 import CustomerTypeSelect from '@/components/customer-type-select/customer-type-select';
 import supabase from '@/lib/supabase';
 
@@ -10,7 +9,6 @@ interface Customer {
     id: string;
     name: string;
     phone: string;
-    country: string;
     age: number;
     customer_type: string;
     id_number?: string;
@@ -31,7 +29,6 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
         phone: '',
         id_number: '',
         birth_date: '',
-        country: '',
         customer_type: '',
     });
 
@@ -44,13 +41,6 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
         // Clear error when user starts typing
         if (errors[name]) {
             setErrors((prev) => ({ ...prev, [name]: '' }));
-        }
-    };
-
-    const handleCountryChange = (country: string) => {
-        setForm((prev) => ({ ...prev, country }));
-        if (errors.country) {
-            setErrors((prev) => ({ ...prev, country: '' }));
         }
     };
 
@@ -115,7 +105,6 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
                 phone: form.phone.trim(),
                 id_number: form.id_number.trim() || null,
                 birth_date: form.birth_date || null,
-                country: form.country || null,
                 age: age,
                 customer_type: form.customer_type,
                 balance: 0,
@@ -141,7 +130,6 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
             phone: '',
             id_number: '',
             birth_date: '',
-            country: '',
             customer_type: '',
         });
         setErrors({});
@@ -229,18 +217,6 @@ const CreateCustomerModal = ({ isOpen, onClose, onCustomerCreated }: CreateCusto
                                 className={`form-input ${errors.birth_date ? 'border-red-500' : ''}`}
                             />
                             {errors.birth_date && <p className="text-red-500 text-xs mt-1">{errors.birth_date}</p>}
-                        </div>
-
-                        {/* Country */}
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('country')}</label>
-                            <CountrySelect
-                                defaultValue={form.country}
-                                className={`form-input ${errors.country ? 'border-red-500' : ''}`}
-                                name="country"
-                                onChange={(e) => handleCountryChange(e.target.value)}
-                            />
-                            {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country}</p>}
                         </div>
 
                         {/* Customer Type */}

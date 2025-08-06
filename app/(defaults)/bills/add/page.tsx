@@ -29,7 +29,6 @@ interface Deal {
         name: string;
         phone: string;
         email?: string;
-        country?: string;
         age?: number;
     };
     car?: {
@@ -604,12 +603,6 @@ const AddBill = () => {
                                             <div>
                                                 <span className="text-blue-600 dark:text-blue-300 font-medium">{t('email')}:</span>
                                                 <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.email}</p>
-                                            </div>
-                                        )}
-                                        {selectedDeal.customer.country && (
-                                            <div>
-                                                <span className="text-blue-600 dark:text-blue-300 font-medium">{t('country')}:</span>
-                                                <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.country}</p>
                                             </div>
                                         )}
                                         <div>

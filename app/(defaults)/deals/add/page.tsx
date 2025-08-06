@@ -698,12 +698,6 @@ const AddDeal = () => {
                                         <p className="text-blue-800 dark:text-blue-100">{new Date(selectedCustomer.birth_date).toLocaleDateString()}</p>
                                     </div>
                                 )}
-                                {selectedCustomer.country && (
-                                    <div>
-                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('country')}:</span>
-                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.country}</p>
-                                    </div>
-                                )}
                                 <div>
                                     <span className="text-blue-600 dark:text-blue-300 font-medium">{t('age')}:</span>
                                     <p className="text-blue-800 dark:text-blue-100">
@@ -997,12 +991,6 @@ const AddDeal = () => {
                                     <div>
                                         <span className="text-blue-600 dark:text-blue-300 font-medium">{t('birth_date')}:</span>
                                         <p className="text-blue-800 dark:text-blue-100">{new Date(selectedCustomer.birth_date).toLocaleDateString()}</p>
-                                    </div>
-                                )}
-                                {selectedCustomer.country && (
-                                    <div>
-                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('country')}:</span>
-                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.country}</p>
                                     </div>
                                 )}
                                 <div>
@@ -1566,12 +1554,6 @@ const AddDeal = () => {
                                         <p className="text-blue-800 dark:text-blue-100">{new Date(selectedSeller.birth_date).toLocaleDateString()}</p>
                                     </div>
                                 )}
-                                {selectedSeller.country && (
-                                    <div>
-                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('country')}:</span>
-                                        <p className="text-blue-800 dark:text-blue-100">{selectedSeller.country}</p>
-                                    </div>
-                                )}
                                 <div>
                                     <span className="text-blue-600 dark:text-blue-300 font-medium">{t('age')}:</span>
                                     <p className="text-blue-800 dark:text-blue-100">
@@ -1696,12 +1678,6 @@ const AddDeal = () => {
                                     <div>
                                         <span className="text-orange-600 dark:text-orange-300 font-medium">{t('birth_date')}:</span>
                                         <p className="text-orange-800 dark:text-orange-100">{new Date(selectedBuyer.birth_date).toLocaleDateString()}</p>
-                                    </div>
-                                )}
-                                {selectedBuyer.country && (
-                                    <div>
-                                        <span className="text-orange-600 dark:text-orange-300 font-medium">{t('country')}:</span>
-                                        <p className="text-orange-800 dark:text-orange-100">{selectedBuyer.country}</p>
                                     </div>
                                 )}
                                 <div>
@@ -1882,12 +1858,6 @@ const AddDeal = () => {
                                     <div>
                                         <span className="text-blue-600 dark:text-blue-300 font-medium">{t('birth_date')}:</span>
                                         <p className="text-blue-800 dark:text-blue-100">{new Date(selectedCustomer.birth_date).toLocaleDateString()}</p>
-                                    </div>
-                                )}
-                                {selectedCustomer.country && (
-                                    <div>
-                                        <span className="text-blue-600 dark:text-blue-300 font-medium">{t('country')}:</span>
-                                        <p className="text-blue-800 dark:text-blue-100">{selectedCustomer.country}</p>
                                     </div>
                                 )}
                                 <div>

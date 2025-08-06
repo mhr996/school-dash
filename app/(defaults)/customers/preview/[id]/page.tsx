@@ -21,7 +21,6 @@ interface Customer {
     name: string;
     phone: string;
     car_number: string;
-    country: string;
     age: number;
     id_number: string;
     customer_type: string;
@@ -252,13 +251,6 @@ const CustomerPreview = () => {
                                             <IconShoppingCart className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                             <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('car_number')}:</span>
                                             <span className="font-medium">{customer.car_number}</span>
-                                        </div>
-                                    )}
-                                    {customer.country && (
-                                        <div className="flex items-center">
-                                            <IconMapPin className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
-                                            <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('country')}:</span>
-                                            <span className="font-medium">{customer.country}</span>
                                         </div>
                                     )}
                                     {customer.age && (

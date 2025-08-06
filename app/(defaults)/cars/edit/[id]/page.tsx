@@ -32,7 +32,6 @@ interface Customer {
     id: string;
     name: string;
     phone: string;
-    country: string;
     age: number;
     id_number?: string;
 }

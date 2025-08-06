@@ -10,7 +10,6 @@ interface Customer {
     id_number?: string;
     name: string;
     phone: string;
-    country: string;
     age: number;
 }
 
@@ -54,7 +53,7 @@ const CustomerSelect = ({ selectedCustomer, onCustomerSelect, onCreateNew, class
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('customers').select('id, id_number, name, phone, country, age').order('name');
+            const { data, error } = await supabase.from('customers').select('id, id_number, name, phone, age').order('name');
 
             if (error) throw error;
             setCustomers(data || []);
@@ -147,7 +146,7 @@ const CustomerSelect = ({ selectedCustomer, onCustomerSelect, onCreateNew, class
                                             <div className="font-medium text-black dark:text-white truncate">{customer.name}</div>
                                             <div className="text-sm text-gray-500 dark:text-gray-400">{customer.phone}</div>
                                             <div className="text-xs text-gray-400 dark:text-gray-500">
-                                                {customer.country} • {customer.age} {t('years_old')}
+                                                {customer.age} {t('years_old')}
                                             </div>
                                         </div>
                                     </div>

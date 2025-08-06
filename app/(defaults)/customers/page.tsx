@@ -19,7 +19,6 @@ interface Customer {
     name: string;
     phone: string;
     car_number: string;
-    country: string;
     age: number;
     id_number: string;
     customer_type: 'new' | 'existing';
@@ -52,7 +51,6 @@ const CustomersList = () => {
 
     const [filters, setFilters] = useState({
         search: '',
-        country: '',
         customerType: '',
         balanceFrom: '',
         balanceTo: '',
@@ -105,11 +103,10 @@ const CustomersList = () => {
                     item.name.toLowerCase().includes(searchTerm) ||
                     item.phone.toLowerCase().includes(searchTerm) ||
                     item.car_number.toLowerCase().includes(searchTerm) ||
-                    item.country.toLowerCase().includes(searchTerm) ||
                     item.customer_type.toLowerCase().includes(searchTerm);
 
                 // Country filter
-                const matchesCountry = !filters.country || item.country === filters.country;
+                const matchesCountry = true;
 
                 // Customer type filter
                 const matchesCustomerType = !filters.customerType || item.customer_type === filters.customerType;
@@ -229,7 +226,6 @@ const CustomersList = () => {
                             onClearFilters={() =>
                                 setFilters({
                                     search: '',
-                                    country: '',
                                     customerType: '',
                                     balanceFrom: '',
                                     balanceTo: '',
@@ -268,12 +264,6 @@ const CustomersList = () => {
                             {
                                 accessor: 'phone',
                                 title: t('phone'),
-                                sortable: true,
-                            },
-
-                            {
-                                accessor: 'country',
-                                title: t('country'),
                                 sortable: true,
                             },
 

@@ -1807,12 +1807,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                             <label className="text-blue-700 dark:text-blue-300 font-medium">{t('seller_phone')}</label>
                                                                             <p className="text-blue-900 dark:text-blue-100 font-semibold">{selectedSeller.phone}</p>
                                                                         </div>
-                                                                        {selectedSeller.country && (
-                                                                            <div>
-                                                                                <label className="text-blue-700 dark:text-blue-300 font-medium">{t('seller_country')}</label>
-                                                                                <p className="text-blue-900 dark:text-blue-100 font-semibold">{selectedSeller.country}</p>
-                                                                            </div>
-                                                                        )}
                                                                     </>
                                                                 )}
                                                                 {selectedBuyer && (
@@ -1825,12 +1819,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                             <label className="text-blue-700 dark:text-blue-300 font-medium">{t('buyer_phone')}</label>
                                                                             <p className="text-blue-900 dark:text-blue-100 font-semibold">{selectedBuyer.phone}</p>
                                                                         </div>
-                                                                        {selectedBuyer.country && (
-                                                                            <div>
-                                                                                <label className="text-blue-700 dark:text-blue-300 font-medium">{t('buyer_country')}</label>
-                                                                                <p className="text-blue-900 dark:text-blue-100 font-semibold">{selectedBuyer.country}</p>
-                                                                            </div>
-                                                                        )}
                                                                     </>
                                                                 )}
                                                             </>
@@ -1845,12 +1833,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                         <label className="text-blue-700 dark:text-blue-300 font-medium">{t('phone')}</label>
                                                                         <p className="text-blue-900 dark:text-blue-100 font-semibold">{selectedCustomer.phone}</p>
                                                                     </div>
-                                                                    {selectedCustomer.country && (
-                                                                        <div>
-                                                                            <label className="text-blue-700 dark:text-blue-300 font-medium">{t('country')}</label>
-                                                                            <p className="text-blue-900 dark:text-blue-100 font-semibold">{selectedCustomer.country}</p>
-                                                                        </div>
-                                                                    )}
                                                                 </>
                                                             )
                                                         )}

@@ -6,7 +6,6 @@ import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import CustomerTypeSelect from '@/components/customer-type-select/customer-type-select';
-import CountrySelect from '@/components/country-select/country-select';
 
 const AddCustomer = () => {
     const { t } = getTranslation();
@@ -17,7 +16,6 @@ const AddCustomer = () => {
         name: '',
         phone: '',
         car_number: '',
-        country: '',
         age: '',
         id_number: '',
         customer_type: '',
@@ -69,7 +67,6 @@ const AddCustomer = () => {
                 name: form.name.trim(),
                 phone: form.phone.trim(),
                 car_number: form.car_number.trim() || null,
-                country: form.country.trim() || null,
                 age: form.age ? parseInt(form.age) : null,
                 id_number: form.id_number.trim() || null,
                 customer_type: form.customer_type,
@@ -159,7 +156,16 @@ const AddCustomer = () => {
                             <label htmlFor="phone" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                                 {t('phone')} <span className="text-red-500">*</span>
                             </label>
-                            <input type="tel" id="phone" name="phone" value={form.phone} onChange={handleInputChange} className="form-input text-right" placeholder={t('enter_phone_number')} required />
+                            <input
+                                type="tel"
+                                id="phone"
+                                name="phone"
+                                value={form.phone}
+                                onChange={handleInputChange}
+                                className="form-input text-right"
+                                placeholder={t('enter_phone_number')}
+                                required
+                            />
                         </div>
                         {/* Car Number */}
                         <div>
@@ -167,13 +173,6 @@ const AddCustomer = () => {
                                 {t('car_number')}
                             </label>
                             <input type="text" id="car_number" name="car_number" value={form.car_number} onChange={handleInputChange} className="form-input" placeholder={t('enter_car_number')} />
-                        </div>
-                        {/* Country */}
-                        <div>
-                            <label htmlFor="country" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
-                                {t('country')}
-                            </label>
-                            <CountrySelect defaultValue={form.country} className="form-input" name="country" onChange={handleInputChange} />
                         </div>
                         {/* Age */}
                         <div>

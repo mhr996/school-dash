@@ -3,7 +3,6 @@ import IconSearch from '@/components/icon/icon-search';
 import IconFilter from '@/components/icon/icon-filter';
 import IconX from '@/components/icon/icon-x';
 import IconCaretDown from '@/components/icon/icon-caret-down';
-import CountrySelect from '@/components/country-select/country-select';
 import { getTranslation } from '@/i18n';
 
 interface FilterProps {
@@ -13,7 +12,6 @@ interface FilterProps {
 
 export interface CustomerFilters {
     search: string;
-    country: string;
     customerType: string;
     balanceFrom: string;
     balanceTo: string;
@@ -97,7 +95,6 @@ const CustomerFilters: React.FC<FilterProps> = ({ onFilterChange, onClearFilters
     const [isExpanded, setIsExpanded] = useState(false);
     const [filters, setFilters] = useState<CustomerFilters>({
         search: '',
-        country: '',
         customerType: '',
         balanceFrom: '',
         balanceTo: '',
@@ -125,7 +122,6 @@ const CustomerFilters: React.FC<FilterProps> = ({ onFilterChange, onClearFilters
     const handleClearFilters = () => {
         setFilters({
             search: '',
-            country: '',
             customerType: '',
             balanceFrom: '',
             balanceTo: '',
@@ -162,12 +158,6 @@ const CustomerFilters: React.FC<FilterProps> = ({ onFilterChange, onClearFilters
             {isExpanded && (
                 <div className="panel border-white-light px-5 py-4 dark:border-[#1b2e4b]">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {/* Country Filter */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('country')}</label>
-                            <CountrySelect defaultValue={filters.country} onChange={(e) => handleInputChange('country', e.target.value)} className="form-select" />
-                        </div>
-
                         {/* Customer Type Filter */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_type')}</label>

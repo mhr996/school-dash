@@ -60,7 +60,6 @@ export interface Customer {
     id: string;
     name: string;
     phone: string;
-    country: string;
     age: number;
     customer_type?: string;
     id_number?: string;
