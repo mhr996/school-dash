@@ -101,9 +101,20 @@ export class PDFService {
             let executablePath: string;
 
             if (isServerless) {
-                // Use @sparticuz/chromium for serverless environments
-                executablePath = await chromium.executablePath();
-                console.log('Using serverless Chromium');
+                try {
+                    // Configure @sparticuz/chromium for Vercel
+                    console.log('Configuring serverless Chromium...');
+
+                    // Set font configuration for better rendering
+                    await chromium.font('https://raw.githack.com/googlei18n/noto-emoji/master/fonts/NotoColorEmoji.ttf');
+
+                    executablePath = await chromium.executablePath('/tmp');
+
+                    console.log('Using serverless Chromium at:', executablePath);
+                } catch (chromiumError) {
+                    console.error('Failed to configure @sparticuz/chromium:', chromiumError);
+                    throw new Error(`Serverless Chromium configuration failed: ${chromiumError instanceof Error ? chromiumError.message : String(chromiumError)}`);
+                }
             } else {
                 // Use local Chrome for development
                 const localChrome = await getLocalChromePath();
@@ -116,7 +127,17 @@ export class PDFService {
 
             const launchOptions: any = {
                 args: isServerless
-                    ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                    ? [
+                          ...chromium.args,
+                          '--no-sandbox',
+                          '--disable-setuid-sandbox',
+                          '--disable-dev-shm-usage',
+                          '--disable-extensions',
+                          '--disable-web-security',
+                          '--disable-features=VizDisplayCompositor',
+                          '--run-all-compositor-stages-before-draw',
+                          '--no-first-run',
+                      ]
                     : [
                           '--no-sandbox',
                           '--disable-setuid-sandbox',
@@ -132,6 +153,10 @@ export class PDFService {
                 headless: true,
                 defaultViewport: { width: 1280, height: 720 },
                 ignoreHTTPSErrors: true,
+                // Important for Vercel
+                ...(isServerless && {
+                    ignoreDefaultArgs: ['--disable-extensions'],
+                }),
             };
 
             console.log('Browser launch options:', {
