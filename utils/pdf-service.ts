@@ -102,8 +102,15 @@ export class PDFService {
 
             if (isServerless) {
                 try {
-                    // Configure @sparticuz/chromium for Vercel (simplified)
                     console.log('Configuring serverless Chromium...');
+                    // Debug: check if Chromium bin directory is present
+                    const fs = require('fs');
+                    const path = require('path');
+                    const binPath = path.join(process.cwd(), 'node_modules', '@sparticuz', 'chromium', 'bin');
+                    console.log('Checking Chromium bin directory:', binPath, 'exists:', fs.existsSync(binPath));
+                    if (fs.existsSync(binPath)) {
+                        console.log('Chromium bin files:', fs.readdirSync(binPath));
+                    }
 
                     // Use default path without specifying /tmp
                     executablePath = await chromium.executablePath();
