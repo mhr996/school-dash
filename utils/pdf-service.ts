@@ -120,48 +120,48 @@ export class PDFService {
                         path.join('/', 'tmp', 'node_modules', '@sparticuz', 'chromium', 'bin'),
                     ];
 
+                    let binFound = false;
                     for (const checkPath of possiblePaths) {
                         console.log(`Checking Chromium bin directory: ${checkPath} exists: ${fs.existsSync(checkPath)}`);
                         if (fs.existsSync(checkPath)) {
                             console.log(`Chromium bin files in ${checkPath}:`, fs.readdirSync(checkPath));
+                            binFound = true;
                         }
                     }
 
-                    // Check if @sparticuz/chromium package is available
-                    try {
-                        const chromiumPath = require.resolve('@sparticuz/chromium');
-                        console.log('@sparticuz/chromium resolved to:', chromiumPath);
+                    if (!binFound) {
+                        console.log('No Chromium bin directories found, attempting to use chromium.executablePath() with manual fallback...');
 
-                        // Check if bin directory exists relative to the package
-                        const packageDir = path.dirname(chromiumPath);
-                        const binDir = path.join(packageDir, 'bin');
-                        console.log('Package bin directory:', binDir, 'exists:', fs.existsSync(binDir));
-                        if (fs.existsSync(binDir)) {
-                            console.log('Package bin files:', fs.readdirSync(binDir));
+                        // Try to set manual path for chromium
+                        try {
+                            // Configure chromium to use /tmp for downloads
+                            executablePath = await chromium.executablePath('/tmp');
+                            console.log('Using serverless Chromium at (with /tmp):', executablePath);
+                        } catch (tmpError) {
+                            console.log('Failed with /tmp, trying default path:', tmpError);
+
+                            // If that fails, try to manually download and configure
+                            const chromiumPath = '/tmp/chromium';
+                            try {
+                                // Check if chromium executable exists in /tmp
+                                if (fs.existsSync(chromiumPath)) {
+                                    executablePath = chromiumPath;
+                                    console.log('Found existing Chromium at:', executablePath);
+                                } else {
+                                    // Final fallback - try default executablePath
+                                    executablePath = await chromium.executablePath();
+                                    console.log('Using default Chromium path:', executablePath);
+                                }
+                            } catch (fallbackError) {
+                                console.error('All Chromium configuration attempts failed:', fallbackError);
+                                throw new Error('Cannot configure Chromium for serverless environment');
+                            }
                         }
-                    } catch (e) {
-                        console.log('Failed to resolve @sparticuz/chromium:', e);
+                    } else {
+                        // Bin directory found, use normal configuration
+                        executablePath = await chromium.executablePath();
+                        console.log('Using serverless Chromium at:', executablePath);
                     }
-
-                    // Try to configure with custom path if we found bin directory
-                    let foundBinPath = null;
-                    for (const checkPath of possiblePaths) {
-                        if (fs.existsSync(checkPath)) {
-                            foundBinPath = checkPath;
-                            break;
-                        }
-                    }
-
-                    if (foundBinPath) {
-                        console.log('Found Chromium bin directory at:', foundBinPath);
-                        // Set the path for @sparticuz/chromium
-                        process.env.CHROMIUM_BIN_PATH = foundBinPath;
-                    }
-
-                    // Use default path without specifying /tmp
-                    executablePath = await chromium.executablePath();
-
-                    console.log('Using serverless Chromium at:', executablePath);
                 } catch (chromiumError) {
                     console.error('Failed to configure @sparticuz/chromium:', chromiumError);
                     throw new Error(`Serverless Chromium configuration failed: ${chromiumError instanceof Error ? chromiumError.message : String(chromiumError)}`);
