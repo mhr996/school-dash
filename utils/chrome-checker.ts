@@ -3,10 +3,13 @@ import * as fs from 'fs';
 
 export class ChromeChecker {
     private static chromePaths = [
+        // Vercel/Serverless specific paths
+        '/opt/bin/chromium',
+        '/usr/bin/chromium-browser',
+
         // Linux paths
         '/usr/bin/google-chrome-stable',
         '/usr/bin/google-chrome',
-        '/usr/bin/chromium-browser',
         '/usr/bin/chromium',
         '/snap/bin/chromium',
         '/usr/local/bin/chrome',
@@ -21,6 +24,26 @@ export class ChromeChecker {
         'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
         'C:\\Users\\%USERNAME%\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe',
     ];
+
+    static async getVercelChrome(): Promise<string | null> {
+        try {
+            // Try to use @sparticuz/chromium for Vercel
+            const chromium = require('@sparticuz/chromium');
+            if (chromium && chromium.executablePath) {
+                const executablePath = await chromium.executablePath();
+                if (executablePath) {
+                    return executablePath;
+                }
+            }
+        } catch (e) {
+            // @sparticuz/chromium not available or failed
+        }
+        return null;
+    }
+
+    static isVercelEnvironment(): boolean {
+        return !!(process.env.VERCEL || process.env.VERCEL_ENV || process.env.NOW_REGION);
+    }
 
     static findChrome(): string | null {
         // First try to find Chrome using which/where command
@@ -72,7 +95,15 @@ export class ChromeChecker {
     }
 
     static async getBestChromePath(): Promise<string | null> {
-        // First check if there's an environment variable set
+        // First priority: Check if we're in Vercel environment
+        if (this.isVercelEnvironment()) {
+            const vercelChrome = await this.getVercelChrome();
+            if (vercelChrome) {
+                return vercelChrome;
+            }
+        }
+
+        // Second priority: Check if there's an environment variable set
         if (process.env.PUPPETEER_EXECUTABLE_PATH) {
             const envPath = process.env.PUPPETEER_EXECUTABLE_PATH;
             if (fs.existsSync(envPath)) {
@@ -82,7 +113,7 @@ export class ChromeChecker {
             }
         }
 
-        // Then try system Chrome
+        // Third priority: Try system Chrome
         const systemChrome = this.findChrome();
         if (systemChrome) {
             return systemChrome;

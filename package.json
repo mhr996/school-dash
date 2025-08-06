@@ -7,7 +7,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "postinstall": "puppeteer browsers install chrome"
+        "postinstall": "npx puppeteer browsers install chrome || echo 'Puppeteer Chrome install failed, continuing...'"
     },
     "dependencies": {
         "@emotion/react": "^11.10.6",
@@ -36,6 +36,8 @@
         "next": "14.2.13",
         "ni18n": "^1.0.5",
         "puppeteer": "^24.15.0",
+        "@sparticuz/chromium": "^131.0.0",
+        "puppeteer-core": "^24.15.0",
         "react": "18.3.1",
         "react-animate-height": "^3.1.0",
         "react-apexcharts": "^1.7.0",

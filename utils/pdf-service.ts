@@ -1,5 +1,29 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import { Browser, Page } from 'puppeteer';
 import { ChromeChecker } from './chrome-checker';
+
+// Dynamic imports for different environments
+let puppeteer: any;
+let chromium: any;
+
+// Initialize the appropriate puppeteer package based on environment
+async function initializePuppeteer() {
+    if (ChromeChecker.isVercelEnvironment()) {
+        try {
+            // Use puppeteer-core with @sparticuz/chromium for Vercel
+            const puppeteerCore = await import('puppeteer-core');
+            chromium = await import('@sparticuz/chromium');
+            puppeteer = puppeteerCore.default || puppeteerCore;
+            console.log('Initialized puppeteer-core for Vercel environment');
+        } catch (error) {
+            console.error('Failed to load Vercel-specific packages, falling back to regular puppeteer:', error);
+            puppeteer = (await import('puppeteer')).default;
+        }
+    } else {
+        // Use regular puppeteer for other environments
+        puppeteer = (await import('puppeteer')).default;
+        console.log('Initialized regular puppeteer');
+    }
+}
 
 interface PDFGenerationOptions {
     filename?: string;
@@ -38,6 +62,11 @@ export class PDFService {
 
     private async getBrowser(): Promise<Browser> {
         if (!this.browser) {
+            // Initialize puppeteer if not already done
+            if (!puppeteer) {
+                await initializePuppeteer();
+            }
+
             // Enhanced configuration for production environments
             const launchOptions: any = {
                 headless: true,
@@ -56,17 +85,32 @@ export class PDFService {
                 ],
             };
 
-            // Try to find the best Chrome installation
-            try {
-                const chromePath = await ChromeChecker.getBestChromePath();
-                if (chromePath) {
-                    launchOptions.executablePath = chromePath;
-                    console.log(`Using Chrome at: ${chromePath}`);
-                } else {
-                    console.warn('No Chrome installation found, using Puppeteer default');
+            // Handle Vercel environment specifically
+            if (ChromeChecker.isVercelEnvironment() && chromium) {
+                try {
+                    console.log('Configuring browser for Vercel environment');
+                    launchOptions.executablePath = await chromium.executablePath();
+                    launchOptions.args = [...launchOptions.args, ...chromium.args];
+                    launchOptions.defaultViewport = chromium.defaultViewport;
+                    launchOptions.ignoreHTTPSErrors = true;
+                } catch (error) {
+                    console.error('Failed to configure Vercel Chrome, falling back to regular detection:', error);
                 }
-            } catch (e) {
-                console.warn('Error finding Chrome, using Puppeteer default:', e);
+            }
+
+            // Try to find the best Chrome installation (for non-Vercel or fallback)
+            if (!launchOptions.executablePath) {
+                try {
+                    const chromePath = await ChromeChecker.getBestChromePath();
+                    if (chromePath) {
+                        launchOptions.executablePath = chromePath;
+                        console.log(`Using Chrome at: ${chromePath}`);
+                    } else {
+                        console.warn('No Chrome installation found, using Puppeteer default');
+                    }
+                } catch (e) {
+                    console.warn('Error finding Chrome, using Puppeteer default:', e);
+                }
             }
 
             try {
@@ -88,6 +132,11 @@ export class PDFService {
                 }
             }
         }
+
+        if (!this.browser) {
+            throw new Error('Failed to initialize browser');
+        }
+
         return this.browser;
     }
 
