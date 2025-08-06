@@ -1,0 +1,7 @@
+{
+    "functions": {
+        "api/generate-contract-pdf/route.js": {
+            "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
+        }
+    }
+}
