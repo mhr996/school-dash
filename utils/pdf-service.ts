@@ -103,6 +103,11 @@ export class PDFService {
             if (isServerless) {
                 try {
                     console.log('Configuring serverless Chromium...');
+                    console.log('Environment variables:');
+                    console.log('- VERCEL:', process.env.VERCEL);
+                    console.log('- AWS_EXECUTION_ENV:', process.env.AWS_EXECUTION_ENV);
+                    console.log('- process.cwd():', process.cwd());
+
                     // Debug: check if Chromium bin directory is present
                     const fs = require('fs');
                     const path = require('path');
@@ -110,6 +115,13 @@ export class PDFService {
                     console.log('Checking Chromium bin directory:', binPath, 'exists:', fs.existsSync(binPath));
                     if (fs.existsSync(binPath)) {
                         console.log('Chromium bin files:', fs.readdirSync(binPath));
+                    }
+
+                    // Also check root node_modules
+                    const rootBinPath = path.join('/', 'vercel', 'path0', 'node_modules', '@sparticuz', 'chromium', 'bin');
+                    console.log('Checking root Chromium bin directory:', rootBinPath, 'exists:', fs.existsSync(rootBinPath));
+                    if (fs.existsSync(rootBinPath)) {
+                        console.log('Root Chromium bin files:', fs.readdirSync(rootBinPath));
                     }
 
                     // Use default path without specifying /tmp

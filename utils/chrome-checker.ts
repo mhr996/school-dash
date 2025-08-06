@@ -28,9 +28,9 @@ export class ChromeChecker {
     static async getVercelChrome(): Promise<string | null> {
         try {
             // Try to use @sparticuz/chromium for Vercel
-            const chromium = require('@sparticuz/chromium');
-            if (chromium && chromium.executablePath) {
-                const executablePath = await chromium.executablePath();
+            const chromium = await import('@sparticuz/chromium');
+            if (chromium && chromium.default && chromium.default.executablePath) {
+                const executablePath = await chromium.default.executablePath();
                 if (executablePath) {
                     return executablePath;
                 }
