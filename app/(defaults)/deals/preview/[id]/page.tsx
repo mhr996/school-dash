@@ -90,6 +90,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
 
                 if (data) {
                     setDeal(data);
+                    console.log('Fetched deal:', data);
 
                     // Fetch customer details if customer_id exists
                     if (data.customer_id) {

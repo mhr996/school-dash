@@ -43,7 +43,25 @@ export class ContractPDFGenerator {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                throw new Error(`PDF generation failed: ${response.status} - ${errorText}`);
+                let userFriendlyMessage = 'Failed to generate PDF';
+
+                try {
+                    const errorData = JSON.parse(errorText);
+                    if (errorData.details && errorData.details.includes('Could not find Chrome')) {
+                        userFriendlyMessage = 'PDF generation service is not available. Chrome browser is not installed on the server. Please contact the administrator.';
+                    } else if (errorData.details) {
+                        userFriendlyMessage = `PDF generation failed: ${errorData.details}`;
+                    }
+                } catch (e) {
+                    // Error text is not JSON, use as is
+                    if (errorText.includes('Chrome')) {
+                        userFriendlyMessage = 'PDF generation service is not available. Chrome browser is not installed on the server. Please contact the administrator.';
+                    } else {
+                        userFriendlyMessage = `PDF generation failed: ${errorText}`;
+                    }
+                }
+
+                throw new Error(userFriendlyMessage);
             }
 
             // Download the generated PDF

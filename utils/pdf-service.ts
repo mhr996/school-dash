@@ -1,4 +1,5 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
+import { ChromeChecker } from './chrome-checker';
 
 interface PDFGenerationOptions {
     filename?: string;
@@ -37,10 +38,55 @@ export class PDFService {
 
     private async getBrowser(): Promise<Browser> {
         if (!this.browser) {
-            this.browser = await puppeteer.launch({
+            // Enhanced configuration for production environments
+            const launchOptions: any = {
                 headless: true,
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--disable-gpu'],
-            });
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--no-zygote',
+                    '--disable-gpu',
+                    '--disable-web-security',
+                    '--disable-features=VizDisplayCompositor',
+                    '--run-all-compositor-stages-before-draw',
+                    '--memory-pressure-off',
+                ],
+            };
+
+            // Try to find the best Chrome installation
+            try {
+                const chromePath = await ChromeChecker.getBestChromePath();
+                if (chromePath) {
+                    launchOptions.executablePath = chromePath;
+                    console.log(`Using Chrome at: ${chromePath}`);
+                } else {
+                    console.warn('No Chrome installation found, using Puppeteer default');
+                }
+            } catch (e) {
+                console.warn('Error finding Chrome, using Puppeteer default:', e);
+            }
+
+            try {
+                this.browser = await puppeteer.launch(launchOptions);
+            } catch (error) {
+                console.error('Failed to launch browser with custom path, trying default Puppeteer:', error);
+
+                // Fallback: try without custom executable path
+                const fallbackOptions = { ...launchOptions };
+                delete fallbackOptions.executablePath;
+
+                try {
+                    this.browser = await puppeteer.launch(fallbackOptions);
+                } catch (fallbackError) {
+                    console.error('Failed to launch browser with fallback options:', fallbackError);
+                    const errorMsg = error instanceof Error ? error.message : String(error);
+                    const fallbackErrorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+                    throw new Error(`Failed to launch browser. Original error: ${errorMsg}. Fallback error: ${fallbackErrorMsg}`);
+                }
+            }
         }
         return this.browser;
     }
