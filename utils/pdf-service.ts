@@ -134,27 +134,52 @@ export class PDFService {
 
                         // Try to set manual path for chromium
                         try {
-                            // Configure chromium to use /tmp for downloads
+                            // First, try the standard approach with explicit path
+                            console.log('Attempting to download/configure Chromium to /tmp...');
                             executablePath = await chromium.executablePath('/tmp');
-                            console.log('Using serverless Chromium at (with /tmp):', executablePath);
+                            console.log('Successfully configured Chromium with /tmp:', executablePath);
                         } catch (tmpError) {
-                            console.log('Failed with /tmp, trying default path:', tmpError);
+                            console.log('Failed with /tmp, trying alternative approaches:', tmpError);
 
-                            // If that fails, try to manually download and configure
-                            const chromiumPath = '/tmp/chromium';
+                            // Second attempt: try with default path and let it auto-download
                             try {
-                                // Check if chromium executable exists in /tmp
-                                if (fs.existsSync(chromiumPath)) {
-                                    executablePath = chromiumPath;
-                                    console.log('Found existing Chromium at:', executablePath);
-                                } else {
-                                    // Final fallback - try default executablePath
-                                    executablePath = await chromium.executablePath();
-                                    console.log('Using default Chromium path:', executablePath);
+                                console.log('Trying default chromium.executablePath()...');
+                                executablePath = await chromium.executablePath();
+                                console.log('Using default Chromium path:', executablePath);
+                            } catch (defaultError) {
+                                console.log('Default path failed, checking existing files:', defaultError);
+
+                                // Third attempt: check for existing chromium executables
+                                const possibleExecutables = ['/tmp/chromium', '/tmp/chrome', '/tmp/google-chrome', '/opt/chrome/chrome', '/usr/bin/chromium-browser'];
+
+                                let foundExecutable = null;
+                                for (const execPath of possibleExecutables) {
+                                    if (fs.existsSync(execPath)) {
+                                        try {
+                                            const stats = fs.statSync(execPath);
+                                            console.log(`Found potential executable: ${execPath}`, {
+                                                mode: stats.mode.toString(8),
+                                                size: stats.size,
+                                                isFile: stats.isFile(),
+                                            });
+
+                                            // Make sure it's executable
+                                            fs.chmodSync(execPath, 0o755);
+                                            foundExecutable = execPath;
+                                            break;
+                                        } catch (statError) {
+                                            console.log(`Failed to check ${execPath}:`, statError);
+                                        }
+                                    }
                                 }
-                            } catch (fallbackError) {
-                                console.error('All Chromium configuration attempts failed:', fallbackError);
-                                throw new Error('Cannot configure Chromium for serverless environment');
+
+                                if (foundExecutable) {
+                                    executablePath = foundExecutable;
+                                    console.log('Using found executable:', executablePath);
+                                } else {
+                                    console.error('No viable Chromium executable found');
+                                    throw new Error('Cannot find or configure Chromium for serverless environment');
+                                }
                             }
                         }
                     } else {
