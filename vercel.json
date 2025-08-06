@@ -1,6 +1,6 @@
 {
     "functions": {
-        ".next/server/app/api/generate-contract-pdf/route.js": {
+        "app/api/generate-contract-pdf/route.ts": {
             "includeFiles": "node_modules/@sparticuz/chromium/bin/**"
         }
     }
