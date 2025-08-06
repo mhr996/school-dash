@@ -1,5 +1,62 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
-import { ChromeChecker } from './chrome-checker';
+import puppeteer, { Browser, Page } from 'puppeteer-core';
+import chromium from '@sparticuz/chromium';
+
+// Function to get local Chrome path for development
+async function getLocalChromePath(): Promise<string | undefined> {
+    const { execSync } = require('child_process');
+
+    try {
+        // Windows paths
+        const windowsPaths = [
+            'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+            'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+            process.env.LOCALAPPDATA + '\\Google\\Chrome\\Application\\chrome.exe',
+        ];
+
+        for (const path of windowsPaths) {
+            const fs = require('fs');
+            if (fs.existsSync(path)) {
+                return path;
+            }
+        }
+
+        // Try to find Chrome using where command on Windows
+        if (process.platform === 'win32') {
+            try {
+                const result = execSync('where chrome', { encoding: 'utf8' });
+                return result.trim().split('\n')[0];
+            } catch (e) {
+                // Chrome not found in PATH
+            }
+        }
+
+        // macOS paths
+        if (process.platform === 'darwin') {
+            const macPaths = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/Applications/Chromium.app/Contents/MacOS/Chromium'];
+            for (const path of macPaths) {
+                const fs = require('fs');
+                if (fs.existsSync(path)) {
+                    return path;
+                }
+            }
+        }
+
+        // Linux paths
+        if (process.platform === 'linux') {
+            const linuxPaths = ['/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/usr/bin/chromium-browser', '/usr/bin/chromium'];
+            for (const path of linuxPaths) {
+                const fs = require('fs');
+                if (fs.existsSync(path)) {
+                    return path;
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('Error finding local Chrome:', error);
+    }
+
+    return undefined;
+}
 
 interface PDFGenerationOptions {
     filename?: string;
@@ -38,55 +95,63 @@ export class PDFService {
 
     private async getBrowser(): Promise<Browser> {
         if (!this.browser) {
-            console.log('Launching browser with regular puppeteer...');
+            console.log('Launching browser with puppeteer-core...');
+
+            const isServerless = !!(process.env.AWS_EXECUTION_ENV || process.env.VERCEL);
+            let executablePath: string;
+
+            if (isServerless) {
+                // Use @sparticuz/chromium for serverless environments
+                executablePath = await chromium.executablePath();
+                console.log('Using serverless Chromium');
+            } else {
+                // Use local Chrome for development
+                const localChrome = await getLocalChromePath();
+                if (!localChrome) {
+                    throw new Error('No Chrome installation found. Please install Google Chrome for development.');
+                }
+                executablePath = localChrome;
+                console.log('Using local Chrome:', executablePath);
+            }
 
             const launchOptions: any = {
+                args: isServerless
+                    ? [...chromium.args, '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+                    : [
+                          '--no-sandbox',
+                          '--disable-setuid-sandbox',
+                          '--disable-dev-shm-usage',
+                          '--disable-accelerated-2d-canvas',
+                          '--no-first-run',
+                          '--no-zygote',
+                          '--disable-gpu',
+                          '--disable-web-security',
+                          '--disable-features=VizDisplayCompositor',
+                      ],
+                executablePath,
                 headless: true,
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--disable-gpu',
-                    '--disable-web-security',
-                    '--disable-features=VizDisplayCompositor',
-                ],
+                defaultViewport: { width: 1280, height: 720 },
+                ignoreHTTPSErrors: true,
             };
 
-            // Try to find Chrome installation
-            try {
-                const chromePath = await ChromeChecker.getBestChromePath();
-                if (chromePath) {
-                    launchOptions.executablePath = chromePath;
-                    console.log(`Using Chrome at: ${chromePath}`);
-                }
-            } catch (e) {
-                console.log('Using Puppeteer bundled Chromium');
-            }
+            console.log('Browser launch options:', {
+                executablePath: launchOptions.executablePath,
+                headless: launchOptions.headless,
+                argsCount: launchOptions.args.length,
+                isServerless,
+            });
 
             try {
                 this.browser = await puppeteer.launch(launchOptions);
                 console.log('Browser launched successfully');
             } catch (error) {
                 console.error('Failed to launch browser:', error);
-
-                // Fallback: try without executablePath
-                try {
-                    const fallbackOptions = { ...launchOptions };
-                    delete fallbackOptions.executablePath;
-                    this.browser = await puppeteer.launch(fallbackOptions);
-                    console.log('Browser launched with fallback options');
-                } catch (fallbackError) {
-                    throw new Error(`Failed to launch browser: ${error}`);
-                }
+                throw new Error(`Failed to launch browser: ${error instanceof Error ? error.message : String(error)}`);
             }
         }
 
         return this.browser!;
     }
-
     async generateContractPDF(options: ContractPDFOptions): Promise<Uint8Array> {
         const {
             contractHtml,
