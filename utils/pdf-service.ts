@@ -111,17 +111,51 @@ export class PDFService {
                     // Debug: check if Chromium bin directory is present
                     const fs = require('fs');
                     const path = require('path');
-                    const binPath = path.join(process.cwd(), 'node_modules', '@sparticuz', 'chromium', 'bin');
-                    console.log('Checking Chromium bin directory:', binPath, 'exists:', fs.existsSync(binPath));
-                    if (fs.existsSync(binPath)) {
-                        console.log('Chromium bin files:', fs.readdirSync(binPath));
+
+                    // Check multiple possible locations
+                    const possiblePaths = [
+                        path.join(process.cwd(), 'node_modules', '@sparticuz', 'chromium', 'bin'),
+                        path.join('/', 'var', 'task', 'node_modules', '@sparticuz', 'chromium', 'bin'),
+                        path.join('/', 'vercel', 'path0', 'node_modules', '@sparticuz', 'chromium', 'bin'),
+                        path.join('/', 'tmp', 'node_modules', '@sparticuz', 'chromium', 'bin'),
+                    ];
+
+                    for (const checkPath of possiblePaths) {
+                        console.log(`Checking Chromium bin directory: ${checkPath} exists: ${fs.existsSync(checkPath)}`);
+                        if (fs.existsSync(checkPath)) {
+                            console.log(`Chromium bin files in ${checkPath}:`, fs.readdirSync(checkPath));
+                        }
                     }
 
-                    // Also check root node_modules
-                    const rootBinPath = path.join('/', 'vercel', 'path0', 'node_modules', '@sparticuz', 'chromium', 'bin');
-                    console.log('Checking root Chromium bin directory:', rootBinPath, 'exists:', fs.existsSync(rootBinPath));
-                    if (fs.existsSync(rootBinPath)) {
-                        console.log('Root Chromium bin files:', fs.readdirSync(rootBinPath));
+                    // Check if @sparticuz/chromium package is available
+                    try {
+                        const chromiumPath = require.resolve('@sparticuz/chromium');
+                        console.log('@sparticuz/chromium resolved to:', chromiumPath);
+
+                        // Check if bin directory exists relative to the package
+                        const packageDir = path.dirname(chromiumPath);
+                        const binDir = path.join(packageDir, 'bin');
+                        console.log('Package bin directory:', binDir, 'exists:', fs.existsSync(binDir));
+                        if (fs.existsSync(binDir)) {
+                            console.log('Package bin files:', fs.readdirSync(binDir));
+                        }
+                    } catch (e) {
+                        console.log('Failed to resolve @sparticuz/chromium:', e);
+                    }
+
+                    // Try to configure with custom path if we found bin directory
+                    let foundBinPath = null;
+                    for (const checkPath of possiblePaths) {
+                        if (fs.existsSync(checkPath)) {
+                            foundBinPath = checkPath;
+                            break;
+                        }
+                    }
+
+                    if (foundBinPath) {
+                        console.log('Found Chromium bin directory at:', foundBinPath);
+                        // Set the path for @sparticuz/chromium
+                        process.env.CHROMIUM_BIN_PATH = foundBinPath;
                     }
 
                     // Use default path without specifying /tmp
