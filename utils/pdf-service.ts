@@ -4,24 +4,31 @@ import { ChromeChecker } from './chrome-checker';
 // Dynamic imports for different environments
 let puppeteer: any;
 let chromium: any;
+let isPuppeteerCoreLoaded = false;
 
 // Initialize the appropriate puppeteer package based on environment
 async function initializePuppeteer() {
-    if (ChromeChecker.isVercelEnvironment()) {
+    const isVercel = ChromeChecker.isVercelEnvironment();
+    console.log('Environment detection - isVercel:', isVercel);
+
+    if (isVercel) {
         try {
             // Use puppeteer-core with @sparticuz/chromium for Vercel
             const puppeteerCore = await import('puppeteer-core');
             chromium = await import('@sparticuz/chromium');
             puppeteer = puppeteerCore.default || puppeteerCore;
+            isPuppeteerCoreLoaded = true;
             console.log('Initialized puppeteer-core for Vercel environment');
         } catch (error) {
             console.error('Failed to load Vercel-specific packages, falling back to regular puppeteer:', error);
             puppeteer = (await import('puppeteer')).default;
+            isPuppeteerCoreLoaded = false;
         }
     } else {
         // Use regular puppeteer for other environments
         puppeteer = (await import('puppeteer')).default;
-        console.log('Initialized regular puppeteer');
+        isPuppeteerCoreLoaded = false;
+        console.log('Initialized regular puppeteer for local/development environment');
     }
 }
 
@@ -85,14 +92,18 @@ export class PDFService {
                 ],
             };
 
+            const isVercel = ChromeChecker.isVercelEnvironment();
+            console.log('Browser launch - isVercel:', isVercel);
+
             // Handle Vercel environment specifically
-            if (ChromeChecker.isVercelEnvironment() && chromium) {
+            if (isVercel && chromium) {
                 try {
                     console.log('Configuring browser for Vercel environment');
                     launchOptions.executablePath = await chromium.executablePath();
                     launchOptions.args = [...launchOptions.args, ...chromium.args];
                     launchOptions.defaultViewport = chromium.defaultViewport;
                     launchOptions.ignoreHTTPSErrors = true;
+                    console.log('Vercel Chrome configured, executablePath:', launchOptions.executablePath);
                 } catch (error) {
                     console.error('Failed to configure Vercel Chrome, falling back to regular detection:', error);
                 }
@@ -106,29 +117,59 @@ export class PDFService {
                         launchOptions.executablePath = chromePath;
                         console.log(`Using Chrome at: ${chromePath}`);
                     } else {
-                        console.warn('No Chrome installation found, using Puppeteer default');
+                        console.warn('No Chrome installation found');
+                        // For regular puppeteer, this is OK, it will use bundled Chromium
+                        if (!isVercel) {
+                            console.log('Using regular puppeteer with bundled Chromium');
+                        }
                     }
                 } catch (e) {
-                    console.warn('Error finding Chrome, using Puppeteer default:', e);
+                    console.warn('Error finding Chrome:', e);
                 }
             }
+
+            console.log('Final launch options:', {
+                executablePath: launchOptions.executablePath,
+                headless: launchOptions.headless,
+                argsCount: launchOptions.args.length,
+                usingPuppeteerCore: isPuppeteerCoreLoaded,
+            });
 
             try {
                 this.browser = await puppeteer.launch(launchOptions);
             } catch (error) {
-                console.error('Failed to launch browser with custom path, trying default Puppeteer:', error);
+                console.error('Failed to launch browser with custom path:', error);
 
-                // Fallback: try without custom executable path
-                const fallbackOptions = { ...launchOptions };
-                delete fallbackOptions.executablePath;
+                // For puppeteer-core, we MUST have an executablePath
+                if (isPuppeteerCoreLoaded) {
+                    // If we're using puppeteer-core and failed, try to get a system Chrome path
+                    try {
+                        const systemChrome = ChromeChecker.findChrome();
+                        if (systemChrome) {
+                            const retryOptions = { ...launchOptions };
+                            retryOptions.executablePath = systemChrome;
+                            console.log(`Retrying with system Chrome: ${systemChrome}`);
+                            this.browser = await puppeteer.launch(retryOptions);
+                        } else {
+                            throw new Error('puppeteer-core requires an executablePath but no Chrome installation found');
+                        }
+                    } catch (retryError) {
+                        console.error('Failed to launch browser with system Chrome:', retryError);
+                        throw new Error(`Failed to launch puppeteer-core browser: ${error instanceof Error ? error.message : String(error)}`);
+                    }
+                } else {
+                    // For regular puppeteer, we can try without executablePath
+                    const fallbackOptions = { ...launchOptions };
+                    delete fallbackOptions.executablePath;
 
-                try {
-                    this.browser = await puppeteer.launch(fallbackOptions);
-                } catch (fallbackError) {
-                    console.error('Failed to launch browser with fallback options:', fallbackError);
-                    const errorMsg = error instanceof Error ? error.message : String(error);
-                    const fallbackErrorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
-                    throw new Error(`Failed to launch browser. Original error: ${errorMsg}. Fallback error: ${fallbackErrorMsg}`);
+                    try {
+                        this.browser = await puppeteer.launch(fallbackOptions);
+                    } catch (fallbackError) {
+                        console.error('Failed to launch browser with fallback options:', fallbackError);
+                        const errorMsg = error instanceof Error ? error.message : String(error);
+                        const fallbackErrorMsg = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+                        throw new Error(`Failed to launch browser. Original error: ${errorMsg}. Fallback error: ${fallbackErrorMsg}`);
+                    }
                 }
             }
         }
