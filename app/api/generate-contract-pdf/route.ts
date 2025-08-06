@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { pdfService } from '@/utils/pdf-service';
+import { PDFService } from '@/utils/pdf-service';
 import { CarContract } from '@/types/contract';
 
 export async function POST(request: NextRequest) {
@@ -28,6 +28,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate PDF using Puppeteer
+        const pdfService = PDFService.getInstance();
         const pdfBuffer = await pdfService.generateContractPDF({
             contractHtml: htmlContent,
             filename,
