@@ -324,23 +324,24 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
         console.log('General Bill - Amount:', billData.bill_amount);
         console.log('General Bill - Description:', billData.bill_description);
     } else if (billData.bill_type === 'tax_invoice') {
-        console.log('Tax Invoice - Sale price:', billData.sale_price);
+        console.log('Tax Invoice - Deal data:', billData.deal);
+        console.log('Tax Invoice - Car from deal:', billData.deal?.car);
+        console.log('Tax Invoice - Car buy_price:', billData.deal?.car?.buy_price);
+        console.log('Tax Invoice - Car sale_price:', billData.deal?.car?.sale_price);
         console.log('Tax Invoice - Total (pre-tax):', billData.total);
         console.log('Tax Invoice - Tax amount:', billData.tax_amount);
         console.log('Tax Invoice - Total with tax:', billData.total_with_tax);
         console.log('Tax Invoice - Commission:', billData.commission);
-        console.log('Tax Invoice - Purchase price:', billData.purchase_price);
-        console.log('Tax Invoice - Loss amount:', billData.loss_amount);
-        console.log('Tax Invoice - Profit commission:', billData.profit_commission);
+        console.log('Tax Invoice - Car details string:', billData.car_details);
     } else if (billData.bill_type === 'tax_invoice_receipt') {
-        console.log('Tax Invoice Receipt - Sale price:', billData.sale_price);
+        console.log('Tax Invoice Receipt - Deal data:', billData.deal);
+        console.log('Tax Invoice Receipt - Car from deal:', billData.deal?.car);
+        console.log('Tax Invoice Receipt - Car buy_price:', billData.deal?.car?.buy_price);
+        console.log('Tax Invoice Receipt - Car sale_price:', billData.deal?.car?.sale_price);
         console.log('Tax Invoice Receipt - Total (pre-tax):', billData.total);
         console.log('Tax Invoice Receipt - Tax amount:', billData.tax_amount);
         console.log('Tax Invoice Receipt - Total with tax:', billData.total_with_tax);
         console.log('Tax Invoice Receipt - Commission:', billData.commission);
-        console.log('Tax Invoice Receipt - Purchase price:', billData.purchase_price);
-        console.log('Tax Invoice Receipt - Loss amount:', billData.loss_amount);
-        console.log('Tax Invoice Receipt - Profit commission:', billData.profit_commission);
         console.log('Tax Invoice Receipt - Payment type:', billData.payment_type);
         console.log('Tax Invoice Receipt - Bank amount:', billData.bank_amount);
         console.log('Tax Invoice Receipt - Bank name:', billData.bank_name);
@@ -687,51 +688,46 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                                                 : ''
                                         }
                                     `
-                                    : // For TAX INVOICES - Show all financial details (always include fields, show '-' for null)
+                                    : // For TAX INVOICES - Show structured order: car details, buy price, sale price, commission, loss, then spacer, then totals
                                       billData.bill_type === 'tax_invoice' || billData.bill_type === 'tax_invoice_receipt'
                                       ? `
+                                            <!-- Car and Deal Details Section -->
                                             <tr>
                                                 <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                                     ${language === 'ar' ? 'تفاصيل السيارة' : language === 'he' ? 'פרטי הרכב' : 'Car Details'}
                                                 </td>
-                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.car_details || '-'}</td>
+                                                <td style="padding: 12px 16px; direction: ltr; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.deal?.car ? `${billData.deal.car.title || ''} ${billData.deal.car.brand || ''} ${billData.deal.car.model || ''} ${billData.deal.car.year || ''}`.trim() || '-' : billData.car_details || '-'}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
+                                                    ${language === 'ar' ? 'سعر الشراء' : language === 'he' ? 'מחיר קנייה' : 'Buy Price'}
+                                                </td>
+                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.deal?.car?.buy_price && parseFloat(billData.deal.car.buy_price) > 0 ? formatCurrency(parseFloat(billData.deal.car.buy_price)) : '-'}</td>
                                             </tr>
                                             <tr>
                                                 <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                                     ${language === 'ar' ? 'سعر البيع' : language === 'he' ? 'מחיר מכירה' : 'Sale Price'}
                                                 </td>
-                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.sale_price && parseFloat(billData.sale_price) > 0 ? formatCurrency(parseFloat(billData.sale_price)) : '-'}</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                                    ${language === 'ar' ? 'سعر الشراء' : language === 'he' ? 'מחיר קנייה' : 'Purchase Price'}
-                                                </td>
-                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #16a34a; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.purchase_price && parseFloat(billData.purchase_price) > 0 ? formatCurrency(parseFloat(billData.purchase_price)) : '-'}</td>
+                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.deal?.car?.sale_price && parseFloat(billData.deal.car.sale_price) > 0 ? formatCurrency(parseFloat(billData.deal.car.sale_price)) : '-'}</td>
                                             </tr>
                                             <tr>
                                                 <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
                                                     ${language === 'ar' ? 'العمولة' : language === 'he' ? 'עמלה' : 'Commission'}
                                                 </td>
-                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.commission && parseFloat(billData.commission) > 0 ? formatCurrency(parseFloat(billData.commission)) : '-'}</td>
+                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.deal?.amount && parseFloat(billData.deal.amount) > 0 ? formatCurrency(parseFloat(billData.deal.amount)) : '-'}</td>
                                             </tr>
+                                            ${
+                                                // Only show loss row if it has a value
+                                                billData.loss_amount && parseFloat(billData.loss_amount) > 0
+                                                    ? `
                                             <tr>
                                                 <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                                    ${language === 'ar' ? 'مبلغ الخسارة' : language === 'he' ? 'סכום הפסד' : 'Loss Amount'}
+                                                    ${language === 'ar' ? 'مبلغ الخسارة' : language === 'he' ? 'סכום הפסד' : 'Loss'}
                                                 </td>
-                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #dc2626; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.loss_amount && parseFloat(billData.loss_amount) > 0 ? formatCurrency(parseFloat(billData.loss_amount)) : '-'}</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                                    ${language === 'ar' ? 'عمولة الربح' : language === 'he' ? 'עמלת רווח' : 'Profit Commission'}
-                                                </td>
-                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #16a34a; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.profit_commission && parseFloat(billData.profit_commission) > 0 ? formatCurrency(parseFloat(billData.profit_commission)) : '-'}</td>
-                                            </tr>
-                                            <tr>
-                                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                                    ${language === 'ar' ? 'ملاحظات إضافية' : language === 'he' ? 'הערות נוספות' : 'Additional Notes'}
-                                                </td>
-                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${billData.free_text && billData.free_text.trim() ? billData.free_text : '-'}</td>
-                                            </tr>
+                                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #dc2626; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.loss_amount))}</td>
+                                            </tr>`
+                                                    : ''
+                                            }
                                         `
                                       : // For OTHER BILL TYPES (receipt_only, etc.) - Show payment details
                                         `
@@ -747,79 +743,6 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                                                     : ''
                                             }
                                         `
-                            }
-                            ${
-                                billData.bill_type !== 'receipt_only' && billData.purchase_price && parseFloat(billData.purchase_price) > 0
-                                    ? `
-                            <tr>
-                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                    ${language === 'ar' ? 'سعر الشراء' : language === 'he' ? 'מחיר קנייה' : 'Purchase Price'}
-                                </td>
-                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.purchase_price))}</td>
-                            </tr>`
-                                    : ''
-                            }
-                            ${
-                                billData.bill_type !== 'receipt_only' && billData.loss_amount && parseFloat(billData.loss_amount) > 0
-                                    ? `
-                            <tr>
-                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                    ${language === 'ar' ? 'مبلغ الخسارة' : language === 'he' ? 'סכום הפסד' : 'Loss Amount'}
-                                </td>
-                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #dc2626; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.loss_amount))}</td>
-                            </tr>`
-                                    : ''
-                            }
-                            ${
-                                billData.bill_type !== 'receipt_only' && billData.profit_commission && parseFloat(billData.profit_commission) > 0
-                                    ? `
-                            <tr>
-                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                    ${language === 'ar' ? 'عمولة الربح' : language === 'he' ? 'עמלת רווח' : 'Profit Commission'}
-                                </td>
-                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #16a34a; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.profit_commission))}</td>
-                            </tr>`
-                                    : ''
-                            }
-                            <!-- Invoice Totals - Only for Tax Invoices -->
-                            ${
-                                billData.bill_type === 'tax_invoice' || billData.bill_type === 'tax_invoice_receipt'
-                                    ? `
-                                ${
-                                    billData.total && parseFloat(billData.total) > 0
-                                        ? `
-                                <tr>
-                                    <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                        ${t('subTotal')}
-                                    </td>
-                                    <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.total))}</td>
-                                </tr>`
-                                        : ''
-                                }
-                                ${
-                                    billData.tax_amount && parseFloat(billData.tax_amount) > 0
-                                        ? `
-                                <tr>
-                                    <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                        ${language === 'ar' ? 'الضريبة (18%)' : language === 'he' ? 'מע"מ (18%)' : 'Tax (18%)'}
-                                    </td>
-                                    <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.tax_amount))}</td>
-                                </tr>`
-                                        : ''
-                                }
-                                ${
-                                    billData.total_with_tax && parseFloat(billData.total_with_tax) > 0
-                                        ? `
-                                <tr style="background: #f9fafb;">
-                                    <td style="padding: 16px; font-weight: 600; color: #111827; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
-                                        ${t('totalAmount')}
-                                    </td>
-                                    <td style="padding: 16px; text-align: ${language === 'en' ? 'right' : 'left'}; font-weight: 700; color: #111827; font-size: 16px; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.total_with_tax))}</td>
-                                </tr>`
-                                        : ''
-                                }
-                            `
-                                    : ''
                             }
                             
                             <!-- Receipt Payment Details (Inside Invoice Table) -->
@@ -1102,6 +1025,55 @@ export const generateBillPDF = async (billData: any, options: PDFOptions = {}): 
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Tax Totals Section (Separate Table for Tax Invoices) -->
+                ${
+                    billData.bill_type === 'tax_invoice' || billData.bill_type === 'tax_invoice_receipt'
+                        ? `
+                <div style="margin-bottom: ${billData.bill_type === 'tax_invoice_receipt' ? '24px' : '40px'};">
+                  
+                    <table style="width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; ${language !== 'en' ? 'direction: rtl;' : ''}">
+                      
+                        <tbody>
+                            ${
+                                billData.total && parseFloat(billData.total) > 0
+                                    ? `
+                            <tr>
+                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
+                                    ${language === 'ar' ? 'الإجمالي قبل الضريبة' : language === 'he' ? 'סה"כ לפני מע"מ' : 'Total Pre Tax'}
+                                </td>
+                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.total))}</td>
+                            </tr>`
+                                    : ''
+                            }
+                            ${
+                                billData.tax_amount && parseFloat(billData.tax_amount) > 0
+                                    ? `
+                            <tr>
+                                <td style="padding: 12px 16px; color: #374151; text-align: ${language === 'en' ? 'left' : 'right'}; border-bottom: 1px solid #ddd;">
+                                    ${language === 'ar' ? 'الضريبة (18%)' : language === 'he' ? 'מע"מ (18%)' : 'Tax Amount'}
+                                </td>
+                                <td style="padding: 12px 16px; text-align: ${language === 'en' ? 'right' : 'left'}; color: #111827; font-weight: 500; border-bottom: 1px solid #ddd;">${formatCurrency(parseFloat(billData.tax_amount))}</td>
+                            </tr>`
+                                    : ''
+                            }
+                            ${
+                                billData.total_with_tax && parseFloat(billData.total_with_tax) > 0
+                                    ? `
+                            <tr style="background: #f9fafb;">
+                                <td style="padding: 16px; font-weight: 600; color: #111827; text-align: ${language === 'en' ? 'left' : 'right'};">
+                                    ${language === 'ar' ? 'الإجمالي مع الضريبة' : language === 'he' ? 'סה"כ כולל מע"מ' : 'Total With Tax'}
+                                </td>
+                                <td style="padding: 16px; text-align: ${language === 'en' ? 'right' : 'left'}; font-weight: 700; color: #111827; font-size: 16px;">${formatCurrency(parseFloat(billData.total_with_tax))}</td>
+                            </tr>`
+                                    : ''
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                        `
+                        : ''
+                }
 
                 ${
                     billData.bill_type === 'tax_invoice_receipt'

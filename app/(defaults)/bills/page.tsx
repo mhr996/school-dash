@@ -32,11 +32,20 @@ interface Bill {
     bill_amount?: number;
     deal?: {
         title: string;
+        amount: number;
         deal_type: string;
         customer?: {
             id: number;
             name: string;
             id_number?: string;
+        };
+        car?: {
+            id: number;
+            title: string;
+            brand: string;
+            year: number;
+            buy_price: number;
+            sale_price: number;
         };
     };
 }
@@ -72,7 +81,9 @@ const Bills = () => {
                     deal:deals(
                         title, 
                         deal_type,
-                        customer:customers!deals_customer_id_fkey(id, name, id_number)
+                        amount,
+                        customer:customers!deals_customer_id_fkey(id, name, id_number),
+                        car:cars!deals_car_id_fkey(id, title, brand, year, buy_price, sale_price)
                     )
                 `,
                 )
