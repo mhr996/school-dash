@@ -176,7 +176,7 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
                             <td>${carInfo}</td>
                             <td>${formatCurrency(carBuyPrice)}</td>
                             <td>${formatCurrency(carSalePrice)}</td>
-                            <td>${formatCurrency(commission)}</td>
+                            <td>${formatCurrency(totalWithTax)}</td>
                             ${loss > 0 ? `<td>${formatCurrency(loss)}</td>` : ''}
                         </tr>
                     </tbody>
