@@ -13,7 +13,7 @@ import DealSelect from '@/components/deal-select/deal-select';
 import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
 import { logActivity } from '@/utils/activity-logger';
-import { handleReceiptCreated } from '@/utils/balance-manager';
+import { handleReceiptCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
 import { BillPayment } from '@/types/payment';
 import { MultiplePaymentForm } from '@/components/forms/multiple-payment-form';
 
@@ -26,7 +26,23 @@ interface Deal {
     customer_id?: number;
     customer_name?: string;
     car_id?: number;
+    seller_id?: number; // For intermediary deals
+    buyer_id?: number; // For intermediary deals
     customer?: {
+        id: number;
+        name: string;
+        phone: string;
+        email?: string;
+        age?: number;
+    };
+    seller?: {
+        id: number;
+        name: string;
+        phone: string;
+        email?: string;
+        age?: number;
+    };
+    buyer?: {
         id: number;
         name: string;
         phone: string;
@@ -140,7 +156,10 @@ const AddBill = () => {
                 .from('deals')
                 .select(
                     `
-                    *,                    customer:customers!deals_customer_id_fkey(*),
+                    *,
+                    customer:customers!deals_customer_id_fkey(*),
+                    seller:customers!deals_seller_id_fkey(*),
+                    buyer:customers!deals_buyer_id_fkey(*),
                     car:cars!deals_car_id_fkey(*)
                 `,
                 )
@@ -153,6 +172,8 @@ const AddBill = () => {
             const processedDeals = (data || []).map((deal) => ({
                 ...deal,
                 customer: deal.customer || null,
+                seller: deal.seller || null,
+                buyer: deal.buyer || null,
                 car: deal.car || null,
             }));
 
@@ -167,12 +188,30 @@ const AddBill = () => {
         const deal = deals.find((d) => d.id.toString() === dealId);
         if (deal) {
             setSelectedDeal(deal);
+
+            // Determine customer info based on deal type
+            let customerInfo = null;
+            let customerName = '';
+            let customerPhone = '';
+
+            if (deal.deal_type === 'intermediary') {
+                // For intermediary deals, use seller info first, then buyer as fallback
+                customerInfo = deal.seller || deal.buyer;
+                customerName = customerInfo?.name || '';
+                customerPhone = customerInfo?.phone || '';
+            } else {
+                // For regular deals, use customer info
+                customerInfo = deal.customer;
+                customerName = customerInfo?.name || '';
+                customerPhone = customerInfo?.phone || '';
+            }
+
             // Auto-fill form with deal data and reset bill_type when deal changes
             setBillForm((prev) => ({
                 ...prev,
                 bill_type: '', // Reset bill type when deal changes as available options might change
-                customer_name: deal.customer?.name || '',
-                phone: deal.customer?.phone || '',
+                customer_name: customerName,
+                phone: customerPhone,
                 car_details: deal.car ? `${deal.car.brand} ${deal.car.title} ${deal.car.year}` : '',
                 sale_price: deal.amount?.toString() || '',
                 // Calculate financials based on the deal amount (which already includes tax)
@@ -229,7 +268,7 @@ const AddBill = () => {
         if (!validateForm()) return;
 
         // Additional validation for receipts with multiple payments
-        if (billForm.bill_type === 'receipt_only') {
+        if (billForm.bill_type === 'receipt_only' || billForm.bill_type === 'tax_invoice_receipt') {
             const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
             const expectedTotal = parseFloat(billForm.total_with_tax) || 0;
 
@@ -259,7 +298,7 @@ const AddBill = () => {
             // For receipts, we'll use multiple payments structure
             // For other bill types, we'll use the legacy single payment structure for now
             const billData =
-                billForm.bill_type === 'receipt_only'
+                billForm.bill_type === 'receipt_only' || billForm.bill_type === 'tax_invoice_receipt'
                     ? {
                           deal_id: selectedDeal?.id || null,
                           bill_type: billForm.bill_type,
@@ -330,7 +369,7 @@ const AddBill = () => {
             if (error) throw error;
 
             // Insert multiple payments for receipts
-            if (billForm.bill_type === 'receipt_only' && payments.length > 0) {
+            if ((billForm.bill_type === 'receipt_only' || billForm.bill_type === 'tax_invoice_receipt') && payments.length > 0) {
                 const paymentInserts = payments.map((payment) => ({
                     bill_id: billResult.id,
                     payment_type: payment.payment_type,
@@ -381,8 +420,9 @@ const AddBill = () => {
             });
 
             // Update customer balance if this bill has payment amounts
-            if (selectedDeal?.customer_id) {
-                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, selectedDeal.customer_id.toString(), billData, billData.customer_name || 'Customer');
+            const customerId = getCustomerIdFromDeal(selectedDeal);
+            if (customerId) {
+                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, customerId, billData, billData.customer_name || 'Customer');
 
                 if (!balanceUpdateSuccess) {
                     console.warn('Failed to update customer balance for bill:', billResult.id);
@@ -424,10 +464,25 @@ const AddBill = () => {
     const populateFormFromDeal = (deal: Deal) => {
         if (!deal) return;
 
+        // Determine customer info based on deal type
+        let customerName = '';
+        let customerPhone = '';
+
+        if (deal.deal_type === 'intermediary') {
+            // For intermediary deals, use seller info first, then buyer as fallback
+            const customerInfo = deal.seller || deal.buyer;
+            customerName = customerInfo?.name || '';
+            customerPhone = customerInfo?.phone || '';
+        } else {
+            // For regular deals, use customer info
+            customerName = deal.customer?.name || '';
+            customerPhone = deal.customer?.phone || '';
+        }
+
         setBillForm((prev) => ({
             ...prev,
-            customer_name: deal.customer?.name || '',
-            phone: deal.customer?.phone || '',
+            customer_name: customerName,
+            phone: customerPhone,
             car_details: deal.car ? `${deal.car.brand} ${deal.car.title} ${deal.car.year}` : '',
             sale_price: deal.amount?.toString() || '',
             // Calculate financials based on the deal amount (which already includes tax)
@@ -502,7 +557,25 @@ const AddBill = () => {
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_name')}</label>
-                                    <p className="text-sm text-gray-900 dark:text-white">{selectedDeal.customer?.name || t('no_customer')}</p>
+                                    <p className="text-sm text-gray-900 dark:text-white">
+                                        {(() => {
+                                            if (selectedDeal.deal_type === 'intermediary') {
+                                                const seller = selectedDeal.seller?.name;
+                                                const buyer = selectedDeal.buyer?.name;
+                                                if (seller && buyer) {
+                                                    return `${seller} → ${buyer}`;
+                                                } else if (seller) {
+                                                    return `${t('seller')}: ${seller}`;
+                                                } else if (buyer) {
+                                                    return `${t('buyer')}: ${buyer}`;
+                                                } else {
+                                                    return t('no_customer');
+                                                }
+                                            } else {
+                                                return selectedDeal.customer?.name || t('no_customer');
+                                            }
+                                        })()}
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_type')}</label>
@@ -671,33 +744,54 @@ const AddBill = () => {
                                 <IconUser className="w-5 h-5 text-primary" />
                                 <h5 className="text-lg font-semibold dark:text-white-light">{t('customer_information')}</h5>
                             </div>
-                            {selectedDeal.customer && (
-                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                                    <h6 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">{t('customer_details')}</h6>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                                        <div>
-                                            <span className="text-blue-600 dark:text-blue-300 font-medium">{t('customer_name')}:</span>
-                                            <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.name}</p>
-                                        </div>
-                                        <div>
-                                            <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
-                                            <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.phone}</p>
-                                        </div>
-                                        {selectedDeal.customer.email && (
+                            {(() => {
+                                // Determine which customer info to show based on deal type
+                                let customerToShow = null;
+                                let customerTitle = t('customer_details');
+
+                                if (selectedDeal.deal_type === 'intermediary') {
+                                    // For intermediary deals, show seller info first, then buyer as fallback
+                                    customerToShow = selectedDeal.seller || selectedDeal.buyer;
+                                    if (selectedDeal.seller) {
+                                        customerTitle = t('seller_details');
+                                    } else if (selectedDeal.buyer) {
+                                        customerTitle = t('buyer_details');
+                                    }
+                                } else {
+                                    // For regular deals, show customer info
+                                    customerToShow = selectedDeal.customer;
+                                }
+
+                                return customerToShow ? (
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <h6 className="font-semibold text-blue-800 dark:text-blue-200 mb-3">{customerTitle}</h6>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                                             <div>
-                                                <span className="text-blue-600 dark:text-blue-300 font-medium">{t('email')}:</span>
-                                                <p className="text-blue-800 dark:text-blue-100">{selectedDeal.customer.email}</p>
+                                                <span className="text-blue-600 dark:text-blue-300 font-medium">{t('customer_name')}:</span>
+                                                <p className="text-blue-800 dark:text-blue-100">{customerToShow.name}</p>
                                             </div>
-                                        )}
-                                        <div>
-                                            <span className="text-blue-600 dark:text-blue-300 font-medium">{t('age')}:</span>
-                                            <p className="text-blue-800 dark:text-blue-100">
-                                                {selectedDeal.customer.age} {t('years_old')}
-                                            </p>
+                                            <div>
+                                                <span className="text-blue-600 dark:text-blue-300 font-medium">{t('phone')}:</span>
+                                                <p className="text-blue-800 dark:text-blue-100">{customerToShow.phone}</p>
+                                            </div>
+                                            {customerToShow.email && (
+                                                <div>
+                                                    <span className="text-blue-600 dark:text-blue-300 font-medium">{t('email')}:</span>
+                                                    <p className="text-blue-800 dark:text-blue-100">{customerToShow.email}</p>
+                                                </div>
+                                            )}
+                                            {customerToShow.age && (
+                                                <div>
+                                                    <span className="text-blue-600 dark:text-blue-300 font-medium">{t('age')}:</span>
+                                                    <p className="text-blue-800 dark:text-blue-100">
+                                                        {customerToShow.age} {t('years_old')}
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                ) : null;
+                            })()}
                         </div>{' '}
                         {/* Tax Invoice Details Table */}
                         <div className="panel">

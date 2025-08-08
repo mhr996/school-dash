@@ -42,6 +42,8 @@ const EditBill = () => {
                     deal:deals(
                         *,
                         customer:customers!deals_customer_id_fkey(*),
+                        seller:customers!deals_seller_id_fkey(*),
+                        buyer:customers!deals_buyer_id_fkey(*),
                         car:cars!deals_car_id_fkey(*)
                     ),
                     payments:bill_payments(*)

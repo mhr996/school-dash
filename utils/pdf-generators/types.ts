@@ -53,7 +53,47 @@ export interface BillData {
             id_number?: string;
             phone?: string;
         };
+        seller?: {
+            name: string;
+            id_number?: string;
+            phone?: string;
+        };
+        buyer?: {
+            name: string;
+            id_number?: string;
+            phone?: string;
+        };
     };
+
+    // Bill payments relationship
+    bill_payments?: Array<{
+        id: string | number;
+        payment_type: 'cash' | 'visa' | 'bank_transfer' | 'check';
+        amount: number;
+        // Visa fields
+        visa_installments?: number;
+        visa_card_type?: string;
+        visa_last_four?: string;
+        approval_number?: string;
+        // Bank transfer fields
+        bank_name?: string;
+        bank_branch?: string;
+        transfer_amount?: number;
+        transfer_bank_name?: string;
+        transfer_branch?: string;
+        transfer_account_number?: string;
+        transfer_branch_number?: string;
+        transfer_number?: string;
+        transfer_holder_name?: string;
+        // Check fields
+        check_bank_name?: string;
+        check_branch?: string;
+        check_branch_number?: string;
+        check_account_number?: string;
+        check_number?: string;
+        check_holder_name?: string;
+        created_at?: string;
+    }>;
 }
 
 export type TranslationMap = {

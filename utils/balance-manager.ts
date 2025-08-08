@@ -183,13 +183,17 @@ const getPaymentDescription = (bill: any): string => {
 export const getCustomerIdFromDeal = (deal: any): string | null => {
     // For regular deals, use customer_id
     if (deal.customer_id) {
-        return deal.customer_id;
+        return deal.customer_id.toString();
     }
 
-    // For intermediary deals, we might want to handle seller/buyer differently
-    // For now, let's use seller_id as the primary customer for balance tracking
-    if (deal.deal_type === 'intermediary' && deal.seller_id) {
-        return deal.seller_id;
+    // For intermediary deals, use seller_id as the primary customer for balance tracking
+    // If seller_id is not available, fall back to buyer_id
+    if (deal.deal_type === 'intermediary') {
+        if (deal.seller_id) {
+            return deal.seller_id.toString();
+        } else if (deal.buyer_id) {
+            return deal.buyer_id.toString();
+        }
     }
 
     return null;

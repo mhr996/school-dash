@@ -63,6 +63,16 @@ export interface BillWithPayments {
             name: string;
             id_number?: string;
         };
+        seller?: {
+            id: number;
+            name: string;
+            id_number?: string;
+        };
+        buyer?: {
+            id: number;
+            name: string;
+            id_number?: string;
+        };
         car?: {
             id: number;
             title: string;

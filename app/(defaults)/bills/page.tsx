@@ -76,6 +76,18 @@ const convertBillToBillData = (bill: Bill): BillData => {
                             id_number: bill.deal.customer.id_number,
                         }
                       : undefined,
+                  seller: bill.deal?.seller
+                      ? {
+                            name: bill.deal.seller.name,
+                            id_number: bill.deal.seller.id_number,
+                        }
+                      : undefined,
+                  buyer: bill.deal?.buyer
+                      ? {
+                            name: bill.deal.buyer.name,
+                            id_number: bill.deal.buyer.id_number,
+                        }
+                      : undefined,
               }
             : undefined,
     };
@@ -114,6 +126,8 @@ const Bills = () => {
                         deal_type,
                         amount,
                         customer:customers!deals_customer_id_fkey(id, name, id_number),
+                        seller:customers!deals_seller_id_fkey(id, name, id_number),
+                        buyer:customers!deals_buyer_id_fkey(id, name, id_number),
                         car:cars!deals_car_id_fkey(id, title, brand, year, buy_price, sale_price)
                     ),
                     payments:bill_payments(*)
@@ -140,7 +154,11 @@ const Bills = () => {
                     bill.bill_type.toLowerCase().includes(search.toLowerCase()) ||
                     (bill.payment_type && bill.payment_type.toLowerCase().includes(search.toLowerCase())) ||
                     (bill.payments && bill.payments.some((payment) => payment.payment_type.toLowerCase().includes(search.toLowerCase()))) ||
-                    (bill.deal?.customer?.id_number && bill.deal.customer.id_number.toLowerCase().includes(search.toLowerCase())),
+                    (bill.deal?.customer?.id_number && bill.deal.customer.id_number.toLowerCase().includes(search.toLowerCase())) ||
+                    (bill.deal?.seller?.name && bill.deal.seller.name.toLowerCase().includes(search.toLowerCase())) ||
+                    (bill.deal?.seller?.id_number && bill.deal.seller.id_number.toLowerCase().includes(search.toLowerCase())) ||
+                    (bill.deal?.buyer?.name && bill.deal.buyer.name.toLowerCase().includes(search.toLowerCase())) ||
+                    (bill.deal?.buyer?.id_number && bill.deal.buyer.id_number.toLowerCase().includes(search.toLowerCase())),
             ),
         );
     }, [items, search]);
@@ -366,7 +384,18 @@ const Bills = () => {
             render: (bill: Bill) => (
                 <div className="flex flex-col">
                     <span className="font-medium">{bill.customer_name}</span>
-                    {bill.deal?.customer?.id_number && <span className="text-xs text-gray-500">{bill.deal.customer.id_number}</span>}
+                    {(() => {
+                        // Show ID number based on deal type
+                        let idNumber = null;
+                        if (bill.deal?.deal_type === 'intermediary') {
+                            // For intermediary deals, prefer seller, then buyer
+                            idNumber = bill.deal?.seller?.id_number || bill.deal?.buyer?.id_number;
+                        } else {
+                            // For regular deals, use customer
+                            idNumber = bill.deal?.customer?.id_number;
+                        }
+                        return idNumber ? <span className="text-xs text-gray-500">{idNumber}</span> : null;
+                    })()}
                 </div>
             ),
         },

@@ -63,7 +63,8 @@ const AddDeal = () => {
         customer_car_eval_value: '', // تم تبديل على سيارة وتم تقييمها ب
         additional_customer_amount: '', // المبلغ المضاف من الزبون
         loss_amount: '', // Manual loss/deductions
-    }); // Form state for company commission deal
+    });
+     // Form state for company commission deal
     const [companyCommissionForm, setCompanyCommissionForm] = useState({
         title: '',
         company_name: '', // اسم الشركة المقدمه للعموله

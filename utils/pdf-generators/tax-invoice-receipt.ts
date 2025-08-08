@@ -2,13 +2,57 @@ import { generatePDFFromElement } from '../pdf-generator';
 import { BillData, PDFOptions } from './types';
 import { getTranslationFunction, formatCurrency, formatDate, createTempContainer, getBaseHTML, generateDocumentInfoSection, generateSignatureSection } from './shared';
 
+// Define bill payment interface for fetched data
+interface BillPayment {
+    id: string | number;
+    payment_type: 'cash' | 'visa' | 'bank_transfer' | 'check';
+    amount: number;
+    visa_installments?: number;
+    visa_card_type?: string;
+    visa_last_four?: string;
+    approval_number?: string;
+    bank_name?: string;
+    bank_branch?: string;
+    transfer_amount?: number;
+    transfer_bank_name?: string;
+    transfer_branch?: string;
+    transfer_account_number?: string;
+    transfer_branch_number?: string;
+    transfer_number?: string;
+    transfer_holder_name?: string;
+    check_bank_name?: string;
+    check_branch?: string;
+    check_branch_number?: string;
+    check_account_number?: string;
+    check_number?: string;
+    check_holder_name?: string;
+    created_at?: string;
+}
+
 export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: PDFOptions = {}): Promise<void> => {
     const { filename = `tax-invoice-receipt-${billData.id}.pdf`, language = 'he' } = options;
 
     console.log('=== Tax Invoice & Receipt PDF Generation ===');
     console.log('Bill ID:', billData.id);
+    console.log('billData:', billData);
 
     try {
+        // Fetch bill payments from database
+        let billPayments: BillPayment[] = [];
+        try {
+            const supabase = (await import('../../lib/supabase.js')).default;
+            const { data: paymentsData, error } = await supabase.from('bill_payments').select('*').eq('bill_id', billData.id).order('created_at', { ascending: true });
+
+            if (error) {
+                console.warn('Failed to fetch bill payments:', error.message);
+            } else if (paymentsData) {
+                billPayments = paymentsData;
+                console.log('Fetched bill payments:', billPayments);
+            }
+        } catch (dbError) {
+            console.warn('Error connecting to database for bill payments:', dbError);
+        }
+
         const tempContainer = createTempContainer('temp-tax-invoice-receipt-container');
         const t = getTranslationFunction(language);
 
@@ -21,8 +65,92 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
         const taxAmount = billData.tax_amount || 0;
         const totalWithTax = billData.total_with_tax || 0;
 
-        // Payment data
-        const paidAmount = (billData.cash_amount || 0) + (billData.visa_amount || 0) + (billData.bank_amount || 0) + (billData.check_amount || 0);
+        // Calculate payment data from fetched bill_payments or fallback to legacy fields
+        let paidAmount = 0;
+        let paymentRows = '';
+
+        if (billPayments && billPayments.length > 0) {
+            // Use fetched bill_payments data
+            paidAmount = billPayments.reduce((sum, payment) => sum + payment.amount, 0);
+
+            paymentRows = billPayments
+                .map((payment) => {
+                    let paymentDetails = '';
+
+                    switch (payment.payment_type) {
+                        case 'visa':
+                            paymentDetails = [
+                                payment.visa_card_type && `${t('cardType')}: ${payment.visa_card_type}`,
+                                payment.visa_last_four && `${t('lastFourDigits')}: ${payment.visa_last_four}`,
+                                payment.approval_number && `${t('approvalCode')}: ${payment.approval_number}`,
+                                payment.visa_installments && `${t('installments')}: ${payment.visa_installments}`,
+                            ]
+                                .filter(Boolean)
+                                .join(' | ');
+                            break;
+                        case 'bank_transfer':
+                            paymentDetails = [
+                                payment.bank_name && `${t('bankName')}: ${payment.bank_name}`,
+                                payment.bank_branch && `${t('branchName')}: ${payment.bank_branch}`,
+                                payment.transfer_account_number && `${t('accountNumber')}: ${payment.transfer_account_number}`,
+                                payment.transfer_number && `${t('transferNumber')}: ${payment.transfer_number}`,
+                                payment.transfer_holder_name && `${t('accountHolder')}: ${payment.transfer_holder_name}`,
+                            ]
+                                .filter(Boolean)
+                                .join(' | ');
+                            break;
+                        case 'check':
+                            paymentDetails = [
+                                payment.check_bank_name && `${t('bankName')}: ${payment.check_bank_name}`,
+                                payment.check_branch && `${t('branchName')}: ${payment.check_branch}`,
+                                payment.check_number && `${t('checkNumber')}: ${payment.check_number}`,
+                                payment.check_holder_name && `${t('accountHolder')}: ${payment.check_holder_name}`,
+                            ]
+                                .filter(Boolean)
+                                .join(' | ');
+                            break;
+                        case 'cash':
+                        default:
+                            paymentDetails = t('cashPayment');
+                            break;
+                    }
+
+                    return `
+                    <tr>
+                        <td>${t(`payment_${payment.payment_type}`) || payment.payment_type}</td>
+                        <td>${formatCurrency(payment.amount || 0)}</td>
+                        <td>${formatDate(payment.created_at || billData.created_at)}</td>
+                        <td>${paymentDetails || '-'}</td>
+                    </tr>
+                `;
+                })
+                .join('');
+        } else {
+            // Fallback to legacy payment fields
+            paidAmount = (billData.cash_amount || 0) + (billData.visa_amount || 0) + (billData.bank_amount || 0) + (billData.check_amount || 0);
+
+            // Create rows for non-zero legacy payments
+            const legacyPayments = [
+                { type: 'cash', amount: billData.cash_amount, details: t('cashPayment') },
+                { type: 'visa', amount: billData.visa_amount, details: t('payment_visa') },
+                { type: 'bank_transfer', amount: billData.bank_amount, details: `${t('bankName')}: ${billData.bank_name || ''} | ${t('branchName')}: ${billData.bank_branch || ''}` },
+                { type: 'check', amount: billData.check_amount, details: t('payment_check') },
+            ].filter((p) => p.amount && p.amount > 0);
+
+            paymentRows = legacyPayments
+                .map(
+                    (payment) => `
+                <tr>
+                    <td>${t(`payment_${payment.type}`) || payment.type}</td>
+                    <td>${formatCurrency(payment.amount || 0)}</td>
+                    <td>${formatDate(billData.created_at)}</td>
+                    <td>${payment.details}</td>
+                </tr>
+            `,
+                )
+                .join('');
+        }
+
         const remainingAmount = totalWithTax - paidAmount;
 
         // Car details
@@ -30,6 +158,7 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
 
         const documentInfoSection = generateDocumentInfoSection(t, billData);
 
+        // Tax Invoice Section
         const carDetailsTable = `
             <div class="table-container">
                 <table>
@@ -75,46 +204,36 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
             </div>
         `;
 
-        const paymentDetailsSection = `
-            <div class="financial-summary">
+        // Receipt Section - Payments Table
+        const paymentsTable = `
+            <div class="financial-summary" style="margin-top: 30px;">
                 <h3>${t('paymentDetails')}</h3>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>${t('paymentMethod')}</th>
+                            <th>${t('amount')}</th>
+                            <th>${t('paymentDate')}</th>
+                            <th>${t('additionalDetails')}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${paymentRows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        const paymentSummarySection = `
+            <div class="financial-summary">
+                <h3>${t('receiptDetails')}</h3>
                 <div class="summary-content">
-                    ${
-                        billData.cash_amount
-                            ? `
                     <div class="summary-item">
-                        <span>${t('payment_cash')}:</span>
-                        <span>${formatCurrency(billData.cash_amount)}</span>
-                    </div>`
-                            : ''
-                    }
-                    ${
-                        billData.visa_amount
-                            ? `
-                    <div class="summary-item">
-                        <span>${t('payment_visa')}:</span>
-                        <span>${formatCurrency(billData.visa_amount)}</span>
-                    </div>`
-                            : ''
-                    }
-                    ${
-                        billData.bank_amount
-                            ? `
-                    <div class="summary-item">
-                        <span>${t('payment_bank_transfer')}:</span>
-                        <span>${formatCurrency(billData.bank_amount)}</span>
-                    </div>`
-                            : ''
-                    }
-                    ${
-                        billData.check_amount
-                            ? `
-                    <div class="summary-item">
-                        <span>${t('payment_check')}:</span>
-                        <span>${formatCurrency(billData.check_amount)}</span>
-                    </div>`
-                            : ''
-                    }
+                        <span>${t('totalAmount')}:</span>
+                        <span>${formatCurrency(totalWithTax)}</span>
+                    </div>
                     <div class="summary-item">
                         <span>${t('paidAmount')}:</span>
                         <span>${formatCurrency(paidAmount)}</span>
@@ -125,7 +244,8 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
                     <div class="summary-item">
                         <span>${t('remainingAmount')}:</span>
                         <span>${formatCurrency(remainingAmount)}</span>
-                    </div>`
+                    </div>
+                    `
                             : ''
                     }
                 </div>
@@ -138,7 +258,8 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
             ${documentInfoSection}
             ${carDetailsTable}
             ${financialSummary}
-            ${paymentDetailsSection}
+            ${paymentsTable}
+            ${paymentSummarySection}
             ${signatureSection}
         `;
 
