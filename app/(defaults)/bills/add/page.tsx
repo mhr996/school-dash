@@ -14,6 +14,8 @@ import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
 import { logActivity } from '@/utils/activity-logger';
 import { handleReceiptCreated } from '@/utils/balance-manager';
+import { BillPayment } from '@/types/payment';
+import { MultiplePaymentForm } from '@/components/forms/multiple-payment-form';
 
 interface Deal {
     id: number;
@@ -66,7 +68,6 @@ const AddBill = () => {
         phone: '',
         date: new Date().toISOString().split('T')[0],
         car_details: '',
-        sale_price: '',
         commission: '',
         free_text: '',
         total: '',
@@ -106,6 +107,15 @@ const AddBill = () => {
         // Approval number (common for various payment types)
         approval_number: '',
     });
+
+    // New multiple payments state for receipts
+    const [payments, setPayments] = useState<BillPayment[]>([
+        {
+            payment_type: 'cash',
+            amount: 0,
+        },
+    ]);
+
     useEffect(() => {
         fetchDeals();
     }, []); // Effect to handle pre-selected deal from URL parameter
@@ -178,19 +188,6 @@ const AddBill = () => {
         setBillForm((prev) => {
             const updated = { ...prev, [name]: value };
 
-            // Auto-calculate tax when sale_price or commission changes
-            if (name === 'sale_price' || name === 'commission') {
-                const salePrice = parseFloat(name === 'sale_price' ? value : updated.sale_price) || 0;
-                const commission = parseFloat(name === 'commission' ? value : updated.commission) || 0;
-                const total = salePrice + commission;
-                const taxAmount = total * 0.18; // 18% tax
-                const totalWithTax = total + taxAmount;
-
-                updated.total = total.toFixed(2);
-                updated.tax_amount = taxAmount.toFixed(2);
-                updated.total_with_tax = totalWithTax.toFixed(2);
-            }
-
             return updated;
         });
     };
@@ -230,55 +227,142 @@ const AddBill = () => {
         e.preventDefault();
 
         if (!validateForm()) return;
+
+        // Additional validation for receipts with multiple payments
+        if (billForm.bill_type === 'receipt_only') {
+            const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+            const expectedTotal = parseFloat(billForm.total_with_tax) || 0;
+
+            // Allow partial payments - just ensure the total doesn't exceed the bill amount
+            if (totalPaid > expectedTotal + 0.01) {
+                // Allow for small rounding differences
+                setAlert({
+                    message: `${t('payment_exceeds_total')}: ${t('maximum_allowed')} ₪${expectedTotal.toFixed(2)}, ${t('received')} ₪${totalPaid.toFixed(2)}`,
+                    type: 'danger',
+                });
+                return;
+            }
+
+            // If this is a partial payment, show a success message but allow it
+            if (totalPaid < expectedTotal - 0.01) {
+                const remainingAmount = expectedTotal - totalPaid;
+                setAlert({
+                    message: `${t('partial_payment_notice')}: ${t('paid')} ₪${totalPaid.toFixed(2)}, ${t('remaining')} ₪${remainingAmount.toFixed(2)}`,
+                    type: 'success',
+                });
+                // Don't return - allow the partial payment to proceed
+            }
+        }
+
         setSaving(true);
         try {
-            const billData = {
-                deal_id: selectedDeal?.id || null,
-                bill_type: billForm.bill_type,
-                bill_direction: billForm.bill_direction,
-                status: billForm.status,
-                customer_name: billForm.customer_name,
-                phone: billForm.phone,
-                date: billForm.date,
-                car_details: billForm.car_details,
-                sale_price: parseFloat(billForm.sale_price) || null,
-                commission: parseFloat(billForm.commission) || null,
-                free_text: billForm.free_text,
-                total: parseFloat(billForm.total) || null,
-                tax_amount: parseFloat(billForm.tax_amount) || null,
-                total_with_tax: parseFloat(billForm.total_with_tax) || null,
-                payment_type: billForm.payment_type || null,
-                // General bill fields
-                bill_description: billForm.bill_description || null,
-                bill_amount: parseFloat(billForm.bill_amount) || null,
-                visa_amount: parseFloat(billForm.visa_amount) || null,
-                visa_installments: parseInt(billForm.visa_installments) || null,
-                visa_card_type: billForm.visa_card_type || null,
-                visa_last_four: billForm.visa_last_four || null,
-                bank_amount: parseFloat(billForm.bank_amount) || null,
-                bank_name: billForm.bank_name || null,
-                bank_branch: billForm.bank_branch || null,
-                approval_number: billForm.approval_number || null,
-                account_number: billForm.account_number || null,
-                transfer_number: billForm.transfer_number || null,
-                transfer_holder_name: billForm.transfer_holder_name || null,
-                transfer_amount: parseFloat(billForm.bank_amount) || null,
-                transfer_bank_name: billForm.transfer_bank_name || null,
-                transfer_branch: billForm.transfer_branch || null,
-                transfer_account_number: billForm.transfer_account_number || null,
-                transfer_branch_number: billForm.transfer_branch_number || null,
-                check_amount: parseFloat(billForm.check_amount) || null,
-                check_bank_name: billForm.check_bank_name || null,
-                check_branch_number: billForm.check_branch_number || null,
-                check_account_number: billForm.check_account_number || null,
-                check_number: billForm.check_number || null,
-                check_holder_name: billForm.check_holder_name || null,
-                check_branch: billForm.check_branch || null,
-                cash_amount: parseFloat(billForm.cash_amount) || null,
-                created_at: billDate ? new Date(billDate + 'T00:00:00').toISOString() : new Date().toISOString(),
-            };
+            // For receipts, we'll use multiple payments structure
+            // For other bill types, we'll use the legacy single payment structure for now
+            const billData =
+                billForm.bill_type === 'receipt_only'
+                    ? {
+                          deal_id: selectedDeal?.id || null,
+                          bill_type: billForm.bill_type,
+                          bill_direction: billForm.bill_direction,
+                          status: billForm.status,
+                          customer_name: billForm.customer_name,
+                          phone: billForm.phone,
+                          date: billForm.date,
+                          car_details: billForm.car_details,
+                          commission: parseFloat(billForm.commission) || null,
+                          free_text: billForm.free_text,
+                          total: parseFloat(billForm.total) || null,
+                          tax_amount: parseFloat(billForm.tax_amount) || null,
+                          total_with_tax: parseFloat(billForm.total_with_tax) || null,
+                          // For receipts, we'll leave the old payment fields null since we use the new structure
+                          payment_type: null,
+                          bill_description: billForm.bill_description || null,
+                          bill_amount: parseFloat(billForm.bill_amount) || null,
+                          created_at: billDate ? new Date(billDate + 'T00:00:00').toISOString() : new Date().toISOString(),
+                      }
+                    : {
+                          deal_id: selectedDeal?.id || null,
+                          bill_type: billForm.bill_type,
+                          bill_direction: billForm.bill_direction,
+                          status: billForm.status,
+                          customer_name: billForm.customer_name,
+                          phone: billForm.phone,
+                          date: billForm.date,
+                          car_details: billForm.car_details,
+                          commission: parseFloat(billForm.commission) || null,
+                          free_text: billForm.free_text,
+                          total: parseFloat(billForm.total) || null,
+                          tax_amount: parseFloat(billForm.tax_amount) || null,
+                          total_with_tax: parseFloat(billForm.total_with_tax) || null,
+                          payment_type: billForm.payment_type || null,
+                          // General bill fields
+                          bill_description: billForm.bill_description || null,
+                          bill_amount: parseFloat(billForm.bill_amount) || null,
+                          visa_amount: parseFloat(billForm.visa_amount) || null,
+                          visa_installments: parseInt(billForm.visa_installments) || null,
+                          visa_card_type: billForm.visa_card_type || null,
+                          visa_last_four: billForm.visa_last_four || null,
+                          bank_amount: parseFloat(billForm.bank_amount) || null,
+                          bank_name: billForm.bank_name || null,
+                          bank_branch: billForm.bank_branch || null,
+                          approval_number: billForm.approval_number || null,
+                          account_number: billForm.account_number || null,
+                          transfer_number: billForm.transfer_number || null,
+                          transfer_holder_name: billForm.transfer_holder_name || null,
+                          transfer_amount: parseFloat(billForm.bank_amount) || null,
+                          transfer_bank_name: billForm.transfer_bank_name || null,
+                          transfer_branch: billForm.transfer_branch || null,
+                          transfer_account_number: billForm.transfer_account_number || null,
+                          transfer_branch_number: billForm.transfer_branch_number || null,
+                          check_amount: parseFloat(billForm.check_amount) || null,
+                          check_bank_name: billForm.check_bank_name || null,
+                          check_branch_number: billForm.check_branch_number || null,
+                          check_account_number: billForm.check_account_number || null,
+                          check_number: billForm.check_number || null,
+                          check_holder_name: billForm.check_holder_name || null,
+                          check_branch: billForm.check_branch || null,
+                          cash_amount: parseFloat(billForm.cash_amount) || null,
+                          created_at: billDate ? new Date(billDate + 'T00:00:00').toISOString() : new Date().toISOString(),
+                      };
 
             const { data: billResult, error } = await supabase.from('bills').insert([billData]).select('id').single();
+
+            if (error) throw error;
+
+            // Insert multiple payments for receipts
+            if (billForm.bill_type === 'receipt_only' && payments.length > 0) {
+                const paymentInserts = payments.map((payment) => ({
+                    bill_id: billResult.id,
+                    payment_type: payment.payment_type,
+                    amount: payment.amount,
+                    visa_installments: payment.visa_installments || null,
+                    visa_card_type: payment.visa_card_type || null,
+                    visa_last_four: payment.visa_last_four || null,
+                    approval_number: payment.approval_number || null,
+                    bank_name: payment.bank_name || null,
+                    bank_branch: payment.bank_branch || null,
+                    transfer_amount: payment.transfer_amount || null,
+                    transfer_bank_name: payment.transfer_bank_name || null,
+                    transfer_branch: payment.transfer_branch || null,
+                    transfer_account_number: payment.transfer_account_number || null,
+                    transfer_branch_number: payment.transfer_branch_number || null,
+                    transfer_number: payment.transfer_number || null,
+                    transfer_holder_name: payment.transfer_holder_name || null,
+                    check_bank_name: payment.check_bank_name || null,
+                    check_branch: payment.check_branch || null,
+                    check_branch_number: payment.check_branch_number || null,
+                    check_account_number: payment.check_account_number || null,
+                    check_number: payment.check_number || null,
+                    check_holder_name: payment.check_holder_name || null,
+                }));
+
+                const { error: paymentsError } = await supabase.from('bill_payments').insert(paymentInserts);
+
+                if (paymentsError) {
+                    console.error('Error inserting payments:', paymentsError);
+                    // Don't fail the entire operation, but log the error
+                }
+            }
 
             if (error) throw error;
 
@@ -907,186 +991,8 @@ const AddBill = () => {
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h5 className="text-lg font-semibold dark:text-white-light">{t('receipt_details')}</h5>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div className="md:col-span-2 lg:col-span-3">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment_type')}</label>
-                                <PaymentTypeSelect
-                                    defaultValue={billForm.payment_type}
-                                    onChange={(paymentType) => handleFormChange({ target: { name: 'payment_type', value: paymentType } } as any)}
-                                    className="w-full"
-                                />
-                            </div>
-                            {/* Payment Type Specific Fields */}
-                            {billForm.payment_type === 'visa' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_amount')}</label>
-                                        <input
-                                            name="visa_amount"
-                                            type="number"
-                                            step="0.01"
-                                            value={billForm.visa_amount}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('visa_amount')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_installments')}</label>
-                                        <input
-                                            name="visa_installments"
-                                            type="number"
-                                            value={billForm.visa_installments}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('visa_installments')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_card_type')}</label>
-                                        <input name="visa_card_type" value={billForm.visa_card_type} onChange={handleFormChange} className="form-input" placeholder={t('visa_card_type')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_last_four')}</label>
-                                        <input name="visa_last_four" value={billForm.visa_last_four} onChange={handleFormChange} className="form-input" placeholder={t('visa_last_four')} />
-                                    </div>
-                                </>
-                            )}
-                            {billForm.payment_type === 'bank_transfer' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_amount')}</label>
-                                        <input
-                                            name="bank_amount"
-                                            type="number"
-                                            step="0.01"
-                                            value={billForm.bank_amount}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('bank_amount_placeholder')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_bank_name')}</label>
-                                        <input
-                                            name="transfer_bank_name"
-                                            value={billForm.transfer_bank_name}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('transfer_bank_name_placeholder')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_branch_number')}</label>
-                                        <input
-                                            name="transfer_branch_number"
-                                            value={billForm.transfer_branch_number}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('transfer_branch_number_placeholder')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_account_number')}</label>
-                                        <input
-                                            name="transfer_account_number"
-                                            value={billForm.transfer_account_number}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('transfer_account_number_placeholder')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_number')}</label>
-                                        <input
-                                            name="transfer_number"
-                                            value={billForm.transfer_number}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('transfer_number_placeholder')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('transfer_holder_name')}</label>
-                                        <input
-                                            name="transfer_holder_name"
-                                            value={billForm.transfer_holder_name}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('transfer_holder_name_placeholder')}
-                                        />
-                                    </div>
-                                </>
-                            )}
-                            {billForm.payment_type === 'check' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_amount')}</label>
-                                        <input
-                                            name="check_amount"
-                                            type="number"
-                                            step="0.01"
-                                            value={billForm.check_amount}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('check_amount')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_bank_name')}</label>
-                                        <input name="check_bank_name" value={billForm.check_bank_name} onChange={handleFormChange} className="form-input" placeholder={t('check_bank_name')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_branch_number')}</label>
-                                        <input
-                                            name="check_branch_number"
-                                            value={billForm.check_branch_number}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('check_branch_number')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_account_number')}</label>
-                                        <input
-                                            name="check_account_number"
-                                            value={billForm.check_account_number}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('check_account_number')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_number')}</label>
-                                        <input name="check_number" value={billForm.check_number} onChange={handleFormChange} className="form-input" placeholder={t('check_number')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_holder_name')}</label>
-                                        <input name="check_holder_name" value={billForm.check_holder_name} onChange={handleFormChange} className="form-input" placeholder={t('check_holder_name')} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_branch')}</label>
-                                        <input name="check_branch" value={billForm.check_branch} onChange={handleFormChange} className="form-input" placeholder={t('check_branch')} />
-                                    </div>{' '}
-                                </>
-                            )}
-                            {billForm.payment_type === 'cash' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('cash_amount')}</label>
-                                        <input
-                                            name="cash_amount"
-                                            type="number"
-                                            step="0.01"
-                                            value={billForm.cash_amount}
-                                            onChange={handleFormChange}
-                                            className="form-input"
-                                            placeholder={t('cash_amount')}
-                                        />
-                                    </div>
-                                </>
-                            )}
-                        </div>
+
+                        <MultiplePaymentForm payments={payments} onPaymentsChange={setPayments} totalAmount={parseFloat(billForm.total_with_tax) || 0} />
                     </div>
                 )}
                 {/* Submit Button */}

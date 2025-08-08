@@ -7,7 +7,61 @@ import { getTranslation } from '@/i18n';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconUser from '@/components/icon/icon-user';
 import IconDownload from '@/components/icon/icon-download';
-import { generateBillPDF } from '@/utils/pdf-generator';
+import { generateBillPDF, BillData } from '@/utils/pdf-generator';
+import { BillWithPayments } from '@/types/payment';
+
+// Helper function to convert Bill to BillData format
+const convertBillToBillData = (bill: Bill): BillData => {
+    return {
+        id: bill.id,
+        bill_type: bill.bill_type,
+        customer_name: bill.customer_name,
+        customer_phone: bill.phone,
+        created_at: bill.date,
+
+        // Map the bill fields to BillData format
+        bill_amount: bill.total,
+        bill_description: bill.car_details || '',
+
+        // Tax invoice fields
+        total: bill.total,
+        tax_amount: bill.tax_amount,
+        total_with_tax: bill.total_with_tax,
+        commission: bill.commission,
+        car_details: bill.car_details,
+
+        // Payment fields
+        payment_type: bill.payment_type,
+        visa_amount: bill.visa_amount,
+        bank_amount: bill.bank_amount || bill.transfer_amount,
+        check_amount: bill.check_amount,
+
+        // Deal information (if available)
+        deal: bill.deal
+            ? {
+                  id: bill.deal_id,
+                  deal_title: bill.deal?.title,
+                  deal_type: bill.deal?.deal_type,
+                  car: bill.deal?.car
+                      ? {
+                            buy_price: bill.deal.car.buy_price,
+                            sale_price: bill.deal.car.sale_price,
+                            make: bill.deal.car.brand,
+                            model: bill.deal.car.title,
+                            year: bill.deal.car.year,
+                            license_plate: bill.deal.car.car_number,
+                        }
+                      : undefined,
+                  customer: bill.deal?.customer
+                      ? {
+                            name: bill.deal.customer.name,
+                            id_number: bill.deal.customer.id_number,
+                        }
+                      : undefined,
+              }
+            : undefined,
+    };
+};
 
 interface Deal {
     id: string;
@@ -32,21 +86,8 @@ interface Deal {
     };
 }
 
-interface Bill {
-    id: string;
-    deal_id: string;
-    bill_type: string;
-    status: string;
-    customer_name: string;
-    phone?: string;
-    date?: string;
-    car_details?: string;
-    sale_price?: number;
-    commission?: number;
-    free_text?: string;
-    total?: number;
-    tax_amount?: number;
-    total_with_tax?: number;
+interface Bill extends BillWithPayments {
+    // Legacy payment fields for backward compatibility
     payment_type?: string;
     visa_amount?: number;
     visa_installments?: number;
@@ -71,7 +112,6 @@ interface Bill {
     check_holder_name?: string;
     check_branch?: string;
     created_at: string;
-    deal?: Deal;
 }
 
 const BillPreview = () => {
@@ -93,11 +133,13 @@ const BillPreview = () => {
                 .from('bills')
                 .select(
                     `
-                    *,                    deal:deals(
+                    *,
+                    deal:deals(
                         *,
                         customer:customers!deals_customer_id_fkey(*),
                         car:cars!deals_car_id_fkey(*)
-                    )
+                    ),
+                    payments:bill_payments(*)
                 `,
                 )
                 .eq('id', billId)
@@ -146,7 +188,7 @@ const BillPreview = () => {
 
         setDownloadingPDF(true);
         try {
-            await generateBillPDF(bill, {
+            await generateBillPDF(convertBillToBillData(bill), {
                 filename: `bill-${bill.id}-${bill.customer_name.replace(/\s+/g, '-').toLowerCase()}.pdf`,
             });
         } catch (error) {

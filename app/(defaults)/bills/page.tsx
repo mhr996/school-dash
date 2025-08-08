@@ -9,20 +9,15 @@ import { DataTable, DataTableSortStatus, DataTableColumn } from 'mantine-datatab
 import IconPlus from '@/components/icon/icon-plus';
 import IconEye from '@/components/icon/icon-eye';
 import IconPdf from '@/components/icon/icon-pdf';
+import IconEdit from '@/components/icon/icon-edit';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
-import { generateBillPDF } from '@/utils/pdf-generator';
+import { generateBillPDF, BillData } from '@/utils/pdf-generator';
+import { BillWithPayments } from '@/types/payment';
 
-interface Bill {
-    id: string;
-    deal_id: string;
-    bill_type: string;
-    customer_name: string;
+interface Bill extends BillWithPayments {
     amount: number;
-    tax_amount: number;
-    total_with_tax: number;
     total_amount: number;
-    status: string;
-    created_at: string;
+    // Legacy payment fields for backward compatibility
     payment_type?: string;
     visa_amount?: number;
     bank_amount?: number;
@@ -30,25 +25,61 @@ interface Bill {
     check_amount?: number;
     cash_amount?: number;
     bill_amount?: number;
-    deal?: {
-        title: string;
-        amount: number;
-        deal_type: string;
-        customer?: {
-            id: number;
-            name: string;
-            id_number?: string;
-        };
-        car?: {
-            id: number;
-            title: string;
-            brand: string;
-            year: number;
-            buy_price: number;
-            sale_price: number;
-        };
-    };
 }
+
+// Helper function to convert Bill to BillData format
+const convertBillToBillData = (bill: Bill): BillData => {
+    return {
+        id: bill.id,
+        bill_type: bill.bill_type,
+        customer_name: bill.customer_name,
+        customer_phone: bill.phone,
+        created_at: bill.date,
+
+        // Map the bill fields to BillData format
+        bill_amount: bill.bill_amount || bill.total,
+        bill_description: bill.car_details || '',
+
+        // Tax invoice fields
+        total: bill.total,
+        tax_amount: bill.tax_amount,
+        total_with_tax: bill.total_with_tax,
+        commission: bill.commission,
+        car_details: bill.car_details,
+
+        // Payment fields
+        payment_type: bill.payment_type,
+        cash_amount: bill.cash_amount,
+        visa_amount: bill.visa_amount,
+        bank_amount: bill.bank_amount || bill.transfer_amount,
+        check_amount: bill.check_amount,
+
+        // Deal information (if available)
+        deal: bill.deal
+            ? {
+                  id: bill.deal_id,
+                  deal_title: bill.deal?.title,
+                  deal_type: bill.deal?.deal_type,
+                  car: bill.deal?.car
+                      ? {
+                            buy_price: bill.deal.car.buy_price,
+                            sale_price: bill.deal.car.sale_price,
+                            make: bill.deal.car.brand,
+                            model: bill.deal.car.title,
+                            year: bill.deal.car.year,
+                            license_plate: bill.deal.car.car_number,
+                        }
+                      : undefined,
+                  customer: bill.deal?.customer
+                      ? {
+                            name: bill.deal.customer.name,
+                            id_number: bill.deal.customer.id_number,
+                        }
+                      : undefined,
+              }
+            : undefined,
+    };
+};
 
 const Bills = () => {
     const { t } = getTranslation();
@@ -84,7 +115,8 @@ const Bills = () => {
                         amount,
                         customer:customers!deals_customer_id_fkey(id, name, id_number),
                         car:cars!deals_car_id_fkey(id, title, brand, year, buy_price, sale_price)
-                    )
+                    ),
+                    payments:bill_payments(*)
                 `,
                 )
                 .order('created_at', { ascending: false });
@@ -107,6 +139,7 @@ const Bills = () => {
                     bill.deal?.title.toLowerCase().includes(search.toLowerCase()) ||
                     bill.bill_type.toLowerCase().includes(search.toLowerCase()) ||
                     (bill.payment_type && bill.payment_type.toLowerCase().includes(search.toLowerCase())) ||
+                    (bill.payments && bill.payments.some((payment) => payment.payment_type.toLowerCase().includes(search.toLowerCase()))) ||
                     (bill.deal?.customer?.id_number && bill.deal.customer.id_number.toLowerCase().includes(search.toLowerCase())),
             ),
         );
@@ -165,6 +198,28 @@ const Bills = () => {
             return t('not_applicable');
         }
 
+        // Check if using new multiple payments structure
+        if (bill.payments && bill.payments.length > 0) {
+            if (bill.payments.length === 1) {
+                const payment = bill.payments[0];
+                switch (payment.payment_type) {
+                    case 'visa':
+                        return t('visa');
+                    case 'cash':
+                        return t('cash');
+                    case 'bank_transfer':
+                        return t('bank_transfer');
+                    case 'check':
+                        return t('check');
+                    default:
+                        return payment.payment_type;
+                }
+            } else {
+                return t('multiple_payments');
+            }
+        }
+
+        // Fallback to legacy payment_type
         if (!bill.payment_type) {
             return t('not_applicable');
         }
@@ -191,7 +246,17 @@ const Bills = () => {
             return t('not_applicable');
         }
 
-        // If there's no payment type or if all payment amounts are 0
+        // Check if using new multiple payments structure
+        if (bill.payments && bill.payments.length > 0) {
+            const totalAmount = bill.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+            if (bill.payments.length === 1) {
+                return `₪${totalAmount.toFixed(2)}`;
+            } else {
+                return `₪${totalAmount.toFixed(2)} (${bill.payments.length} ${t('payments')})`;
+            }
+        }
+
+        // Fallback to legacy payment amounts
         if (!bill.payment_type || (!bill.visa_amount && !bill.cash_amount && !bill.bank_amount && !bill.transfer_amount && !bill.check_amount)) {
             return t('no_payment_yet');
         }
@@ -236,8 +301,14 @@ const Bills = () => {
             return parseFloat(String(bill.total_with_tax || '0'));
         }
 
-        // For receipt types, return the payment amount based on payment method
+        // For receipt types, return the payment amount
         if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') {
+            // Check if using new multiple payments structure
+            if (bill.payments && bill.payments.length > 0) {
+                return bill.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+            }
+
+            // Fallback to legacy payment amounts
             switch (bill.payment_type?.toLowerCase()) {
                 case 'bank_transfer':
                     return parseFloat(String(bill.bank_amount || bill.transfer_amount || '0'));
@@ -262,7 +333,7 @@ const Bills = () => {
             const currentLang = cookies.get('i18nextLng') || 'he';
             const language = currentLang === 'ae' ? 'ar' : currentLang === 'he' ? 'he' : 'en';
 
-            await generateBillPDF(bill, {
+            await generateBillPDF(convertBillToBillData(bill), {
                 filename: `bill-${bill.id}-${bill.customer_name.replace(/\s+/g, '-').toLowerCase()}.pdf`,
                 language,
             });
@@ -347,6 +418,12 @@ const Bills = () => {
             textAlignment: 'center',
             render: (bill: Bill) => (
                 <div className="mx-auto flex w-max items-center gap-4">
+                    {/* Edit payments button for receipts */}
+                    {(bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') && (
+                        <Link href={`/bills/edit/${bill.id}`} className="flex hover:text-primary" title={t('edit_payments')}>
+                            <IconEdit className="h-4.5 w-4.5" />
+                        </Link>
+                    )}
                     <button type="button" className="flex hover:text-success" onClick={() => handleDownloadPDF(bill)} title={t('download_pdf')} disabled={downloadingPDF === bill.id}>
                         {downloadingPDF === bill.id ? <div className="animate-spin rounded-full h-4.5 w-4.5 border-b-2 border-success"></div> : <IconPdf className="h-4.5 w-4.5" />}
                     </button>
