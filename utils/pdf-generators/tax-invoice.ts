@@ -26,48 +26,60 @@ export const generateTaxInvoicePDF = async (billData: BillData, options: PDFOpti
 
         const documentInfoSection = generateDocumentInfoSection(t, billData);
 
+        const customTRStyle = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        `;
+
         const carDetailsTable = `
             <div class="table-container">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>${t('carDetails')}</th>
-                            <th>${t('buyPrice')}</th>
-                            <th>${t('salePrice')}</th>
-                            <th>${t('commission')}</th>
-                            ${loss > 0 ? `<th>${t('loss')}</th>` : ''}
+                    <thead> 
+                        <tr style="${customTRStyle}">
+                            <th>${t('label')}</th>
+                            <th>${t('value')}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('carDetails')}</td>
                             <td style="direction: ltr;">${carInfo}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('buyPrice')}</td>
                             <td>${formatCurrency(carBuyPrice)}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('salePrice')}</td>
                             <td>${formatCurrency(carSalePrice)}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('commission')}</td>
                             <td>${formatCurrency(totalWithTax)}</td>
-                            ${loss > 0 ? `<td>${formatCurrency(loss)}</td>` : ''}
+                        </tr> 
+                        ${
+                            loss > 0
+                                ? `<tr style="${customTRStyle}">
+                                    <td>${t('loss')}</td>
+                                    <td>${formatCurrency(loss)}</td>
+                                  </tr>`
+                                : ''
+                        }
+                        <tr style="${customTRStyle}">
+                            <td>${t('preTaxTotal')}</td>
+                            <td>${formatCurrency(preTaxTotal)}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('taxAmount')} (18%)</td>
+                            <td>${formatCurrency(taxAmount)}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td style="font-weight: bold;">${t('totalWithTax')}</td>
+                            <td style="font-weight: bold;">${formatCurrency(totalWithTax)}</td>
                         </tr>
                     </tbody>
                 </table>
-            </div>
-        `;
-
-        const financialSummary = `
-            <div class="financial-summary">
-                <h3>${t('financialSummary')}</h3>
-                <div class="summary-content">
-                    <div class="summary-item">
-                        <span>${t('preTaxTotal')}:</span>
-                        <span>${formatCurrency(preTaxTotal)}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span>${t('taxAmount')} (18%):</span>
-                        <span>${formatCurrency(taxAmount)}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span>${t('totalWithTax')}:</span>
-                        <span>${formatCurrency(totalWithTax)}</span>
-                    </div>
-                </div>
             </div>
         `;
 
@@ -76,7 +88,6 @@ export const generateTaxInvoicePDF = async (billData: BillData, options: PDFOpti
         const content = `
             ${documentInfoSection}
             ${carDetailsTable}
-            ${financialSummary}
             ${signatureSection}
         `;
 

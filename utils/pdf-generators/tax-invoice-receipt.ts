@@ -117,10 +117,10 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
 
                     return `
                     <tr>
-                        <td>${t(`payment_${payment.payment_type}`) || payment.payment_type}</td>
-                        <td>${formatCurrency(payment.amount || 0)}</td>
-                        <td>${formatDate(payment.created_at || billData.created_at)}</td>
+                        <td style="font-weight: bold;">${t(`payment_${payment.payment_type}`) || payment.payment_type}</td>
                         <td>${paymentDetails || '-'}</td>
+                        <td>${formatDate(payment.created_at || billData.created_at)}</td>
+                        <td>${formatCurrency(payment.amount || 0)}</td>
                     </tr>
                 `;
                 })
@@ -142,9 +142,9 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
                     (payment) => `
                 <tr>
                     <td>${t(`payment_${payment.type}`) || payment.type}</td>
-                    <td>${formatCurrency(payment.amount || 0)}</td>
-                    <td>${formatDate(billData.created_at)}</td>
                     <td>${payment.details}</td>
+                    <td>${formatDate(billData.created_at)}</td>
+                    <td>${formatCurrency(payment.amount || 0)}</td>
                 </tr>
             `,
                 )
@@ -158,65 +158,75 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
 
         const documentInfoSection = generateDocumentInfoSection(t, billData);
 
+        const customTRStyle = `
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        `;
+
         // Tax Invoice Section
         const carDetailsTable = `
             <div class="table-container">
                 <table>
-                    <thead>
-                        <tr>
-                            <th>${t('carDetails')}</th>
-                            <th>${t('buyPrice')}</th>
-                            <th>${t('salePrice')}</th>
-                            <th>${t('commission')}</th>
-                            ${loss > 0 ? `<th>${t('loss')}</th>` : ''}
+                    <thead> 
+                        <tr style="${customTRStyle}">
+                            <th>${t('label')}</th>
+                            <th>${t('value')}</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>${carInfo}</td>
+                        <tr style="${customTRStyle}">
+                            <td>${t('carDetails')}</td>
+                            <td style="direction: ltr;">${carInfo}</td>
+
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('buyPrice')}</td>
                             <td>${formatCurrency(carBuyPrice)}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('salePrice')}</td>
                             <td>${formatCurrency(carSalePrice)}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('commission')}</td>
                             <td>${formatCurrency(totalWithTax)}</td>
-                            ${loss > 0 ? `<td>${formatCurrency(loss)}</td>` : ''}
+                        </tr>
+                        ${
+                            loss > 0
+                                ? `<tr style="${customTRStyle}">
+                                    <td>${t('loss')}</td>
+                                    <td>${formatCurrency(loss)}</td>
+                                  </tr>`
+                                : ''
+                        }
+                        <tr style="${customTRStyle}">
+                            <td>${t('preTaxTotal')}</td>
+                            <td>${formatCurrency(preTaxTotal)}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td>${t('taxAmount')} (18%)</td>
+                            <td>${formatCurrency(taxAmount)}</td>
+                        </tr>
+                        <tr style="${customTRStyle}">
+                            <td style="font-weight: bold;">${t('totalWithTax')}</td>
+                            <td style="font-weight: bold;">${formatCurrency(totalWithTax)}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         `;
 
-        const financialSummary = `
-            <div class="financial-summary">
-                <h3>${t('financialSummary')}</h3>
-                <div class="summary-content">
-                    <div class="summary-item">
-                        <span>${t('preTaxTotal')}:</span>
-                        <span>${formatCurrency(preTaxTotal)}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span>${t('taxAmount')} (18%):</span>
-                        <span>${formatCurrency(taxAmount)}</span>
-                    </div>
-                    <div class="summary-item">
-                        <span>${t('totalWithTax')}:</span>
-                        <span>${formatCurrency(totalWithTax)}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
         // Receipt Section - Payments Table
         const paymentsTable = `
-            <div class="financial-summary" style="margin-top: 30px;">
-                <h3>${t('paymentDetails')}</h3>
-            </div>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
                             <th>${t('paymentMethod')}</th>
-                            <th>${t('amount')}</th>
-                            <th>${t('paymentDate')}</th>
                             <th>${t('additionalDetails')}</th>
+                            <th>${t('paymentDate')}</th>
+                            <th>${t('amount')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -228,7 +238,6 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
 
         const paymentSummarySection = `
             <div class="financial-summary">
-                <h3>${t('receiptDetails')}</h3>
                 <div class="summary-content">
                     <div class="summary-item">
                         <span>${t('totalAmount')}:</span>
@@ -257,7 +266,6 @@ export const generateTaxInvoiceReceiptPDF = async (billData: BillData, options: 
         const content = `
             ${documentInfoSection}
             ${carDetailsTable}
-            ${financialSummary}
             ${paymentsTable}
             ${paymentSummarySection}
             ${signatureSection}

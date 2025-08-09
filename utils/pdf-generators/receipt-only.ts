@@ -108,10 +108,10 @@ export const generateReceiptOnlyPDF = async (billData: BillData, options: PDFOpt
 
                     return `
                     <tr>
-                        <td>${t(`payment_${payment.payment_type}`) || payment.payment_type}</td>
-                        <td>${formatCurrency(payment.amount || 0)}</td>
-                        <td>${formatDate(payment.created_at || billData.created_at)}</td>
+                        <td style="font-weight: bold;">${t(`payment_${payment.payment_type}`) || payment.payment_type}</td>
                         <td>${paymentDetails || '-'}</td>
+                        <td>${formatDate(payment.created_at || billData.created_at)}</td>
+                        <td>${formatCurrency(payment.amount || 0)}</td>
                     </tr>
                 `;
                 })
@@ -133,9 +133,9 @@ export const generateReceiptOnlyPDF = async (billData: BillData, options: PDFOpt
                     (payment) => `
                 <tr>
                     <td>${t(`payment_${payment.type}`) || payment.type}</td>
-                    <td>${formatCurrency(payment.amount || 0)}</td>
-                    <td>${formatDate(billData.created_at)}</td>
                     <td>${payment.details}</td>
+                    <td>${formatDate(billData.created_at)}</td>
+                    <td>${formatCurrency(payment.amount || 0)}</td>
                 </tr>
             `,
                 )
@@ -153,9 +153,9 @@ export const generateReceiptOnlyPDF = async (billData: BillData, options: PDFOpt
                     <thead>
                         <tr>
                             <th>${t('paymentMethod')}</th>
-                            <th>${t('amount')}</th>
-                            <th>${t('paymentDate')}</th>
                             <th>${t('additionalDetails')}</th>
+                            <th>${t('paymentDate')}</th>
+                            <th>${t('amount')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -167,7 +167,6 @@ export const generateReceiptOnlyPDF = async (billData: BillData, options: PDFOpt
 
         const paymentDetailsSection = `
             <div class="financial-summary">
-                <h3>${t('financialSummary')}</h3>
                 <div class="summary-content">
                     <div class="summary-item">
                         <span>${t('totalAmount')}:</span>

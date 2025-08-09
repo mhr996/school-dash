@@ -60,6 +60,15 @@ export const translations: PDFTranslations = {
         checkNumber: 'رقم الشيك',
         cashPayment: 'دفع نقدي',
         bill_type: 'نوع الفاتورة',
+        label: 'البيان',
+        value: 'القيمة',
+        taxInvoice: 'فاتورة ضريبية',
+        taxReceipt: 'إيصال ضريبي',
+        taxInvoiceWithReceipt: 'فاتورة ضريبية مع إيصال',
+        general: 'فاتورة عامة',
+        recipientSignature: 'توقيع المستلم',
+        issuerSignature: 'توقيع المصدر',
+        thankYouMessage: 'شكراً لتعاملكم معنا',
     },
     he: {
         documentInfo: 'פרטי המסמך',
@@ -120,6 +129,15 @@ export const translations: PDFTranslations = {
         checkNumber: 'מספר שיק',
         cashPayment: 'תשלום במזומן',
         bill_type: 'סוג חשבונית',
+        label: 'פריט',
+        value: 'ערך',
+        taxInvoice: 'חשבונית מס',
+        taxReceipt: 'קבלה',
+        taxInvoiceWithReceipt: 'חשבונית מס עם קבלה',
+        general: 'חשבונית כללית',
+        recipientSignature: 'חתימת מקבל',
+        issuerSignature: 'חתימת מוציא',
+        thankYouMessage: 'תודה על העסקה',
     },
     en: {
         documentInfo: 'Document Information',
@@ -180,6 +198,15 @@ export const translations: PDFTranslations = {
         checkNumber: 'Check Number',
         cashPayment: 'Cash Payment',
         bill_type: 'Bill Type',
+        label: 'Label',
+        value: 'Value',
+        taxInvoice: 'Tax Invoice',
+        taxReceipt: 'Tax Receipt',
+        taxInvoiceWithReceipt: 'Tax Invoice with Receipt',
+        general: 'General Bill',
+        recipientSignature: 'Recipient Signature',
+        issuerSignature: 'Issuer Signature',
+        thankYouMessage: 'Thank you for your business',
     },
 };
 
@@ -308,7 +335,7 @@ export const getBaseHTML = async (lang: string = 'ar') => {
                 {{CONTENT}}
             </div>
             <div class="footer">
-                <div class="thank-you">شكراً لاختياركم شركتنا - Thank you for choosing our company</div>
+                <div class="thank-you">${lang === 'ar' ? 'شكراً لتعاملكم معنا' : lang === 'he' ? 'תודה על העסקה' : 'Thank you for your business'}</div>
                 ${companyInfo.name ? `<div>${companyInfo.name} © 2024</div>` : ''}
             </div>
         </div>
@@ -332,7 +359,7 @@ export const generateDocumentInfoSection = (t: (key: string) => string, data: an
                 </div>
                 <div class="info-item">
                     <span class="info-label">${t('bill_type')}:</span>
-                    <span class="info-value">${data.bill_type || '-'}</span>
+                    <span class="info-value">${data.bill_type === 'tax_invoice' ? t('taxInvoice') : data.bill_type === 'receipt_only' ? t('taxReceipt') : data.bill_type === 'tax_invoice_receipt' ? t('taxInvoiceWithReceipt') : t('general')}</span>
                 </div>
             </div>
         </div>
@@ -354,18 +381,22 @@ export const generateDocumentInfoSection = (t: (key: string) => string, data: an
             </div>
         </div>
     </div>
+
+    <h3 style="font-size: 18px; font-weight: bold; color: #1a2941; text-align: center;">
+        ${data.bill_type === 'tax_invoice' ? t('taxInvoice') : data.bill_type === 'receipt_only' ? t('taxReceipt') : data.bill_type === 'tax_invoice_receipt' ? t('taxInvoiceWithReceipt') : t('general')}
+    </h3>
 `;
 
 export const generateSignatureSection = (t: (key: string) => string) => `
     <div class="signature-section">
         <div class="signature-row">
             <div class="signature-item">
-                <div class="signature-label">توقيع المستلم</div>
+                <div class="signature-label">${t('recipientSignature')}</div>
                 <div class="signature-line"></div>
                 <div>Recipient Signature</div>
             </div>
             <div class="signature-item">
-                <div class="signature-label">توقيع المصدر</div>
+                <div class="signature-label">${t('issuerSignature')}</div>
                 <div class="signature-line"></div>
                 <div>Issuer Signature</div>
             </div>
@@ -627,7 +658,9 @@ export const getCommonStyles = () => {
             background: white;
             text-align: center;
         }
-        
+
+     
+
         tr:nth-child(even) td {
             background: #f9fafb;
         }
@@ -674,12 +707,14 @@ export const getCommonStyles = () => {
             margin: 30px 0;
             padding: 20px 0;
             border-top: 1px solid #e5e7eb;
+            width: 100%;
         }
         
         .signature-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 40px;
+            display: flex;
+            flex: 1;
+            align-items: center;
+            justify-content: space-between;
             margin: 20px 0;
         }
         
