@@ -149,6 +149,7 @@ const BillPreview = () => {
 
             if (error) throw error;
             setBill(data);
+            console.log('Fetched bill:', data);
         } catch (error) {
             console.error('Error fetching bill:', error);
         } finally {
@@ -167,22 +168,6 @@ const BillPreview = () => {
             default:
                 return type;
         }
-    };
-
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'paid':
-                return 'text-green-600 bg-green-100';
-            case 'pending':
-                return 'text-yellow-600 bg-yellow-100';
-            case 'overdue':
-                return 'text-red-600 bg-red-100';
-            default:
-                return 'text-blue-600 bg-blue-100';
-        }
-    };
-    const handlePrint = () => {
-        window.print();
     };
 
     const handleDownloadPDF = async () => {
@@ -281,10 +266,6 @@ const BillPreview = () => {
                                     <span className="badge badge-outline-info">{getBillTypeLabel(bill.bill_type)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">{t('status')}:</span>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(bill.status)}`}>{t(`bill_status_${bill.status}`)}</span>
-                                </div>
-                                <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">{t('created_at')}:</span>
                                     <span className="font-medium">{new Date(bill.created_at).toLocaleDateString()}</span>
                                 </div>
@@ -315,8 +296,9 @@ const BillPreview = () => {
                         </div>
                     </div>
                 </div>
+
                 {/* Deal Summary Table (تفاصيل الفاتورة الضريبية) */}
-                {bill.deal && bill.deal.car && (
+                {bill.bill_type !== 'receipt_only' && bill.deal && bill.deal.car && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
@@ -353,7 +335,7 @@ const BillPreview = () => {
 
                                     {/* Row 2: Buy Price */}
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price')}</div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
                                         </div>
@@ -367,36 +349,28 @@ const BillPreview = () => {
 
                                     {/* Row 3: Selling Price */}
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
                                         </div>
                                     </div>
 
-                                    {/* Row 4: Loss */}
-                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
-                                        <div className="text-center">-</div>
-                                        <div className="text-center">-</div>
-                                        <div className="text-center">
-                                            <span className="text-sm text-red-600 dark:text-red-400">₪{Math.max(0, (bill.deal.car.buy_price || 0) - (bill.deal.amount || 0)).toFixed(2)}</span>
-                                        </div>
-                                    </div>
+                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2 ">
+                                        <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
 
-                                    {/* Row 5: Profit Commission */}
-                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2">
-                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
+                                        <span className={`text-sm font-bold text-center ${(bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}
+                                        </span>
                                         <div className="text-center">-</div>
-                                        <div className="text-center">-</div>
-                                        <div className="text-center">
-                                            <span className="text-sm text-green-600 dark:text-green-400">₪{Math.max(0, (bill.deal.amount || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}</span>
-                                        </div>
+                                        <span className={`text-sm font-bold text-center ${(bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}
+                                        </span>
                                     </div>
                                 </>
                             )}
@@ -417,18 +391,44 @@ const BillPreview = () => {
                                         <div className="text-center">-</div>
                                     </div>
 
-                                    {/* Row 2: Profit Commission */}
-                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2">
-                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
+                                    {/* Row 2: Buy Price */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-green-600 dark:text-green-400">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
                                         </div>
+                                    </div>
+
+                                    {/* Row 3: Selling Price */}
+                                    <div className="grid grid-cols-4 gap-4 mb-3 py-2">
+                                        <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price')}</div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
+                                        </div>
+                                        <div className="text-center">
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-4 gap-4 mb-4 py-2 ">
+                                        <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
+
+                                        <span className={`text-sm font-bold text-center ${(bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}
+                                        </span>
+                                        <div className="text-center">-</div>
+                                        <span className={`text-sm font-bold text-center ${(bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}
+                                        </span>
                                     </div>
                                 </>
                             )}
@@ -584,115 +584,235 @@ const BillPreview = () => {
                     </div>
                 )}
 
-                {/* Tax Invoice Details */}
-                {(bill.bill_type === 'tax_invoice' || bill.bill_type === 'tax_invoice_receipt') && (
-                    <div className="panel">
-                        <div className="mb-5 flex items-center gap-3">
-                            <IconUser className="w-5 h-5 text-primary" />
-                            <h2 className="text-xl font-bold text-primary">{t('tax_invoice_details')}</h2>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('customer_name')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{bill.customer_name}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{bill.phone || t('not_provided')}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('date')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{bill.date ? new Date(bill.date).toLocaleDateString() : t('not_provided')}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('car_details')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{bill.car_details || t('not_provided')}</p>
-                            </div>
-                            {bill.free_text && (
-                                <div className="md:col-span-2 lg:col-span-3">
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('free_text')}</label>
-                                    <p className="text-sm text-gray-900 dark:text-white">{bill.free_text}</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-                {/* Receipt Details */}
-                {(bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') && bill.payment_type && (
+                {/* Receipt Details - Multiple Payments */}
+                {(bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
                             <h2 className="text-xl font-bold text-primary">{t('receipt_details')}</h2>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('payment_type')}</label>
-                                <p className="text-sm text-gray-900 dark:text-white">{t(bill.payment_type)}</p>
+
+                        {/* Display multiple payments if they exist */}
+                        {bill.payments && bill.payments.length > 0 ? (
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                                    {t('payments')} ({bill.payments.length})
+                                </h3>
+                                {bill.payments.map((payment, index) => (
+                                    <div key={payment.id || index} className=" p-4 rounded-lg border">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="font-medium text-gray-900 dark:text-white">
+                                                {t('payment')} #{index + 1} - {t(payment.payment_type)}
+                                            </h4>
+                                            <span className="font-bold text-lg text-primary">₪{new Intl.NumberFormat('he-IL').format(payment.amount || 0)}</span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {payment.payment_type === 'visa' && (
+                                                <>
+                                                    {payment.visa_installments && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('visa_installments')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.visa_installments}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.visa_card_type && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('visa_card_type')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.visa_card_type}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.visa_last_four && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('visa_last_four')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.visa_last_four}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.approval_number && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('approval_number')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.approval_number}</p>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {payment.payment_type === 'bank_transfer' && (
+                                                <>
+                                                    {payment.transfer_bank_name && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('bank_name')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.transfer_bank_name}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.transfer_branch && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('bank_branch')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.transfer_branch}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.transfer_branch_number && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('branch_number')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.transfer_branch_number}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.transfer_account_number && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('account_number')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.transfer_account_number}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.transfer_number && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('transfer_number')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.transfer_number}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.transfer_holder_name && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('transfer_holder_name')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.transfer_holder_name}</p>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {payment.payment_type === 'check' && (
+                                                <>
+                                                    {payment.check_number && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('check_number')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.check_number}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.check_bank_name && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('check_bank_name')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.check_bank_name}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.check_holder_name && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('check_holder_name')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.check_holder_name}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.check_branch && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('check_branch')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.check_branch}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.check_branch_number && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('check_branch_number')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.check_branch_number}</p>
+                                                        </div>
+                                                    )}
+                                                    {payment.check_account_number && (
+                                                        <div>
+                                                            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('check_account_number')}</label>
+                                                            <p className="text-sm text-gray-900 dark:text-white">{payment.check_account_number}</p>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+
+                                            {payment.payment_type === 'cash' && (
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{t('payment_type')}</label>
+                                                    <p className="text-sm text-gray-900 dark:text-white">{t('cash')}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+
+                                {/* Total Payments Summary */}
+                                <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-medium text-gray-900 dark:text-white">{t('total_payments')}</span>
+                                        <span className="font-bold text-lg text-primary">
+                                            ₪{new Intl.NumberFormat('he-IL').format(bill.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0))}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
+                        ) : (
+                            /* Fallback to legacy single payment display if no payments array */
+                            bill.payment_type && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('payment_type')}</label>
+                                        <p className="text-sm text-gray-900 dark:text-white">{t(bill.payment_type)}</p>
+                                    </div>
 
-                            {bill.payment_type === 'visa' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.visa_amount || 0)}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_installments')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.visa_installments || t('not_provided')}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_card_type')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.visa_card_type || t('not_provided')}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_last_four')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.visa_last_four ? `****${bill.visa_last_four}` : t('not_provided')}</p>
-                                    </div>
-                                </>
-                            )}
+                                    {bill.payment_type === 'visa' && (
+                                        <>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_amount')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.visa_amount || 0)}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_installments')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.visa_installments || t('not_provided')}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_card_type')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.visa_card_type || t('not_provided')}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('visa_last_four')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.visa_last_four ? `****${bill.visa_last_four}` : t('not_provided')}</p>
+                                            </div>
+                                        </>
+                                    )}
 
-                            {bill.payment_type === 'bank_transfer' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.bank_amount || 0)}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_name')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.bank_name || t('not_provided')}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_branch')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.bank_branch || t('not_provided')}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('account_number')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.account_number || t('not_provided')}</p>
-                                    </div>
-                                </>
-                            )}
+                                    {bill.payment_type === 'bank_transfer' && (
+                                        <>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_amount')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.bank_amount || 0)}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_name')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.bank_name || t('not_provided')}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('bank_branch')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.bank_branch || t('not_provided')}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('account_number')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.account_number || t('not_provided')}</p>
+                                            </div>
+                                        </>
+                                    )}
 
-                            {bill.payment_type === 'check' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_amount')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.check_amount || 0)}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_number')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.check_number || t('not_provided')}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_bank_name')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.check_bank_name || t('not_provided')}</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_holder_name')}</label>
-                                        <p className="text-sm text-gray-900 dark:text-white">{bill.check_holder_name || t('not_provided')}</p>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                                    {bill.payment_type === 'check' && (
+                                        <>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_amount')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">₪{new Intl.NumberFormat('he-IL').format(bill.check_amount || 0)}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_number')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.check_number || t('not_provided')}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_bank_name')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.check_bank_name || t('not_provided')}</p>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('check_holder_name')}</label>
+                                                <p className="text-sm text-gray-900 dark:text-white">{bill.check_holder_name || t('not_provided')}</p>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            )
+                        )}
                     </div>
                 )}
             </div>

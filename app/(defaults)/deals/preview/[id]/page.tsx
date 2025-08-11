@@ -408,7 +408,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('amount')}</label>
                                 <div className="flex items-center gap-2">
                                     <IconDollarSign className="w-5 h-5 text-success" />
-                                    <span className="text-xl font-bold text-success">{formatCurrency(deal.amount)}</span>
+                                    <span className="text-xl font-bold text-success">{formatCurrency(car?.sale_price || 0)}</span>
                                 </div>
                             </div>
                             <div className="flex justify-center items-center flex-col gap-2">
@@ -487,8 +487,15 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                     <span className="text-sm text-gray-700 dark:text-gray-300">₪{car.buy_price?.toFixed(2) || '0.00'}</span>
                                 </div>
                             </div>
+                            {/* Row 3: Sale Price */}
+                            <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('sale_price')}</div>
+                                <div className="text-center">
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{car.sale_price?.toFixed(2) || '0.00'}</span>
+                                </div>
+                            </div>
 
-                            {/* Row 3: Deal Amount */}
+                            {/* Row 4: Deal Amount */}
                             <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                 <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('deal_amount')}</div>
                                 <div className="text-center">
@@ -496,12 +503,12 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                 </div>
                             </div>
 
-                            {/* Row 4: Profit/Loss */}
+                            {/* Row 5: Profit/Loss */}
                             <div className="grid grid-cols-3 gap-4 mb-3 py-2 border-t border-gray-200 dark:border-gray-600 pt-2">
                                 <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
                                 <div className="text-center">
-                                    <span className={`text-sm font-bold ${(deal.amount || 0) - (car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        ₪{((deal.amount || 0) - (car.buy_price || 0)).toFixed(2)}
+                                    <span className={`text-sm font-bold ${(car.sale_price || 0) - (car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        ₪{((car.sale_price || 0) - (car.buy_price || 0)).toFixed(2)}
                                     </span>
                                 </div>
                             </div>
@@ -675,17 +682,25 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                     </div>
                 )}
                 {/* Attachments Section */}
-                {deal.attachments && deal.attachments.length > 0 && (
-                    <div className="panel">
-                        <div className="mb-5">
-                            <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
-                                <IconPaperclip className="w-6 h-6 text-primary" />
-                                {t('attachments')}
-                            </h5>
-                        </div>
-                        <AttachmentsDisplay attachments={deal.attachments} compact={false} />
+                <div className="panel">
+                    <div className="mb-5">
+                        <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
+                            <IconPaperclip className="w-6 h-6 text-primary" />
+                            {t('attachments')}
+                        </h5>
                     </div>
-                )}
+                    {deal.attachments && deal.attachments.length > 0 ? (
+                        <AttachmentsDisplay attachments={deal.attachments} compact={false} />
+                    ) : (
+                        <div className="text-center py-8">
+                            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                                <IconPaperclip className="w-8 h-8 text-gray-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('no_attachments_found')}</h3>
+                            <p className="text-gray-600 dark:text-gray-400">{t('no_attachments_added_yet')}</p>
+                        </div>
+                    )}
+                </div>
                 {/* Bills Section */}
                 <div className="panel">
                     <div className="mb-5">
