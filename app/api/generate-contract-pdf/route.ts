@@ -108,10 +108,10 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
+        return new Date(dateString).toLocaleDateString('en-GB', {
             year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
         });
     };
 
@@ -328,10 +328,10 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('ar-SA', {
+        return new Date(dateString).toLocaleDateString('en-GB', {
             year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
         });
     };
 
@@ -556,10 +556,10 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
     };
 
     const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('he-IL', {
+        return new Date(dateString).toLocaleDateString('en-GB', {
             year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
         });
     };
 

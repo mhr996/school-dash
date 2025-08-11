@@ -415,7 +415,13 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('created_date')}</label>
                                 <div className="flex items-center gap-2">
                                     <IconCalendar className="w-5 h-5 text-primary" />
-                                    <span className="font-medium">{new Date(deal.created_at).toLocaleDateString()}</span>
+                                    <span className="font-medium">
+                                        {new Date(deal.created_at).toLocaleDateString('en-GB', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                        })}
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -721,7 +727,12 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                                 <h4 className="font-semibold text-gray-900 dark:text-white">{t(`bill_type_${bill.bill_type}`)}</h4>
                                             </div>
                                             <div className="text-sm text-gray-600 dark:text-gray-400">
-                                                {bill.customer_name} • {new Date(bill.date).toLocaleDateString()}
+                                                {bill.customer_name} •{' '}
+                                                {new Date(bill.date).toLocaleDateString('en-GB', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                })}
                                             </div>
                                         </div>
                                     </div>

@@ -242,7 +242,15 @@ const CompanySettings = () => {
                             </div>
                             <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                 <span className="text-gray-600 dark:text-gray-400">{t('last_updated')}</span>
-                                <span className="font-medium">{companyInfo.updated_at ? new Date(companyInfo.updated_at).toLocaleDateString() : t('never')}</span>
+                                <span className="font-medium">
+                                    {companyInfo.updated_at
+                                        ? new Date(companyInfo.updated_at).toLocaleDateString('en-GB', {
+                                              year: 'numeric',
+                                              month: '2-digit',
+                                              day: '2-digit',
+                                          })
+                                        : t('never')}
+                                </span>
                             </div>
                         </div>
                     </div>

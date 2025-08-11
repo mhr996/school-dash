@@ -216,7 +216,11 @@ export const generateOrderReceiptPDF = async (orderData: any, options: PDFOption
                     <div>
                         <h3 style="color: #333; margin: 0 0 10px 0; font-size: 18px;">Order Details</h3>
                         <p style="margin: 5px 0; color: #666;"><strong>Order ID:</strong> #${orderData.id}</p>
-                        <p style="margin: 5px 0; color: #666;"><strong>Date:</strong> ${new Date(orderData.date).toLocaleDateString()}</p>
+                        <p style="margin: 5px 0; color: #666;"><strong>Date:</strong> ${new Date(orderData.date).toLocaleDateString('en-GB', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                        })}</p>
                         <p style="margin: 5px 0; color: #666;"><strong>Status:</strong> ${orderData.status.charAt(0).toUpperCase() + orderData.status.slice(1)}</p>
                     </div>
                     <div style="text-align: right;">

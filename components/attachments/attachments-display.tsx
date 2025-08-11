@@ -69,7 +69,13 @@ const AttachmentsDisplay: React.FC<AttachmentsDisplayProps> = ({ attachments, co
                         <p className="text-xs text-gray-500 mt-1">
                             {attachment.name} • {formatFileSize(attachment.size)}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">{new Date(attachment.uploadedAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                            {new Date(attachment.uploadedAt).toLocaleDateString('en-GB', {
+                                year: 'numeric',
+                                month: '2-digit',
+                                day: '2-digit',
+                            })}
+                        </p>
                     </div>
 
                     {/* Actions */}

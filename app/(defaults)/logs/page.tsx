@@ -12,6 +12,17 @@ import IconMenuInvoice from '@/components/icon/menu/icon-menu-invoice';
 import IconUser from '@/components/icon/icon-user';
 import IconListCheck from '@/components/icon/icon-list-check';
 import Link from 'next/link';
+import LogFilters from '@/components/log-filters/log-filters';
+import { formatDate } from '@/utils/date-formatter';
+
+interface LogFilters {
+    search: string;
+    carNumber: string;
+    clientId: string;
+    clientName: string;
+    dateFrom: string;
+    dateTo: string;
+}
 
 const LogsPage = () => {
     const { t } = getTranslation();
@@ -37,6 +48,16 @@ const LogsPage = () => {
     }, []);
     const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
+    // Active filters state
+    const [activeFilters, setActiveFilters] = useState<LogFilters>({
+        search: '',
+        carNumber: '',
+        clientId: '',
+        clientName: '',
+        dateFrom: '',
+        dateTo: '',
+    });
+
     useEffect(() => {
         fetchLogs();
     }, []);
@@ -56,12 +77,15 @@ const LogsPage = () => {
         }
     };
 
-    // Filter by search term
+    // Filter by search term and filters
     useEffect(() => {
         setInitialRecords(
             items.filter((log) => {
-                const searchLower = search.toLowerCase();
-                return (
+                const searchLower = activeFilters.search.toLowerCase();
+
+                // Basic search filter
+                const matchesSearch =
+                    !activeFilters.search ||
                     log.type.toLowerCase().includes(searchLower) ||
                     (log.deal?.title && log.deal.title.toLowerCase().includes(searchLower)) ||
                     (log.deal?.customer_name && log.deal.customer_name.toLowerCase().includes(searchLower)) ||
@@ -69,11 +93,32 @@ const LogsPage = () => {
                     (log.car?.brand && log.car.brand.toLowerCase().includes(searchLower)) ||
                     (log.car?.car_number && log.car.car_number.toLowerCase().includes(searchLower)) ||
                     (log.bill?.customer_name && log.bill.customer_name.toLowerCase().includes(searchLower)) ||
-                    (log.bill?.bill_type && log.bill.bill_type.toLowerCase().includes(searchLower))
-                );
+                    (log.bill?.bill_type && log.bill.bill_type.toLowerCase().includes(searchLower));
+
+                // Car number filter
+                const matchesCarNumber = !activeFilters.carNumber || (log.car?.car_number && log.car.car_number.toLowerCase().includes(activeFilters.carNumber.toLowerCase()));
+
+                // Client ID filter
+                const matchesClientId =
+                    !activeFilters.clientId ||
+                    (log.deal?.customer?.id_number && log.deal.customer.id_number.toLowerCase().includes(activeFilters.clientId.toLowerCase())) ||
+                    (log.bill?.customer_id_number && log.bill.customer_id_number.toLowerCase().includes(activeFilters.clientId.toLowerCase()));
+
+                // Client name filter
+                const matchesClientName =
+                    !activeFilters.clientName ||
+                    (log.deal?.customer_name && log.deal.customer_name.toLowerCase().includes(activeFilters.clientName.toLowerCase())) ||
+                    (log.bill?.customer_name && log.bill.customer_name.toLowerCase().includes(activeFilters.clientName.toLowerCase()));
+
+                // Date range filter
+                const logDate = new Date(log.created_at);
+                const matchesDateFrom = !activeFilters.dateFrom || logDate >= new Date(activeFilters.dateFrom);
+                const matchesDateTo = !activeFilters.dateTo || logDate <= new Date(activeFilters.dateTo + 'T23:59:59');
+
+                return matchesSearch && matchesCarNumber && matchesClientId && matchesClientName && matchesDateFrom && matchesDateTo;
             }),
         );
-    }, [items, search]);
+    }, [items, activeFilters]);
 
     useEffect(() => {
         setPage(1);
@@ -90,16 +135,6 @@ const LogsPage = () => {
         setRecords(sortStatus.direction === 'desc' ? sorted.reverse() : sorted);
         setPage(1);
     }, [sortStatus, initialRecords]);
-
-    const formatDate = (dateString: string) => {
-        if (!dateString) return t('not_available');
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-        });
-    };
 
     const getCarModelDetails = (log: Log) => {
         if (!log.car) return t('not_available');
@@ -125,7 +160,7 @@ const LogsPage = () => {
 
         return (
             <div className="text-sm">
-                <div className="font-medium">{formatDate(car.created_at)}</div>
+                <div className="font-medium">{formatDate(car.created_at) || t('not_available')}</div>
                 <div className="text-gray-500 dark:text-gray-400">{provider?.name || car.provider || t('not_available')}</div>
                 <div className="text-gray-500 dark:text-gray-400">₪{car.buy_price?.toLocaleString() || '0'}</div>
             </div>
@@ -140,7 +175,7 @@ const LogsPage = () => {
 
         return (
             <div className="text-sm">
-                <div className="font-medium">{formatDate(deal.created_at)}</div>
+                <div className="font-medium">{formatDate(deal.created_at) || t('not_available')}</div>
                 <div className="text-gray-500 dark:text-gray-400">{customer?.name || deal.customer_name || t('not_available')}</div>
                 <div className="text-gray-500 dark:text-gray-400">₪{deal.amount?.toLocaleString() || '0'}</div>
             </div>
@@ -274,11 +309,24 @@ const LogsPage = () => {
 
                 {alertState && <Alert message={alertState.message} type={alertState.type} onClose={() => setAlertState(null)} />}
 
-                <div className="mb-4.5 flex flex-col gap-5 md:flex-row md:items-center">
-                    <div className="ltr:ml-auto rtl:mr-auto">
-                        <input type="text" className="form-input w-auto" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-                    </div>
-                </div>
+                <LogFilters
+                    onFilterChange={(newFilters) => {
+                        setActiveFilters(newFilters);
+                        // Also update the search state to keep it in sync
+                        setSearch(newFilters.search);
+                    }}
+                    onClearFilters={() => {
+                        setActiveFilters({
+                            search: '',
+                            carNumber: '',
+                            clientId: '',
+                            clientName: '',
+                            dateFrom: '',
+                            dateTo: '',
+                        });
+                        setSearch('');
+                    }}
+                />
 
                 <div className="datatables">
                     <DataTable
@@ -290,7 +338,7 @@ const LogsPage = () => {
                                 accessor: 'created_at',
                                 title: t('log_date'),
                                 sortable: true,
-                                render: ({ created_at }) => <div className="text-sm">{formatDate(created_at)}</div>,
+                                render: ({ created_at }) => <div className="text-sm">{formatDate(created_at) || t('not_available')}</div>,
                             },
                             {
                                 accessor: 'car_details',

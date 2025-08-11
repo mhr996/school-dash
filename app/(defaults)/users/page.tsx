@@ -274,7 +274,15 @@ const UsersList = () => {
                                 accessor: 'created_at',
                                 title: t('created_at'),
                                 sortable: true,
-                                render: ({ created_at }) => <span>{new Date(created_at!).toLocaleDateString()}</span>,
+                                render: ({ created_at }) => (
+                                    <span>
+                                        {new Date(created_at!).toLocaleDateString('en-GB', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                        })}
+                                    </span>
+                                ),
                             },
                             {
                                 accessor: 'status',

@@ -267,7 +267,13 @@ const BillPreview = () => {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">{t('created_at')}:</span>
-                                    <span className="font-medium">{new Date(bill.created_at).toLocaleDateString()}</span>
+                                    <span className="font-medium">
+                                        {new Date(bill.created_at).toLocaleDateString('en-GB', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                        })}
+                                    </span>
                                 </div>
                             </div>
                         </div>

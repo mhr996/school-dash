@@ -272,7 +272,13 @@ const CustomerPreview = () => {
                                     <div className="flex items-center">
                                         <IconCalendar className="w-5 h-5 text-gray-400 ltr:mr-3 rtl:ml-3" />
                                         <span className="text-sm text-gray-600 ltr:mr-2 rtl:ml-2">{t('member_since')}:</span>
-                                        <span className="font-medium">{new Date(customer.created_at).toLocaleDateString()}</span>
+                                        <span className="font-medium">
+                                            {new Date(customer.created_at).toLocaleDateString('en-GB', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                            })}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -314,7 +320,15 @@ const CustomerPreview = () => {
                                             accessor: 'created_at',
                                             title: t('date'),
                                             sortable: true,
-                                            render: ({ created_at }) => <span>{new Date(created_at).toLocaleDateString()}</span>,
+                                            render: ({ created_at }) => (
+                                                <span>
+                                                    {new Date(created_at).toLocaleDateString('en-GB', {
+                                                        year: 'numeric',
+                                                        month: '2-digit',
+                                                        day: '2-digit',
+                                                    })}
+                                                </span>
+                                            ),
                                         },
                                         {
                                             accessor: 'type',

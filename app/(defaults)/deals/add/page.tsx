@@ -18,6 +18,7 @@ import IconNotes from '@/components/icon/icon-notes';
 import IconCalendar from '@/components/icon/icon-calendar';
 import { uploadMultipleFiles } from '@/utils/file-upload';
 import { formatCurrency } from '@/utils/number-formatter';
+import { formatDate } from '@/utils/date-formatter';
 import { Customer, Car, FileItem, DealAttachments } from '@/types';
 import { logActivity } from '@/utils/activity-logger';
 import { handleDealCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
@@ -64,7 +65,7 @@ const AddDeal = () => {
         additional_customer_amount: '', // المبلغ المضاف من الزبون
         loss_amount: '', // Manual loss/deductions
     });
-     // Form state for company commission deal
+    // Form state for company commission deal
     const [companyCommissionForm, setCompanyCommissionForm] = useState({
         title: '',
         company_name: '', // اسم الشركة المقدمه للعموله

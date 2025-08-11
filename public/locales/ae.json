@@ -1339,5 +1339,8 @@
     "bill_type_general": "فاتورة عامة",
     "view": "عرض",
     "deal_fallback": "صفقة",
-    "unknown_type": "نوع غير معروف"
+    "unknown_type": "نوع غير معروف",
+    "search_general": "البحث في جميع الحقول",
+    "filter_by_car_number": "التصفية حسب رقم السيارة",
+    "filter_by_client_id": "التصفية حسب رقم هوية العميل"
 }

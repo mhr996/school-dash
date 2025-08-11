@@ -60,7 +60,12 @@ const OrderReceipt: React.FC<OrderReceiptProps> = ({ order }) => {
                 <div className="text-right">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('order_details')}</h3>
                     <p className="text-gray-600">
-                        <strong>{t('order_date')}:</strong> {new Date(order.date).toLocaleDateString()}
+                        <strong>{t('order_date')}:</strong>{' '}
+                        {new Date(order.date).toLocaleDateString('en-GB', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                        })}
                     </p>
                     <p className="text-gray-600">
                         <strong>{t('status')}:</strong>

@@ -75,7 +75,11 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
     const formatDate = (dateString?: string) => {
         if (!dateString) return '';
         try {
-            return new Date(dateString).toLocaleDateString();
+            return new Date(dateString).toLocaleDateString('en-GB', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+            });
         } catch {
             return '';
         }

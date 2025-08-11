@@ -2368,9 +2368,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         </div>
 
                                         <MultiplePaymentForm
-                                            payments={payments.map(p => ({
+                                            payments={payments.map((p) => ({
                                                 ...p,
-                                                payment_type: p.payment_type as 'cash' | 'bank_transfer' | 'check' | 'visa'
+                                                payment_type: p.payment_type as 'cash' | 'bank_transfer' | 'check' | 'visa',
                                             }))}
                                             onPaymentsChange={setPayments}
                                             totalAmount={parseFloat(billForm.total_with_tax) || 0}
@@ -2429,7 +2429,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                 </td>{' '}
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{bill.deals?.customers?.name || bill.customer_name || t('unknown_customer')}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₪{getBillAmount(bill).toFixed(2)}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{new Date(bill.created_at).toLocaleDateString()}</td>{' '}
+                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                                    {new Date(bill.created_at).toLocaleDateString('en-GB', {
+                                                        year: 'numeric',
+                                                        month: '2-digit',
+                                                        day: '2-digit',
+                                                    })}
+                                                </td>{' '}
                                                 <td className="px-4 py-3 text-center">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
@@ -2513,7 +2519,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">{t('created_date')}</label>
-                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{new Date(selectedBill.created_at).toLocaleDateString()}</p>
+                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">
+                                        {new Date(selectedBill.created_at).toLocaleDateString('en-GB', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                        })}
+                                    </p>
                                 </div>
                             </div>
 

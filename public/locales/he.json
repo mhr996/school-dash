@@ -889,5 +889,8 @@
     "purchase_date / שם הספק / purchase_price ": "תאריך קניה/מחיר קנייה/שם ספק",
     "purSale Date / Buyer Name / Sale Price": "תאריך מכירה/מחיר מכירה/שם קונה",
     "Invoice Number / Amount": "מספר מסמך חשבונאי/סכום",
-    "Activity Type": "סוג פעולה"
+    "Activity Type": "סוג פעולה",
+    "search_general": "חיפוש כללי",
+    "filter_by_car_number": "סינון לפי מספר רכב",
+    "filter_by_client_id": "סינון לפי מספר זהות לקוח"
 }

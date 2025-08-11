@@ -240,7 +240,11 @@ export const generateOrderReceiptPDF = async (orderData: any, options: LegacyPDF
                     <h2 style="margin: 0 0 20px 0; font-size: 20px; color: #333;">Order Details</h2>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div><strong>Order ID:</strong> ${orderData.id}</div>
-                        <div><strong>Date:</strong> ${new Date(orderData.created_at).toLocaleDateString()}</div>
+                        <div><strong>Date:</strong> ${new Date(orderData.created_at).toLocaleDateString('en-GB', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                        })}</div>
                         <div><strong>Customer:</strong> ${orderData.customer_name}</div>
                         <div><strong>Status:</strong> ${orderData.status}</div>
                     </div>
@@ -282,7 +286,11 @@ export const generateOrderReceiptPDF = async (orderData: any, options: LegacyPDF
                 
                 <div style="border-top: 2px solid #eee; padding-top: 20px; text-align: center; color: #666; font-size: 12px;">
                     <p>Thank you for your business!</p>
-                    <p>Generated on ${new Date().toLocaleDateString()}</p>
+                    <p>Generated on ${new Date().toLocaleDateString('en-GB', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                    })}</p>
                 </div>
             </div>
         `;

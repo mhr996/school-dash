@@ -438,7 +438,15 @@ const Bills = () => {
             accessor: 'created_at',
             title: t('created_at'),
             sortable: true,
-            render: (bill: Bill) => <span>{new Date(bill.created_at).toLocaleDateString()}</span>,
+            render: (bill: Bill) => (
+                <span>
+                    {new Date(bill.created_at).toLocaleDateString('en-GB', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                    })}
+                </span>
+            ),
         },
         {
             accessor: 'actions',
