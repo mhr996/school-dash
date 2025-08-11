@@ -6,6 +6,9 @@ import Image from 'next/image';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
+import { generateBillPDF, BillData } from '@/utils/pdf-generator';
+import Cookies from 'universal-cookie';
+import { formatDate } from '@/utils/date-formatter';
 import DealTypeSelect from '@/components/deal-type-select/deal-type-select';
 
 import CustomerSelect from '@/components/customer-select/customer-select';
@@ -14,6 +17,88 @@ import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
 import SingleFileUpload from '@/components/file-upload/single-file-upload';
 import { Deal, Customer, Car, FileItem, DealAttachments, DealAttachment } from '@/types';
+import { BillWithPayments } from '@/types/payment';
+
+interface Bill extends BillWithPayments {
+    amount: number;
+    total_amount: number;
+    // Legacy payment fields for backward compatibility
+    payment_type?: string;
+    visa_amount?: number;
+    bank_amount?: number;
+    transfer_amount?: number;
+    check_amount?: number;
+    cash_amount?: number;
+    bill_amount?: number;
+}
+
+// Helper function to convert Bill to BillData format
+const convertBillToBillData = (bill: Bill): BillData => {
+    return {
+        id: bill.id,
+        bill_type: bill.bill_type,
+        customer_name: bill.customer_name,
+        customer_phone: bill.phone,
+        created_at: bill.date,
+
+        // Map the bill fields to BillData format
+        bill_amount: bill.bill_amount || bill.total,
+        bill_description: bill.car_details || '',
+
+        // Tax invoice fields
+        total: bill.total,
+        tax_amount: bill.tax_amount,
+        total_with_tax: bill.total_with_tax,
+        commission: bill.commission,
+        car_details: bill.car_details,
+
+        // Payment fields
+        payment_type: bill.payment_type,
+        cash_amount: bill.cash_amount,
+        visa_amount: bill.visa_amount,
+        bank_amount: bill.bank_amount || bill.transfer_amount,
+        check_amount: bill.check_amount,
+
+        // Deal information (if available)
+        deal: bill.deal
+            ? {
+                  id: bill.deal_id,
+                  deal_title: bill.deal?.title,
+                  deal_type: bill.deal?.deal_type,
+                  loss_amount: bill.deal?.loss_amount,
+                  selling_price: bill.deal?.selling_price,
+                  car: bill.deal?.car
+                      ? {
+                            buy_price: bill.deal.car.buy_price,
+                            sale_price: bill.deal?.selling_price,
+                            make: bill.deal.car.brand,
+                            model: bill.deal.car.title,
+                            year: bill.deal.car.year,
+                            license_plate: bill.deal.car.car_number,
+                        }
+                      : undefined,
+                  customer: bill.deal?.customer
+                      ? {
+                            name: bill.deal.customer.name,
+                            id_number: bill.deal.customer.id_number,
+                        }
+                      : undefined,
+                  seller: bill.deal?.seller
+                      ? {
+                            name: bill.deal.seller.name,
+                            id_number: bill.deal.seller.id_number,
+                        }
+                      : undefined,
+                  buyer: bill.deal?.buyer
+                      ? {
+                            name: bill.deal.buyer.name,
+                            id_number: bill.deal.buyer.id_number,
+                        }
+                      : undefined,
+              }
+            : undefined,
+    };
+};
 
 // Define BillPayment type locally since it's not exported from @/types
 interface BillPayment {
@@ -54,8 +139,6 @@ import IconEye from '@/components/icon/icon-eye';
 import IconReceipt from '@/components/icon/icon-receipt';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconPdf from '@/components/icon/icon-pdf';
-import { generateBillPDF } from '@/utils/pdf-generator';
-import Cookies from 'universal-cookie';
 
 const EditDeal = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
@@ -360,6 +443,16 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         setForm((prev) => {
             const updated = { ...prev, [name]: value };
 
+            // Auto-calculate amount when loss_amount changes
+            if (name === 'loss_amount' && deal) {
+                const originalAmount = deal.amount || 0;
+                const lossAmount = parseFloat(value) || 0;
+                const newAmount = originalAmount - lossAmount;
+
+                // Update the amount field
+                updated.amount = Math.max(0, newAmount).toString(); // Ensure amount doesn't go negative
+            }
+
             // Auto-calculate exchange fields when relevant values change for exchange deals
             if (dealType === 'exchange' && carTakenFromClient && selectedCar) {
                 const purchasePrice = carTakenFromClient.buy_price || 0;
@@ -375,7 +468,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
             return updated;
         });
-    }; // Fetch bills related to this deal
+    };
+
+    // Fetch bills related to this deal
     const fetchBills = async () => {
         setLoadingBills(true);
         try {
@@ -383,15 +478,19 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 .from('bills')
                 .select(
                     `
-                    *,
-                    deals!inner (
-                        id,
-                        title,
-                        customers!deals_customer_id_fkey (
-                            name,
-                            phone
-                        )
-                    )
+                    *, 
+                    deal:deals(
+                        title, 
+                        deal_type,
+                        amount,
+                        loss_amount,
+                        selling_price,
+                        customer:customers!deals_customer_id_fkey(id, name, id_number),
+                        seller:customers!deals_seller_id_fkey(id, name, id_number),
+                        buyer:customers!deals_buyer_id_fkey(id, name, id_number),
+                        car:cars!deals_car_id_fkey(id, title, brand, year, buy_price, car_number)
+                    ),
+                    payments:bill_payments(*)
                 `,
                 )
                 .eq('deal_id', dealId)
@@ -421,12 +520,14 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     // Handle PDF download
     const handleDownloadPDF = async (bill: any) => {
         setDownloadingPDF(bill.id);
+
+        console.log('Downloading PDF for bill:', bill);
         try {
             const cookies = new Cookies();
             const currentLang = cookies.get('i18nextLng') || 'he';
             const language = currentLang === 'ae' ? 'ar' : currentLang === 'he' ? 'he' : 'en';
 
-            await generateBillPDF(bill, {
+            await generateBillPDF(convertBillToBillData(bill), {
                 filename: `bill-${bill.id}-${bill.customer_name.replace(/\s+/g, '-').toLowerCase()}.pdf`,
                 language,
             });
@@ -2429,23 +2530,16 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                 </td>{' '}
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{bill.deals?.customers?.name || bill.customer_name || t('unknown_customer')}</td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₪{getBillAmount(bill).toFixed(2)}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                                    {new Date(bill.created_at).toLocaleDateString('en-GB', {
-                                                        year: 'numeric',
-                                                        month: '2-digit',
-                                                        day: '2-digit',
-                                                    })}
-                                                </td>{' '}
+                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{formatDate(bill.created_at)}</td>{' '}
                                                 <td className="px-4 py-3 text-center">
                                                     <div className="flex items-center justify-center gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleViewBill(bill)}
+                                                        <Link
+                                                            href={`/bills/preview/${bill.id}`}
                                                             className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors duration-200 text-xs"
                                                         >
                                                             <IconEye className="w-3 h-3" />
                                                             {t('view')}
-                                                        </button>
+                                                        </Link>
                                                         <button
                                                             type="button"
                                                             onClick={() => handleDownloadPDF(bill)}

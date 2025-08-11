@@ -60,6 +60,7 @@ const convertBillToBillData = (bill: Bill): BillData => {
                   id: bill.deal_id,
                   deal_title: bill.deal?.title,
                   deal_type: bill.deal?.deal_type,
+                  loss_amount: bill.deal?.loss_amount,
                   car: bill.deal?.car
                       ? {
                             buy_price: bill.deal.car.buy_price,
@@ -125,6 +126,7 @@ const Bills = () => {
                         title, 
                         deal_type,
                         amount,
+                        loss_amount,
                         customer:customers!deals_customer_id_fkey(id, name, id_number),
                         seller:customers!deals_seller_id_fkey(id, name, id_number),
                         buyer:customers!deals_buyer_id_fkey(id, name, id_number),

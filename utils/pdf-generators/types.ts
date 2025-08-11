@@ -40,6 +40,8 @@ export interface BillData {
         id: string | number;
         deal_title?: string;
         deal_type?: string;
+        loss_amount?: number;
+        selling_price?: number;
         car?: {
             buy_price?: number;
             sale_price?: number;

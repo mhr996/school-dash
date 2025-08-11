@@ -42,6 +42,7 @@ const convertBillToBillData = (bill: Bill): BillData => {
                   id: bill.deal_id,
                   deal_title: bill.deal?.title,
                   deal_type: bill.deal?.deal_type,
+                  loss_amount: bill.deal?.loss_amount,
                   car: bill.deal?.car
                       ? {
                             buy_price: bill.deal.car.buy_price,

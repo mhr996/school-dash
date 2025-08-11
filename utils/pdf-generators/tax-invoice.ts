@@ -5,8 +5,8 @@ import { getTranslationFunction, formatCurrency, formatDate, createTempContainer
 export const generateTaxInvoicePDF = async (billData: BillData, options: PDFOptions = {}): Promise<void> => {
     const { filename = `tax-invoice-${billData.id}.pdf`, language = 'he' } = options;
 
-    console.log('=== Tax Invoice PDF Generation ===');
-    console.log('Bill ID:', billData.id);
+
+    console.log('billData:', billData);
 
     try {
         const tempContainer = createTempContainer('temp-tax-invoice-container');
@@ -16,7 +16,7 @@ export const generateTaxInvoicePDF = async (billData: BillData, options: PDFOpti
         const carBuyPrice = billData.deal?.car?.buy_price || 0;
         const carSalePrice = billData.deal?.car?.sale_price || 0;
         const commission = billData.commission || 0;
-        const loss = carBuyPrice > carSalePrice ? carBuyPrice - carSalePrice : 0;
+        const loss = billData.deal?.loss_amount || 0;
         const preTaxTotal = billData.total || 0;
         const taxAmount = billData.tax_amount || 0;
         const totalWithTax = billData.total_with_tax || 0;
@@ -54,18 +54,19 @@ export const generateTaxInvoicePDF = async (billData: BillData, options: PDFOpti
                             <td>${t('salePrice')}</td>
                             <td>${formatCurrency(carSalePrice)}</td>
                         </tr>
+                          ${
+                              loss > 0
+                                  ? `<tr style="${customTRStyle}">
+                                    <td>${t('loss')}</td>
+                                    <td>${formatCurrency(loss)}</td>
+                                  </tr>`
+                                  : ''
+                          }
                         <tr style="${customTRStyle}">
                             <td>${t('commission')}</td>
                             <td>${formatCurrency(totalWithTax)}</td>
                         </tr> 
-                        ${
-                            loss > 0
-                                ? `<tr style="${customTRStyle}">
-                                    <td>${t('loss')}</td>
-                                    <td>${formatCurrency(loss)}</td>
-                                  </tr>`
-                                : ''
-                        }
+                      
                         <tr style="${customTRStyle}">
                             <td>${t('preTaxTotal')}</td>
                             <td>${formatCurrency(preTaxTotal)}</td>

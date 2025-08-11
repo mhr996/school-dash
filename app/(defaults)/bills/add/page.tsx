@@ -22,6 +22,8 @@ interface Deal {
     title: string;
     deal_type: string;
     amount: number;
+    selling_price?: number;
+    loss_amount?: number;
     status: string;
     customer_id?: number;
     customer_name?: string;
@@ -792,7 +794,8 @@ const AddBill = () => {
                                     </div>
                                 ) : null;
                             })()}
-                        </div>{' '}
+                        </div>
+
                         {/* Tax Invoice Details Table */}
                         <div className="panel">
                             <div className="mb-5 flex items-center gap-3">
@@ -831,7 +834,7 @@ const AddBill = () => {
 
                                             {/* Row 2: Buy Price */}
                                             <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
+                                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price')}</div>
                                                 <div className="text-center">
                                                     <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedDeal.car.buy_price.toFixed(2)}</span>
                                                 </div>
@@ -845,15 +848,15 @@ const AddBill = () => {
 
                                             {/* Row 3: Selling Price */}
                                             <div className="grid grid-cols-4 gap-4 mb-3 py-2">
-                                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                                <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price')}</div>
                                                 <div className="text-center">
-                                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedDeal.amount.toFixed(2)}</span>
+                                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedDeal?.selling_price?.toFixed(2)}</span>
                                                 </div>
                                                 <div className="text-center">
                                                     <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                                 </div>
                                                 <div className="text-center">
-                                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedDeal.amount.toFixed(2)}</span>
+                                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedDeal?.selling_price?.toFixed(2)}</span>
                                                 </div>
                                             </div>
 
@@ -863,7 +866,7 @@ const AddBill = () => {
                                                 <div className="text-center">-</div>
                                                 <div className="text-center">-</div>
                                                 <div className="text-center">
-                                                    <span className="text-sm text-red-600 dark:text-red-400">₪{Math.max(0, selectedDeal.car.buy_price - selectedDeal.amount).toFixed(2)}</span>
+                                                    <span className="text-sm text-red-600 dark:text-red-400">₪{selectedDeal?.loss_amount?.toFixed(2)}</span>
                                                 </div>
                                             </div>
 
@@ -873,7 +876,7 @@ const AddBill = () => {
                                                 <div className="text-center">-</div>
                                                 <div className="text-center">-</div>
                                                 <div className="text-center">
-                                                    <span className="text-sm text-green-600 dark:text-green-400">₪{Math.max(0, selectedDeal.amount - selectedDeal.car.buy_price).toFixed(2)}</span>
+                                                    <span className="text-sm text-green-600 dark:text-green-400">₪{selectedDeal?.amount?.toFixed(2)}</span>
                                                 </div>
                                             </div>
                                         </>

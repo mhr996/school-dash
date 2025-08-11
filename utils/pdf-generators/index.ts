@@ -22,13 +22,10 @@ import { generateTaxInvoiceReceiptPDF } from './tax-invoice-receipt';
  * @returns Promise<void>
  */
 export const generateBillPDF = async (billData: BillData, options: PDFOptions = {}): Promise<void> => {
-    console.log('=== Bill PDF Generation Router ===');
-    console.log('Bill ID:', billData.id);
-    console.log('Original Bill Type:', billData.bill_type);
+ 
 
     // Normalize the bill type to handle various database formats
     const normalizedBillType = normalizeBillType(billData.bill_type);
-    console.log('Normalized Bill Type:', normalizedBillType);
 
     try {
         switch (normalizedBillType) {

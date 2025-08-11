@@ -883,14 +883,14 @@
     "new_car_from_showroom": "בחירת רכב מהמלאי",
     "customer_old_car_details": "פרטי רכב הלקוח",
     "car_name ": "דגם רכב",
-    "condition (hand)": "מצב רכב",
     "log_date": "תאריך רישום",
     "car_model_details": "פרטי רכב",
-    "purchase_date / שם הספק / purchase_price ": "תאריך קניה/מחיר קנייה/שם ספק",
-    "purSale Date / Buyer Name / Sale Price": "תאריך מכירה/מחיר מכירה/שם קונה",
-    "Invoice Number / Amount": "מספר מסמך חשבונאי/סכום",
     "Activity Type": "סוג פעולה",
     "search_general": "חיפוש כללי",
     "filter_by_car_number": "סינון לפי מספר רכב",
-    "filter_by_client_id": "סינון לפי מספר זהות לקוח"
+    "filter_by_client_id": "סינון לפי מספר זהות לקוח",
+    "client_name": "שם הלקוח",
+    "filter_by_client_name": "סינון לפי שם הלקוח",
+    "client_id_number": "מספר זהות לקוח",
+    "activity_logs": "יומן פעילויות"
 }
