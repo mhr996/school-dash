@@ -274,7 +274,7 @@ function generateEnglishCarPurchaseContractHTML(contract: CarContract, companyIn
                         Purchase Details
                     </h2>
                     <div class="space-y-4">
-                        <p class="text-lg font-bold text-emerald-700 bg-white rounded-lg p-4 border-2 border-emerald-300 text-center">Purchase Amount: ${formatCurrency(contract.carBuyPrice)}</p>
+                        <p class="text-lg font-bold text-emerald-700 bg-white rounded-lg p-4 border-2 border-emerald-300 text-center">Purchase Amount: ${formatCurrency(contract.carBuyPrice || contract.dealAmount)}</p>
                     </div>
                 </div>
 
