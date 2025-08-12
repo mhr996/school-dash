@@ -11,6 +11,8 @@
     "generate_contract_draft": "Generate Contract Draft",
     "generating_contract": "Generating Contract...",
     "error_generating_contract": "Error generating contract",
+    "contract_generated_successfully": "Contract generated successfully",
+    "error_generating_pdf": "Error generating PDF",
     "dashboard": "Dashboard",
     "sales": "Sales",
     "home": "Home",

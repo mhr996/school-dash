@@ -9,10 +9,15 @@ import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import IconUser from '@/components/icon/icon-user';
 import IconTrendingUp from '@/components/icon/icon-trending-up';
 import IconBox from '@/components/icon/icon-box';
+import IconDocument from '@/components/icon/icon-document';
 import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import Image from 'next/image';
+import { CarContract } from '@/types/contract';
+import { CarPurchaseContractPDFGenerator } from '@/utils/car-purchase-contract-pdf-generator';
+import { getCompanyInfo, CompanyInfo } from '@/lib/company-info';
+import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 
 interface Car {
     id: string;
@@ -33,6 +38,7 @@ interface Car {
     features?: Array<{ label: string; value: string }>; // New features field
     images: string[];
     contract_image?: string; // Contract image field
+    car_number?: string; // Car number field
     colors?: Array<{
         color: string;
         images: string[];
@@ -47,7 +53,6 @@ interface Car {
         id: string;
         name: string;
         phone: string;
-        country: string;
         age: number;
         id_number?: string;
     };
@@ -64,13 +69,20 @@ const CarPreview = () => {
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
     const [selectedColorIndex, setSelectedColorIndex] = useState(0);
     const [colorImageUrls, setColorImageUrls] = useState<Record<number, string[]>>({});
+    const [generatingContract, setGeneratingContract] = useState(false);
+    const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+    const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
+        visible: false,
+        message: '',
+        type: 'success',
+    });
 
     useEffect(() => {
         const fetchCar = async () => {
             if (!params?.id) return;
 
             try {
-                const { data, error } = await supabase.from('cars').select('*, providers(id, name, address, phone), customers(id, name, phone, country, age, id_number)').eq('id', params.id).single();
+                const { data, error } = await supabase.from('cars').select('*, providers(id, name, address, phone), customers(id, name, phone, age, id_number)').eq('id', params.id).single();
 
                 if (error) {
                     console.error('Error fetching car:', error);
@@ -128,6 +140,19 @@ const CarPreview = () => {
         }
     }, [params?.id]);
 
+    // Load company information
+    useEffect(() => {
+        const loadCompanyInfo = async () => {
+            try {
+                const info = await getCompanyInfo();
+                setCompanyInfo(info);
+            } catch (error) {
+                console.error('Failed to load company info:', error);
+            }
+        };
+        loadCompanyInfo();
+    }, []);
+
     const getStatusBadgeClass = (status: string) => {
         switch (status) {
             case 'available':
@@ -154,6 +179,70 @@ const CarPreview = () => {
         return new Intl.NumberFormat().format(km) + ' km';
     };
 
+    const createCarContractData = (): CarContract => {
+        if (!car) throw new Error('Car data is required to generate contract');
+
+        // Determine seller info based on car source
+        let sellerName = '';
+        let sellerAddress = '';
+        let sellerPhone = '';
+        let sellerTaxNumber = '';
+
+        if (car.source_type === 'customer' && car.customers) {
+            // Seller is a customer
+            sellerName = car.customers.name;
+            sellerAddress = '[Customer Address - To Be Filled]';
+            sellerPhone = car.customers.phone || '';
+            sellerTaxNumber = car.customers.id_number || '';
+        } else if (car.source_type === 'provider' && car.providers) {
+            // Seller is a provider
+            sellerName = car.providers.name;
+            sellerAddress = car.providers.address || '';
+            sellerPhone = car.providers.phone || '';
+            sellerTaxNumber = '[Provider Tax Number - To Be Filled]';
+        } else {
+            // Fallback to provider string if no detailed info
+            sellerName = car.provider || '[Seller Name - To Be Filled]';
+            sellerAddress = '[Seller Address - To Be Filled]';
+            sellerPhone = '[Seller Phone - To Be Filled]';
+            sellerTaxNumber = '[Seller Tax Number - To Be Filled]';
+        }
+
+        return {
+            dealType: 'normal',
+            dealDate: new Date().toISOString().split('T')[0],
+
+            // Seller info - the provider or customer we got the car from
+            sellerName,
+            sellerTaxNumber,
+            sellerAddress,
+            sellerPhone,
+
+            // Buyer info - our company (the car dealership)
+            buyerName: companyInfo?.name || 'Car Dealership',
+            buyerId: companyInfo?.tax_number || '[Company Tax Number]',
+            buyerAddress: companyInfo?.address || '[Company Address]',
+            buyerPhone: companyInfo?.phone || '[Company Phone]',
+
+            // Car info
+            carType: car.type || 'Vehicle',
+            carMake: car.brand,
+            carModel: car.title,
+            carYear: car.year,
+            carBuyPrice: car.buy_price,
+            carPlateNumber: car.car_number || `CAR-${car.id.slice(-6).toUpperCase()}`,
+            carVin: '', // Would need to be added to car data
+            carEngineNumber: '', // Would need to be added to car data
+            carKilometers: car.kilometers,
+
+            // Deal amount - using buy price (what we paid for the car)
+            dealAmount: car.buy_price,
+
+            // Standard terms
+            ownershipTransferDays: 30,
+        };
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -178,6 +267,18 @@ const CarPreview = () => {
 
     return (
         <div>
+            {/* Alert */}
+            {alert.visible && (
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert
+                        type={alert.type}
+                        title={alert.type === 'success' ? t('success') : t('error')}
+                        message={alert.message}
+                        onClose={() => setAlert({ visible: false, message: '', type: 'success' })}
+                    />
+                </div>
+            )}
+
             {/* Header */}
             <div className="container mx-auto p-6">
                 <div className="flex items-center gap-5 mb-6">
@@ -210,10 +311,67 @@ const CarPreview = () => {
                         <p className="text-gray-500">{car ? car.title : t('loading')}</p>
                     </div>
                     {car && (
-                        <Link href={`/cars/edit/${car.id}`} className="btn btn-primary">
-                            <IconEdit className="ltr:mr-2 rtl:ml-2" />
-                            {t('edit_car')}
-                        </Link>
+                        <div className="flex gap-3">
+                            <button
+                                className={`btn btn-outline-success gap-2${generatingContract ? ' opacity-60 pointer-events-none' : ''}`}
+                                disabled={generatingContract}
+                                onClick={async () => {
+                                    setGeneratingContract(true);
+                                    try {
+                                        // Create contract data
+                                        const contractData = createCarContractData();
+
+                                        // Get language from i18nextLng cookie
+                                        const getCookie = (name: string) => {
+                                            const value = `; ${document.cookie}`;
+                                            const parts = value.split(`; ${name}=`);
+                                            if (parts.length === 2) {
+                                                const part = parts.pop();
+                                                if (part) {
+                                                    return part.split(';').shift();
+                                                }
+                                            }
+                                            return null;
+                                        };
+
+                                        const lang = getCookie('i18nextLng') || 'ar';
+                                        const normalizedLang = lang.toLowerCase().split('-')[0] as 'en' | 'ar' | 'he';
+
+                                        const carIdentifier = car.car_number || `CAR-${car.id.slice(-6).toUpperCase()}`;
+                                        const filename = `car-purchase-contract-${carIdentifier}-${new Date().toISOString().split('T')[0]}.pdf`;
+
+                                        // Use the car purchase contract PDF generator
+                                        await CarPurchaseContractPDFGenerator.generateFromContract(contractData, {
+                                            filename,
+                                            language: normalizedLang,
+                                            format: 'A4',
+                                            orientation: 'portrait',
+                                        });
+
+                                        setAlert({ visible: true, message: t('contract_generated_successfully') || 'Contract generated successfully', type: 'success' });
+                                    } catch (error) {
+                                        console.error('Error generating contract:', error);
+                                        setAlert({ visible: true, message: t('error_generating_pdf') || 'Error generating PDF', type: 'danger' });
+                                    } finally {
+                                        setGeneratingContract(false);
+                                    }
+                                }}
+                            >
+                                {generatingContract ? (
+                                    <svg className="animate-spin h-4 w-4 text-success" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                    </svg>
+                                ) : (
+                                    <IconDocument className="w-4 h-4" />
+                                )}
+                                {generatingContract ? t('generating_contract') : t('generate_contract')}
+                            </button>
+                            <Link href={`/cars/edit/${car.id}`} className="btn btn-primary">
+                                <IconEdit className="ltr:mr-2 rtl:ml-2" />
+                                {t('edit_car')}
+                            </Link>
+                        </div>
                     )}
                 </div>
             </div>
@@ -380,7 +538,6 @@ const CarPreview = () => {
                                                     <div className="mt-1">
                                                         <div>{car.customers.name}</div>
                                                         <div className="text-xs text-gray-500">{car.customers.phone}</div>
-                                                        <div className="text-xs text-gray-500">{car.customers.country}</div>
                                                     </div>
                                                 </div>
                                             ) : car.providers ? (

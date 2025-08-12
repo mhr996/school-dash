@@ -20,6 +20,7 @@ export interface CarContract {
     carMake: string;
     carModel: string;
     carYear: number;
+    carBuyPrice: number; 
     carPlateNumber: string;
     carVin: string;
     carEngineNumber: string;

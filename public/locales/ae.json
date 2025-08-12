@@ -9,8 +9,10 @@
     "generate_contract_with_payment": "عرض العقد (مع الدفع)",
     "generate_contract_draft": "عرض مسودة العقد",
     "generating_contract": "جاري إنشاء العقد...",
+    "error_generating_contract": "خطأ في إنشاء العقد",
+    "contract_generated_successfully": "تم إنشاء العقد بنجاح",
+    "error_generating_pdf": "خطأ في إنشاء ملف PDF",
     "download_contract": "تحميل العقد",
-    "error_generating_contract": "خطأ في عرض العقد",
     "dashboard": "لوحة القيادة",
     "sales": "المبيعات",
     "analytics": "التحليلات",
@@ -102,7 +104,6 @@
     "transfer_branch": "فرع التحويل",
     "transfer_branch_placeholder": "أدخل فرع التحويل",
     "no_details_available": "لا توجد تفاصيل متاحة",
-
     "add_new_bill": "إضافة فاتورة جديدة",
     "create_bill_description": "قم بإنشاء فاتورة جديدة عن طريق اختيار صفقة وتعبئة المعلومات المطلوبة",
     "select_deal": "اختر صفقة",
@@ -1342,5 +1343,8 @@
     "unknown_type": "نوع غير معروف",
     "search_general": "البحث في جميع الحقول",
     "filter_by_car_number": "التصفية حسب رقم السيارة",
-    "filter_by_client_id": "التصفية حسب رقم هوية العميل"
+    "filter_by_client_id": "التصفية حسب رقم هوية العميل",
+    "client_id_number": "رقم هوية العميل",
+    "client_name": "اسم العميل",
+    "filter_by_client_name": "تصفية حسب اسم العميل"
 }

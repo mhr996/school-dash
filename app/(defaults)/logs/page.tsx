@@ -177,7 +177,7 @@ const LogsPage = () => {
             <div className="text-sm">
                 <div className="font-medium">{formatDate(deal.created_at) || t('not_available')}</div>
                 <div className="text-gray-500 dark:text-gray-400">{customer?.name || deal.customer_name || t('not_available')}</div>
-                <div className="text-gray-500 dark:text-gray-400">₪{deal.amount?.toLocaleString() || '0'}</div>
+                <div className="text-gray-500 dark:text-gray-400">₪{deal.selling_price?.toLocaleString() || deal.amount?.toLocaleString() || '0'}</div>
             </div>
         );
     };
@@ -264,7 +264,7 @@ const LogsPage = () => {
                 <div className="text-sm">
                     <div className="font-medium">{log.deal.title}</div>
                     <div className="text-gray-500 dark:text-gray-400">
-                        {t('deal_type')}: {log.deal.deal_type ? getLocalizedDealType(log.deal.deal_type) : t('not_available')} | {t('amount')}: {log.deal.amount?.toLocaleString()}
+                        {t('deal_type')}: {log.deal.deal_type ? getLocalizedDealType(log.deal.deal_type) : t('not_available')} | {t('amount')}: {log.deal.selling_price?.toLocaleString()}
                     </div>
                     {log.deal.customer_name && (
                         <div className="text-gray-500 dark:text-gray-400">
