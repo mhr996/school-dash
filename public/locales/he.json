@@ -892,5 +892,6 @@
     "client_name": "שם הלקוח",
     "filter_by_client_name": "סינון לפי שם הלקוח",
     "client_id_number": "מספר זהות לקוח",
-    "activity_logs": "יומן פעילויות"
+    "activity_logs": "יומן פעילויות",
+    "updates_car_sale_price": "מעדכן את מחיר המכירה של הרכב"
 }

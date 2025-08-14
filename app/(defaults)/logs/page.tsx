@@ -338,7 +338,7 @@ const LogsPage = () => {
                                 accessor: 'created_at',
                                 title: t('log_date'),
                                 sortable: true,
-                                render: ({ created_at }) => <div className="text-sm">{formatDate(created_at) || t('not_available')}</div>,
+                                render: (log) => <div className="text-sm">{formatDate(log.car.created_at) || t('not_available')}</div>,
                             },
                             {
                                 accessor: 'car_details',

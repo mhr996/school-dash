@@ -98,7 +98,6 @@ const CarsList = () => {
                 if (error) throw error;
 
                 setItems(data as Car[]);
-                console.log('Fetched cars:', data);
             } catch (error) {
                 console.error('Error fetching cars:', error);
                 setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
@@ -445,7 +444,7 @@ const CarsList = () => {
                                 accessor: 'sale_price',
                                 title: t('sale_price'),
                                 sortable: true,
-                                render: ({ market_price }) => <span>{formatCurrency(market_price)}</span>,
+                                render: ({ sale_price }) => <span>{formatCurrency(sale_price)}</span>,
                             },
                             {
                                 accessor: 'created_at',

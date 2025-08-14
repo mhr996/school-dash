@@ -15,6 +15,7 @@ import CarSelect from '@/components/car-select/car-select';
 import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
 import SingleFileUpload from '@/components/file-upload/single-file-upload';
+import CreateCustomerModal from '@/components/modals/create-customer-modal';
 import { Deal, Customer, Car, FileItem, DealAttachments, DealAttachment } from '@/types';
 import { BillWithPayments } from '@/types/payment';
 
@@ -144,6 +145,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     const router = useRouter();
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [showCreateCustomerModal, setShowCreateCustomerModal] = useState(false);
+    const [customerCreationContext, setCustomerCreationContext] = useState<'customer' | 'seller' | 'buyer'>('customer'); // Track which customer we're creating
     const [deal, setDeal] = useState<Deal | null>(null);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
     const [selectedSeller, setSelectedSeller] = useState<Customer | null>(null);
@@ -442,8 +445,30 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         setForm((prev) => {
             const updated = { ...prev, [name]: value };
 
-            // Auto-calculate amount when loss_amount changes
-            if (name === 'loss_amount' && deal) {
+            // Auto-calculate deal amount when selling_price or loss_amount changes for sale deals
+            if (
+                (name === 'selling_price' || name === 'loss_amount') &&
+                (dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') &&
+                selectedCar
+            ) {
+                const sellingPrice = parseFloat(name === 'selling_price' ? value : updated.selling_price || '0');
+                const buyPrice = selectedCar.buy_price || 0;
+                const lossAmount = parseFloat(name === 'loss_amount' ? value : updated.loss_amount || '0');
+                const profitCommission = sellingPrice - buyPrice - lossAmount;
+
+                // Update the amount field with the calculated profit commission
+                updated.amount = Math.max(0, profitCommission).toString(); // Ensure amount doesn't go negative
+
+                // Update the selected car's sale_price in real-time when selling_price changes
+                if (name === 'selling_price' && value && !isNaN(sellingPrice)) {
+                    // Use a small tolerance to handle floating point precision issues
+                    if (Math.abs(sellingPrice - selectedCar.sale_price) > 0.001) {
+                        setSelectedCar((prevCar) => (prevCar ? { ...prevCar, sale_price: sellingPrice } : null));
+                    }
+                }
+            }
+            // Auto-calculate amount when loss_amount changes (fallback for other deal types)
+            else if (name === 'loss_amount' && deal) {
                 const originalAmount = deal.amount || 0;
                 const lossAmount = parseFloat(value) || 0;
                 const newAmount = originalAmount - lossAmount;
@@ -572,10 +597,24 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             return updated;
         });
     };
-    const handleCreateNewCustomer = () => {
-        // Navigate to create customer page
-        // This can be implemented later
-        console.log('Create new customer');
+    const handleCreateNewCustomer = (context: 'customer' | 'seller' | 'buyer' = 'customer') => {
+        setCustomerCreationContext(context);
+        setShowCreateCustomerModal(true);
+    };
+
+    const handleCustomerCreated = (customer: Customer) => {
+        if (customerCreationContext === 'seller') {
+            setSelectedSeller(customer);
+            setForm((prev) => ({ ...prev, seller_id: customer.id }));
+        } else if (customerCreationContext === 'buyer') {
+            setSelectedBuyer(customer);
+            setForm((prev) => ({ ...prev, buyer_id: customer.id }));
+        } else {
+            setSelectedCustomer(customer);
+            setForm((prev) => ({ ...prev, customer_id: customer.id }));
+        }
+        setShowCreateCustomerModal(false);
+        setAlert({ message: t('customer_added'), type: 'success' });
     };
 
     // Handle cancel deal with confirmation modal
@@ -750,12 +789,26 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
         setSaving(true);
         try {
+            // Update car's sale_price if it has changed for sale deals
+            if ((dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') && selectedCar && form.selling_price) {
+                const newSellingPrice = parseFloat(form.selling_price);
+
+                // Always update the car's sale_price to match the deal's selling_price
+                const { error: carUpdateError } = await supabase.from('cars').update({ sale_price: newSellingPrice }).eq('id', selectedCar.id);
+
+                if (carUpdateError) {
+                    console.error('Error updating car sale price:', carUpdateError);
+                    // Continue with deal update but log the error
+                }
+            }
+
             const dealData = {
                 deal_type: dealType,
                 title: form.title.trim(),
                 description: form.description.trim(),
                 amount: form.amount ? parseFloat(form.amount) : 0,
                 loss_amount: form.loss_amount ? parseFloat(form.loss_amount) : 0,
+                selling_price: form.selling_price ? parseFloat(form.selling_price) : null,
                 customer_car_eval_value: form.customer_car_eval_value ? parseFloat(form.customer_car_eval_value) : null,
                 additional_customer_amount: form.additional_customer_amount ? parseFloat(form.additional_customer_amount) : null,
                 status: form.status,
@@ -1070,7 +1123,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 // Don't throw error here to not interrupt the bill creation success
             } else {
                 // Update the local deal state
-                console.log('Deal status updated to completed successfully');
                 setDeal((prev) => (prev ? { ...prev, status: 'completed' } : null));
                 setForm((prev) => ({ ...prev, status: 'completed' }));
 
@@ -1422,7 +1474,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
                                         {/* Row 3: Selling Price (Editable) */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                            <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                            <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                                {t('selling_price_manual')}
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                                            </div>
                                             <div className="text-center">
                                                 <div className="flex justify-center">
                                                     <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
@@ -1716,7 +1771,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     <CustomerSelect
                                         selectedCustomer={selectedSeller}
                                         onCustomerSelect={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleSellerSelect}
-                                        onCreateNew={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleCreateNewCustomer}
+                                        onCreateNew={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : () => handleCreateNewCustomer('seller')}
                                         className="form-input"
                                     />
                                 </div>
@@ -1726,7 +1781,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     <CustomerSelect
                                         selectedCustomer={selectedBuyer}
                                         onCustomerSelect={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleBuyerSelect}
-                                        onCreateNew={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : handleCreateNewCustomer}
+                                        onCreateNew={deal?.status === 'completed' || deal?.status === 'cancelled' ? () => {} : () => handleCreateNewCustomer('buyer')}
                                         className="form-input"
                                     />
                                 </div>
@@ -1739,7 +1794,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                     <CustomerSelect
                                         selectedCustomer={selectedCustomer}
                                         onCustomerSelect={deal?.status === 'completed' ? () => {} : handleCustomerSelect}
-                                        onCreateNew={deal?.status === 'completed' ? () => {} : handleCreateNewCustomer}
+                                        onCreateNew={deal?.status === 'completed' ? () => {} : () => handleCreateNewCustomer('customer')}
                                         className="form-input"
                                     />
                                 </div>
@@ -2587,7 +2642,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 </form>
             </div>
 
-
             {/* Cancel Deal Confirmation Modal */}
             {showCancelModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -2639,6 +2693,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     </div>
                 </div>
             )}
+
+            {/* Create Customer Modal */}
+            <CreateCustomerModal isOpen={showCreateCustomerModal} onClose={() => setShowCreateCustomerModal(false)} onCustomerCreated={handleCustomerCreated} />
         </div>
     );
 };

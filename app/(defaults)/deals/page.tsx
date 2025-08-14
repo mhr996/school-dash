@@ -404,7 +404,7 @@ const DealsList = () => {
                                 accessor: 'amount',
                                 title: t('amount'),
                                 sortable: true,
-                                render: ({ amount }) => <span className="text-success">{formatCurrency(amount)}</span>,
+                                render: ({ selling_price, amount }) => <span className="text-success">{selling_price ? formatCurrency(selling_price) : formatCurrency(amount)}</span>,
                             },
                             {
                                 accessor: 'status',

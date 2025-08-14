@@ -1346,5 +1346,6 @@
     "filter_by_client_id": "التصفية حسب رقم هوية العميل",
     "client_id_number": "رقم هوية العميل",
     "client_name": "اسم العميل",
-    "filter_by_client_name": "تصفية حسب اسم العميل"
+    "filter_by_client_name": "تصفية حسب اسم العميل",
+    "updates_car_sale_price": "يحدث سعر بيع السيارة"
 }

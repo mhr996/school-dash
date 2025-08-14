@@ -1132,6 +1132,7 @@
     "enter_market_price": "Enter market price",
     "enter_buy_price": "Enter buy price",
     "enter_sale_price": "Enter sale price",
+    "updates_car_sale_price": "Updates car's sale price",
     "automate_bill_for_deal": "Automate a Bill for this Deal",
     "create_bill_without_leaving_page": "Create a bill for this deal without leaving the edit page",
     "bill_summary": "Bill Summary",

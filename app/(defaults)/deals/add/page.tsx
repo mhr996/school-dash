@@ -163,6 +163,18 @@ const AddDeal = () => {
     const handleSaleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setSaleForm((prev) => ({ ...prev, [name]: value }));
+
+        // Update the car's sale_price in real-time when selling_price changes
+        if (name === 'selling_price' && selectedCar && value && !isNaN(parseFloat(value))) {
+            const newSellingPrice = parseFloat(value);
+    
+
+            // Use a small tolerance to handle floating point precision issues
+            if (Math.abs(newSellingPrice - selectedCar.sale_price) > 0.001) {
+                // Update the selectedCar state to reflect the new sale price
+                setSelectedCar((prevCar) => (prevCar ? { ...prevCar, sale_price: newSellingPrice } : null));
+            }
+        }
     };
     const handleExchangeFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -398,6 +410,19 @@ const AddDeal = () => {
 
         setSaving(true);
         try {
+            // Update car's sale_price if it has changed for sale deals
+            if ((dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') && selectedCar && saleForm.selling_price) {
+                const newSellingPrice = parseFloat(saleForm.selling_price);
+          
+
+                // Always update the car's sale_price to match the deal's selling_price
+                const { error: carUpdateError } = await supabase.from('cars').update({ sale_price: newSellingPrice }).eq('id', selectedCar.id);
+
+                if (carUpdateError) {
+                    console.error('Error updating car sale price:', carUpdateError);
+                    // Continue with deal creation but log the error
+                } 
+            }
             // First create the deal to get an ID
             let dealData: any = {
                 deal_type: dealType,
@@ -829,7 +854,10 @@ const AddDeal = () => {
                                 </div>{' '}
                                 {/* Row 3: Selling Price */}
                                 <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                    <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                    <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                        {t('selling_price_manual')}
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                                    </div>
                                     <div className="text-center">
                                         <div className="flex justify-center">
                                             <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
