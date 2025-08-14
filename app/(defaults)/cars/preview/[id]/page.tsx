@@ -478,7 +478,7 @@ const CarPreview = () => {
                         )}
 
                         {/* Contract Image */}
-                        {contractImageUrl && (
+                        {/* {contractImageUrl && (
                             <div className="panel mt-6">
                                 <div className="mb-5">
                                     <h3 className="text-lg font-semibold">{t('contract_image')}</h3>
@@ -487,7 +487,7 @@ const CarPreview = () => {
                                     <Image src={contractImageUrl} alt={`${car?.title} contract`} fill className="object-contain hover:scale-105 transition-transform cursor-pointer" />
                                 </div>
                             </div>
-                        )}
+                        )} */}
                     </div>
 
                     {/* Car Information */}

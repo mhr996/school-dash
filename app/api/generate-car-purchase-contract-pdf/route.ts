@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Return PDF as response
-        return new NextResponse(pdfBuffer, {
+        return new NextResponse(Buffer.from(pdfBuffer), {
             status: 200,
             headers: {
                 'Content-Type': 'application/pdf',
@@ -344,9 +344,11 @@ function generateArabicCarPurchaseContractHTML(contract: CarContract, companyInf
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>عقد شراء سيارة</title>
         <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+     
         <style>
             @page { size: A4; margin: 10mm; }
-            body { font-family: 'Tahoma', Arial, sans-serif; }
+            body { font-family: 'Almarai', sans-serif; }
             .avoid-break-inside { page-break-inside: avoid; }
         </style>
     </head>
