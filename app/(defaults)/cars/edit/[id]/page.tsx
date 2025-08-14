@@ -1008,12 +1008,12 @@ const EditCar = () => {
                                 </div>
 
                                 {/* Contract Image Section */}
-                                <div>
+                                {/* <div>
                                     <h6 className="text-sm font-medium text-gray-700 dark:text-white mb-3">
                                         {t('contract_image')} <span className="text-xs text-gray-500">({t('optional')})</span>
                                     </h6>
                                     <div className="flex items-center gap-4">
-                                        {/* Contract Image Preview or Upload Button */}
+                                       
                                         {contractPreview || existingContractImage ? (
                                             <div className="relative group">
                                                 <img src={contractPreview || existingContractImage} alt="Contract preview" className="w-24 h-24 object-cover rounded-lg border-2 border-gray-200" />
@@ -1042,7 +1042,7 @@ const EditCar = () => {
                                         </div>
                                     </div>
                                     <input ref={contractInputRef} type="file" accept="image/*" onChange={handleContractChange} className="hidden" />
-                                </div>
+                                </div> */}
 
                                 {/* Gallery Section */}
                                 <div>

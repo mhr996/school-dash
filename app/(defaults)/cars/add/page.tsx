@@ -853,12 +853,12 @@ const AddCar = () => {
                                     </div>
 
                                     {/* Contract Image Section */}
-                                    <div>
+                                    {/* <div>
                                         <label className="mb-3 block text-sm font-bold text-gray-700 dark:text-white">{t('car_contract_image')}</label>
                                         <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">{t('contract_image_description')}</p>
 
                                         <div className="flex flex-col items-start gap-4">
-                                            {/* Contract Image Preview */}
+                                        
                                             {contractPreview ? (
                                                 <div className="group relative aspect-square w-full max-w-sm">
                                                     <img src={contractPreview} alt="Contract preview" className="h-full w-full rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600" />
@@ -882,7 +882,8 @@ const AddCar = () => {
                                             )}
                                         </div>
                                         <input ref={contractInputRef} type="file" className="hidden" accept="image/*" onChange={handleContractChange} />
-                                    </div>
+                                    </div> */}
+                             
                                 </div>
 
                                 {/* Gallery Section */}

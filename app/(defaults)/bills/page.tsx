@@ -13,6 +13,18 @@ import IconEdit from '@/components/icon/icon-edit';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { generateBillPDF, BillData } from '@/utils/pdf-generator';
 import { BillWithPayments } from '@/types/payment';
+import BillFilters from '@/components/bill-filters/bill-filters';
+
+interface BillFiltersInterface {
+    search: string;
+    billType: string;
+    paymentType: string;
+    customerName: string;
+    amountFrom: string;
+    amountTo: string;
+    dateFrom: string;
+    dateTo: string;
+}
 
 interface Bill extends BillWithPayments {
     amount: number;
@@ -110,6 +122,18 @@ const Bills = () => {
     const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
     const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
+    // Active filters state
+    const [activeFilters, setActiveFilters] = useState<BillFiltersInterface>({
+        search: '',
+        billType: '',
+        paymentType: '',
+        customerName: '',
+        amountFrom: '',
+        amountTo: '',
+        dateFrom: '',
+        dateTo: '',
+    });
+
     useEffect(() => {
         fetchBills();
     }, []);
@@ -146,24 +170,52 @@ const Bills = () => {
         }
     };
 
-    // Filter by search term
+    // Filter by search term and filters
     useEffect(() => {
         setInitialRecords(
-            items.filter(
-                (bill) =>
-                    bill.customer_name.toLowerCase().includes(search.toLowerCase()) ||
-                    bill.deal?.title.toLowerCase().includes(search.toLowerCase()) ||
-                    bill.bill_type.toLowerCase().includes(search.toLowerCase()) ||
-                    (bill.payment_type && bill.payment_type.toLowerCase().includes(search.toLowerCase())) ||
-                    (bill.payments && bill.payments.some((payment) => payment.payment_type.toLowerCase().includes(search.toLowerCase()))) ||
-                    (bill.deal?.customer?.id_number && bill.deal.customer.id_number.toLowerCase().includes(search.toLowerCase())) ||
-                    (bill.deal?.seller?.name && bill.deal.seller.name.toLowerCase().includes(search.toLowerCase())) ||
-                    (bill.deal?.seller?.id_number && bill.deal.seller.id_number.toLowerCase().includes(search.toLowerCase())) ||
-                    (bill.deal?.buyer?.name && bill.deal.buyer.name.toLowerCase().includes(search.toLowerCase())) ||
-                    (bill.deal?.buyer?.id_number && bill.deal.buyer.id_number.toLowerCase().includes(search.toLowerCase())),
-            ),
+            items.filter((bill) => {
+                const searchLower = activeFilters.search.toLowerCase();
+
+                // Basic search filter
+                const matchesSearch =
+                    !activeFilters.search ||
+                    bill.customer_name.toLowerCase().includes(searchLower) ||
+                    (bill.deal?.title && bill.deal.title.toLowerCase().includes(searchLower)) ||
+                    bill.bill_type.toLowerCase().includes(searchLower) ||
+                    (bill.payment_type && bill.payment_type.toLowerCase().includes(searchLower)) ||
+                    (bill.payments && bill.payments.some((payment) => payment.payment_type.toLowerCase().includes(searchLower))) ||
+                    (bill.deal?.customer?.id_number && bill.deal.customer.id_number.toLowerCase().includes(searchLower)) ||
+                    (bill.deal?.seller?.name && bill.deal.seller.name.toLowerCase().includes(searchLower)) ||
+                    (bill.deal?.seller?.id_number && bill.deal.seller.id_number.toLowerCase().includes(searchLower)) ||
+                    (bill.deal?.buyer?.name && bill.deal.buyer.name.toLowerCase().includes(searchLower)) ||
+                    (bill.deal?.buyer?.id_number && bill.deal.buyer.id_number.toLowerCase().includes(searchLower));
+
+                // Bill type filter
+                const matchesBillType = !activeFilters.billType || bill.bill_type === activeFilters.billType;
+
+                // Payment type filter
+                const matchesPaymentType =
+                    !activeFilters.paymentType ||
+                    bill.payment_type === activeFilters.paymentType ||
+                    (bill.payments && bill.payments.some((payment) => payment.payment_type === activeFilters.paymentType));
+
+                // Customer name filter
+                const matchesCustomerName = !activeFilters.customerName || bill.customer_name.toLowerCase().includes(activeFilters.customerName.toLowerCase());
+
+                // Amount range filter
+                const billAmount = getBillAmount(bill);
+                const matchesAmountFrom = !activeFilters.amountFrom || billAmount >= parseFloat(activeFilters.amountFrom);
+                const matchesAmountTo = !activeFilters.amountTo || billAmount <= parseFloat(activeFilters.amountTo);
+
+                // Date range filter
+                const billDate = new Date(bill.created_at || bill.date);
+                const matchesDateFrom = !activeFilters.dateFrom || billDate >= new Date(activeFilters.dateFrom);
+                const matchesDateTo = !activeFilters.dateTo || billDate <= new Date(activeFilters.dateTo + 'T23:59:59');
+
+                return matchesSearch && matchesBillType && matchesPaymentType && matchesCustomerName && matchesAmountFrom && matchesAmountTo && matchesDateFrom && matchesDateTo;
+            }),
         );
-    }, [items, search]);
+    }, [items, activeFilters]);
 
     // Reset page on pageSize change
     useEffect(() => {
@@ -486,9 +538,29 @@ const Bills = () => {
                             {t('add_new_bill')}
                         </Link>
                     </div>
-                    <div className="ltr:ml-auto rtl:mr-auto">
-                        <input type="text" className="form-input w-auto" placeholder={t('search_bills')} value={search} onChange={(e) => setSearch(e.target.value)} />
-                    </div>
+                </div>
+
+                <div className="px-5">
+                    <BillFilters
+                        onFilterChange={(newFilters) => {
+                            setActiveFilters(newFilters);
+                            // Also update the search state to keep it in sync
+                            setSearch(newFilters.search);
+                        }}
+                        onClearFilters={() => {
+                            setActiveFilters({
+                                search: '',
+                                billType: '',
+                                paymentType: '',
+                                customerName: '',
+                                amountFrom: '',
+                                amountTo: '',
+                                dateFrom: '',
+                                dateTo: '',
+                            });
+                            setSearch('');
+                        }}
+                    />
                 </div>
                 <div className="datatables pagination-padding relative">
                     <DataTable

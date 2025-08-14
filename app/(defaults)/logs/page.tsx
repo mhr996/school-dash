@@ -338,7 +338,20 @@ const LogsPage = () => {
                                 accessor: 'created_at',
                                 title: t('log_date'),
                                 sortable: true,
-                                render: (log) => <div className="text-sm">{formatDate(log.car.created_at) || t('not_available')}</div>,
+                                render: (log) => (
+                                    <div className="flex items-center gap-2">
+                                        <div className="text-sm">{formatDate(log.car.created_at) || t('not_available')}</div>
+                                        {log.deal && log.deal.id && (
+                                            <Link
+                                                href={`/deals/preview/${log.deal.id}`}
+                                                className="inline-flex items-center justify-center w-6 h-6 hover:text-info rounded transition-all duration-200"
+                                                title={t('view_related_item')}
+                                            >
+                                                <IconEye className="w-4 h-4" />
+                                            </Link>
+                                        )}
+                                    </div>
+                                ),
                             },
                             {
                                 accessor: 'car_details',
