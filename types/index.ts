@@ -73,7 +73,7 @@ export interface Car {
     brand: string;
     status: string;
     type?: string;
-    provider: string;
+    provider?: string | null;
     kilometers: number;
     market_price: number;
     buy_price: number;

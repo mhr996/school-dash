@@ -59,34 +59,59 @@ export const updateCustomerBalance = async (transaction: BalanceTransaction): Pr
 
 /**
  * Handles balance update when a deal is created
+ * Updated to use selling_price instead of deal amount
  */
-export const handleDealCreated = async (dealId: string, customerId: string, dealAmount: number, dealTitle: string): Promise<boolean> => {
+export const handleDealCreated = async (dealId: string, customerId: string, dealSellingPrice: number, dealTitle: string): Promise<boolean> => {
     return await updateCustomerBalance({
         customerId,
-        amount: -dealAmount, // Negative because deal amount is deducted
+        amount: -dealSellingPrice, // Negative because deal selling price is what customer owes
         type: 'deal_created',
         referenceId: dealId,
-        description: `Deal created: ${dealTitle}`,
+        description: `Deal created: ${dealTitle} (₪${dealSellingPrice})`,
     });
 };
 
 /**
  * Handles balance update when a deal is deleted
+ * Updated to use selling_price instead of deal amount
  */
-export const handleDealDeleted = async (dealId: string, customerId: string, dealAmount: number, dealTitle: string): Promise<boolean> => {
+export const handleDealDeleted = async (dealId: string, customerId: string, dealSellingPrice: number, dealTitle: string): Promise<boolean> => {
     return await updateCustomerBalance({
         customerId,
-        amount: dealAmount, // Positive because we're reversing the deduction
+        amount: dealSellingPrice, // Positive because we're reversing the deduction
         type: 'deal_deleted',
         referenceId: dealId,
-        description: `Deal deleted: ${dealTitle}`,
+        description: `Deal deleted: ${dealTitle} (₪${dealSellingPrice})`,
     });
 };
 
 /**
- * Calculates total payment amount from a bill's payment fields
+ * Calculates total payment amount from a bill's payment fields or payments array
  */
-export const calculateTotalPaymentAmount = (bill: any): number => {
+export const calculateTotalPaymentAmount = (bill: any, payments?: any[]): number => {
+    console.log('=== CALCULATE TOTAL PAYMENT AMOUNT DEBUG ===');
+    console.log('Bill Type:', bill.bill_type);
+    console.log('Bill Direction:', bill.bill_direction);
+    console.log('Payments Array:', payments);
+    console.log('Bill Amount (bill_amount):', bill.bill_amount);
+
+    // If payments array is provided (new multiple payments structure), use that
+    if (payments && payments.length > 0) {
+        console.log('Using payments array logic');
+        const totalAmount = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        // Apply bill direction: negative bills should have negative amounts
+        if (bill.bill_direction === 'negative') {
+            console.log('Calculated Amount (negative):', -Math.abs(totalAmount));
+            return -Math.abs(totalAmount);
+        } else {
+            console.log('Calculated Amount (positive):', Math.abs(totalAmount));
+            return Math.abs(totalAmount); // Ensure positive for positive bills
+        }
+    }
+
+    // Otherwise, use legacy payment fields
+    console.log('Using legacy payment fields logic');
     const visaAmount = parseFloat(bill.visa_amount || '0') || 0;
     const transferAmount = parseFloat(bill.transfer_amount || '0') || 0;
     const checkAmount = parseFloat(bill.check_amount || '0') || 0;
@@ -94,35 +119,79 @@ export const calculateTotalPaymentAmount = (bill: any): number => {
     const bankAmount = parseFloat(bill.bank_amount || '0') || 0;
     const billAmount = parseFloat(bill.bill_amount || '0') || 0; // For general bills
 
+    console.log('Legacy amounts - Visa:', visaAmount, 'Transfer:', transferAmount, 'Check:', checkAmount, 'Cash:', cashAmount, 'Bank:', bankAmount, 'Bill:', billAmount);
+
     let totalAmount = visaAmount + transferAmount + checkAmount + cashAmount + bankAmount + billAmount;
 
     // Apply bill direction: negative bills should have negative amounts
     if (bill.bill_direction === 'negative') {
         totalAmount = -Math.abs(totalAmount);
+        console.log('Final Amount (negative):', totalAmount);
     } else {
         totalAmount = Math.abs(totalAmount); // Ensure positive for positive bills
+        console.log('Final Amount (positive):', totalAmount);
     }
 
+    console.log('=== END CALCULATE TOTAL PAYMENT AMOUNT DEBUG ===');
     return totalAmount;
 };
 
 /**
  * Handles balance update when a receipt/bill is created
+ * Updated to compare against selling_price and handle excess payments
  */
-export const handleReceiptCreated = async (billId: string, customerId: string, bill: any, customerName: string): Promise<boolean> => {
-    const paymentAmount = calculateTotalPaymentAmount(bill);
+export const handleReceiptCreated = async (billId: string, customerId: string, bill: any, customerName: string, dealSellingPrice?: number, payments?: any[]): Promise<boolean> => {
+    const paymentAmount = calculateTotalPaymentAmount(bill, payments);
+
+    console.log('=== BALANCE UPDATE DEBUG ===');
+    console.log('Bill ID:', billId);
+    console.log('Customer ID:', customerId);
+    console.log('Customer Name:', customerName);
+    console.log('Deal Selling Price:', dealSellingPrice);
+    console.log('Payments:', payments);
+    console.log('Bill Data:', bill);
+    console.log('Calculated Payment Amount:', paymentAmount);
 
     if (paymentAmount === 0) {
         console.log('No payment amount to process for receipt:', billId);
         return true; // Not an error, just no payment to process
     }
 
-    const description =
-        bill.bill_direction === 'negative' ? `Expense/Deduction for ${customerName}: ${getPaymentDescription(bill)}` : `Payment received from ${customerName}: ${getPaymentDescription(bill)}`;
+    let balanceChangeAmount = paymentAmount;
+    let description = '';
+
+    // For negative bills (expenses/deductions)
+    if (bill.bill_direction === 'negative') {
+        description = `Expense/Deduction for ${customerName}: ${getPaymentDescription(bill, payments)}`;
+        balanceChangeAmount = -Math.abs(paymentAmount); // Negative impact on balance
+    } else {
+        // For positive bills (payments)
+        if (dealSellingPrice && dealSellingPrice > 0) {
+            // Payment towards a deal with a selling price
+            if (paymentAmount <= dealSellingPrice) {
+                // Payment doesn't exceed selling price - normal case
+                description = `Payment received from ${customerName}: ${getPaymentDescription(bill, payments)} (towards deal)`;
+                balanceChangeAmount = paymentAmount; // Positive impact on balance
+            } else {
+                // Payment exceeds selling price - add excess to customer balance
+                const excessAmount = paymentAmount - dealSellingPrice;
+                description = `Payment received from ${customerName}: ${getPaymentDescription(bill, payments)} (₪${dealSellingPrice} for deal + ₪${excessAmount} excess)`;
+                balanceChangeAmount = paymentAmount; // Full payment amount goes to balance
+            }
+        } else {
+            // General payment not related to a deal selling price
+            description = `Payment received from ${customerName}: ${getPaymentDescription(bill, payments)}`;
+            balanceChangeAmount = paymentAmount; // Positive impact on balance
+        }
+    }
+
+    console.log('Balance Change Amount:', balanceChangeAmount);
+    console.log('Description:', description);
+    console.log('=== END DEBUG ===');
 
     return await updateCustomerBalance({
         customerId,
-        amount: paymentAmount, // Will be positive or negative based on bill_direction
+        amount: balanceChangeAmount,
         type: 'receipt_created',
         referenceId: billId,
         description,
@@ -131,21 +200,42 @@ export const handleReceiptCreated = async (billId: string, customerId: string, b
 
 /**
  * Handles balance update when a receipt/bill is deleted
+ * Updated to reverse the selling_price-aware payment logic
  */
-export const handleReceiptDeleted = async (billId: string, customerId: string, bill: any, customerName: string): Promise<boolean> => {
-    const paymentAmount = calculateTotalPaymentAmount(bill);
+export const handleReceiptDeleted = async (billId: string, customerId: string, bill: any, customerName: string, dealSellingPrice?: number, payments?: any[]): Promise<boolean> => {
+    const paymentAmount = calculateTotalPaymentAmount(bill, payments);
 
     if (paymentAmount === 0) {
         console.log('No payment amount to reverse for deleted receipt:', billId);
         return true; // Not an error, just no payment to reverse
     }
 
-    const description =
-        bill.bill_direction === 'negative' ? `Reversed expense/deduction for ${customerName}: ${getPaymentDescription(bill)}` : `Reversed payment from ${customerName}: ${getPaymentDescription(bill)}`;
+    let balanceChangeAmount = -paymentAmount; // Reverse the original amount
+    let description = '';
+
+    // For negative bills (expenses/deductions) - reverse the deduction
+    if (bill.bill_direction === 'negative') {
+        description = `Reversed expense/deduction for ${customerName}: ${getPaymentDescription(bill, payments)}`;
+        balanceChangeAmount = Math.abs(paymentAmount); // Positive impact (reversing a deduction)
+    } else {
+        // For positive bills (payments) - reverse the payment
+        if (dealSellingPrice && dealSellingPrice > 0) {
+            // Reversing payment towards a deal with a selling price
+            if (paymentAmount <= dealSellingPrice) {
+                description = `Reversed payment from ${customerName}: ${getPaymentDescription(bill, payments)} (was towards deal)`;
+            } else {
+                const excessAmount = paymentAmount - dealSellingPrice;
+                description = `Reversed payment from ${customerName}: ${getPaymentDescription(bill, payments)} (was ₪${dealSellingPrice} for deal + ₪${excessAmount} excess)`;
+            }
+        } else {
+            description = `Reversed payment from ${customerName}: ${getPaymentDescription(bill, payments)}`;
+        }
+        balanceChangeAmount = -paymentAmount; // Negative impact (reversing a payment)
+    }
 
     return await updateCustomerBalance({
         customerId,
-        amount: -paymentAmount, // Reverse the original amount (flip the sign)
+        amount: balanceChangeAmount,
         type: 'receipt_deleted',
         referenceId: billId,
         description,
@@ -155,23 +245,35 @@ export const handleReceiptDeleted = async (billId: string, customerId: string, b
 /**
  * Helper function to create a readable payment description
  */
-const getPaymentDescription = (bill: any): string => {
-    const descriptions = [];
+const getPaymentDescription = (bill: any, payments?: any[]): string => {
+    const descriptions: string[] = [];
 
+    // If payments array is provided (new multiple payments structure), use that
+    if (payments && payments.length > 0) {
+        payments.forEach((payment) => {
+            if (payment.amount && payment.amount > 0) {
+                const type = payment.payment_type;
+                descriptions.push(`${type}: ₪${payment.amount}`);
+            }
+        });
+        return descriptions.join(', ') || 'Payment';
+    }
+
+    // Otherwise, use legacy payment fields
     if (bill.visa_amount && parseFloat(bill.visa_amount) > 0) {
-        descriptions.push(`Visa: ${bill.visa_amount}`);
+        descriptions.push(`Visa: ₪${bill.visa_amount}`);
     }
     if (bill.transfer_amount && parseFloat(bill.transfer_amount) > 0) {
-        descriptions.push(`Transfer: ${bill.transfer_amount}`);
+        descriptions.push(`Transfer: ₪${bill.transfer_amount}`);
     }
     if (bill.check_amount && parseFloat(bill.check_amount) > 0) {
-        descriptions.push(`Check: ${bill.check_amount}`);
+        descriptions.push(`Check: ₪${bill.check_amount}`);
     }
     if (bill.cash_amount && parseFloat(bill.cash_amount) > 0) {
-        descriptions.push(`Cash: ${bill.cash_amount}`);
+        descriptions.push(`Cash: ₪${bill.cash_amount}`);
     }
     if (bill.bank_amount && parseFloat(bill.bank_amount) > 0) {
-        descriptions.push(`Bank: ${bill.bank_amount}`);
+        descriptions.push(`Bank: ₪${bill.bank_amount}`);
     }
 
     return descriptions.join(', ') || 'Payment';
@@ -197,4 +299,23 @@ export const getCustomerIdFromDeal = (deal: any): string | null => {
     }
 
     return null;
+};
+
+/**
+ * Get customer ID by customer name for general bills
+ */
+export const getCustomerIdByName = async (customerName: string): Promise<string | null> => {
+    try {
+        const { data, error } = await supabase.from('customers').select('id').eq('name', customerName).single();
+
+        if (error) {
+            console.warn('Customer not found by name:', customerName, error);
+            return null;
+        }
+
+        return data.id.toString();
+    } catch (error) {
+        console.error('Error finding customer by name:', error);
+        return null;
+    }
 };

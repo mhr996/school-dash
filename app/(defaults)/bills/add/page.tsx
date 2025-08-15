@@ -13,7 +13,7 @@ import DealSelect from '@/components/deal-select/deal-select';
 import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
 import { logActivity } from '@/utils/activity-logger';
-import { handleReceiptCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
+import { handleReceiptCreated, getCustomerIdFromDeal, getCustomerIdByName } from '@/utils/balance-manager';
 import { BillPayment } from '@/types/payment';
 import { MultiplePaymentForm } from '@/components/forms/multiple-payment-form';
 
@@ -274,14 +274,24 @@ const AddBill = () => {
             const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
             const expectedTotal = parseFloat(billForm.total_with_tax) || 0;
 
-            // Allow partial payments - just ensure the total doesn't exceed the bill amount
-            if (totalPaid > expectedTotal + 0.01) {
-                // Allow for small rounding differences
+            // Allow payments to exceed the expected total (extra goes to customer balance)
+            // Only validate that we have some payment amount
+            if (totalPaid <= 0) {
                 setAlert({
-                    message: `${t('payment_exceeds_total')}: ${t('maximum_allowed')} ₪${expectedTotal.toFixed(2)}, ${t('received')} ₪${totalPaid.toFixed(2)}`,
+                    message: t('payment_amount_required'),
                     type: 'danger',
                 });
                 return;
+            }
+
+            // Show info message if payment exceeds selling price
+            if (totalPaid > expectedTotal + 0.01) {
+                const excessAmount = totalPaid - expectedTotal;
+                setAlert({
+                    message: `${t('payment_exceeds_selling_price')}: ₪${excessAmount.toFixed(2)} ${t('will_be_added_to_customer_balance')}`,
+                    type: 'success',
+                });
+                // Don't return - allow the payment to proceed
             }
 
             // If this is a partial payment, show a success message but allow it
@@ -297,6 +307,19 @@ const AddBill = () => {
 
         setSaving(true);
         try {
+            // Automatically determine bill direction for specific bill types
+            let finalBillDirection = billForm.bill_direction;
+
+            if (billForm.bill_type === 'tax_invoice') {
+                // Tax invoices are always negative
+                finalBillDirection = 'negative';
+            } else if (billForm.bill_type === 'tax_invoice_receipt') {
+                // Tax invoice with receipt: positive if payments exceed selling_price, negative otherwise
+                const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+                const sellingPrice = selectedDeal?.selling_price || 0;
+                finalBillDirection = totalPaid > sellingPrice ? 'positive' : 'negative';
+            }
+
             // For receipts, we'll use multiple payments structure
             // For other bill types, we'll use the legacy single payment structure for now
             const billData =
@@ -304,7 +327,7 @@ const AddBill = () => {
                     ? {
                           deal_id: selectedDeal?.id || null,
                           bill_type: billForm.bill_type,
-                          bill_direction: billForm.bill_direction,
+                          bill_direction: finalBillDirection,
                           status: billForm.status,
                           customer_name: billForm.customer_name,
                           phone: billForm.phone,
@@ -324,7 +347,7 @@ const AddBill = () => {
                     : {
                           deal_id: selectedDeal?.id || null,
                           bill_type: billForm.bill_type,
-                          bill_direction: billForm.bill_direction,
+                          bill_direction: finalBillDirection,
                           status: billForm.status,
                           customer_name: billForm.customer_name,
                           phone: billForm.phone,
@@ -421,15 +444,31 @@ const AddBill = () => {
                 bill: billLogData,
             });
 
-            // Update customer balance if this bill has payment amounts
-            const customerId = getCustomerIdFromDeal(selectedDeal);
+            // Update customer balance for all bill types
+            let customerId = null;
+
+            if (selectedDeal) {
+                // For bills with deals, get customer from deal
+                customerId = getCustomerIdFromDeal(selectedDeal);
+            } else if (billForm.bill_type === 'general' && billForm.customer_name) {
+                // For general bills, get customer by name
+                customerId = await getCustomerIdByName(billForm.customer_name);
+            }
+
             if (customerId) {
-                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, customerId, billData, billData.customer_name || 'Customer');
+                const dealSellingPrice = selectedDeal?.selling_price || 0;
+
+                // For general bills, don't pass payments array as the amount is in bill_amount field
+                const paymentsToPass = billForm.bill_type === 'general' ? undefined : payments;
+
+                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, customerId, billData, billData.customer_name || 'Customer', dealSellingPrice, paymentsToPass);
 
                 if (!balanceUpdateSuccess) {
                     console.warn('Failed to update customer balance for bill:', billResult.id);
                     // Don't fail the bill creation, just log the warning
                 }
+            } else if (billForm.customer_name) {
+                console.warn('Could not find customer for balance update:', billForm.customer_name);
             }
 
             // Automatically update deal status to 'completed' when a bill is created
@@ -486,11 +525,12 @@ const AddBill = () => {
             customer_name: customerName,
             phone: customerPhone,
             car_details: deal.car ? `${deal.car.brand} ${deal.car.title} ${deal.car.year}` : '',
-            sale_price: deal.amount?.toString() || '',
-            // Calculate financials based on the deal amount (which already includes tax)
-            total: (deal.amount / 1.18)?.toFixed(2) || '', // Price before tax
-            tax_amount: ((deal.amount / 1.18) * 0.18)?.toFixed(2) || '', // Tax amount
-            total_with_tax: deal.amount?.toFixed(2) || '', // Deal amount already includes tax
+            // Use selling_price instead of amount for bill calculations
+            sale_price: deal.selling_price?.toString() || '',
+            // Calculate financials based on the deal selling price (which already includes tax)
+            total: deal.selling_price ? (deal.selling_price / 1.18).toFixed(2) : '', // Price before tax
+            tax_amount: deal.selling_price ? ((deal.selling_price / 1.18) * 0.18).toFixed(2) : '', // Tax amount
+            total_with_tax: deal.selling_price?.toFixed(2) || '', // Deal selling price already includes tax
             // Set default date to today if not already set
             date: prev.date || new Date().toISOString().split('T')[0],
         }));
@@ -614,7 +654,7 @@ const AddBill = () => {
                 )}
 
                 {/* Bill Direction Selector */}
-                {billForm.bill_type && (
+                {billForm.bill_type && billForm.bill_type !== 'tax_invoice' && billForm.bill_type !== 'tax_invoice_receipt' && (
                     <div className="panel">
                         <div className="mb-5 flex items-center gap-3">
                             <IconDollarSign className="w-5 h-5 text-primary" />
@@ -1043,22 +1083,24 @@ const AddBill = () => {
 
                                     {/* Tax Calculations */}
                                     <div className="space-y-3">
-                                        {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
+                                        {/* Price Before Tax - calculated by removing 18% tax from deal selling price */}
                                         <div className="flex justify-between items-center">
                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{(selectedDeal.amount / 1.18).toFixed(2)}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedDeal.selling_price ? (selectedDeal.selling_price / 1.18).toFixed(2) : '0.00'}</span>
                                         </div>
 
                                         {/* Tax - calculated as 18% of the price before tax */}
                                         <div className="flex justify-between items-center">
                                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{((selectedDeal.amount / 1.18) * 0.18).toFixed(2)}</span>{' '}
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                ₪{selectedDeal.selling_price ? ((selectedDeal.selling_price / 1.18) * 0.18).toFixed(2) : '0.00'}
+                                            </span>{' '}
                                         </div>
 
-                                        {/* Total Including Tax - this is the deal amount which already includes tax */}
+                                        {/* Total Including Tax - this is the deal selling price which the customer pays */}
                                         <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
                                             <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                            <span className="text-lg font-bold text-primary">₪{selectedDeal.amount.toFixed(2)}</span>
+                                            <span className="text-lg font-bold text-primary">₪{selectedDeal.selling_price?.toFixed(2) || '0.00'}</span>
                                         </div>
                                     </div>
                                 </div>

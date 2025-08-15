@@ -167,7 +167,6 @@ const AddDeal = () => {
         // Update the car's sale_price in real-time when selling_price changes
         if (name === 'selling_price' && selectedCar && value && !isNaN(parseFloat(value))) {
             const newSellingPrice = parseFloat(value);
-    
 
             // Use a small tolerance to handle floating point precision issues
             if (Math.abs(newSellingPrice - selectedCar.sale_price) > 0.001) {
@@ -413,7 +412,6 @@ const AddDeal = () => {
             // Update car's sale_price if it has changed for sale deals
             if ((dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') && selectedCar && saleForm.selling_price) {
                 const newSellingPrice = parseFloat(saleForm.selling_price);
-          
 
                 // Always update the car's sale_price to match the deal's selling_price
                 const { error: carUpdateError } = await supabase.from('cars').update({ sale_price: newSellingPrice }).eq('id', selectedCar.id);
@@ -421,7 +419,7 @@ const AddDeal = () => {
                 if (carUpdateError) {
                     console.error('Error updating car sale price:', carUpdateError);
                     // Continue with deal creation but log the error
-                } 
+                }
             }
             // First create the deal to get an ID
             let dealData: any = {
@@ -636,8 +634,8 @@ const AddDeal = () => {
 
             // Update customer balance if applicable
             const customerId = getCustomerIdFromDeal(dealData);
-            if (customerId && dealData.amount) {
-                const balanceUpdateSuccess = await handleDealCreated(dealId, customerId, dealData.amount, dealData.title || 'Deal');
+            if (customerId && dealData.selling_price) {
+                const balanceUpdateSuccess = await handleDealCreated(dealId, customerId, dealData.selling_price, dealData.title || 'Deal');
 
                 if (!balanceUpdateSuccess) {
                     console.warn('Failed to update customer balance for deal:', dealId);
@@ -747,7 +745,7 @@ const AddDeal = () => {
                         <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('select_car')} <span className="text-red-500">*</span>
                         </label>
-                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" />
+                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" excludeLinkedCars={true} />
                     </div>
                     <div className="flex justify-end">
                         <button type="button" onClick={() => setShowCreateCarModal(true)} className="btn btn-outline-primary">
@@ -1041,7 +1039,7 @@ const AddDeal = () => {
                     <h5 className="text-lg font-semibold dark:text-white-light">{t('new_car_from_showroom')}</h5>
                 </div>
                 <div className="space-y-4">
-                    <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" />
+                    <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" excludeLinkedCars={true} />
                     <div className="flex justify-end">
                         <button type="button" onClick={() => setShowCreateCarModal(true)} className="btn btn-outline-primary">
                             {t('create_new_car')}
@@ -1606,7 +1604,7 @@ const AddDeal = () => {
                         <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('select_car')} <span className="text-red-500">*</span>
                         </label>
-                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" />
+                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" excludeLinkedCars={true} />
                     </div>
                     <div className="flex justify-end">
                         <button type="button" onClick={() => setShowCreateCarModal(true)} className="btn btn-outline-primary">
@@ -1913,7 +1911,7 @@ const AddDeal = () => {
                         <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
                             {t('select_car')} <span className="text-red-500">*</span>
                         </label>
-                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" />
+                        <CarSelect selectedCar={selectedCar} onCarSelect={setSelectedCar} onCreateNew={() => setShowCreateCarModal(true)} className="form-input" excludeLinkedCars={true} />
                     </div>
                     <div className="flex justify-end">
                         <button type="button" onClick={() => setShowCreateCarModal(true)} className="btn btn-outline-primary">

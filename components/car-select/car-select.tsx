@@ -5,22 +5,7 @@ import IconMenuWidgets from '@/components/icon/menu/icon-menu-widgets';
 import IconPlus from '@/components/icon/icon-plus';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
-
-interface Car {
-    id: string;
-    title: string;
-    year: number;
-    brand: string;
-    status: string;
-    type?: string;
-    provider: string;
-    kilometers: number;
-    market_price: number;
-    buy_price: number;
-    sale_price: number;
-    car_number?: string; // Car number field
-    images: string[] | string;
-}
+import { Car } from '@/types';
 
 interface CarSelectProps {
     selectedCar?: Car | null;
@@ -28,9 +13,11 @@ interface CarSelectProps {
     onCreateNew?: () => void;
     className?: string;
     availableCars?: Car[]; // Optional prop to pass pre-filtered cars
+    excludeLinkedCars?: boolean; // New prop to exclude cars already linked to deals
+    currentDealId?: string; // For edit mode - exclude current deal from check
 }
 
-const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-select', availableCars }: CarSelectProps) => {
+const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-select', availableCars, excludeLinkedCars = false, currentDealId }: CarSelectProps) => {
     const { t } = getTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [cars, setCars] = useState<Car[]>([]);
@@ -47,15 +34,19 @@ const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-se
         } else if (isOpen && cars.length === 0) {
             fetchCars();
         }
-    }, [isOpen, availableCars]);
+    }, [isOpen, availableCars, excludeLinkedCars, currentDealId]);
     useEffect(() => {
         const carsToFilter = availableCars || cars;
-        const filtered = carsToFilter.filter(
-            (car) =>
-                car.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                car.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                car.provider.toLowerCase().includes(searchTerm.toLowerCase()),
-        );
+        const searchLower = searchTerm.toLowerCase();
+
+        const filtered = carsToFilter.filter((car) => {
+            const title = car.title ? String(car.title).toLowerCase() : '';
+            const brand = car.brand ? String(car.brand).toLowerCase() : '';
+            const provider = car.provider ? String(car.provider).toLowerCase() : '';
+
+            return title.includes(searchLower) || brand.includes(searchLower) || provider.includes(searchLower);
+        });
+
         setFilteredCars(filtered);
     }, [cars, searchTerm, availableCars]);
 
@@ -72,11 +63,42 @@ const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-se
     const fetchCars = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase.from('cars').select('*').order('title');
+            if (excludeLinkedCars) {
+                // Fetch cars that are not linked to any active deals
+                const { data: carsData, error: carsError } = await supabase
+                    .from('cars')
+                    .select(
+                        `
+                        *,
+                        deals!deals_car_id_fkey(id, status)
+                    `,
+                    )
+                    .order('title');
 
-            if (error) throw error;
-            setCars(data || []);
-            setFilteredCars(data || []);
+                if (carsError) throw carsError;
+
+                // Filter out cars that have active deals (excluding current deal if editing)
+                const availableCars = (carsData || []).filter((car) => {
+                    if (!car.deals || car.deals.length === 0) {
+                        return true; // Car has no deals, it's available
+                    }
+
+                    // Check if car has any active deals (excluding current deal if editing)
+                    const hasActiveDeal = car.deals.some((deal: any) => deal.status !== 'cancelled' && deal.id !== currentDealId);
+
+                    return !hasActiveDeal;
+                });
+
+                setCars(availableCars);
+                setFilteredCars(availableCars);
+            } else {
+                // Original behavior - fetch all cars
+                const { data, error } = await supabase.from('cars').select('*').order('title');
+
+                if (error) throw error;
+                setCars(data || []);
+                setFilteredCars(data || []);
+            }
         } catch (error) {
             console.error('Error fetching cars:', error);
         } finally {
@@ -135,7 +157,7 @@ const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-se
                         <div>
                             <div className="font-medium">{selectedCar.title}</div>
                             <div className="text-xs text-gray-500">
-                                {selectedCar.brand} • {selectedCar.year} • {selectedCar.provider}
+                                {selectedCar.brand} • {selectedCar.year} • {selectedCar.provider || 'N/A'}
                             </div>
                         </div>
                     </div>
@@ -202,13 +224,13 @@ const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-se
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium text-black dark:text-white truncate">{car.title}</div>
                                             <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                {car.brand} • {car.year} • {car.provider}
+                                                {car.brand} • {car.year} • {car.provider || 'N/A'}
                                             </div>
                                             <div className="text-xs text-gray-400 dark:text-gray-500 flex gap-4">
                                                 <span>
-                                                    {car.kilometers.toLocaleString()} {t('km')}
+                                                    {(car.kilometers || 0).toLocaleString()} {t('km')}
                                                 </span>
-                                                <span>{formatCurrency(car.sale_price)}</span>
+                                                <span>{formatCurrency(car.sale_price || 0)}</span>
                                             </div>
                                         </div>
                                     </div>

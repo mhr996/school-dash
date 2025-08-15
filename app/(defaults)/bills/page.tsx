@@ -29,6 +29,7 @@ interface BillFiltersInterface {
 interface Bill extends BillWithPayments {
     amount: number;
     total_amount: number;
+    bill_direction?: string;
     // Legacy payment fields for backward compatibility
     payment_type?: string;
     visa_amount?: number;
@@ -474,7 +475,7 @@ const Bills = () => {
             accessor: 'total_with_tax',
             title: t('total_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className="font-bold">₪{getBillAmount(bill).toFixed(2)}</span>,
+            render: (bill: Bill) => <span className={`font-bold ${bill.bill_direction === 'negative' ? 'text-red-500' : ''}`}>₪{getBillAmount(bill).toFixed(2)}</span>,
         },
         {
             accessor: 'payment_type',
@@ -486,7 +487,11 @@ const Bills = () => {
             accessor: 'payment_amount',
             title: t('payment_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className="font-medium">{bill.bill_type === 'general' ? '₪' + getBillAmount(bill).toFixed(2) : getPaymentAmount(bill)}</span>,
+            render: (bill: Bill) => (
+                <span className={`font-medium ${bill.bill_direction === 'negative' ? 'text-red-500' : ''}`}>
+                    {bill.bill_type === 'general' ? '₪' + getBillAmount(bill).toFixed(2) : getPaymentAmount(bill)}
+                </span>
+            ),
         },
         {
             accessor: 'created_at',

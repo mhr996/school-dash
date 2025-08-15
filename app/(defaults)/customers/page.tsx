@@ -196,6 +196,9 @@ const CustomersList = () => {
         return type === 'new' ? 'badge-outline-success' : 'badge-outline-primary';
     };
 
+    // Calculate total balance
+    const totalBalance = items.reduce((sum, customer) => sum + (customer.balance || 0), 0);
+
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
             {alert.visible && (
@@ -208,6 +211,15 @@ const CustomersList = () => {
                     />
                 </div>
             )}
+            {/* Total Balance Display */}
+            <div className="mb-4 px-5">
+                <div className="text-lg font-semibold">
+                    {t('total_balance')}: {" "}
+                    <span className={totalBalance >= 0 ? 'text-success ml-2' : 'text-danger ml-2'}>
+                        {totalBalance >= 0 ? formatCurrency(totalBalance) : `-${formatCurrency(Math.abs(totalBalance))}`}
+                    </span>
+                </div>
+            </div>
             <div className="invoice-table">
                 <div className="mb-4.5 flex flex-wrap items-start justify-between gap-4 px-5">
                     <div className="flex items-center gap-2 ml-auto">

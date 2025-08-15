@@ -127,7 +127,7 @@ interface BillPayment {
 import { uploadMultipleFiles, deleteFile, uploadFile } from '@/utils/file-upload';
 import { formatCurrency } from '@/utils/number-formatter';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
-import { handleReceiptCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
+import { handleReceiptCreated, getCustomerIdFromDeal, getCustomerIdByName } from '@/utils/balance-manager';
 import { MultiplePaymentForm } from '@/components/forms/multiple-payment-form';
 import IconNotes from '@/components/icon/icon-notes';
 import IconCar from '@/components/icon/icon-car';
@@ -175,7 +175,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         phone: '',
         date: new Date().toISOString().split('T')[0],
         car_details: '',
-        sale_price: '',
         commission: '',
         free_text: '',
         total: '',
@@ -230,8 +229,14 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             return parseFloat(bill.total_with_tax || '0');
         }
 
-        // For receipt types, return the payment amount based on payment method
+        // For receipt types, calculate total from payments array if available
         if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') {
+            // If using new multiple payments structure, calculate total from payments
+            if (bill.payments && bill.payments.length > 0) {
+                return bill.payments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+            }
+
+            // Otherwise, use legacy payment fields
             switch (bill.payment_type?.toLowerCase()) {
                 case 'bank_transfer':
                     return parseFloat(bill.bank_amount || bill.transfer_amount || '0');
@@ -385,6 +390,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     // Auto-populate bill form when bill section is expanded
     useEffect(() => {
         if (isBillSectionExpanded && deal && selectedCar) {
+            // Use selling_price instead of amount for bill calculations
+            const dealSellingPrice = deal.selling_price || 0;
+
             // For intermediary deals, use seller/buyer info
             if (deal.deal_type === 'intermediary' && (selectedSeller || selectedBuyer)) {
                 const customerInfo = selectedSeller || selectedBuyer;
@@ -393,10 +401,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     customer_name: customerInfo?.name || '',
                     phone: customerInfo?.phone || '',
                     car_details: selectedCar ? `${selectedCar.brand} ${selectedCar.title} ${selectedCar.year}` : '',
-                    sale_price: deal.amount?.toString() || '',
-                    total: (deal.amount / 1.18).toFixed(2), // Price before tax
-                    tax_amount: ((deal.amount / 1.18) * 0.18).toFixed(2), // 18% tax
-                    total_with_tax: deal.amount?.toString() || '', // Deal amount already includes tax
+                    total: (dealSellingPrice / 1.18).toFixed(2), // Price before tax
+                    tax_amount: ((dealSellingPrice / 1.18) * 0.18).toFixed(2), // 18% tax
+                    total_with_tax: dealSellingPrice?.toString() || '', // Deal selling price already includes tax
                 }));
             }
             // For other deal types, use regular customer
@@ -406,10 +413,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     customer_name: selectedCustomer.name || '',
                     phone: selectedCustomer.phone || '',
                     car_details: selectedCar ? `${selectedCar.brand} ${selectedCar.title} ${selectedCar.year}` : '',
-                    sale_price: deal.amount?.toString() || '',
-                    total: (deal.amount / 1.18).toFixed(2), // Price before tax
-                    tax_amount: ((deal.amount / 1.18) * 0.18).toFixed(2), // 18% tax
-                    total_with_tax: deal.amount?.toString() || '', // Deal amount already includes tax
+                    total: (dealSellingPrice / 1.18).toFixed(2), // Price before tax
+                    tax_amount: ((dealSellingPrice / 1.18) * 0.18).toFixed(2), // 18% tax
+                    total_with_tax: dealSellingPrice?.toString() || '', // Deal selling price already includes tax
                 }));
             }
         }
@@ -921,11 +927,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         setBillForm((prev) => {
             const updated = { ...prev, [name]: value };
 
-            // Auto-calculate tax when sale_price or commission changes
-            if (name === 'sale_price' || name === 'commission') {
-                const salePrice = parseFloat(name === 'sale_price' ? value : updated.sale_price) || 0;
-                const commission = parseFloat(name === 'commission' ? value : updated.commission) || 0;
-                const totalWithTax = salePrice + commission; // This total already includes tax
+            // Auto-calculate tax when commission changes
+            if (name === 'commission') {
+                const commission = parseFloat(value) || 0;
+                const totalWithTax = commission; // This total already includes tax
                 const preTaxAmount = totalWithTax / 1.18; // Remove 18% tax to get pre-tax amount
                 const taxAmount = preTaxAmount * 0.18; // Calculate 18% tax
 
@@ -962,14 +967,24 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
             const expectedTotal = parseFloat(billForm.total_with_tax) || 0;
 
-            // Allow partial payments - just ensure the total doesn't exceed the bill amount
-            if (totalPaid > expectedTotal + 0.01) {
-                // Allow for small rounding differences
+            // Allow payments to exceed the expected total (extra goes to customer balance)
+            // Only validate that we have some payment amount
+            if (totalPaid <= 0) {
                 setAlert({
-                    message: `${t('payment_exceeds_total')}: ${t('maximum_allowed')} ₪${expectedTotal.toFixed(2)}, ${t('received')} ₪${totalPaid.toFixed(2)}`,
+                    message: t('payment_amount_required'),
                     type: 'danger',
                 });
                 return false;
+            }
+
+            // Show info message if payment exceeds selling price
+            if (totalPaid > expectedTotal + 0.01) {
+                const excessAmount = totalPaid - expectedTotal;
+                setAlert({
+                    message: `${t('payment_exceeds_selling_price')}: ₪${excessAmount.toFixed(2)} ${t('will_be_added_to_customer_balance')}`,
+                    type: 'success',
+                });
+                // Don't return false - allow the payment to proceed
             }
         }
 
@@ -1004,6 +1019,19 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 }
             }
 
+            // Automatically determine bill direction for specific bill types
+            let finalBillDirection = billForm.bill_direction;
+
+            if (billForm.bill_type === 'tax_invoice') {
+                // Tax invoices are always negative
+                finalBillDirection = 'negative';
+            } else if (billForm.bill_type === 'tax_invoice_receipt') {
+                // Tax invoice with receipt: positive if payments exceed selling_price, negative otherwise
+                const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+                const sellingPrice = deal?.selling_price || 0;
+                finalBillDirection = totalPaid > sellingPrice ? 'positive' : 'negative';
+            }
+
             // For receipts, we'll use multiple payments structure
             // For other bill types, we'll use the legacy single payment structure for now
             const billData =
@@ -1011,13 +1039,12 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     ? {
                           deal_id: parseInt(dealId),
                           bill_type: billForm.bill_type,
-                          bill_direction: billForm.bill_direction,
+                          bill_direction: finalBillDirection,
                           status: billForm.status,
                           customer_name: customerName,
                           phone: customerPhone,
                           date: billForm.date,
                           car_details: billForm.car_details,
-                          sale_price: parseFloat(billForm.sale_price) || null,
                           commission: parseFloat(billForm.commission) || null,
                           free_text: billForm.free_text,
                           total: parseFloat(billForm.total) || null,
@@ -1032,13 +1059,12 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     : {
                           deal_id: parseInt(dealId),
                           bill_type: billForm.bill_type,
-                          bill_direction: billForm.bill_direction,
+                          bill_direction: finalBillDirection,
                           status: billForm.status,
                           customer_name: customerName,
                           phone: customerPhone,
                           date: billForm.date,
                           car_details: billForm.car_details,
-                          sale_price: parseFloat(billForm.sale_price) || null,
                           commission: parseFloat(billForm.commission) || null,
                           free_text: billForm.free_text,
                           total: parseFloat(billForm.total) || null,
@@ -1134,15 +1160,31 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
             setAlert({ message: t('bill_created_successfully'), type: 'success' });
 
-            // Update customer balance if this bill has payment amounts
-            const customerId = getCustomerIdFromDeal(deal);
+            // Update customer balance for all bill types
+            let customerId = null;
+
+            if (deal) {
+                // For bills with deals, get customer from deal
+                customerId = getCustomerIdFromDeal(deal);
+            } else if (billForm.bill_type === 'general' && customerName) {
+                // For general bills, get customer by name
+                customerId = await getCustomerIdByName(customerName);
+            }
+
             if (customerId) {
-                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, customerId, billData, customerName || 'Customer');
+                const dealSellingPrice = deal?.selling_price || 0;
+
+                // For general bills, don't pass payments array as the amount is in bill_amount field
+                const paymentsToPass = billForm.bill_type === 'general' ? undefined : payments;
+
+                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, customerId, billData, customerName || 'Customer', dealSellingPrice, paymentsToPass);
 
                 if (!balanceUpdateSuccess) {
                     console.warn('Failed to update customer balance for bill:', billResult.id);
                     // Don't fail the bill creation, just log the warning
                 }
+            } else if (customerName) {
+                console.warn('Could not find customer for balance update:', customerName);
             }
 
             // Refresh bills list
@@ -1159,7 +1201,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 phone: '',
                 date: new Date().toISOString().split('T')[0],
                 car_details: '',
-                sale_price: '',
                 commission: '',
                 free_text: '',
                 total: '',
@@ -1801,7 +1842,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 {/* Car Selector */}
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('car')}</label>
-                                    <CarSelect selectedCar={selectedCar} onCarSelect={deal?.status === 'completed' ? () => {} : handleCarSelect} className="form-input" />
+                                    <CarSelect
+                                        selectedCar={selectedCar}
+                                        onCarSelect={deal?.status === 'completed' ? () => {} : handleCarSelect}
+                                        className="form-input"
+                                        excludeLinkedCars={true}
+                                        currentDealId={dealId}
+                                    />
                                 </div>
                             </>
                         )}
@@ -1810,7 +1857,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         {dealType === 'intermediary' && (
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('car')}</label>
-                                <CarSelect selectedCar={selectedCar} onCarSelect={deal?.status === 'completed' ? () => {} : handleCarSelect} className="form-input" />
+                                <CarSelect
+                                    selectedCar={selectedCar}
+                                    onCarSelect={deal?.status === 'completed' ? () => {} : handleCarSelect}
+                                    className="form-input"
+                                    excludeLinkedCars={true}
+                                    currentDealId={dealId}
+                                />
                             </div>
                         )}
                     </div>
@@ -1935,8 +1988,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         className="w-full"
                                     />
                                 </div>
-                                {/* Bill Direction Selector for All Bills */}
-                                {billForm.bill_type && (
+                                {/* Bill Direction Selector for All Bills except tax_invoice and tax_invoice_receipt */}
+                                {billForm.bill_type && billForm.bill_type !== 'tax_invoice' && billForm.bill_type !== 'tax_invoice_receipt' && (
                                     <div>
                                         <div className="mb-4 flex items-center gap-3">
                                             <IconDollarSign className="w-5 h-5 text-primary" />
@@ -2582,7 +2635,13 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                     </span>
                                                 </td>{' '}
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{bill.deals?.customers?.name || bill.customer_name || t('unknown_customer')}</td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">₪{getBillAmount(bill).toFixed(2)}</td>
+                                                <td className="px-4 py-3 text-sm">
+                                                    {bill.bill_direction === 'negative' ? (
+                                                        <span className="text-red-600 dark:text-red-400 font-medium">₪{getBillAmount(bill).toFixed(2)}</span>
+                                                    ) : (
+                                                        <span className="text-gray-900 dark:text-gray-100">₪{getBillAmount(bill).toFixed(2)}</span>
+                                                    )}
+                                                </td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{formatDate(bill.created_at)}</td>{' '}
                                                 <td className="px-4 py-3 text-center">
                                                     <div className="flex items-center justify-center gap-2">
