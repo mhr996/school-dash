@@ -89,7 +89,21 @@ const DealsList = () => {
                             name,
                             id_number
                         ),
-                        bills (id)
+                        bills (
+                            id,
+                            bill_type,
+                            bill_direction,
+                            visa_amount,
+                            transfer_amount,
+                            check_amount,
+                            cash_amount,
+                            bank_amount,
+                            bill_amount,
+                            bill_payments (
+                                amount,
+                                payment_type
+                            )
+                        )
                     `,
                     )
                     .order('created_at', { ascending: false });
@@ -263,6 +277,43 @@ const DealsList = () => {
         }).format(value);
     };
 
+    const calculateDealBalance = (bills: any[]): number => {
+        if (!bills || bills.length === 0) return 0;
+
+        let totalBalance = 0;
+
+        bills.forEach((bill) => {
+            // Count receipts and general bills that affect the deal balance
+            if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt' || bill.bill_type === 'general') {
+                let billAmount = 0;
+
+                // If bill has bill_payments (new structure), use those
+                if (bill.bill_payments && bill.bill_payments.length > 0) {
+                    billAmount = bill.bill_payments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+                } else {
+                    // Use legacy payment fields
+                    const visaAmount = parseFloat(bill.visa_amount || '0') || 0;
+                    const transferAmount = parseFloat(bill.transfer_amount || '0') || 0;
+                    const checkAmount = parseFloat(bill.check_amount || '0') || 0;
+                    const cashAmount = parseFloat(bill.cash_amount || '0') || 0;
+                    const bankAmount = parseFloat(bill.bank_amount || '0') || 0;
+                    const billAmountField = parseFloat(bill.bill_amount || '0') || 0; // For general bills
+
+                    billAmount = visaAmount + transferAmount + checkAmount + cashAmount + bankAmount + billAmountField;
+                }
+
+                // Apply bill direction: negative bills should reduce the balance
+                if (bill.bill_direction === 'negative') {
+                    totalBalance -= Math.abs(billAmount);
+                } else {
+                    totalBalance += Math.abs(billAmount);
+                }
+            }
+        });
+
+        return totalBalance;
+    };
+
     const getDealTypeBadgeClass = (type: string) => {
         switch (type) {
             case 'new_used_sale':
@@ -404,7 +455,16 @@ const DealsList = () => {
                                 accessor: 'amount',
                                 title: t('amount'),
                                 sortable: true,
-                                render: ({ selling_price, amount }) => <span className="text-success">{selling_price ? formatCurrency(selling_price) : formatCurrency(amount)}</span>,
+                                render: ({ selling_price }) => <span className="text-success">{formatCurrency(selling_price)}</span>,
+                            },
+                            {
+                                accessor: 'deal_balance',
+                                title: t('deal_balance'),
+                                sortable: true,
+                                render: ({ bills }) => {
+                                    const balance = calculateDealBalance(bills || []);
+                                    return <span className={balance >= 0 ? 'text-info' : 'text-danger'}>{formatCurrency(balance)}</span>;
+                                },
                             },
                             {
                                 accessor: 'status',

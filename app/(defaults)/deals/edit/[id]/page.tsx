@@ -139,6 +139,7 @@ import IconEye from '@/components/icon/icon-eye';
 import IconReceipt from '@/components/icon/icon-receipt';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconPdf from '@/components/icon/icon-pdf';
+import BillsTable from '@/components/bills/bills-table';
 
 const EditDeal = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
@@ -2310,16 +2311,16 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                                         <span
                                                                             className={`text-sm ${(() => {
                                                                                 const buyPrice = selectedCar.buy_price || 0;
-                                                                                const sellPrice = parseFloat(form.amount || '0');
+                                                                                const sellPrice = parseFloat(form.selling_price || '0');
                                                                                 const loss = parseFloat(form.loss_amount || '0');
                                                                                 const profit = sellPrice - buyPrice - loss;
                                                                                 return profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
                                                                             })()}`}
                                                                         >
-                                                                            ₪{' '}
+                                                                            ${' '}
                                                                             {(() => {
                                                                                 const buyPrice = selectedCar.buy_price || 0;
-                                                                                const sellPrice = parseFloat(form.amount || '0');
+                                                                                const sellPrice = parseFloat(form.selling_price || '0');
                                                                                 const loss = parseFloat(form.loss_amount || '0');
                                                                                 const profit = sellPrice - buyPrice - loss;
                                                                                 return profit >= 0 ? `+${formatCurrency(profit)}` : formatCurrency(profit);
@@ -2502,49 +2503,27 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         {/* Separator */}
                                                         <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
                                                         {/* Tax Calculations */}
-                                                        {deal.deal_type === 'new_used_sale_tax_inclusive' ? (
-                                                            <div className="space-y-3">
-                                                                {/* Price Before Tax */}
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                                                                        {formatCurrency(deal?.selling_price - deal?.selling_price * 0.18 || 0)}
-                                                                    </span>
-                                                                </div>
-
-                                                                {/* Tax */}
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.selling_price || 0) * 0.18)}</span>
-                                                                </div>
-
-                                                                {/* Total Including Tax */}
-                                                                <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
-                                                                    <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                                                    <span className="text-lg font-bold text-primary">{formatCurrency(deal?.selling_price || 0)}</span>
-                                                                </div>
+                                                        <div className="space-y-3">
+                                                            {/* Price Before Tax */}
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                                                <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                                    {formatCurrency(deal?.selling_price - deal?.selling_price * 0.18 || 0)}
+                                                                </span>
                                                             </div>
-                                                        ) : (
-                                                            <div className="space-y-3">
-                                                                {/* Price Before Tax */}
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount - deal?.amount * 0.18 || 0)}</span>
-                                                                </div>
 
-                                                                {/* Tax */}
-                                                                <div className="flex justify-between items-center">
-                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.amount || 0) * 0.18)}</span>
-                                                                </div>
-
-                                                                {/* Total Including Tax */}
-                                                                <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
-                                                                    <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                                                    <span className="text-lg font-bold text-primary">{formatCurrency(deal?.amount || 0)}</span>
-                                                                </div>
+                                                            {/* Tax */}
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                                                <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.selling_price || 0) * 0.18)}</span>
                                                             </div>
-                                                        )}
+
+                                                            {/* Total Including Tax */}
+                                                            <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                                                <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                                                <span className="text-lg font-bold text-primary">{formatCurrency(deal?.selling_price || 0)}</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             )}
@@ -2599,82 +2578,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         )}
                     </div>
                     {/* Connected Bills Section */}
-                    <div className="panel">
-                        <div className="mb-5 flex items-center gap-3">
-                            <IconReceipt className="w-5 h-5 text-primary" />
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('connected_bills')}</h5>
-                        </div>
-
-                        {loadingBills ? (
-                            <div className="flex justify-center items-center py-8">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                            </div>
-                        ) : bills.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                                <IconReceipt className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                <p>{t('no_bills_connected')}</p>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="table-auto w-full">
-                                    <thead>
-                                        <tr className="bg-gray-50 dark:bg-gray-800">
-                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('bill_type')}</th>
-                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('customer_name')}</th>
-                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('amount')}</th>
-                                            <th className="px-4 py-3  text-sm font-medium text-gray-700 dark:text-gray-300">{t('created_date')}</th>
-                                            <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">{t('actions')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                        {bills.map((bill) => (
-                                            <tr key={bill.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
-                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                                                        {t(`bill_type_${bill.bill_type}`)}
-                                                    </span>
-                                                </td>{' '}
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{bill.deals?.customers?.name || bill.customer_name || t('unknown_customer')}</td>
-                                                <td className="px-4 py-3 text-sm">
-                                                    {bill.bill_direction === 'negative' ? (
-                                                        <span className="text-red-600 dark:text-red-400 font-medium">₪{getBillAmount(bill).toFixed(2)}</span>
-                                                    ) : (
-                                                        <span className="text-gray-900 dark:text-gray-100">₪{getBillAmount(bill).toFixed(2)}</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{formatDate(bill.created_at)}</td>{' '}
-                                                <td className="px-4 py-3 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <Link
-                                                            href={`/bills/preview/${bill.id}`}
-                                                            className="inline-flex items-center gap-1 px-3 py-1 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors duration-200 text-xs"
-                                                        >
-                                                            <IconEye className="w-3 h-3" />
-                                                            {t('view')}
-                                                        </Link>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleDownloadPDF(bill)}
-                                                            className="inline-flex items-center gap-1 px-3 py-1 bg-success text-white rounded-md hover:bg-success-dark transition-colors duration-200 text-xs"
-                                                            title={t('download_pdf')}
-                                                            disabled={downloadingPDF === bill.id}
-                                                        >
-                                                            {downloadingPDF === bill.id ? (
-                                                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-                                                            ) : (
-                                                                <IconPdf className="w-3 h-3" />
-                                                            )}
-                                                            PDF
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </div>
+                    <BillsTable bills={bills} loading={loadingBills} onDownloadPDF={handleDownloadPDF} downloadingPDF={downloadingPDF} readOnly={false} />
                     {/* Submit Button */}
                     <div className="flex justify-end gap-4 mt-8">
                         <button type="button" onClick={() => router.push('/deals')} className="btn btn-outline-secondary">

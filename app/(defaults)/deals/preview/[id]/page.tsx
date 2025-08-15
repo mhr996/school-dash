@@ -24,6 +24,7 @@ import { CarContract } from '@/types/contract';
 import { ContractPDFGenerator } from '@/utils/contract-pdf-generator-new';
 import IconDocument from '@/components/icon/icon-document';
 import { getCompanyInfo, CompanyInfo } from '@/lib/company-info';
+import BillsTable from '@/components/bills/bills-table';
 
 interface Customer {
     id: string;
@@ -127,7 +128,11 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                     const { data: billsData } = await supabase
                         .from('bills')
                         .select(
-                            'id, bill_type, status, customer_name, date, total_with_tax, total, created_at, bill_amount, payment_type, visa_amount, cash_amount, bank_amount, transfer_amount, check_amount',
+                            `id, bill_type, status, customer_name, date, total_with_tax, total, created_at, bill_amount, payment_type, visa_amount, cash_amount, bank_amount, transfer_amount, check_amount, bill_direction,
+                            bill_payments (
+                                amount,
+                                payment_type
+                            )`,
                         )
                         .eq('deal_id', dealId)
                         .order('created_at', { ascending: false });
@@ -171,34 +176,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
         }).format(value);
     };
 
-    // Helper function to get bill amount based on bill type and payment method
-    const getBillAmount = (bill: any) => {
-        if (bill.bill_type === 'general') {
-            return parseFloat(bill.bill_amount || '0');
-        }
-
-        if (bill.bill_type === 'tax_invoice') {
-            return parseFloat(bill.total_with_tax || '0');
-        }
-
-        // For receipt types, return the payment amount based on payment method
-        if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') {
-            switch (bill.payment_type?.toLowerCase()) {
-                case 'bank_transfer':
-                    return parseFloat(bill.bank_amount || bill.transfer_amount || '0');
-                case 'check':
-                    return parseFloat(bill.check_amount || '0');
-                case 'visa':
-                    return parseFloat(bill.visa_amount || '0');
-                case 'cash':
-                    return parseFloat(bill.cash_amount || '0');
-                default:
-                    return parseFloat(bill.total_with_tax || '0');
-            }
-        }
-
-        return 0;
-    };
     const getCarImageUrl = async (images: string[] | string | null) => {
         if (!images) return null;
         const imageArray = Array.isArray(images) ? images : [images];
@@ -708,59 +685,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                     )}
                 </div>
                 {/* Bills Section */}
-                <div className="panel">
-                    <div className="mb-5">
-                        <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
-                            <IconInvoice className="w-6 h-6 text-primary" />
-                            {t('bills')}
-                        </h5>
-                    </div>
-
-                    {bills.length > 0 ? (
-                        <div className="space-y-4">
-                            {bills.map((bill) => (
-                                <div key={bill.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2 bg-primary/10 rounded-full text-primary">{getBillTypeIcon(bill.bill_type)}</div>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h4 className="font-semibold text-gray-900 dark:text-white">{t(`bill_type_${bill.bill_type}`)}</h4>
-                                            </div>
-                                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                                                {bill.customer_name} •{' '}
-                                                {new Date(bill.date).toLocaleDateString('en-GB', {
-                                                    year: 'numeric',
-                                                    month: '2-digit',
-                                                    day: '2-digit',
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right flex flex-col gap-2">
-                                        <div className="font-bold text-gray-900 dark:text-white text-lg">{formatCurrency(getBillAmount(bill))}</div>
-                                        <div className="flex gap-2 justify-end">
-                                            <Link href={`/bills/preview/${bill.id}`} className="text-primary hover:underline text-sm">
-                                                {t('view_bill')}
-                                            </Link>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                                <IconInvoice className="w-8 h-8 text-gray-400" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('no_bills_found')}</h3>
-                            <p className="text-gray-600 dark:text-gray-400 mb-4">{t('no_bills_description')}</p>
-                            <Link href={`/bills/add?deal=${dealId}`} className="btn btn-primary gap-2">
-                                <IconPlus className="w-4 h-4" />
-                                {t('create_bill')}
-                            </Link>
-                        </div>
-                    )}
-                </div>
+                <BillsTable bills={bills} loading={false} readOnly={true} />
                 {/* Actions */}
                 <div className="panel">
                     <div className="mb-5">

@@ -136,6 +136,7 @@
     "deal_price": "Price",
     "deal_quantity": "Quantity",
     "deal_total": "Total",
+    "deal_balance": "Deal Balance",
     "car_for_sale": "Car for Sale",
     "buy_price_auto": "Buy Price (Auto)",
     "selling_price_manual": "Selling Price (Manual)",
