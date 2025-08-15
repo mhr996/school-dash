@@ -51,6 +51,7 @@ const AddDeal = () => {
     const [exchangeForm, setExchangeForm] = useState({
         title: '',
         notes: '',
+        selling_price: '', // Add selling price field
         // Customer old car details
         old_car_manufacturer: '',
         old_car_name: '',
@@ -68,6 +69,7 @@ const AddDeal = () => {
     // Form state for company commission deal
     const [companyCommissionForm, setCompanyCommissionForm] = useState({
         title: '',
+        selling_price: '', // Add selling price field
         company_name: '', // اسم الشركة المقدمه للعموله
         commission_date: '', // التاريخ
         amount: '', // المبلغ
@@ -76,6 +78,7 @@ const AddDeal = () => {
     const [intermediaryForm, setIntermediaryForm] = useState({
         title: '',
         notes: '',
+        selling_price: '', // Add selling price field
         profit_commission: '', // عمولة الربح
     });
 
@@ -83,6 +86,7 @@ const AddDeal = () => {
     const [financingAssistanceForm, setFinancingAssistanceForm] = useState({
         title: '',
         notes: '',
+        selling_price: '', // Add selling price field
         commission: '', // العمولة
     });
 
@@ -100,18 +104,79 @@ const AddDeal = () => {
         if (dealType === 'intermediary') {
             // For intermediary deals, use seller and buyer
             if (selectedCar && (selectedSeller || selectedBuyer)) {
-                setIntermediaryForm((prev) => ({
-                    ...prev,
-                    title: `${t('intermediary_deal_for')} ${selectedCar.title} - ${selectedSeller?.name || ''} ${t('to')} ${selectedBuyer?.name || ''}`,
-                }));
+                setIntermediaryForm((prev) => {
+                    // Only auto-fill selling_price if:
+                    // 1. It's a new car selection (different car ID), OR
+                    // 2. The current price matches the last auto-filled price (user hasn't manually edited it)
+                    const shouldAutoFillPrice = lastAutoFilledRef.current.carId !== selectedCar.id || prev.selling_price === lastAutoFilledRef.current.price || prev.selling_price === '';
+
+                    const newSellingPrice = shouldAutoFillPrice ? selectedCar.sale_price.toString() : prev.selling_price;
+
+                    // Update the ref with the new auto-filled values
+                    if (shouldAutoFillPrice) {
+                        lastAutoFilledRef.current = {
+                            carId: selectedCar.id,
+                            price: newSellingPrice,
+                        };
+                    }
+
+                    return {
+                        ...prev,
+                        title: `${t('intermediary_deal_for')} ${selectedCar.title} - ${selectedSeller?.name || ''} ${t('to')} ${selectedBuyer?.name || ''}`,
+                        selling_price: newSellingPrice,
+                    };
+                });
             }
         } else if (dealType === 'financing_assistance_intermediary') {
             // For financing assistance intermediary deals, use customer and car
             if (selectedCar && selectedCustomer) {
-                setFinancingAssistanceForm((prev) => ({
-                    ...prev,
-                    title: `${t('financing_assistance_commission')} ${selectedCar.title} - ${selectedCustomer.name}`,
-                }));
+                setFinancingAssistanceForm((prev) => {
+                    // Only auto-fill selling_price if:
+                    // 1. It's a new car selection (different car ID), OR
+                    // 2. The current price matches the last auto-filled price (user hasn't manually edited it)
+                    const shouldAutoFillPrice = lastAutoFilledRef.current.carId !== selectedCar.id || prev.selling_price === lastAutoFilledRef.current.price || prev.selling_price === '';
+
+                    const newSellingPrice = shouldAutoFillPrice ? selectedCar.sale_price.toString() : prev.selling_price;
+
+                    // Update the ref with the new auto-filled values
+                    if (shouldAutoFillPrice) {
+                        lastAutoFilledRef.current = {
+                            carId: selectedCar.id,
+                            price: newSellingPrice,
+                        };
+                    }
+
+                    return {
+                        ...prev,
+                        title: `${t('financing_assistance_commission')} ${selectedCar.title} - ${selectedCustomer.name}`,
+                        selling_price: newSellingPrice,
+                    };
+                });
+            }
+        } else if (dealType === 'company_commission') {
+            // For company commission deals, auto-fill when car is selected
+            if (selectedCar) {
+                setCompanyCommissionForm((prev) => {
+                    // Only auto-fill selling_price if:
+                    // 1. It's a new car selection (different car ID), OR
+                    // 2. The current price matches the last auto-filled price (user hasn't manually edited it)
+                    const shouldAutoFillPrice = lastAutoFilledRef.current.carId !== selectedCar.id || prev.selling_price === lastAutoFilledRef.current.price || prev.selling_price === '';
+
+                    const newSellingPrice = shouldAutoFillPrice ? selectedCar.sale_price.toString() : prev.selling_price;
+
+                    // Update the ref with the new auto-filled values
+                    if (shouldAutoFillPrice) {
+                        lastAutoFilledRef.current = {
+                            carId: selectedCar.id,
+                            price: newSellingPrice,
+                        };
+                    }
+
+                    return {
+                        ...prev,
+                        selling_price: newSellingPrice,
+                    };
+                });
             }
         } else if (selectedCar && selectedCustomer) {
             if (dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') {
@@ -139,9 +204,25 @@ const AddDeal = () => {
                 });
             } else if (dealType === 'exchange') {
                 setExchangeForm((prev) => {
+                    // Only auto-fill selling_price if:
+                    // 1. It's a new car selection (different car ID), OR
+                    // 2. The current price matches the last auto-filled price (user hasn't manually edited it)
+                    const shouldAutoFillPrice = lastAutoFilledRef.current.carId !== selectedCar.id || prev.selling_price === lastAutoFilledRef.current.price || prev.selling_price === '';
+
+                    const newSellingPrice = shouldAutoFillPrice ? selectedCar.sale_price.toString() : prev.selling_price;
+
+                    // Update the ref with the new auto-filled values
+                    if (shouldAutoFillPrice) {
+                        lastAutoFilledRef.current = {
+                            carId: selectedCar.id,
+                            price: newSellingPrice,
+                        };
+                    }
+
                     const updated = {
                         ...prev,
                         title: `${t('exchange_deal_for')} ${selectedCar.title} - ${selectedCustomer.name}`,
+                        selling_price: newSellingPrice,
                     };
 
                     // Auto-calculate display fields if old car purchase price exists
@@ -180,6 +261,14 @@ const AddDeal = () => {
         setExchangeForm((prev) => {
             const updated = { ...prev, [name]: value };
 
+            // Update the car's sale_price in real-time when selling_price changes
+            if (name === 'selling_price' && selectedCar && value && !isNaN(parseFloat(value))) {
+                const newSellingPrice = parseFloat(value);
+                if (Math.abs(newSellingPrice - selectedCar.sale_price) > 0.001) {
+                    setSelectedCar((prevCar) => (prevCar ? { ...prevCar, sale_price: newSellingPrice } : null));
+                }
+            }
+
             // Auto-calculate values for exchange deals when old car purchase price changes
             if (name === 'old_car_purchase_price' && selectedCar) {
                 const purchasePrice = parseFloat(value || '0');
@@ -199,15 +288,39 @@ const AddDeal = () => {
     const handleCompanyCommissionFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setCompanyCommissionForm((prev) => ({ ...prev, [name]: value }));
+
+        // Update the car's sale_price in real-time when selling_price changes
+        if (name === 'selling_price' && selectedCar && value && !isNaN(parseFloat(value))) {
+            const newSellingPrice = parseFloat(value);
+            if (Math.abs(newSellingPrice - selectedCar.sale_price) > 0.001) {
+                setSelectedCar((prevCar) => (prevCar ? { ...prevCar, sale_price: newSellingPrice } : null));
+            }
+        }
     };
     const handleIntermediaryFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setIntermediaryForm((prev) => ({ ...prev, [name]: value }));
+
+        // Update the car's sale_price in real-time when selling_price changes
+        if (name === 'selling_price' && selectedCar && value && !isNaN(parseFloat(value))) {
+            const newSellingPrice = parseFloat(value);
+            if (Math.abs(newSellingPrice - selectedCar.sale_price) > 0.001) {
+                setSelectedCar((prevCar) => (prevCar ? { ...prevCar, sale_price: newSellingPrice } : null));
+            }
+        }
     };
 
     const handleFinancingAssistanceFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFinancingAssistanceForm((prev) => ({ ...prev, [name]: value }));
+
+        // Update the car's sale_price in real-time when selling_price changes
+        if (name === 'selling_price' && selectedCar && value && !isNaN(parseFloat(value))) {
+            const newSellingPrice = parseFloat(value);
+            if (Math.abs(newSellingPrice - selectedCar.sale_price) > 0.001) {
+                setSelectedCar((prevCar) => (prevCar ? { ...prevCar, sale_price: newSellingPrice } : null));
+            }
+        }
     };
 
     const handleDealTypeChange = (type: string) => {
@@ -228,6 +341,7 @@ const AddDeal = () => {
         setExchangeForm({
             title: '',
             notes: '',
+            selling_price: '',
             old_car_manufacturer: '',
             old_car_name: '',
             old_car_year: '',
@@ -242,6 +356,7 @@ const AddDeal = () => {
         });
         setCompanyCommissionForm({
             title: '',
+            selling_price: '',
             company_name: '',
             commission_date: '',
             amount: '',
@@ -250,11 +365,13 @@ const AddDeal = () => {
         setIntermediaryForm({
             title: '',
             notes: '',
+            selling_price: '',
             profit_commission: '',
         });
         setFinancingAssistanceForm({
             title: '',
             notes: '',
+            selling_price: '',
             commission: '',
         });
         setDealAttachments({
@@ -409,16 +526,31 @@ const AddDeal = () => {
 
         setSaving(true);
         try {
-            // Update car's sale_price if it has changed for sale deals
-            if ((dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') && selectedCar && saleForm.selling_price) {
-                const newSellingPrice = parseFloat(saleForm.selling_price);
+            // Update car's sale_price if it has changed for any deal type with a selected car
+            if (selectedCar) {
+                let sellingPrice = null;
 
-                // Always update the car's sale_price to match the deal's selling_price
-                const { error: carUpdateError } = await supabase.from('cars').update({ sale_price: newSellingPrice }).eq('id', selectedCar.id);
+                // Get selling price from the appropriate form based on deal type
+                if (dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') {
+                    sellingPrice = saleForm.selling_price ? parseFloat(saleForm.selling_price) : null;
+                } else if (dealType === 'exchange') {
+                    sellingPrice = exchangeForm.selling_price ? parseFloat(exchangeForm.selling_price) : null;
+                } else if (dealType === 'intermediary') {
+                    sellingPrice = intermediaryForm.selling_price ? parseFloat(intermediaryForm.selling_price) : null;
+                } else if (dealType === 'financing_assistance_intermediary') {
+                    sellingPrice = financingAssistanceForm.selling_price ? parseFloat(financingAssistanceForm.selling_price) : null;
+                } else if (dealType === 'company_commission') {
+                    sellingPrice = companyCommissionForm.selling_price ? parseFloat(companyCommissionForm.selling_price) : null;
+                }
 
-                if (carUpdateError) {
-                    console.error('Error updating car sale price:', carUpdateError);
-                    // Continue with deal creation but log the error
+                if (sellingPrice && sellingPrice > 0) {
+                    // Always update the car's sale_price to match the deal's selling_price
+                    const { error: carUpdateError } = await supabase.from('cars').update({ sale_price: sellingPrice }).eq('id', selectedCar.id);
+
+                    if (carUpdateError) {
+                        console.error('Error updating car sale price:', carUpdateError);
+                        // Continue with deal creation but log the error
+                    }
                 }
             }
             // First create the deal to get an ID
@@ -490,6 +622,7 @@ const AddDeal = () => {
                     car_id: selectedCar?.id,
                     car_taken_from_client: newCarData.id, // Link the newly created car
                     loss_amount: lossAmount || null,
+                    selling_price: exchangeForm.selling_price ? parseFloat(exchangeForm.selling_price) : null,
                     customer_car_eval_value: oldCarPurchasePrice || null,
                     additional_customer_amount: Math.max(0, newCarSalePrice - oldCarPurchasePrice) || null,
                     notes: exchangeForm.notes.trim(),
@@ -501,6 +634,7 @@ const AddDeal = () => {
                     title: companyCommissionForm.title.trim(),
                     description: companyCommissionForm.description.trim() || `${t('company_commission_deal_description')} ${companyCommissionForm.company_name}`,
                     amount: parseFloat(companyCommissionForm.amount),
+                    selling_price: companyCommissionForm.selling_price ? parseFloat(companyCommissionForm.selling_price) : null,
                     // Company commission specific fields
                     company_name: companyCommissionForm.company_name.trim(),
                     commission_date: companyCommissionForm.commission_date,
@@ -515,6 +649,7 @@ const AddDeal = () => {
                     amount: parseFloat(intermediaryForm.profit_commission),
                     car_id: selectedCar?.id,
                     customer_id: null, // No single customer for intermediary deals
+                    selling_price: intermediaryForm.selling_price ? parseFloat(intermediaryForm.selling_price) : null,
                     // Intermediary specific fields
                     profit_commission: parseFloat(intermediaryForm.profit_commission),
                     seller_id: selectedSeller?.id,
@@ -530,6 +665,7 @@ const AddDeal = () => {
                     amount: parseFloat(financingAssistanceForm.commission),
                     car_id: selectedCar?.id,
                     customer_id: selectedCustomer?.id,
+                    selling_price: financingAssistanceForm.selling_price ? parseFloat(financingAssistanceForm.selling_price) : null,
                     // Financing assistance specific fields
                     commission: parseFloat(financingAssistanceForm.commission),
                     notes: financingAssistanceForm.notes.trim(),
@@ -1273,11 +1409,29 @@ const AddDeal = () => {
                                         <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.buy_price)}</span>
                                     </div>
                                 </div>
-                                {/* Row 3: Selling Price (Auto from sale_price) */}
+                                {/* Row 3: Selling Price (Editable) */}
                                 <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                    <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
+                                    <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                        {t('selling_price_manual')}
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                                    </div>
                                     <div className="text-center">
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(selectedCar.sale_price)}</span>
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                ₪
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="selling_price"
+                                                step="0.01"
+                                                min="0"
+                                                value={exchangeForm.selling_price || ''}
+                                                onChange={handleExchangeFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
                                     </div>
                                 </div>{' '}
                                 {/* Row 4: Customer Car Evaluation (Auto-calculated) */}
@@ -1460,7 +1614,7 @@ const AddDeal = () => {
                         </label>
                         <div className="flex">
                             <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
-                                $
+                                ₪
                             </span>
                             <input
                                 type="number"
@@ -1469,6 +1623,29 @@ const AddDeal = () => {
                                 step="0.01"
                                 min="0"
                                 value={companyCommissionForm.amount}
+                                onChange={handleCompanyCommissionFormChange}
+                                className="form-input ltr:rounded-l-none rtl:rounded-r-none"
+                                placeholder="0.00"
+                            />
+                        </div>
+                    </div>
+                    {/* Selling Price */}
+                    <div>
+                        <label htmlFor="selling_price" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                            {t('selling_price_manual')}
+                            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                        </label>
+                        <div className="flex">
+                            <span className="inline-flex items-center px-3 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md">
+                                ₪
+                            </span>
+                            <input
+                                type="number"
+                                id="selling_price"
+                                name="selling_price"
+                                step="0.01"
+                                min="0"
+                                value={companyCommissionForm.selling_price || ''}
                                 onChange={handleCompanyCommissionFormChange}
                                 className="form-input ltr:rounded-l-none rtl:rounded-r-none"
                                 placeholder="0.00"
@@ -1754,7 +1931,32 @@ const AddDeal = () => {
                                     </div>
                                     <div className="text-center">-</div>
                                 </div>
-                                {/* Row 2: Profit Commission (Editable) */}
+                                {/* Row 2: Selling Price (Editable) */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                        {t('selling_price_manual')}
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                ₪
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="selling_price"
+                                                step="0.01"
+                                                min="0"
+                                                value={intermediaryForm.selling_price || ''}
+                                                onChange={handleIntermediaryFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Row 3: Profit Commission (Editable) */}
                                 <div className="grid grid-cols-3 gap-4 mb-4 py-2">
                                     <div className="text-sm pt-1 text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
                                     <div className="text-center">
@@ -2003,7 +2205,32 @@ const AddDeal = () => {
                                     </div>
                                     <div className="text-center">-</div>
                                 </div>
-                                {/* Row 2: Commission (Editable) */}
+                                {/* Row 2: Selling Price (Editable) */}
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                    <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                        {t('selling_price_manual')}
+                                        <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="flex justify-center">
+                                            <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                ₪
+                                            </span>
+                                            <input
+                                                type="number"
+                                                name="selling_price"
+                                                step="0.01"
+                                                min="0"
+                                                value={financingAssistanceForm.selling_price || ''}
+                                                onChange={handleFinancingAssistanceFormChange}
+                                                className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                style={{ direction: 'ltr', textAlign: 'center' }}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                {/* Row 3: Commission (Editable) */}
                                 <div className="grid grid-cols-3 gap-4 mb-4 py-2">
                                     <div className="text-sm pt-1 text-gray-700 dark:text-gray-300 text-right">{t('commission_editable')}</div>
                                     <div className="text-center">

@@ -452,6 +452,17 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         setForm((prev) => {
             const updated = { ...prev, [name]: value };
 
+            // Update the selected car's sale_price in real-time when selling_price changes for any deal type
+            if (name === 'selling_price' && value && selectedCar) {
+                const sellingPrice = parseFloat(value);
+                if (!isNaN(sellingPrice)) {
+                    // Use a small tolerance to handle floating point precision issues
+                    if (Math.abs(sellingPrice - selectedCar.sale_price) > 0.001) {
+                        setSelectedCar((prevCar) => (prevCar ? { ...prevCar, sale_price: sellingPrice } : null));
+                    }
+                }
+            }
+
             // Auto-calculate deal amount when selling_price or loss_amount changes for sale deals
             if (
                 (name === 'selling_price' || name === 'loss_amount') &&
@@ -465,14 +476,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
                 // Update the amount field with the calculated profit commission
                 updated.amount = Math.max(0, profitCommission).toString(); // Ensure amount doesn't go negative
-
-                // Update the selected car's sale_price in real-time when selling_price changes
-                if (name === 'selling_price' && value && !isNaN(sellingPrice)) {
-                    // Use a small tolerance to handle floating point precision issues
-                    if (Math.abs(sellingPrice - selectedCar.sale_price) > 0.001) {
-                        setSelectedCar((prevCar) => (prevCar ? { ...prevCar, sale_price: sellingPrice } : null));
-                    }
-                }
             }
             // Auto-calculate amount when loss_amount changes (fallback for other deal types)
             else if (name === 'loss_amount' && deal) {
@@ -487,7 +490,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             // Auto-calculate exchange fields when relevant values change for exchange deals
             if (dealType === 'exchange' && carTakenFromClient && selectedCar) {
                 const purchasePrice = carTakenFromClient.buy_price || 0;
-                const salePrice = selectedCar.sale_price || 0;
+                const salePrice = parseFloat(updated.selling_price || '0') || 0;
                 const difference = salePrice - purchasePrice;
 
                 // Set customer_car_eval_value to the purchase price from customer (buy_price of taken car)
@@ -796,8 +799,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
         setSaving(true);
         try {
-            // Update car's sale_price if it has changed for sale deals
-            if ((dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') && selectedCar && form.selling_price) {
+            // Update car's sale_price if it has changed for any deal type with a selected car
+            if (selectedCar && form.selling_price) {
                 const newSellingPrice = parseFloat(form.selling_price);
 
                 // Always update the car's sale_price to match the deal's selling_price
@@ -1602,7 +1605,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             </div>
                                             <div className="text-center">-</div>
                                         </div>
-
                                         {/* Row 2: Buy Price */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
@@ -1610,15 +1612,32 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                 <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
                                             </div>
                                         </div>
-
-                                        {/* Row 3: Selling Price */}
+                                        {/* Row 3: Selling Price (Editable) */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
-                                            <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
-                                            <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.sale_price?.toFixed(2) || '0.00'}</span>
+                                            <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                                {t('selling_price_manual')}
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
                                             </div>
-                                        </div>
-
+                                            <div className="text-center">
+                                                <div className="flex justify-center">
+                                                    <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                        ₪
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        name="selling_price"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={form.selling_price || ''}
+                                                        onChange={handleInputChange}
+                                                        className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                        style={{ direction: 'ltr', textAlign: 'center' }}
+                                                        placeholder="0.00"
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>{' '}
                                         {/* Row 4: Customer Car Evaluation (Auto-calculated) */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
@@ -1628,7 +1647,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                 <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.customer_car_eval_value || '0').toFixed(2)}</span>
                                             </div>
                                         </div>
-
                                         {/* Row 5: Additional Amount from Customer (Auto-calculated) */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('additional_amount_from_customer')}</div>
@@ -1636,7 +1654,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                 <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.additional_customer_amount || '0').toFixed(2)}</span>
                                             </div>
                                         </div>
-
                                         {/* Row 6: Loss (Editable) */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">{t('loss_amount')}</div>
@@ -1660,7 +1677,6 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                 </div>
                                             </div>
                                         </div>
-
                                         {/* Row 7: Profit Commission (Calculated) */}
                                         <div className="grid grid-cols-3 gap-4 mb-4 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
@@ -1669,7 +1685,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                     if (!selectedCar || !carTakenFromClient) return <span className="text-sm text-gray-700 dark:text-gray-300">₪0.00</span>;
 
                                                     const buyPrice = selectedCar.buy_price || 0;
-                                                    const sellPrice = selectedCar.sale_price || 0;
+                                                    const sellPrice = parseFloat(form.selling_price || '0') || 0;
                                                     const oldCarPurchasePrice = carTakenFromClient.buy_price || 0;
                                                     const loss = parseFloat(form.loss_amount || '0');
 
@@ -1703,7 +1719,34 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-center">-</div>
                                         </div>
 
-                                        {/* Row 2: Profit Commission (Editable) */}
+                                        {/* Row 2: Selling Price (Editable) */}
+                                        <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                            <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                                {t('selling_price_manual')}
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="flex justify-center">
+                                                    <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                        ₪
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        name="selling_price"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={form.selling_price || ''}
+                                                        onChange={handleInputChange}
+                                                        className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                        style={{ direction: 'ltr', textAlign: 'center' }}
+                                                        placeholder="0.00"
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 3: Profit Commission (Editable) */}
                                         <div className="grid grid-cols-3 gap-4 mb-4 py-2">
                                             <div className="text-sm pt-1 text-gray-700 dark:text-gray-300 text-right">{t('profit_commission')}</div>
                                             <div className="text-center">
@@ -1744,7 +1787,34 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             <div className="text-center">-</div>
                                         </div>
 
-                                        {/* Row 2: Commission (Editable) */}
+                                        {/* Row 2: Selling Price (Editable) */}
+                                        <div className="grid grid-cols-3 gap-4 mb-3 py-2">
+                                            <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                                {t('selling_price_manual')}
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="flex justify-center">
+                                                    <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                        ₪
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        name="selling_price"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={form.selling_price || ''}
+                                                        onChange={handleInputChange}
+                                                        className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                        style={{ direction: 'ltr', textAlign: 'center' }}
+                                                        placeholder="0.00"
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 3: Commission (Editable) */}
                                         <div className="grid grid-cols-3 gap-4 mb-4 py-2">
                                             <div className="text-sm pt-1 text-gray-700 dark:text-gray-300 text-right">{t('commission_editable')}</div>
                                             <div className="text-center">
@@ -1774,7 +1844,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 {dealType === 'company_commission' && (
                                     <>
                                         {/* Row 1: Company Commission */}
-                                        <div className="grid grid-cols-3 gap-4 mb-4 py-2">
+                                        <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
                                                 <div className="font-medium">{t('deal_type_company_commission')}</div>
                                             </div>
@@ -1789,6 +1859,33 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         step="0.01"
                                                         min="0"
                                                         value={form.amount}
+                                                        onChange={handleInputChange}
+                                                        className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
+                                                        style={{ direction: 'ltr', textAlign: 'center' }}
+                                                        placeholder="0.00"
+                                                        disabled={deal?.status === 'completed' || deal?.status === 'cancelled'}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Row 2: Selling Price (Editable) */}
+                                        <div className="grid grid-cols-3 gap-4 mb-4 py-2">
+                                            <div className="text-sm pt-2 text-gray-700 dark:text-gray-300 text-right">
+                                                {t('selling_price_manual')}
+                                                <div className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-normal">{t('updates_car_sale_price')}</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="flex justify-center">
+                                                    <span className="inline-flex items-center px-2 bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 border ltr:border-r-0 rtl:border-l-0 border-gray-300 dark:border-gray-600 ltr:rounded-l-md rtl:rounded-r-md text-xs">
+                                                        ₪
+                                                    </span>
+                                                    <input
+                                                        type="number"
+                                                        name="selling_price"
+                                                        step="0.01"
+                                                        min="0"
+                                                        value={form.selling_price || ''}
                                                         onChange={handleInputChange}
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
