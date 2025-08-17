@@ -27,7 +27,7 @@ const DealTypeSelect = ({ defaultValue, className = 'form-select text-white-dark
         { value: 'exchange', label: t('deal_type_exchange') },
         { value: 'intermediary', label: t('deal_type_intermediary') },
         { value: 'financing_assistance_intermediary', label: t('deal_type_financing_assistance_intermediary') },
-        { value: 'company_commission', label: t('deal_type_company_commission') },
+        // { value: 'company_commission', label: t('deal_type_company_commission') },
     ];
 
     useEffect(() => {
