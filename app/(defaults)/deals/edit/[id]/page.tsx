@@ -392,7 +392,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     useEffect(() => {
         if (isBillSectionExpanded && deal && selectedCar) {
             // Use selling_price instead of amount for bill calculations
-            const dealSellingPrice = deal.selling_price || 0;
+            const dealSellingPrice = deal.deal_type === 'new_used_sale_tax_inclusive' ? deal.selling_price || 0 : deal.amount || 0;
 
             // For intermediary deals, use seller/buyer info
             if (deal.deal_type === 'intermediary' && (selectedSeller || selectedBuyer)) {
@@ -2600,27 +2600,49 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         {/* Separator */}
                                                         <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
                                                         {/* Tax Calculations */}
-                                                        <div className="space-y-3">
-                                                            {/* Price Before Tax */}
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                                                <span className="text-sm text-gray-700 dark:text-gray-300">
-                                                                    {formatCurrency(deal?.selling_price - deal?.selling_price * 0.18 || 0)}
-                                                                </span>
-                                                            </div>
+                                                        {deal.deal_type === 'new_used_sale_tax_inclusive' ? (
+                                                            <div className="space-y-3">
+                                                                {/* Price Before Tax */}
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                                                                        {formatCurrency(deal?.selling_price - deal?.selling_price * 0.18 || 0)}
+                                                                    </span>
+                                                                </div>
 
-                                                            {/* Tax */}
-                                                            <div className="flex justify-between items-center">
-                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                                                <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.selling_price || 0) * 0.18)}</span>
-                                                            </div>
+                                                                {/* Tax */}
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.selling_price || 0) * 0.18)}</span>
+                                                                </div>
 
-                                                            {/* Total Including Tax */}
-                                                            <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
-                                                                <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                                                <span className="text-lg font-bold text-primary">{formatCurrency(deal?.selling_price || 0)}</span>
+                                                                {/* Total Including Tax */}
+                                                                <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                                                    <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                                                    <span className="text-lg font-bold text-primary">{formatCurrency(deal?.selling_price || 0)}</span>
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        ) : (
+                                                            <div className="space-y-3">
+                                                                {/* Price Before Tax */}
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency(deal?.amount - deal?.amount * 0.18 || 0)}</span>
+                                                                </div>
+
+                                                                {/* Tax */}
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                                                    <span className="text-sm text-gray-700 dark:text-gray-300">{formatCurrency((deal?.amount || 0) * 0.18)}</span>
+                                                                </div>
+
+                                                                {/* Total Including Tax */}
+                                                                <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                                                    <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                                                    <span className="text-lg font-bold text-primary">{formatCurrency(deal?.amount || 0)}</span>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             )}

@@ -528,9 +528,23 @@ const AddBill = () => {
             // Use selling_price instead of amount for bill calculations
             sale_price: deal.selling_price?.toString() || '',
             // Calculate financials based on the deal selling price (which already includes tax)
-            total: deal.selling_price ? (deal.selling_price / 1.18).toFixed(2) : '', // Price before tax
-            tax_amount: deal.selling_price ? ((deal.selling_price / 1.18) * 0.18).toFixed(2) : '', // Tax amount
-            total_with_tax: deal.selling_price?.toFixed(2) || '', // Deal selling price already includes tax
+            total:
+                selectedDeal?.deal_type === 'new_used_sale_tax_inclusive'
+                    ? deal.selling_price
+                        ? (deal.selling_price / 1.18).toFixed(2)
+                        : ''
+                    : deal.selling_price
+                      ? (deal.amount / 1.18).toFixed(2)
+                      : '', // Price before tax
+            tax_amount:
+                selectedDeal?.deal_type === 'new_used_sale_tax_inclusive'
+                    ? deal.selling_price
+                        ? ((deal.selling_price / 1.18) * 0.18).toFixed(2)
+                        : ''
+                    : deal.amount
+                      ? ((deal.amount / 1.18) * 0.18).toFixed(2)
+                      : '', // Tax amount
+            total_with_tax: selectedDeal?.deal_type === 'new_used_sale_tax_inclusive' ? deal.selling_price?.toFixed(2) || '' : deal.amount?.toFixed(2) || '', // total with tax
             // Set default date to today if not already set
             date: prev.date || new Date().toISOString().split('T')[0],
         }));
@@ -906,7 +920,7 @@ const AddBill = () => {
                                                 <div className="text-center">-</div>
                                                 <div className="text-center">-</div>
                                                 <div className="text-center">
-                                                    <span className="text-sm text-red-600 dark:text-red-400">₪{selectedDeal?.loss_amount?.toFixed(2)}</span>
+                                                    <span className="text-sm text-red-600 dark:text-red-400">₪{selectedDeal?.loss_amount?.toFixed(2) ?? '0.00'}</span>
                                                 </div>
                                             </div>
 
@@ -1082,27 +1096,47 @@ const AddBill = () => {
                                     <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
 
                                     {/* Tax Calculations */}
-                                    <div className="space-y-3">
-                                        {/* Price Before Tax - calculated by removing 18% tax from deal selling price */}
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedDeal.selling_price ? (selectedDeal.selling_price / 1.18).toFixed(2) : '0.00'}</span>
-                                        </div>
+                                    {selectedDeal.deal_type === 'new_used_sale_tax_inclusive' ? (
+                                        <div className="space-y-3">
+                                            {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{((selectedDeal?.selling_price ?? 0) / 1.18).toFixed(2)}</span>
+                                            </div>
 
-                                        {/* Tax - calculated as 18% of the price before tax */}
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">
-                                                ₪{selectedDeal.selling_price ? ((selectedDeal.selling_price / 1.18) * 0.18).toFixed(2) : '0.00'}
-                                            </span>{' '}
-                                        </div>
+                                            {/* Tax - calculated as 18% of the price before tax */}
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{(((selectedDeal?.selling_price ?? 0) / 1.18) * 0.18).toFixed(2)}</span>{' '}
+                                            </div>
 
-                                        {/* Total Including Tax - this is the deal selling price which the customer pays */}
-                                        <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
-                                            <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                            <span className="text-lg font-bold text-primary">₪{selectedDeal.selling_price?.toFixed(2) || '0.00'}</span>
+                                            {/* Total Including Tax - this is the deal selling_price which already includes tax */}
+                                            <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                                <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                                <span className="text-lg font-bold text-primary">₪{(selectedDeal?.selling_price ?? 0).toFixed(2)}</span>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{(selectedDeal.amount / 1.18).toFixed(2)}</span>
+                                            </div>
+
+                                            {/* Tax - calculated as 18% of the price before tax */}
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{((selectedDeal.amount / 1.18) * 0.18).toFixed(2)}</span>{' '}
+                                            </div>
+
+                                            {/* Total Including Tax - this is the deal amount which already includes tax */}
+                                            <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                                <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                                <span className="text-lg font-bold text-primary">₪{selectedDeal.amount.toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

@@ -568,25 +568,47 @@ const BillPreview = () => {
                             <div className="border-t border-gray-300 dark:border-gray-600 my-4"></div>
 
                             {/* Tax Calculations */}
-                            <div className="space-y-3">
-                                {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.selling_price || 0) / 1.18).toFixed(2)}</span>
-                                </div>
+                            {bill.deal.deal_type === 'new_used_sale_tax_inclusive' ? (
+                                <div className="space-y-3">
+                                    {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.selling_price ?? 0) / 1.18).toFixed(2)}</span>
+                                    </div>
 
-                                {/* Tax - calculated as 18% of the price before tax */}
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                    <span className="text-sm text-gray-700 dark:text-gray-300">₪{(((bill.deal.selling_price || 0) / 1.18) * 0.18).toFixed(2)}</span>
-                                </div>
+                                    {/* Tax - calculated as 18% of the price before tax */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{(((bill.deal.selling_price ?? 0) / 1.18) * 0.18).toFixed(2)}</span>{' '}
+                                    </div>
 
-                                {/* Total Including Tax - this is the deal amount which already includes tax */}
-                                <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
-                                    <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                    <span className="text-lg font-bold text-primary">₪{bill.deal.selling_price?.toFixed(2) || '0.00'}</span>
+                                    {/* Total Including Tax - this is the deal selling_price which already includes tax */}
+                                    <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                        <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                        <span className="text-lg font-bold text-primary">₪{(bill.deal.selling_price ?? 0).toFixed(2)}</span>
+                                    </div>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{(bill.deal.amount / 1.18).toFixed(2)}</span>
+                                    </div>
+
+                                    {/* Tax - calculated as 18% of the price before tax */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.amount / 1.18) * 0.18).toFixed(2)}</span>{' '}
+                                    </div>
+
+                                    {/* Total Including Tax - this is the deal amount which already includes tax */}
+                                    <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
+                                        <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
+                                        <span className="text-lg font-bold text-primary">₪{bill.deal.amount.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
