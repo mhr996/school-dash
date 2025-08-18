@@ -392,7 +392,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
     useEffect(() => {
         if (isBillSectionExpanded && deal && selectedCar) {
             // Use selling_price instead of amount for bill calculations
-            const dealSellingPrice = deal.deal_type === 'new_used_sale_tax_inclusive' ? deal.selling_price || 0 : deal.amount || 0;
+            const dealSellingPrice = billForm.bill_type === 'receipt_only' ? deal.selling_price || 0 : deal.deal_type === 'new_used_sale_tax_inclusive' ? deal.selling_price || 0 : deal.amount || 0;
 
             // For intermediary deals, use seller/buyer info
             if (deal.deal_type === 'intermediary' && (selectedSeller || selectedBuyer)) {
@@ -420,7 +420,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 }));
             }
         }
-    }, [isBillSectionExpanded, deal, selectedCustomer, selectedSeller, selectedBuyer, selectedCar]);
+    }, [isBillSectionExpanded, deal, selectedCustomer, selectedSeller, selectedBuyer, selectedCar, billForm.bill_type]);
 
     // Auto-calculate exchange fields when data is loaded
     useEffect(() => {

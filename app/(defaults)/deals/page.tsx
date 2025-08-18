@@ -277,14 +277,27 @@ const DealsList = () => {
         }).format(value);
     };
 
-    const calculateDealBalance = (bills: any[]): number => {
-        if (!bills || bills.length === 0) return 0;
+    /**
+     * Calculates the deal balance following the business logic:
+     * 1. Start with negative selling price (debt amount)
+     * 2. Add receipt payments to move towards 0
+     * 3. Allow balance to exceed 0 (customer overpayment)
+     *
+     * Example: Deal selling price = 350k
+     * - Initial balance: -350k
+     * - After 200k payment: -150k
+     * - After another 300k payment: +150k (overpayment)
+     */
+    const calculateDealBalance = (deal: any, bills: any[]): number => {
+        // Start with negative selling price (or amount if selling_price is not available)
+        const dealSellingPrice = deal?.selling_price || deal?.amount || 0;
+        let totalBalance = -Math.abs(dealSellingPrice);
 
-        let totalBalance = 0;
+        if (!bills || bills.length === 0) return totalBalance;
 
         bills.forEach((bill) => {
-            // Count receipts and general bills that affect the deal balance
-            if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt' || bill.bill_type === 'general') {
+            // Only count receipts that affect the deal balance (payments received towards the deal)
+            if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') {
                 let billAmount = 0;
 
                 // If bill has bill_payments (new structure), use those
@@ -297,12 +310,12 @@ const DealsList = () => {
                     const checkAmount = parseFloat(bill.check_amount || '0') || 0;
                     const cashAmount = parseFloat(bill.cash_amount || '0') || 0;
                     const bankAmount = parseFloat(bill.bank_amount || '0') || 0;
-                    const billAmountField = parseFloat(bill.bill_amount || '0') || 0; // For general bills
 
-                    billAmount = visaAmount + transferAmount + checkAmount + cashAmount + bankAmount + billAmountField;
+                    billAmount = visaAmount + transferAmount + checkAmount + cashAmount + bankAmount;
                 }
 
-                // Apply bill direction: negative bills should reduce the balance
+                // Receipt payments always increase the balance (moving towards 0 and potentially beyond)
+                // Apply bill direction: negative receipts should reduce the balance, positive should increase
                 if (bill.bill_direction === 'negative') {
                     totalBalance -= Math.abs(billAmount);
                 } else {
@@ -461,8 +474,8 @@ const DealsList = () => {
                                 accessor: 'deal_balance',
                                 title: t('deal_balance'),
                                 sortable: true,
-                                render: ({ bills }) => {
-                                    const balance = calculateDealBalance(bills || []);
+                                render: (deal) => {
+                                    const balance = calculateDealBalance(deal, deal.bills || []);
                                     return <span className={balance >= 0 ? 'text-info' : 'text-danger'}>{formatCurrency(balance)}</span>;
                                 },
                             },
