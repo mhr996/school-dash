@@ -228,9 +228,13 @@ const AddBill = () => {
         const { name, value } = e.target;
         setBillForm((prev) => {
             const updated = { ...prev, [name]: value };
-
             return updated;
         });
+
+        // Update form financials when bill type changes
+        if (name === 'bill_type' && selectedDeal) {
+            updateFormFinancials(selectedDeal, value);
+        }
     };
 
     const validateForm = () => {
@@ -525,28 +529,23 @@ const AddBill = () => {
             customer_name: customerName,
             phone: customerPhone,
             car_details: deal.car ? `${deal.car.brand} ${deal.car.title} ${deal.car.year}` : '',
-            // Use selling_price instead of amount for bill calculations
             sale_price: deal.selling_price?.toString() || '',
-            // Calculate financials based on the deal selling price (which already includes tax)
-            total:
-                selectedDeal?.deal_type === 'new_used_sale_tax_inclusive'
-                    ? deal.selling_price
-                        ? (deal.selling_price / 1.18).toFixed(2)
-                        : ''
-                    : deal.selling_price
-                      ? (deal.amount / 1.18).toFixed(2)
-                      : '', // Price before tax
-            tax_amount:
-                selectedDeal?.deal_type === 'new_used_sale_tax_inclusive'
-                    ? deal.selling_price
-                        ? ((deal.selling_price / 1.18) * 0.18).toFixed(2)
-                        : ''
-                    : deal.amount
-                      ? ((deal.amount / 1.18) * 0.18).toFixed(2)
-                      : '', // Tax amount
-            total_with_tax: selectedDeal?.deal_type === 'new_used_sale_tax_inclusive' ? deal.selling_price?.toFixed(2) || '' : deal.amount?.toFixed(2) || '', // total with tax
             // Set default date to today if not already set
             date: prev.date || new Date().toISOString().split('T')[0],
+        }));
+    };
+
+    const updateFormFinancials = (deal: Deal, billType: string) => {
+        if (!deal) return;
+
+        const dealSellingPrice = billType === 'receipt_only' ? deal.selling_price || 0 : deal.deal_type === 'new_used_sale_tax_inclusive' ? deal.selling_price || deal.amount : deal.amount;
+
+        setBillForm((prev) => ({
+            ...prev,
+            // Calculate financials based on the deal selling price (which already includes tax)
+            total: (dealSellingPrice / 1.18).toFixed(2), // Price before tax
+            tax_amount: ((dealSellingPrice / 1.18) * 0.18).toFixed(2), // 18% tax
+            total_with_tax: dealSellingPrice?.toString() || '', // Deal selling price already includes tax
         }));
     };
     return (
@@ -601,6 +600,10 @@ const AddBill = () => {
                                 setSelectedDeal(deal);
                                 if (deal) {
                                     populateFormFromDeal(deal);
+                                    // If bill type is already selected, update financials
+                                    if (billForm.bill_type) {
+                                        updateFormFinancials(deal, billForm.bill_type);
+                                    }
                                 }
                             }}
                             className="w-full"
