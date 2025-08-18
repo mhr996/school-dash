@@ -65,16 +65,27 @@ const EditBill = () => {
     const handleSavePayments = async () => {
         if (!bill) return;
 
-        // Validation - ensure total doesn't exceed bill amount
+        // Validation - ensure we have some payment amount
         const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
         const billTotal = bill.total_with_tax || 0;
 
-        if (totalPaid > billTotal + 0.01) {
+        // Only validate that we have some payment amount
+        if (totalPaid <= 0) {
             setAlert({
-                message: `${t('payment_exceeds_total')}`,
+                message: t('payment_amount_required'),
                 type: 'danger',
             });
             return;
+        }
+
+        // Show info message if payment exceeds bill total (extra goes to customer balance)
+        if (totalPaid > billTotal + 0.01) {
+            const excessAmount = totalPaid - billTotal;
+            setAlert({
+                message: `${t('payment_exceeds_selling_price')}: ₪${excessAmount.toFixed(2)} ${t('will_be_added_to_customer_balance')}`,
+                type: 'success',
+            });
+            // Don't return - allow the payment to proceed
         }
 
         setSaving(true);
