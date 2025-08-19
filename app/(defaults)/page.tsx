@@ -375,9 +375,9 @@ const HomePage = () => {
     // Format large numbers
     const formatNumber = (value: number) => {
         if (value >= 1000000) {
-            return (value / 1000000).toFixed(1) + 'M';
+            return (value / 1000000).toFixed(0) + 'M';
         } else if (value >= 1000) {
-            return (value / 1000).toFixed(1) + 'K';
+            return (value / 1000).toFixed(0) + 'K';
         }
         return value.toString();
     };
@@ -753,7 +753,7 @@ const HomePage = () => {
                             <div className="dropdown">
                                 <span className={`badge ${stats.revenueGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
                                     {stats.revenueGrowth >= 0 ? '+' : ''}
-                                    {stats.revenueGrowth.toFixed(1)}%
+                                    {stats.revenueGrowth.toFixed(0)}%
                                 </span>
                             </div>
                         </div>
@@ -775,7 +775,7 @@ const HomePage = () => {
                             <div className="dropdown">
                                 <span className={`badge ${stats.carsGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
                                     {stats.carsGrowth >= 0 ? '+' : ''}
-                                    {stats.carsGrowth.toFixed(1)}%
+                                    {stats.carsGrowth.toFixed(0)}%
                                 </span>
                             </div>
                         </div>
@@ -799,7 +799,7 @@ const HomePage = () => {
                             <div className="dropdown">
                                 <span className={`badge ${stats.dealsGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
                                     {stats.dealsGrowth >= 0 ? '+' : ''}
-                                    {stats.dealsGrowth.toFixed(1)}%
+                                    {stats.dealsGrowth.toFixed(0)}%
                                 </span>
                             </div>
                         </div>
@@ -819,7 +819,7 @@ const HomePage = () => {
                             <div className="dropdown">
                                 <span className={`badge ${stats.customersGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
                                     {stats.customersGrowth >= 0 ? '+' : ''}
-                                    {stats.customersGrowth.toFixed(1)}%
+                                    {stats.customersGrowth.toFixed(0)}%
                                 </span>
                             </div>
                         </div>

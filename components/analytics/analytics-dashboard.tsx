@@ -912,7 +912,7 @@ const AnalyticsDashboard = () => {
                             </div>
                             <div className={`badge ml-auto ${analytics.shopGrowth >= 0 ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
                                 {analytics.shopGrowth >= 0 ? '+' : ''}
-                                {analytics.shopGrowth.toFixed(1)}%
+                                {analytics.shopGrowth.toFixed(0)}%
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -935,7 +935,7 @@ const AnalyticsDashboard = () => {
                             </div>
                             <div className={`badge ml-auto ${analytics.userGrowth >= 0 ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
                                 {analytics.userGrowth >= 0 ? '+' : ''}
-                                {analytics.userGrowth.toFixed(1)}%
+                                {analytics.userGrowth.toFixed(0)}%
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -958,7 +958,7 @@ const AnalyticsDashboard = () => {
                             </div>
                             <div className={`badge ml-auto ${analytics.productGrowth >= 0 ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
                                 {analytics.productGrowth >= 0 ? '+' : ''}
-                                {analytics.productGrowth.toFixed(1)}%
+                                {analytics.productGrowth.toFixed(0)}%
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -981,7 +981,7 @@ const AnalyticsDashboard = () => {
                             </div>
                             <div className={`badge ml-auto ${analytics.orderGrowth >= 0 ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
                                 {analytics.orderGrowth >= 0 ? '+' : ''}
-                                {analytics.orderGrowth.toFixed(1)}%
+                                {analytics.orderGrowth.toFixed(0)}%
                             </div>
                         </div>
                         <div className="flex items-center justify-between">
@@ -1033,7 +1033,7 @@ const AnalyticsDashboard = () => {
                                 <div className="text-3xl font-bold text-[#009688]">₪{analytics.revenue.total.toFixed(0)}</div>
                                 <div className={`mt-2 inline-flex items-center ${analytics.revenue.growth >= 0 ? 'text-success' : 'text-danger'}`}>
                                     {analytics.revenue.growth >= 0 ? <IconTrendingUp className="h-4 w-4 stroke-current mr-1" /> : <IconTrendingDown className="h-4 w-4 stroke-current mr-1" />}
-                                    <span>{Math.abs(analytics.revenue.growth).toFixed(1)}%</span>
+                                    <span>{Math.abs(analytics.revenue.growth).toFixed(0)}%</span>
                                     <span className="ml-1 text-white-dark text-xs">
                                         {t('vs_previous')} {analytics.timeframe}
                                     </span>
