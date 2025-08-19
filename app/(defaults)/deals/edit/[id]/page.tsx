@@ -255,6 +255,31 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
         return 0;
     };
 
+    // Helper function to calculate deal balance
+    const calculateDealBalance = () => {
+        if (!deal) return 0;
+
+        let dealAmount = deal.selling_price || deal.amount || 0;
+
+        // For exchange deals, subtract the customer car evaluation value
+        if (deal.deal_type === 'exchange' && carTakenFromClient) {
+            const carEvaluation = carTakenFromClient.buy_price || 0;
+            dealAmount -= carEvaluation;
+        }
+
+        // Calculate total payments from bills
+        let totalPaid = 0;
+        bills.forEach((bill) => {
+            const billAmount = getBillAmount(bill);
+            // Only count positive bills (receipts) as payments
+            if (bill.bill_direction !== 'negative') {
+                totalPaid += billAmount;
+            }
+        });
+
+        return dealAmount - totalPaid;
+    };
+
     const [dealType, setDealType] = useState('');
     const [form, setForm] = useState({
         title: '',
@@ -2679,6 +2704,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                             }))}
                                             onPaymentsChange={setPayments}
                                             totalAmount={parseFloat(billForm.total_with_tax) || 0}
+                                            deal={deal}
+                                            carTakenFromClient={carTakenFromClient}
+                                            bills={bills}
                                         />
                                     </div>
                                 )}

@@ -334,9 +334,12 @@ interface MultiplePaymentFormProps {
     payments: BillPayment[];
     onPaymentsChange: (payments: BillPayment[]) => void;
     totalAmount: number;
+    deal?: any; // Deal information for balance calculation
+    carTakenFromClient?: any; // Car taken from client for exchange deals
+    bills?: any[]; // Existing bills for balance calculation
 }
 
-export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({ payments, onPaymentsChange, totalAmount }) => {
+export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({ payments, onPaymentsChange, totalAmount, deal, carTakenFromClient, bills = [] }) => {
     const { t } = getTranslation();
 
     const addPayment = () => {
@@ -360,6 +363,38 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({ paymen
 
     const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
     const remaining = totalAmount - totalPaid;
+
+    // Helper function to calculate deal balance
+    const calculateDealBalance = () => {
+        if (!deal) return 0;
+
+        let dealAmount = deal.selling_price || deal.amount || 0;
+
+        // For exchange deals, subtract the customer car evaluation value
+        if (deal.deal_type === 'exchange' && carTakenFromClient) {
+            const carEvaluation = carTakenFromClient.buy_price || 0;
+            dealAmount -= carEvaluation;
+        }
+
+        // Calculate total payments from existing bills
+        let totalPaidFromBills = 0;
+        bills.forEach((bill) => {
+            // Only count positive bills (receipts) as payments
+            if (bill.bill_direction !== 'negative') {
+                if (bill.bill_type === 'general') {
+                    totalPaidFromBills += parseFloat(bill.bill_amount || '0');
+                } else if (bill.bill_type === 'tax_invoice') {
+                    totalPaidFromBills += parseFloat(bill.total_with_tax || '0');
+                } else if (bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt') {
+                    if (bill.payments && bill.payments.length > 0) {
+                        totalPaidFromBills += bill.payments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+                    }
+                }
+            }
+        });
+
+        return dealAmount - totalPaidFromBills;
+    };
 
     return (
         <div className="space-y-6">
@@ -390,6 +425,19 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({ paymen
                         <span className="text-gray-700 dark:text-gray-300 font-medium">{t('total_amount')}:</span>
                         <span className="font-bold text-lg text-gray-900 dark:text-white">₪{totalAmount.toFixed(0)}</span>
                     </div>
+
+                    {/* Deal Balance - only show when deal info is available */}
+                    {deal && (
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-700 dark:text-gray-300 font-medium">{t('deal_balance')}:</span>
+                            <span
+                                className={`font-bold text-lg ${calculateDealBalance() > 0 ? 'text-red-600 dark:text-red-400' : calculateDealBalance() < 0 ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}
+                            >
+                                ₪{calculateDealBalance().toFixed(0)}
+                            </span>
+                        </div>
+                    )}
+
                     <div className="flex justify-between items-center">
                         <span className="text-gray-700 dark:text-gray-300 font-medium">{t('total_paid')}:</span>
                         <span className="font-bold text-lg text-blue-600 dark:text-blue-400">₪{totalPaid.toFixed(0)}</span>
