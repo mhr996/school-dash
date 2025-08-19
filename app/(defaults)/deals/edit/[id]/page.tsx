@@ -1181,7 +1181,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 // For general bills, don't pass payments array as the amount is in bill_amount field
                 const paymentsToPass = billForm.bill_type === 'general' ? undefined : payments;
 
-                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, customerId, billData, customerName || 'Customer', dealSellingPrice, paymentsToPass);
+                const balanceUpdateSuccess = await handleReceiptCreated(billResult.id, customerId, billData, customerName || 'Customer', dealSellingPrice, paymentsToPass, deal);
 
                 if (!balanceUpdateSuccess) {
                     console.warn('Failed to update customer balance for bill:', billResult.id);
@@ -2697,7 +2697,16 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         )}
                     </div>
                     {/* Connected Bills Section */}
-                    <BillsTable bills={bills} loading={loadingBills} onDownloadPDF={handleDownloadPDF} downloadingPDF={downloadingPDF} readOnly={false} />
+                    <BillsTable
+                        bills={bills}
+                        loading={loadingBills}
+                        onDownloadPDF={handleDownloadPDF}
+                        downloadingPDF={downloadingPDF}
+                        readOnly={false}
+                        deal={deal}
+                        carTakenFromClient={carTakenFromClient}
+                        selectedCustomer={selectedCustomer}
+                    />
                     {/* Submit Button */}
                     <div className="flex justify-end gap-4 mt-8">
                         <button type="button" onClick={() => router.push('/deals')} className="btn btn-outline-secondary">

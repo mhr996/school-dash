@@ -139,8 +139,9 @@ export const calculateTotalPaymentAmount = (bill: any, payments?: any[]): number
 /**
  * Handles balance update when a receipt/bill is created
  * Updated to compare against selling_price and handle excess payments
+ * For exchange deals, also accounts for customer car evaluation value
  */
-export const handleReceiptCreated = async (billId: string, customerId: string, bill: any, customerName: string, dealSellingPrice?: number, payments?: any[]): Promise<boolean> => {
+export const handleReceiptCreated = async (billId: string, customerId: string, bill: any, customerName: string, dealSellingPrice?: number, payments?: any[], deal?: any): Promise<boolean> => {
     const paymentAmount = calculateTotalPaymentAmount(bill, payments);
 
     console.log('=== BALANCE UPDATE DEBUG ===');
@@ -148,6 +149,7 @@ export const handleReceiptCreated = async (billId: string, customerId: string, b
     console.log('Customer ID:', customerId);
     console.log('Customer Name:', customerName);
     console.log('Deal Selling Price:', dealSellingPrice);
+    console.log('Deal Type:', deal?.deal_type);
     console.log('Payments:', payments);
     console.log('Bill Data:', bill);
     console.log('Calculated Payment Amount:', paymentAmount);
@@ -166,22 +168,32 @@ export const handleReceiptCreated = async (billId: string, customerId: string, b
         balanceChangeAmount = -Math.abs(paymentAmount); // Negative impact on balance
     } else {
         // For positive bills (payments)
-        if (dealSellingPrice && dealSellingPrice > 0) {
-            // Payment towards a deal with a selling price
-            if (paymentAmount <= dealSellingPrice) {
-                // Payment doesn't exceed selling price - normal case
+        let effectiveDealAmount = dealSellingPrice || 0;
+
+        // For exchange deals, reduce the effective deal amount by the customer car evaluation
+        if (deal?.deal_type === 'exchange' && deal?.customer_car_eval_value) {
+            const carEvaluationAmount = parseFloat(deal.customer_car_eval_value) || 0;
+            effectiveDealAmount = Math.max(0, effectiveDealAmount - carEvaluationAmount);
+            console.log('Exchange deal detected. Car evaluation:', carEvaluationAmount, 'Effective deal amount:', effectiveDealAmount);
+        }
+
+        if (effectiveDealAmount > 0) {
+            // Payment towards a deal with an effective selling price
+            if (paymentAmount <= effectiveDealAmount) {
+                // Payment doesn't exceed effective deal amount - normal case
                 description = `Payment received from ${customerName}: ${getPaymentDescription(bill, payments)} (towards deal)`;
                 balanceChangeAmount = paymentAmount; // Positive impact on balance
             } else {
-                // Payment exceeds selling price - add excess to customer balance
-                const excessAmount = paymentAmount - dealSellingPrice;
-                description = `Payment received from ${customerName}: ${getPaymentDescription(bill, payments)} (₪${dealSellingPrice} for deal + ₪${excessAmount} excess)`;
+                // Payment exceeds effective deal amount - add excess to customer balance
+                const excessAmount = paymentAmount - effectiveDealAmount;
+                description = `Payment received from ${customerName}: ${getPaymentDescription(bill, payments)} (₪${effectiveDealAmount} for deal + ₪${excessAmount} excess)`;
                 balanceChangeAmount = paymentAmount; // Full payment amount goes to balance
             }
         } else {
-            // General payment not related to a deal selling price
-            description = `Payment received from ${customerName}: ${getPaymentDescription(bill, payments)}`;
-            balanceChangeAmount = paymentAmount; // Positive impact on balance
+            // General payment not related to a deal selling price, or exchange deal fully covered by car value
+            const dealNote = deal?.deal_type === 'exchange' ? ' (exchange deal - car value credited)' : '';
+            description = `Payment received from ${customerName}: ${getPaymentDescription(bill, payments)}${dealNote}`;
+            balanceChangeAmount = paymentAmount; // Full payment amount goes to balance as credit
         }
     }
 
@@ -318,4 +330,22 @@ export const getCustomerIdByName = async (customerName: string): Promise<string 
         console.error('Error finding customer by name:', error);
         return null;
     }
+};
+
+/**
+ * Handles balance update for exchange deals - adds customer car evaluation value as credit
+ */
+export const handleExchangeDealCustomerCarCredit = async (dealId: string, customerId: string, carEvaluationAmount: number, customerName: string): Promise<boolean> => {
+    if (carEvaluationAmount <= 0) {
+        console.log('No car evaluation amount to process for exchange deal:', dealId);
+        return true; // Not an error, just no amount to process
+    }
+
+    return await updateCustomerBalance({
+        customerId,
+        amount: carEvaluationAmount, // Positive because it's a credit to customer for their car
+        type: 'deal_created',
+        referenceId: dealId,
+        description: `Credit for customer car in exchange deal: ${customerName} (₪${carEvaluationAmount})`,
+    });
 };

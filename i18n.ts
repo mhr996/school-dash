@@ -12,10 +12,10 @@ const getLang = () => {
         const cookies = new cookieObj(null, { path: '/' });
         lang = cookies.get('i18nextLng');
 
-        // If no language cookie is set, set Arabic as default
+        // If no language cookie is set, set Hebrew as default
         if (!lang) {
-            cookies.set('i18nextLng', 'ae');
-            lang = 'ae';
+            cookies.set('i18nextLng', 'he');
+            lang = 'he';
         }
     } else {
         const cookies = cookieObj.cookies();
@@ -26,7 +26,7 @@ const getLang = () => {
 
 export const getTranslation = () => {
     const lang = getLang();
-    const defaultLang = 'ae'; // Set Arabic as default
+    const defaultLang = 'he'; // Set Hebrew as default
     const currentLang = lang || defaultLang;
     const data: any = langObj[currentLang];
 

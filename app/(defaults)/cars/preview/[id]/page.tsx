@@ -334,7 +334,7 @@ const CarPreview = () => {
                                             return null;
                                         };
 
-                                        const lang = getCookie('i18nextLng') || 'ar';
+                                        const lang = getCookie('i18nextLng') || 'he';
                                         const normalizedLang = lang.toLowerCase().split('-')[0] as 'en' | 'ar' | 'he';
 
                                         const carIdentifier = car.car_number || `CAR-${car.id.slice(-6).toUpperCase()}`;

@@ -685,7 +685,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                     )}
                 </div>
                 {/* Bills Section */}
-                <BillsTable bills={bills} loading={false} readOnly={true} />
+                <BillsTable bills={bills} loading={false} readOnly={true} deal={deal} carTakenFromClient={carTakenFromClient} selectedCustomer={customer} />
                 {/* Actions */}
                 <div className="panel">
                     <div className="mb-5">
@@ -721,7 +721,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                         return null;
                                     };
 
-                                    const lang = getCookie('i18nextLng') || 'ar';
+                                    const lang = getCookie('i18nextLng') || 'he';
                                     const normalizedLang = lang.toLowerCase().split('-')[0] as 'en' | 'ar' | 'he';
 
                                     const filename = `car-contract-${contractData.carPlateNumber}-${new Date().toISOString().split('T')[0]}.pdf`;

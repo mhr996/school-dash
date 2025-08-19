@@ -1,5 +1,5 @@
 const themeConfig = {
-    locale: 'ae', // en, da, de, el, es, fr, hu, it, ja, pl, pt, ru, sv, tr, zh
+    locale: 'he', // en, da, de, el, es, fr, hu, it, ja, pl, pt, ru, sv, tr, zh
     theme: 'dark', // light, dark, system
     menu: 'vertical', // vertical, collapsible-vertical, horizontal
     layout: 'full', // full, boxed-layout

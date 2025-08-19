@@ -14,9 +14,12 @@ interface BillsTableProps {
     downloadingPDF?: string | null;
     readOnly?: boolean; // For preview mode
     className?: string;
+    deal?: any; // Deal information for exchange deals
+    carTakenFromClient?: any; // Car taken from client for exchange deals
+    selectedCustomer?: any; // Selected customer for display
 }
 
-const BillsTable: React.FC<BillsTableProps> = ({ bills, loading = false, onDownloadPDF, downloadingPDF, readOnly = false, className = '' }) => {
+const BillsTable: React.FC<BillsTableProps> = ({ bills, loading = false, onDownloadPDF, downloadingPDF, readOnly = false, className = '', deal, carTakenFromClient, selectedCustomer }) => {
     const { t } = getTranslation();
 
     // Helper function to get bill amount based on bill type and payment method
@@ -120,6 +123,26 @@ const BillsTable: React.FC<BillsTableProps> = ({ bills, loading = false, onDownl
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {/* Add special row for exchange deals showing customer car evaluation */}
+                        {deal?.deal_type === 'exchange' && carTakenFromClient && (
+                            <tr className="bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-200 dark:border-blue-700">
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                        معرف سيارة العميل
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                    {deal?.customers?.name || deal?.customer?.name || selectedCustomer?.name || t('unknown_customer')}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                    <span className="text-green-600 dark:text-green-400 font-medium">{formatCurrency(carTakenFromClient.buy_price || 0)}</span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{formatDate(deal.created_at)}</td>
+                                <td className="px-4 py-3 text-center">
+                                    <span className="text-gray-500 dark:text-gray-400 text-xs">-</span>
+                                </td>
+                            </tr>
+                        )}
                         {bills.map((bill) => {
                             const billAmount = getBillAmount(bill);
                             return (

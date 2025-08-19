@@ -280,18 +280,25 @@ const DealsList = () => {
     /**
      * Calculates the deal balance following the business logic:
      * 1. Start with negative selling price (debt amount)
-     * 2. Add receipt payments to move towards 0
-     * 3. Allow balance to exceed 0 (customer overpayment)
+     * 2. For exchange deals, add customer car evaluation value as credit
+     * 3. Add receipt payments to move towards 0
+     * 4. Allow balance to exceed 0 (customer overpayment)
      *
-     * Example: Deal selling price = 350k
-     * - Initial balance: -350k
-     * - After 200k payment: -150k
-     * - After another 300k payment: +150k (overpayment)
+     * Example: Deal selling price = 350k, Customer car value = 100k
+     * - Initial balance for exchange: -350k + 100k = -250k
+     * - After 200k payment: -50k
+     * - After another 300k payment: +250k (overpayment)
      */
     const calculateDealBalance = (deal: any, bills: any[]): number => {
         // Start with negative selling price (or amount if selling_price is not available)
         const dealSellingPrice = deal?.selling_price || deal?.amount || 0;
         let totalBalance = -Math.abs(dealSellingPrice);
+
+        // For exchange deals, add customer car evaluation value as credit
+        if (deal?.deal_type === 'exchange' && deal?.customer_car_eval_value) {
+            const carEvaluationAmount = parseFloat(deal.customer_car_eval_value) || 0;
+            totalBalance += carEvaluationAmount; // Add as credit (positive impact)
+        }
 
         if (!bills || bills.length === 0) return totalBalance;
 
