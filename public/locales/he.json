@@ -915,7 +915,7 @@
     "purchase_date": "תאריך קנייה ",
     "purchase_price": "מחיר קנייה ",
     "sale_date": "תאריך מכירה ",
-    "payment_receipt_type ": "אופן התשלום ",
+    "payment_receipt_type": "אופן התשלום ",
     "invoice_number": "מס חשבונית ",
     "activity_type": "סוג הפעילות ",
     "bill_created": " עסקה ",
@@ -955,5 +955,7 @@
     "select_thumbnail": " בחירת תמונה ראשית ",
     "gallery_images": " תמונות לגלריה ",
     "add_gallery_images": " הוספת תמונות לגלריה ",
-    "update_car": " עדכון רכב "
+    "update_car": " עדכון רכב ",
+    "deal_created_date": "תאריך עסקה",
+    "total_revenue": "סך הכנסות"
 }

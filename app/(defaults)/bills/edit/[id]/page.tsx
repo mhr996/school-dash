@@ -82,7 +82,7 @@ const EditBill = () => {
         if (totalPaid > billTotal + 0.01) {
             const excessAmount = totalPaid - billTotal;
             setAlert({
-                message: `${t('payment_exceeds_selling_price')}: ₪${excessAmount.toFixed(2)} ${t('will_be_added_to_customer_balance')}`,
+                message: `${t('payment_exceeds_selling_price')}: ₪${excessAmount.toFixed(0)} ${t('will_be_added_to_customer_balance')}`,
                 type: 'success',
             });
             // Don't return - allow the payment to proceed
@@ -222,15 +222,15 @@ const EditBill = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="border border-primary-light p-4 rounded-lg">
                         <div className="text-sm text-primary">{t('bill_total')}</div>
-                        <div className="text-xl font-bold text-primary">₪{billTotal.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-primary">₪{billTotal.toFixed(0)}</div>
                     </div>
                     <div className="border border-success-light p-4 rounded-lg">
                         <div className="text-sm text-success">{t('paid_amount')}</div>
-                        <div className="text-xl font-bold text-success">₪{currentTotal.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-success">₪{currentTotal.toFixed(0)}</div>
                     </div>
                     <div className={`p-4 rounded-lg ${remainingAmount > 0.01 ? 'border border-warning-light' : 'border border-success-light'}`}>
                         <div className={`text-sm ${remainingAmount > 0.01 ? 'text-warning' : 'text-success'}`}>{remainingAmount > 0.01 ? t('remaining_amount') : t('fully_paid')}</div>
-                        <div className={`text-xl font-bold ${remainingAmount > 0.01 ? 'text-warning' : 'text-success'}`}>₪{remainingAmount.toFixed(2)}</div>
+                        <div className={`text-xl font-bold ${remainingAmount > 0.01 ? 'text-warning' : 'text-success'}`}>₪{remainingAmount.toFixed(0)}</div>
                     </div>
                 </div>
 

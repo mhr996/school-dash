@@ -158,14 +158,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                 const percentage = parseFloat(discountValue);
                 if (percentage >= 0 && percentage <= 100) {
                     const discountAmount = basePrice * (percentage / 100);
-                    setFinalPrice(parseFloat((basePrice - discountAmount).toFixed(2)));
+                    setFinalPrice(parseFloat((basePrice - discountAmount).toFixed(0)));
                 } else {
                     setFinalPrice(null);
                 }
             } else {
                 const fixedDiscount = parseFloat(discountValue);
                 if (fixedDiscount >= 0 && fixedDiscount < basePrice) {
-                    setFinalPrice(parseFloat((basePrice - fixedDiscount).toFixed(2)));
+                    setFinalPrice(parseFloat((basePrice - fixedDiscount).toFixed(0)));
                 } else {
                     setFinalPrice(null);
                 }
@@ -530,8 +530,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ productId }) => {
                                             <div className="flex items-center gap-4 text-lg">
                                                 <div className="font-medium">{t('final_price')}:</div>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-danger line-through">{parseFloat(formData.price).toFixed(2)}</span>
-                                                    <span className="font-bold text-success">{finalPrice.toFixed(2)}</span>
+                                                    <span className="text-danger line-through">{parseFloat(formData.price).toFixed(0)}</span>
+                                                    <span className="font-bold text-success">{finalPrice.toFixed(0)}</span>
                                                     {discountType === 'percentage' && (
                                                         <span className="bg-success text-white px-2 py-0.5 text-xs rounded-full">
                                                             {discountValue}% {t('off')}

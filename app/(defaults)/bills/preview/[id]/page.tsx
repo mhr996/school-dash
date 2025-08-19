@@ -344,13 +344,13 @@ const BillPreview = () => {
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                         <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
 
@@ -358,13 +358,13 @@ const BillPreview = () => {
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                         <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
 
@@ -372,11 +372,11 @@ const BillPreview = () => {
                                         <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
 
                                         <span className={`text-sm font-bold text-center ${(bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}
+                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(0)}
                                         </span>
                                         <div className="text-center">-</div>
                                         <span className={`text-sm font-bold text-center ${(bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}
+                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(0)}
                                         </span>
                                     </div>
                                 </>
@@ -402,13 +402,13 @@ const BillPreview = () => {
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                         <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
 
@@ -416,13 +416,13 @@ const BillPreview = () => {
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                         <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
 
@@ -430,11 +430,11 @@ const BillPreview = () => {
                                         <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
 
                                         <span className={`text-sm font-bold text-center ${(bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}
+                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(0)}
                                         </span>
                                         <div className="text-center">-</div>
                                         <span className={`text-sm font-bold text-center ${(bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(2)}
+                                            ₪{((bill.deal.car.sale_price || 0) - (bill.deal.car.buy_price || 0)).toFixed(0)}
                                         </span>
                                     </div>
                                 </>
@@ -460,13 +460,13 @@ const BillPreview = () => {
                                     <div className="grid grid-cols-4 gap-4 mb-4 py-2">
                                         <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('commission_editable')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-green-600 dark:text-green-400">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-green-600 dark:text-green-400">₪{bill.deal.amount?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
                                 </>
@@ -492,13 +492,13 @@ const BillPreview = () => {
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                         <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.buy_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
 
@@ -506,13 +506,13 @@ const BillPreview = () => {
                                     <div className="grid grid-cols-4 gap-4 mb-3 py-2">
                                         <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('selling_price_manual')}</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.car.sale_price?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
 
@@ -522,13 +522,13 @@ const BillPreview = () => {
                                             <div className="font-medium">{t('customer_car_evaluation')}</div>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
 
@@ -538,7 +538,7 @@ const BillPreview = () => {
                                         <div className="text-center">-</div>
                                         <div className="text-center">-</div>
                                         <div className="text-center">
-                                            <span className="text-sm text-blue-600 dark:text-blue-400">₪{Math.max(0, (bill.deal.car.sale_price || 0) - (bill.deal.amount || 0)).toFixed(2)}</span>
+                                            <span className="text-sm text-blue-600 dark:text-blue-400">₪{Math.max(0, (bill.deal.car.sale_price || 0) - (bill.deal.amount || 0)).toFixed(0)}</span>
                                         </div>
                                     </div>
                                 </>
@@ -552,13 +552,13 @@ const BillPreview = () => {
                                             <div className="font-medium">{t('company_commission')}</div>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(0) || '0.00'}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-green-600 dark:text-green-400">₪{bill.deal.amount?.toFixed(2) || '0.00'}</span>
+                                            <span className="text-sm text-green-600 dark:text-green-400">₪{bill.deal.amount?.toFixed(0) || '0.00'}</span>
                                         </div>
                                     </div>
                                 </>
@@ -573,19 +573,19 @@ const BillPreview = () => {
                                     {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.selling_price ?? 0) / 1.18).toFixed(2)}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.selling_price ?? 0) / 1.18).toFixed(0)}</span>
                                     </div>
 
                                     {/* Tax - calculated as 18% of the price before tax */}
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{(((bill.deal.selling_price ?? 0) / 1.18) * 0.18).toFixed(2)}</span>{' '}
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{(((bill.deal.selling_price ?? 0) / 1.18) * 0.18).toFixed(0)}</span>{' '}
                                     </div>
 
                                     {/* Total Including Tax - this is the deal selling_price which already includes tax */}
                                     <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
                                         <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                        <span className="text-lg font-bold text-primary">₪{(bill.deal.selling_price ?? 0).toFixed(2)}</span>
+                                        <span className="text-lg font-bold text-primary">₪{(bill.deal.selling_price ?? 0).toFixed(0)}</span>
                                     </div>
                                 </div>
                             ) : (
@@ -593,19 +593,19 @@ const BillPreview = () => {
                                     {/* Price Before Tax - calculated by removing 18% tax from deal amount */}
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('price_before_tax')}</span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{(bill.deal.amount / 1.18).toFixed(2)}</span>
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{(bill.deal.amount / 1.18).toFixed(0)}</span>
                                     </div>
 
                                     {/* Tax - calculated as 18% of the price before tax */}
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('deal_tax')} 18%</span>
-                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.amount / 1.18) * 0.18).toFixed(2)}</span>{' '}
+                                        <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.amount / 1.18) * 0.18).toFixed(0)}</span>{' '}
                                     </div>
 
                                     {/* Total Including Tax - this is the deal amount which already includes tax */}
                                     <div className="flex justify-between items-center pt-2 border-t border-gray-300 dark:border-gray-600">
                                         <span className="text-lg font-bold text-gray-700 dark:text-gray-300">{t('total_including_tax')}</span>
-                                        <span className="text-lg font-bold text-primary">₪{bill.deal.amount.toFixed(2)}</span>
+                                        <span className="text-lg font-bold text-primary">₪{bill.deal.amount.toFixed(0)}</span>
                                     </div>
                                 </div>
                             )}

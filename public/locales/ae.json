@@ -150,7 +150,6 @@
     "customer_name_required": "اسم العميل مطلوب",
     "success": "نجاح",
     "error": "خطأ",
-
     "sweet_alerts": "تنبيهات حلوة",
     "timeline": "الجدول الزمني",
     "notifications": "إشعارات",
@@ -1349,5 +1348,6 @@
     "client_id_number": "رقم هوية العميل",
     "client_name": "اسم العميل",
     "filter_by_client_name": "تصفية حسب اسم العميل",
-    "updates_car_sale_price": "يحدث سعر بيع السيارة"
+    "updates_car_sale_price": "يحدث سعر بيع السيارة",
+    "deal_created_date": "تاريخ الصفقة"
 }

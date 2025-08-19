@@ -388,11 +388,11 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({ paymen
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
                         <span className="text-gray-700 dark:text-gray-300 font-medium">{t('total_amount')}:</span>
-                        <span className="font-bold text-lg text-gray-900 dark:text-white">₪{totalAmount.toFixed(2)}</span>
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">₪{totalAmount.toFixed(0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-gray-700 dark:text-gray-300 font-medium">{t('total_paid')}:</span>
-                        <span className="font-bold text-lg text-blue-600 dark:text-blue-400">₪{totalPaid.toFixed(2)}</span>
+                        <span className="font-bold text-lg text-blue-600 dark:text-blue-400">₪{totalPaid.toFixed(0)}</span>
                     </div>
                     <div className="border-t border-gray-300 dark:border-gray-600 pt-3">
                         <div className="flex justify-between items-center">
@@ -400,7 +400,7 @@ export const MultiplePaymentForm: React.FC<MultiplePaymentFormProps> = ({ paymen
                             <span
                                 className={`font-bold text-lg ${remaining === 0 ? 'text-green-600 dark:text-green-400' : remaining < 0 ? 'text-blue-600 dark:text-blue-400' : 'text-yellow-600 dark:text-yellow-400'}`}
                             >
-                                ₪{Math.abs(remaining).toFixed(2)}
+                                ₪{Math.abs(remaining).toFixed(0)}
                             </span>
                         </div>
                         {remaining < 0 && <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">{t('excess_payment_note')}</p>}

@@ -1030,7 +1030,7 @@ const AnalyticsDashboard = () => {
                         <div className="mb-5 flex flex-col sm:flex-row">
                             <div className="mb-5 sm:mb-0 sm:w-1/3">
                                 <div className="mb-2 text-lg font-semibold dark:text-white-light">{t('total_revenue')}</div>
-                                <div className="text-3xl font-bold text-[#009688]">₪{analytics.revenue.total.toFixed(2)}</div>
+                                <div className="text-3xl font-bold text-[#009688]">₪{analytics.revenue.total.toFixed(0)}</div>
                                 <div className={`mt-2 inline-flex items-center ${analytics.revenue.growth >= 0 ? 'text-success' : 'text-danger'}`}>
                                     {analytics.revenue.growth >= 0 ? <IconTrendingUp className="h-4 w-4 stroke-current mr-1" /> : <IconTrendingDown className="h-4 w-4 stroke-current mr-1" />}
                                     <span>{Math.abs(analytics.revenue.growth).toFixed(1)}%</span>
@@ -1118,7 +1118,7 @@ const AnalyticsDashboard = () => {
                                                 <div className="px-4 w-full">
                                                     <h6 className="font-semibold dark:text-white-light">{shop.name}</h6>
                                                     <p className="text-xs text-white-dark">
-                                                        {shop.orders} orders • ${shop.revenue.toFixed(2)} revenue
+                                                        {shop.orders} orders • ${shop.revenue.toFixed(0)} revenue
                                                     </p>
                                                     <div className="mt-2 h-1.5 rounded-full bg-dark-light/30 dark:bg-dark-light/10">
                                                         <div
@@ -1213,7 +1213,7 @@ const AnalyticsDashboard = () => {
                                                     </div>
                                                     <div>
                                                         <h5 className="font-semibold dark:text-white-light">
-                                                            {t('new_order_placed')}: <span className="text-success">${order.total_amount.toFixed(2)}</span>
+                                                            {t('new_order_placed')}: <span className="text-success">${order.total_amount.toFixed(0)}</span>
                                                         </h5>
                                                         <p className="text-xs text-white-dark">
                                                             {new Date(order.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -1294,19 +1294,19 @@ const AnalyticsDashboard = () => {
                         <div className="mb-10">
                             <div className="grid grid-cols-3 gap-6 text-center">
                                 <div>
-                                    <div className="text-xl font-bold dark:text-white-light">${analytics.revenue.total.toFixed(2)}</div>
+                                    <div className="text-xl font-bold dark:text-white-light">${analytics.revenue.total.toFixed(0)}</div>
                                     <div className="text-white-dark">
                                         {t('this_period')} {t('revenue')}
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-xl font-bold dark:text-white-light">${analytics.revenue.previousPeriod.toFixed(2)}</div>
+                                    <div className="text-xl font-bold dark:text-white-light">${analytics.revenue.previousPeriod.toFixed(0)}</div>
                                     <div className="text-white-dark">{t('previous_period')}</div>
                                 </div>
                                 <div>
                                     <div className={`text-xl font-bold ${analytics.revenue.growth >= 0 ? 'text-success' : 'text-danger'}`}>
                                         {analytics.revenue.growth >= 0 ? '+' : ''}
-                                        {analytics.revenue.growth.toFixed(2)}%
+                                        {analytics.revenue.growth.toFixed(0)}%
                                     </div>
                                     <div className="text-white-dark">{t('growth')}</div>
                                 </div>
@@ -1319,7 +1319,7 @@ const AnalyticsDashboard = () => {
                                     <div className={`h-2 w-2 rounded-full ${analytics.timeframe === 'week' ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-700'} mr-2`}></div>
                                     <div className={`text-sm font-medium ${analytics.timeframe === 'week' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'}`}>{t('this_week')}</div>
                                 </div>
-                                <div className="font-semibold">${analytics.timeframe === 'week' ? analytics.revenue.total.toFixed(2) : '0.00'}</div>
+                                <div className="font-semibold">${analytics.timeframe === 'week' ? analytics.revenue.total.toFixed(0) : '0.00'}</div>
                             </div>
 
                             <div className={`flex items-center justify-between border-b border-white-light py-2 dark:border-[#1b2e4b] ${analytics.timeframe === 'month' ? 'text-primary' : ''}`}>
@@ -1327,7 +1327,7 @@ const AnalyticsDashboard = () => {
                                     <div className={`h-2 w-2 rounded-full ${analytics.timeframe === 'month' ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-700'} mr-2`}></div>
                                     <div className={`text-sm font-medium ${analytics.timeframe === 'month' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'}`}>{t('this_month')}</div>
                                 </div>
-                                <div className="font-semibold">${analytics.timeframe === 'month' ? analytics.revenue.total.toFixed(2) : '0.00'}</div>
+                                <div className="font-semibold">${analytics.timeframe === 'month' ? analytics.revenue.total.toFixed(0) : '0.00'}</div>
                             </div>
 
                             <div className={`flex items-center justify-between border-b border-white-light py-2 dark:border-[#1b2e4b] ${analytics.timeframe === 'year' ? 'text-primary' : ''}`}>
@@ -1335,7 +1335,7 @@ const AnalyticsDashboard = () => {
                                     <div className={`h-2 w-2 rounded-full ${analytics.timeframe === 'year' ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-700'} mr-2`}></div>
                                     <div className={`text-sm font-medium ${analytics.timeframe === 'year' ? 'text-primary' : 'text-gray-600 dark:text-gray-400'}`}>{t('this_year')}</div>
                                 </div>
-                                <div className="font-semibold">${analytics.timeframe === 'year' ? analytics.revenue.total.toFixed(2) : '0.00'}</div>
+                                <div className="font-semibold">${analytics.timeframe === 'year' ? analytics.revenue.total.toFixed(0) : '0.00'}</div>
                             </div>
                         </div>
 

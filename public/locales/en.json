@@ -114,7 +114,6 @@
     "transfer_branch": "Transfer Branch",
     "transfer_branch_placeholder": "Enter transfer branch",
     "no_details_available": "No details available",
-
     "add_new_bill": "Add New Bill",
     "create_bill_description": "Create a new bill by selecting a deal and filling in the required information",
     "select_deal": "Select Deal",
@@ -1217,5 +1216,6 @@
     "bill_type_general": "General Bill",
     "deal_fallback": "Deal",
     "unknown_type": "Unknown type",
-    "back_to_deals": "Back to Deals"
+    "back_to_deals": "Back to Deals",
+    "deal_created_date": "Deal Date"
 }

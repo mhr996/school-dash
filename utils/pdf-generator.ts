@@ -268,8 +268,8 @@ export const generateOrderReceiptPDF = async (orderData: any, options: LegacyPDF
                                 <tr style="border-bottom: 1px solid #f0f0f0;">
                                     <td style="padding: 10px;">${item.name}</td>
                                     <td style="padding: 10px; text-align: right;">${item.quantity}</td>
-                                    <td style="padding: 10px; text-align: right;">$${item.price.toFixed(2)}</td>
-                                    <td style="padding: 10px; text-align: right;">$${(item.quantity * item.price).toFixed(2)}</td>
+                                    <td style="padding: 10px; text-align: right;">$${item.price.toFixed(0)}</td>
+                                    <td style="padding: 10px; text-align: right;">$${(item.quantity * item.price).toFixed(0)}</td>
                                 </tr>
                             `,
                                 )

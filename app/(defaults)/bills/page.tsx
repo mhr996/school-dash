@@ -323,9 +323,9 @@ const Bills = () => {
         if (bill.payments && bill.payments.length > 0) {
             const totalAmount = bill.payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
             if (bill.payments.length === 1) {
-                return `₪${totalAmount.toFixed(2)}`;
+                return `₪${totalAmount.toFixed(0)}`;
             } else {
-                return `₪${totalAmount.toFixed(2)} (${bill.payments.length} ${t('payments')})`;
+                return `₪${totalAmount.toFixed(0)} (${bill.payments.length} ${t('payments')})`;
             }
         }
 
@@ -361,7 +361,7 @@ const Bills = () => {
                 return t('no_payment_yet');
         }
 
-        return amount > 0 ? `₪${amount.toFixed(2)} (${paymentType})` : t('no_payment_yet');
+        return amount > 0 ? `₪${amount.toFixed(0)} (${paymentType})` : t('no_payment_yet');
     };
 
     // Helper function to get bill amount based on bill type and payment method
@@ -475,7 +475,7 @@ const Bills = () => {
             accessor: 'total_with_tax',
             title: t('total_amount'),
             sortable: true,
-            render: (bill: Bill) => <span className={`font-bold ${bill.bill_direction === 'negative' ? 'text-red-500' : ''}`}>₪{getBillAmount(bill).toFixed(2)}</span>,
+            render: (bill: Bill) => <span className={`font-bold ${bill.bill_direction === 'negative' ? 'text-red-500' : ''}`}>₪{getBillAmount(bill).toFixed(0)}</span>,
         },
         {
             accessor: 'payment_type',
@@ -489,7 +489,7 @@ const Bills = () => {
             sortable: true,
             render: (bill: Bill) => (
                 <span className={`font-medium ${bill.bill_direction === 'negative' ? 'text-red-500' : ''}`}>
-                    {bill.bill_type === 'general' ? '₪' + getBillAmount(bill).toFixed(2) : getPaymentAmount(bill)}
+                    {bill.bill_type === 'general' ? '₪' + getBillAmount(bill).toFixed(0) : getPaymentAmount(bill)}
                 </span>
             ),
         },

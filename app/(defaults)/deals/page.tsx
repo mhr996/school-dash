@@ -418,6 +418,20 @@ const DealsList = () => {
                                 ),
                             },
                             {
+                                accessor: 'created_at',
+                                title: t('deal_created_date'),
+                                sortable: true,
+                                render: ({ created_at }) => (
+                                    <span>
+                                        {new Date(created_at).toLocaleDateString('en-GB', {
+                                            year: 'numeric',
+                                            month: '2-digit',
+                                            day: '2-digit',
+                                        })}
+                                    </span>
+                                ),
+                            },
+                            {
                                 accessor: 'customer_name',
                                 title: t('customer'),
                                 sortable: true,
@@ -462,7 +476,7 @@ const DealsList = () => {
                                 accessor: 'deal_type',
                                 title: t('deal_type'),
                                 sortable: true,
-                                render: ({ deal_type }) => <span className={`badge ${getDealTypeBadgeClass(deal_type)}`}>{t(`deal_type_${deal_type}`)}</span>,
+                                render: ({ deal_type }) => <span className={`badge max-w-20 ${getDealTypeBadgeClass(deal_type)}`}>{t(`deal_type_${deal_type}`)}</span>,
                             },
                             {
                                 accessor: 'amount',
@@ -493,20 +507,6 @@ const DealsList = () => {
                                     const hasBills = bills && bills.length > 0;
                                     return <span className={`badge ${hasBills ? 'badge-outline-success' : 'badge-outline-warning'}`}>{hasBills ? t('bill_created') : t('no_bill_created')}</span>;
                                 },
-                            },
-                            {
-                                accessor: 'created_at',
-                                title: t('created_date'),
-                                sortable: true,
-                                render: ({ created_at }) => (
-                                    <span>
-                                        {new Date(created_at).toLocaleDateString('en-GB', {
-                                            year: 'numeric',
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                        })}
-                                    </span>
-                                ),
                             },
 
                             {

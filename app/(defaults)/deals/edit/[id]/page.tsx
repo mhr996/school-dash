@@ -402,8 +402,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     customer_name: customerInfo?.name || '',
                     phone: customerInfo?.phone || '',
                     car_details: selectedCar ? `${selectedCar.brand} ${selectedCar.title} ${selectedCar.year}` : '',
-                    total: (dealSellingPrice / 1.18).toFixed(2), // Price before tax
-                    tax_amount: ((dealSellingPrice / 1.18) * 0.18).toFixed(2), // 18% tax
+                    total: (dealSellingPrice / 1.18).toFixed(0), // Price before tax
+                    tax_amount: ((dealSellingPrice / 1.18) * 0.18).toFixed(0), // 18% tax
                     total_with_tax: dealSellingPrice?.toString() || '', // Deal selling price already includes tax
                 }));
             }
@@ -414,8 +414,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     customer_name: selectedCustomer.name || '',
                     phone: selectedCustomer.phone || '',
                     car_details: selectedCar ? `${selectedCar.brand} ${selectedCar.title} ${selectedCar.year}` : '',
-                    total: (dealSellingPrice / 1.18).toFixed(2), // Price before tax
-                    tax_amount: ((dealSellingPrice / 1.18) * 0.18).toFixed(2), // 18% tax
+                    total: (dealSellingPrice / 1.18).toFixed(0), // Price before tax
+                    tax_amount: ((dealSellingPrice / 1.18) * 0.18).toFixed(0), // 18% tax
                     total_with_tax: dealSellingPrice?.toString() || '', // Deal selling price already includes tax
                 }));
             }
@@ -938,9 +938,9 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 const preTaxAmount = totalWithTax / 1.18; // Remove 18% tax to get pre-tax amount
                 const taxAmount = preTaxAmount * 0.18; // Calculate 18% tax
 
-                updated.total = preTaxAmount.toFixed(2);
-                updated.tax_amount = taxAmount.toFixed(2);
-                updated.total_with_tax = totalWithTax.toFixed(2);
+                updated.total = preTaxAmount.toFixed(0);
+                updated.tax_amount = taxAmount.toFixed(0);
+                updated.total_with_tax = totalWithTax.toFixed(0);
             }
 
             return updated;
@@ -985,7 +985,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             if (totalPaid > expectedTotal + 0.01) {
                 const excessAmount = totalPaid - expectedTotal;
                 setAlert({
-                    message: `${t('payment_exceeds_selling_price')}: ₪${excessAmount.toFixed(2)} ${t('will_be_added_to_customer_balance')}`,
+                    message: `${t('payment_exceeds_selling_price')}: ₪${excessAmount.toFixed(0)} ${t('will_be_added_to_customer_balance')}`,
                     type: 'success',
                 });
                 // Don't return false - allow the payment to proceed
@@ -1513,7 +1513,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.buy_price?.toFixed(0) || '0.00'}</span>
                                             </div>
                                         </div>
 
@@ -1582,7 +1582,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
                                                     return (
                                                         <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                            {profitCommission >= 0 ? '+' : ''}₪{profitCommission.toFixed(2)}
+                                                            {profitCommission >= 0 ? '+' : ''}₪{profitCommission.toFixed(0)}
                                                         </span>
                                                     );
                                                 })()}
@@ -1609,7 +1609,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('buy_price_auto')}</div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.buy_price?.toFixed(2) || '0.00'}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{selectedCar.buy_price?.toFixed(0) || '0.00'}</span>
                                             </div>
                                         </div>
                                         {/* Row 3: Selling Price (Editable) */}
@@ -1644,14 +1644,14 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                 <div className="font-medium">{t('customer_car_evaluation')}</div>
                                             </div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.customer_car_eval_value || '0').toFixed(2)}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.customer_car_eval_value || '0').toFixed(0)}</span>
                                             </div>
                                         </div>
                                         {/* Row 5: Additional Amount from Customer (Auto-calculated) */}
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">{t('additional_amount_from_customer')}</div>
                                             <div className="text-center">
-                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.additional_customer_amount || '0').toFixed(2)}</span>
+                                                <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.additional_customer_amount || '0').toFixed(0)}</span>
                                             </div>
                                         </div>
                                         {/* Row 6: Loss (Editable) */}
@@ -1695,7 +1695,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
 
                                                     return (
                                                         <span className={`text-sm ${profitCommission >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                            {profitCommission >= 0 ? '+' : ''}₪{profitCommission.toFixed(2)}
+                                                            {profitCommission >= 0 ? '+' : ''}₪{profitCommission.toFixed(0)}
                                                         </span>
                                                     );
                                                 })()}
