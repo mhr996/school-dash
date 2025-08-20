@@ -54,19 +54,19 @@ const PaymentTypeSelect: React.FC<PaymentTypeSelectProps> = ({ value, onChange, 
     return (
         <div ref={wrapperRef} className="relative">
             <div
-                className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#191e3a] flex items-center justify-between min-h-[42px] px-3 py-2 border border-gray-300 rounded-md bg-white hover:border-primary transition-colors`}
+                className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#374151] flex items-center justify-between min-h-[42px] px-3 py-2 border border-gray-300 rounded-md bg-white hover:border-primary transition-colors`}
                 onClick={() => setIsOpen(!isOpen)}
             >
                 {getSelectedLabel()}
                 <IconCaretDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-gray-400`} />
             </div>
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg dark:bg-black dark:border-[#191e3a]">
+                <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg dark:bg-black dark:border-[#374151]">
                     <div className="max-h-60 overflow-y-auto">
                         {paymentTypes.map((type) => (
                             <div
                                 key={type.value}
-                                className="cursor-pointer px-4 py-3 hover:bg-gray-100 dark:text-white-dark dark:hover:bg-[#191e3a] border-b border-gray-100 dark:border-[#191e3a] last:border-b-0 flex items-center gap-3"
+                                className="cursor-pointer px-4 py-3 hover:bg-gray-100 dark:text-white-dark dark:hover:bg-[#191e3a] border-b border-gray-100 dark:border-[#374151] last:border-b-0 flex items-center gap-3"
                                 onClick={() => handleSelect(type.value)}
                             >
                                 <span className="text-lg">{type.icon}</span>
@@ -139,7 +139,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ payment, onUpdate, onRemove, 
                             min="0"
                             value={payment.amount || ''}
                             onChange={(e) => handleInputChange('amount', parseFloat(e.target.value) || 0)}
-                            className="form-input pl-8 pr-4 w-full border border-gray-300 rounded-md hover:border-primary transition-colors dark:bg-black dark:text-white-dark dark:border-[#191e3a] focus:border-primary focus:ring-1 focus:ring-primary"
+                            className="form-input pl-8 pr-4 w-full border border-gray-300 rounded-md hover:border-primary transition-colors dark:bg-black dark:text-white-dark dark:border-[#374151] focus:border-primary focus:ring-1 focus:ring-primary"
                             placeholder="0.00"
                             required
                         />

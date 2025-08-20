@@ -146,14 +146,14 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
     return (
         <div ref={wrapperRef} className="relative">
             <div
-                className={`${className} cursor-pointer rounded-lg border border-gray-300 dark:border-[#191e3a] bg-white dark:bg-black hover:border-primary dark:hover:border-primary transition-all duration-200 min-h-[70px] flex items-center justify-between px-4`}
+                className={`${className} cursor-pointer rounded-lg border border-gray-300 dark:border-[#374151] bg-white dark:bg-black hover:border-primary dark:hover:border-primary transition-all duration-200 min-h-[70px] flex items-center justify-between px-4`}
                 onClick={() => !loading && setIsOpen(!isOpen)}
             >
                 {getSelectedLabel()}
                 <IconCaretDown className={`w-4 h-4 transition-transform duration-200 text-gray-500 dark:text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
             {isOpen && !loading && deals.length > 0 && (
-                <div className="absolute z-50 mt-2 w-full rounded-lg border border-gray-200 dark:border-[#191e3a] bg-white dark:bg-black shadow-lg shadow-black/10 dark:shadow-black/50">
+                <div className="absolute z-50 mt-2 w-full rounded-lg border border-gray-200 dark:border-[#374151] bg-white dark:bg-black shadow-lg shadow-black/10 dark:shadow-black/50">
                     <div className="max-h-80 overflow-y-auto p-2">
                         {deals.map((deal) => {
                             const dealTypeColor = getDealTypeColor(deal.deal_type);
@@ -229,7 +229,7 @@ const DealSelect = ({ deals = [], selectedDeal = null, className = 'form-select 
                 </div>
             )}
             {isOpen && !loading && deals.length === 0 && (
-                <div className="absolute z-50 mt-2 w-full rounded-lg border border-gray-200 dark:border-[#191e3a] bg-white dark:bg-black shadow-lg shadow-black/10 dark:shadow-black/50">
+                <div className="absolute z-50 mt-2 w-full rounded-lg border border-gray-200 dark:border-[#374151] bg-white dark:bg-black shadow-lg shadow-black/10 dark:shadow-black/50">
                     <div className="p-4 text-center text-gray-500 dark:text-gray-400">{t('no_deals_available') || 'No deals available'}</div>
                 </div>
             )}

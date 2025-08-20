@@ -128,14 +128,14 @@ const BillTypeSelect = ({ defaultValue = '', className = 'form-select text-white
     return (
         <div ref={wrapperRef} className="relative">
             <div
-                className={`${className} cursor-pointer rounded-lg border border-gray-300 dark:border-[#191e3a] bg-white dark:bg-black hover:border-primary dark:hover:border-primary transition-all duration-200 min-h-[60px] flex items-center justify-between px-4`}
+                className={`${className} cursor-pointer rounded-lg border border-gray-300 dark:border-[#374151] bg-white dark:bg-black hover:border-primary dark:hover:border-primary transition-all duration-200 min-h-[60px] flex items-center justify-between px-4`}
                 onClick={() => setIsOpen(!isOpen)}
             >
                 {getSelectedLabel()}
                 <IconCaretDown className={`w-4 h-4 transition-transform duration-200 text-gray-500 dark:text-gray-400 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
             {isOpen && (
-                <div className="absolute z-50 mt-2 w-full rounded-lg border border-gray-200 dark:border-[#191e3a] bg-white dark:bg-black shadow-lg shadow-black/10 dark:shadow-black/50">
+                <div className="absolute z-50 mt-2 w-full rounded-lg border border-gray-200 dark:border-[#374151] bg-white dark:bg-black shadow-lg shadow-black/10 dark:shadow-black/50">
                     <div className="max-h-60 overflow-y-auto p-2">
                         {filteredBillTypes.map((type) => {
                             const IconComponent = type.icon;

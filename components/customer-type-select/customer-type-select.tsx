@@ -54,12 +54,12 @@ const CustomerTypeSelect = ({ defaultValue, className = 'form-select text-white-
 
     return (
         <div ref={wrapperRef} className="relative">
-            <div className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#191e3a] flex items-center justify-between`} onClick={() => setIsOpen(!isOpen)}>
+            <div className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#374151] flex items-center justify-between`} onClick={() => setIsOpen(!isOpen)}>
                 <span>{getSelectedLabel()}</span>
                 <IconCaretDown className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
             </div>
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg dark:bg-black dark:border-[#191e3a]">
+                <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg dark:bg-black dark:border-[#374151]">
                     <div className="max-h-60 overflow-y-auto">
                         {customerTypes.map((type) => (
                             <div key={type.value} className="cursor-pointer px-4 py-2 hover:bg-gray-100 dark:text-white-dark dark:hover:bg-[#191e3a]" onClick={() => handleTypeSelect(type.value)}>

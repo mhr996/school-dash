@@ -139,7 +139,7 @@ const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-se
     return (
         <div ref={wrapperRef} className="relative">
             <div
-                className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#191e3a] flex items-center justify-between min-h-[42px] ${selectedCar ? 'text-black dark:text-white' : 'text-gray-500'}`}
+                className={`${className} cursor-pointer dark:bg-black dark:text-white-dark dark:border-[#374151] flex items-center justify-between min-h-[42px] ${selectedCar ? 'text-black dark:text-white' : 'text-gray-500'}`}
                 onClick={() => setIsOpen(!isOpen)}
             >
                 {selectedCar ? (
@@ -168,12 +168,12 @@ const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-se
             </div>
 
             {isOpen && (
-                <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg dark:bg-black dark:border-[#191e3a] max-h-80 overflow-hidden">
+                <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg dark:bg-black dark:border-[#374151] max-h-80 overflow-hidden">
                     {/* Search */}
-                    <div className="p-3 border-b border-gray-200 dark:border-[#191e3a]">
+                    <div className="p-3 border-b border-gray-200 dark:border-[#374151]">
                         <input
                             type="text"
-                            className="w-full rounded border border-gray-300 p-2 text-sm focus:border-primary focus:outline-none dark:bg-black dark:border-[#191e3a] dark:text-white-dark"
+                            className="w-full rounded border border-gray-300 p-2 text-sm focus:border-primary focus:outline-none dark:bg-black dark:border-[#374151] dark:text-white-dark"
                             placeholder={t('search_cars')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -182,7 +182,7 @@ const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-se
                     </div>
                     {/* Create New Car Button */}
                     {onCreateNew && (
-                        <div className="p-2 border-b border-gray-200 dark:border-[#191e3a]">
+                        <div className="p-2 border-b border-gray-200 dark:border-[#374151]">
                             <button
                                 onClick={handleCreateNew}
                                 className="w-full flex items-center gap-3 px-3 py-2 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
@@ -207,7 +207,7 @@ const CarSelect = ({ selectedCar, onCarSelect, onCreateNew, className = 'form-se
                             filteredCars.map((car) => (
                                 <div
                                     key={car.id}
-                                    className="cursor-pointer px-4 py-3 hover:bg-gray-100 dark:hover:bg-[#191e3a] border-b border-gray-100 dark:border-[#191e3a] last:border-b-0"
+                                    className="cursor-pointer px-4 py-3 hover:bg-gray-100 dark:hover:bg-[#191e3a] border-b border-gray-100 dark:border-[#374151] last:border-b-0"
                                     onClick={() => handleCarSelect(car)}
                                 >
                                     <div className="flex items-center gap-3">
