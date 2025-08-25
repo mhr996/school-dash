@@ -22,6 +22,7 @@ import { formatDate } from '@/utils/date-formatter';
 import { Customer, Car, FileItem, DealAttachments } from '@/types';
 import { logActivity } from '@/utils/activity-logger';
 import { handleDealCreated, getCustomerIdFromDeal } from '@/utils/balance-manager';
+import DealPaymentMethods, { PaymentMethod } from '@/components/deal-payment-methods/deal-payment-methods';
 
 const AddDeal = () => {
     const { t } = getTranslation();
@@ -92,7 +93,13 @@ const AddDeal = () => {
 
     // Separate state for intermediary deal participants
     const [selectedSeller, setSelectedSeller] = useState<Customer | null>(null);
-    const [selectedBuyer, setSelectedBuyer] = useState<Customer | null>(null); // File uploads - separate for each document type
+    const [selectedBuyer, setSelectedBuyer] = useState<Customer | null>(null);
+
+    // Payment methods state
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [paymentNotes, setPaymentNotes] = useState<string>('');
+
+    // File uploads - separate for each document type
     const [dealAttachments, setDealAttachments] = useState<DealAttachments>({
         carLicense: null,
         driverLicense: null,
@@ -559,6 +566,8 @@ const AddDeal = () => {
                 status: dealStatus,
                 customer_id: selectedCustomer?.id || null,
                 created_at: new Date(dealDate + 'T' + new Date().toTimeString().split(' ')[0]).toISOString(),
+                payment_methods: paymentMethods.length > 0 ? paymentMethods : null,
+                payment_notes: paymentNotes || null,
             };
 
             if (dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') {
@@ -1066,6 +1075,12 @@ const AddDeal = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Payment Methods Section */}
+            <div className="panel">
+                <DealPaymentMethods value={paymentMethods} onChange={setPaymentMethods} notes={paymentNotes} onNotesChange={setPaymentNotes} />
+            </div>
+
             {/* Deal Attachments */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">
@@ -1518,6 +1533,10 @@ const AddDeal = () => {
                     </div>
                 </div>
             </div>
+            {/* Payment Methods Section */}
+            <div className="panel">
+                <DealPaymentMethods value={paymentMethods} onChange={setPaymentMethods} notes={paymentNotes} onNotesChange={setPaymentNotes} />
+            </div>
             {/* Deal Attachments */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">
@@ -1668,6 +1687,12 @@ const AddDeal = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Payment Methods Section */}
+            <div className="panel">
+                <DealPaymentMethods value={paymentMethods} onChange={setPaymentMethods} notes={paymentNotes} onNotesChange={setPaymentNotes} />
+            </div>
+
             {/* Deal Attachments */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">
@@ -1998,6 +2023,12 @@ const AddDeal = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Payment Methods Section */}
+            <div className="panel">
+                <DealPaymentMethods value={paymentMethods} onChange={setPaymentMethods} notes={paymentNotes} onNotesChange={setPaymentNotes} />
+            </div>
+
             {/* Deal Attachments */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">
@@ -2271,6 +2302,12 @@ const AddDeal = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Payment Methods Section */}
+            <div className="panel">
+                <DealPaymentMethods value={paymentMethods} onChange={setPaymentMethods} notes={paymentNotes} onNotesChange={setPaymentNotes} />
+            </div>
+
             {/* Deal Attachments */}
             <div className="panel">
                 <div className="mb-5 flex items-center gap-3">

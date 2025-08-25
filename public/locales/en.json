@@ -300,6 +300,13 @@
     "payment_method": "Payment Method",
     "payment_details": "Payment Details",
     "payment_summary": "Payment Summary",
+    "payment_methods": "Payment Methods",
+    "select_payment_methods_desc": "Select appropriate payment methods for this deal",
+    "cash_payment_desc": "Direct cash payment",
+    "visa_payment_desc": "Credit or debit card payment",
+    "bank_transfer_desc": "Direct bank transfer",
+    "check_payment_desc": "Payment by check",
+    "installments_desc": "Payment in multiple installments",
     "transaction_id": "Transaction ID",
     "active": "Active",
     "inactive": "Inactive",
@@ -1217,5 +1224,7 @@
     "deal_fallback": "Deal",
     "unknown_type": "Unknown type",
     "back_to_deals": "Back to Deals",
-    "deal_created_date": "Deal Date"
+    "deal_created_date": "Deal Date",
+    "payment_notes_placeholder": "Enter any notes about the payment methods...",
+    "selected_payment_methods": "Selected Payment Methods"
 }

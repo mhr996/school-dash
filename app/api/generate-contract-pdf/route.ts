@@ -274,6 +274,46 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
                     </h2>
                     <div class="space-y-4">
                         <p class="text-lg font-bold text-emerald-700 bg-white rounded-lg p-4 border-2 border-emerald-300 text-center">Total Amount: ${formatCurrency(contract.dealAmount)}</p>
+                        
+                        ${
+                            contract.paymentMethods && contract.paymentMethods.length > 0
+                                ? `
+                            <div class="bg-white rounded-lg p-4 border border-emerald-200">
+                                <h3 class="font-semibold text-emerald-700 mb-3">Payment Methods:</h3>
+                                <div class="grid grid-cols-2 gap-3">
+                                    ${contract.paymentMethods
+                                        .filter((method) => method.selected)
+                                        .map((method) => {
+                                            const methodLabels = {
+                                                cash: 'Cash Payment',
+                                                visa: 'Credit Card (Visa)',
+                                                bank_transfer: 'Bank Transfer',
+                                                check: 'Check Payment',
+                                            };
+
+                                            return `
+                                            <div class="flex items-center gap-2 p-2 bg-emerald-50 rounded border">
+                                                <span class="text-sm font-medium text-emerald-700">${methodLabels[method.type] || method.type}</span>
+                                            </div>
+                                        `;
+                                        })
+                                        .join('')}
+                                </div>
+                            </div>
+                        `
+                                : ''
+                        }
+                        
+                        ${
+                            contract.paymentNotes
+                                ? `
+                            <div class="bg-white rounded-lg p-4 border border-emerald-200">
+                                <h3 class="font-semibold text-emerald-700 mb-2">Payment Notes:</h3>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap">${contract.paymentNotes}</p>
+                            </div>
+                        `
+                                : ''
+                        }
                     </div>
                 </div>
 
@@ -502,6 +542,46 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
                     </h2>
                     <div class="space-y-4">
                         <p class="text-lg font-bold text-emerald-700 bg-white rounded-lg p-4 border-2 border-emerald-300 text-center">المبلغ الإجمالي: ${formatCurrency(contract.dealAmount)}</p>
+                        
+                        ${
+                            contract.paymentMethods && contract.paymentMethods.length > 0
+                                ? `
+                            <div class="bg-white rounded-lg p-4 border border-emerald-200">
+                                <h3 class="font-semibold text-emerald-700 mb-3 text-right">طرق الدفع:</h3>
+                                <div class="grid grid-cols-2 gap-3">
+                                    ${contract.paymentMethods
+                                        .filter((method) => method.selected)
+                                        .map((method) => {
+                                            const methodLabels = {
+                                                cash: 'دفع نقدي',
+                                                visa: 'بطاقة ائتمان (فيزا)',
+                                                bank_transfer: 'تحويل بنكي',
+                                                check: 'دفع بشيك',
+                                            };
+
+                                            return `
+                                            <div class="flex items-center gap-2 p-2 bg-emerald-50 rounded border justify-start">
+                                                <span class="text-sm font-medium text-emerald-700">${methodLabels[method.type] || method.type}</span>
+                                            </div>
+                                        `;
+                                        })
+                                        .join('')}
+                                </div>
+                            </div>
+                        `
+                                : ''
+                        }
+                        
+                        ${
+                            contract.paymentNotes
+                                ? `
+                            <div class="bg-white rounded-lg p-4 border border-emerald-200">
+                                <h3 class="font-semibold text-emerald-700 mb-2 text-right">ملاحظات الدفع:</h3>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap text-right">${contract.paymentNotes}</p>
+                            </div>
+                        `
+                                : ''
+                        }
                     </div>
                 </div>
 
@@ -729,6 +809,46 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
                     </h2>
                     <div class="space-y-4">
                         <p class="text-lg font-bold text-emerald-700 bg-white rounded-lg p-4 border-2 border-emerald-300 text-center">סכום כולל: ${formatCurrency(contract.dealAmount)}</p>
+                        
+                        ${
+                            contract.paymentMethods && contract.paymentMethods.length > 0
+                                ? `
+                            <div class="bg-white rounded-lg p-4 border border-emerald-200">
+                                <h3 class="font-semibold text-emerald-700 mb-3 text-right">אמצעי תשלום:</h3>
+                                <div class="grid grid-cols-2 gap-3">
+                                    ${contract.paymentMethods
+                                        .filter((method) => method.selected)
+                                        .map((method) => {
+                                            const methodLabels = {
+                                                cash: 'תשלום במזומן',
+                                                visa: 'כרטיס אשראי (ויזה)',
+                                                bank_transfer: 'העברה בנקאית',
+                                                check: 'תשלום בצ׳ק',
+                                            };
+
+                                            return `
+                                            <div class="flex items-center gap-2 p-2 bg-emerald-50 rounded border justify-start">
+                                                <span class="text-sm font-medium text-emerald-700">${methodLabels[method.type] || method.type}</span>
+                                            </div>
+                                        `;
+                                        })
+                                        .join('')}
+                                </div>
+                            </div>
+                        `
+                                : ''
+                        }
+                        
+                        ${
+                            contract.paymentNotes
+                                ? `
+                            <div class="bg-white rounded-lg p-4 border border-emerald-200">
+                                <h3 class="font-semibold text-emerald-700 mb-2 text-right">הערות תשלום:</h3>
+                                <p class="text-sm text-gray-700 whitespace-pre-wrap text-right">${contract.paymentNotes}</p>
+                            </div>
+                        `
+                                : ''
+                        }
                     </div>
                 </div>
 

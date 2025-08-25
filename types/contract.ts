@@ -40,6 +40,11 @@ export interface CarContract {
     // Payment Info (optional - for deals with bills)
     totalAmount?: number;
     paymentMethod?: 'cash' | 'bank_transfer' | 'check' | 'other';
+    paymentMethods?: Array<{
+        type: 'cash' | 'visa' | 'bank_transfer' | 'check';
+        selected: boolean;
+    }>;
+    paymentNotes?: string;
     paymentDetails?: string; // For check numbers or other details
     paidAmount?: number;
     remainingAmount?: number;

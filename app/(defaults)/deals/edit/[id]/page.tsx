@@ -16,6 +16,7 @@ import BillTypeSelect from '@/components/bill-type-select/bill-type-select';
 import PaymentTypeSelect from '@/components/payment-type-select/payment-type-select';
 import SingleFileUpload from '@/components/file-upload/single-file-upload';
 import CreateCustomerModal from '@/components/modals/create-customer-modal';
+import DealPaymentMethods, { PaymentMethod } from '@/components/deal-payment-methods/deal-payment-methods';
 import { Deal, Customer, Car, FileItem, DealAttachments, DealAttachment } from '@/types';
 import { BillWithPayments } from '@/types/payment';
 
@@ -168,6 +169,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             amount: 0,
         },
     ]);
+
+    // Deal payment methods state
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [paymentNotes, setPaymentNotes] = useState<string>('');
 
     const [billForm, setBillForm] = useState({
         bill_type: '',
@@ -342,6 +347,17 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                     setDealType(data.deal_type || '');
                     // Set the deal date from the existing deal's created_at, or default to today
                     setDealDate(data.created_at ? new Date(data.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+
+                    // Load payment methods if they exist
+                    if (data.payment_methods && Array.isArray(data.payment_methods)) {
+                        setPaymentMethods(data.payment_methods);
+                    }
+
+                    // Load payment notes if they exist
+                    if (data.payment_notes) {
+                        setPaymentNotes(data.payment_notes);
+                    }
+
                     setForm({
                         title: data.title || '',
                         description: data.description || '',
@@ -880,6 +896,8 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
             const finalDealData = {
                 ...dealData,
                 attachments: updatedAttachments,
+                payment_methods: paymentMethods.length > 0 ? paymentMethods : null,
+                payment_notes: paymentNotes || null,
             };
 
             const { error } = await supabase.from('deals').update(finalDealData).eq('id', dealId);
@@ -2079,6 +2097,10 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                 className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
                             />
                         </div>
+                    </div>
+                    {/* Payment Methods Section */}
+                    <div className="panel">
+                        <DealPaymentMethods value={paymentMethods} onChange={setPaymentMethods} notes={paymentNotes} onNotesChange={setPaymentNotes} />
                     </div>
                     {/* Expandable Bill Creation Section */}
                     <div className="panel">

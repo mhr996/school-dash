@@ -439,6 +439,13 @@
     "payment_method": "אמצעי תשלום",
     "payment_details": "פרטי תשלום",
     "payment_summary": "סיכום תשלום",
+    "payment_methods": "אמצעי תשלום",
+    "select_payment_methods_desc": "בחר אמצעי תשלום מתאימים לעסקה זו",
+    "cash_payment_desc": "תשלום במזומן ישיר",
+    "visa_payment_desc": "תשלום בכרטיס אשראי או חיוב ישיר",
+    "bank_transfer_desc": "העברה בנקאית ישירה",
+    "check_payment_desc": "תשלום בצ'ק",
+    "installments_desc": "תשלום בתשלומים",
     "transaction_id": "מזהה עסקה",
     "amount": "סכום",
     "expired": "פג תוקף",
@@ -957,5 +964,7 @@
     "add_gallery_images": " הוספת תמונות לגלריה ",
     "update_car": " עדכון רכב ",
     "deal_created_date": "תאריך עסקה",
-    "total_revenue": "סך הכנסות"
+    "total_revenue": "סך הכנסות",
+    "payment_notes_placeholder": "הכנס הערות על שיטות התשלום...",
+    "selected_payment_methods": "שיטות תשלום שנבחרו"
 }

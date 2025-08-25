@@ -18,11 +18,16 @@ import IconReceipt from '@/components/icon/icon-receipt';
 import IconPlus from '@/components/icon/icon-plus';
 import IconPaperclip from '@/components/icon/icon-paperclip';
 import { Deal, DealAttachment } from '@/types';
+import { PaymentMethod } from '@/components/deal-payment-methods/deal-payment-methods';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
 import ContractGenerator from '@/components/contracts/contract-generator';
 import { CarContract } from '@/types/contract';
 import { ContractPDFGenerator } from '@/utils/contract-pdf-generator-new';
 import IconDocument from '@/components/icon/icon-document';
+import IconCashBanknotes from '@/components/icon/icon-cash-banknotes';
+import IconCreditCard from '@/components/icon/icon-credit-card';
+import IconBank from '@/components/icon/icon-bank';
+import IconCheck from '@/components/icon/icon-check';
 import { getCompanyInfo, CompanyInfo } from '@/lib/company-info';
 import BillsTable from '@/components/bills/bills-table';
 
@@ -74,6 +79,8 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
     const [generatingContract, setGeneratingContract] = useState(false);
     const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [paymentNotes, setPaymentNotes] = useState<string>('');
     const dealId = params.id;
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -91,6 +98,16 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                 if (data) {
                     setDeal(data);
                     console.log('Fetched deal:', data);
+
+                    // Load payment methods if they exist
+                    if (data.payment_methods && Array.isArray(data.payment_methods)) {
+                        setPaymentMethods(data.payment_methods);
+                    }
+
+                    // Load payment notes if they exist
+                    if (data.payment_notes) {
+                        setPaymentNotes(data.payment_notes);
+                    }
 
                     // Fetch customer details if customer_id exists
                     if (data.customer_id) {
@@ -269,8 +286,18 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             carEngineNumber: '', // Would need to be added to car data
             carKilometers: car.kilometers,
 
-            // Deal amount (always available)
-            dealAmount: deal.amount || 0,
+            // Deal amount - use car's selling price instead of deal.amount
+            dealAmount: deal.selling_price || 0,
+
+            // Payment Methods - include if they exist
+            ...(paymentMethods.length > 0 && {
+                paymentMethods: paymentMethods,
+            }),
+
+            // Payment Notes - include if they exist
+            ...(paymentNotes && {
+                paymentNotes: paymentNotes,
+            }),
 
             // Trade-in car info if applicable
             ...(carTakenFromClient && {
@@ -684,6 +711,101 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                         </div>
                     )}
                 </div>
+                {/* Payment Methods Section */}
+                {(paymentMethods.length > 0 || paymentNotes) && (
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h5 className="text-xl font-bold text-gray-900 dark:text-white-light flex items-center gap-3">
+                                <IconDollarSign className="w-6 h-6 text-primary" />
+                                {t('payment_methods') || 'آلية الدفع'}
+                            </h5>
+                        </div>
+
+                        {/* Payment Methods Display */}
+                        {paymentMethods.length > 0 && (
+                            <div className="mb-6">
+                                <h6 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-6">{t('selected_payment_methods') || 'طرق الدفع المختارة'}</h6>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {paymentMethods
+                                        .filter((method) => method.selected)
+                                        .map((method) => {
+                                            const methodConfig = {
+                                                cash: {
+                                                    label: t('cash') || 'نقداً',
+                                                    icon: <IconCashBanknotes className="w-6 h-6" />,
+                                                    bgColor: 'bg-green-50 dark:bg-green-900/20',
+                                                    borderColor: 'border-green-200 dark:border-green-800',
+                                                    iconColor: 'text-green-600 dark:text-green-400',
+                                                    textColor: 'text-green-700 dark:text-green-300',
+                                                },
+                                                visa: {
+                                                    label: t('visa_card') || 'فيزا',
+                                                    icon: <IconCreditCard className="w-6 h-6" />,
+                                                    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+                                                    borderColor: 'border-blue-200 dark:border-blue-800',
+                                                    iconColor: 'text-blue-600 dark:text-blue-400',
+                                                    textColor: 'text-blue-700 dark:text-blue-300',
+                                                },
+                                                bank_transfer: {
+                                                    label: t('bank_transfer') || 'تحويل بنكي',
+                                                    icon: <IconBank className="w-6 h-6" />,
+                                                    bgColor: 'bg-purple-50 dark:bg-purple-900/20',
+                                                    borderColor: 'border-purple-200 dark:border-purple-800',
+                                                    iconColor: 'text-purple-600 dark:text-purple-400',
+                                                    textColor: 'text-purple-700 dark:text-purple-300',
+                                                },
+                                                check: {
+                                                    label: t('check') || 'شيك',
+                                                    icon: <IconCheck className="w-6 h-6" />,
+                                                    bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+                                                    borderColor: 'border-orange-200 dark:border-orange-800',
+                                                    iconColor: 'text-orange-600 dark:text-orange-400',
+                                                    textColor: 'text-orange-700 dark:text-orange-300',
+                                                },
+                                            };
+
+                                            const config = methodConfig[method.type] || methodConfig.cash;
+
+                                            return (
+                                                <div
+                                                    key={method.type}
+                                                    className={`relative p-6 rounded-xl border-2 ${config.bgColor} ${config.borderColor} transition-all duration-200 hover:shadow-lg`}
+                                                >
+                                                    <div className="flex flex-col items-center text-center space-y-3">
+                                                        <div className={`p-3 rounded-full ${config.iconColor} bg-white dark:bg-gray-800 shadow-sm`}>{config.icon}</div>
+                                                        <div>
+                                                            <h3 className={`font-bold ${config.textColor} mb-1`}>{config.label}</h3>
+                                                        </div>
+                                                        <div className={`absolute top-3 right-3 w-3 h-3 rounded-full ${config.iconColor.replace('text-', 'bg-')}`}></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Payment Notes Display */}
+                        {paymentNotes && (
+                            <div>
+                                <h6 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                                    <div className="w-1 h-6 bg-primary rounded-full"></div>
+                                    {t('payment_notes') || 'ملاحظات الدفع'}
+                                </h6>
+                                <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-shrink-0 p-2 bg-blue-100 dark:bg-blue-800 rounded-lg">
+                                            <IconDocument className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap font-medium">{paymentNotes}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
                 {/* Bills Section */}
                 <BillsTable bills={bills} loading={false} readOnly={true} deal={deal} carTakenFromClient={carTakenFromClient} selectedCustomer={customer} />
                 {/* Actions */}
