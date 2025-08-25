@@ -212,6 +212,12 @@ const CarPreview = () => {
             dealType: 'normal',
             dealDate: new Date().toISOString().split('T')[0],
 
+            // Company info (always the dealership)
+            companyName: companyInfo?.name || 'Car Dealership',
+            companyTaxNumber: companyInfo?.tax_number || '',
+            companyAddress: companyInfo?.address || '',
+            companyPhone: companyInfo?.phone || '',
+
             // Seller info - the provider or customer we got the car from
             sellerName,
             sellerTaxNumber,
