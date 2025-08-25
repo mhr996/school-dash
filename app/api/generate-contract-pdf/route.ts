@@ -209,59 +209,171 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
             <!-- Contract Content -->
             <div class="p-8 space-y-6 w-full">
                 <!-- Parties Information -->
-                <div class="grid grid-cols-2 gap-6 w-full">
-                    <!-- Seller -->
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
-                        <h2 class="font-bold mb-4 text-xl text-green-700 flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                            </svg>
-                            Seller
-                        </h2>
-                        <div class="space-y-2 text-sm">
-                            <p><span class="font-semibold text-green-700">Company:</span> ${contract.sellerName}</p>
-                            <p><span class="font-semibold text-green-700">Tax Number:</span> ${contract.sellerTaxNumber}</p>
-                            <p><span class="font-semibold text-green-700">Address:</span> ${contract.sellerAddress}</p>
-                            <p><span class="font-semibold text-green-700">Phone:</span> ${contract.sellerPhone}</p>
+                ${
+                    contract.isIntermediaryDeal
+                        ? `
+                    <!-- Intermediary Deal - Three Parties -->
+                    <div class="space-y-4 w-full">
+                        <!-- Company/Intermediary -->
+                        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-200">
+                            <h2 class="font-bold mb-4 text-xl text-indigo-700 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Intermediary/Company
+                            </h2>
+                            <div class="space-y-2 text-sm">
+                                <p><span class="font-semibold text-indigo-700">Company:</span> ${contract.companyName}</p>
+                                <p><span class="font-semibold text-indigo-700">Tax Number:</span> ${contract.companyTaxNumber}</p>
+                                <p><span class="font-semibold text-indigo-700">Address:</span> ${contract.companyAddress}</p>
+                                <p><span class="font-semibold text-indigo-700">Phone:</span> ${contract.companyPhone}</p>
+                            </div>
                         </div>
-                    </div>
+                        
+                        <!-- Seller and Buyer -->
+                        <div class="grid grid-cols-2 gap-6 w-full">
+                            <!-- Seller -->
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
+                                <h2 class="font-bold mb-4 text-xl text-green-700 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                    </svg>
+                                    Seller
+                                </h2>
+                                <div class="space-y-2 text-sm">
+                                    <p><span class="font-semibold text-green-700">Name:</span> ${contract.actualSeller?.name || contract.sellerName}</p>
+                                    <p><span class="font-semibold text-green-700">ID:</span> ${contract.actualSeller?.id || 'N/A'}</p>
+                                    <p><span class="font-semibold text-green-700">Address:</span> ${contract.actualSeller?.address || 'N/A'}</p>
+                                    <p><span class="font-semibold text-green-700">Phone:</span> ${contract.actualSeller?.phone || 'N/A'}</p>
+                                </div>
+                            </div>
 
-                    <!-- Buyer -->
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-                        <h2 class="font-bold mb-4 text-xl text-blue-700 flex items-center gap-2">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                            </svg>
-                            Buyer
-                        </h2>
-                        <div class="space-y-2 text-sm">
-                            <p><span class="font-semibold text-blue-700">Name:</span> ${contract.buyerName}</p>
-                            <p><span class="font-semibold text-blue-700">ID:</span> ${contract.buyerId}</p>
-                            <p><span class="font-semibold text-blue-700">Address:</span> ${contract.buyerAddress}</p>
-                            <p><span class="font-semibold text-blue-700">Phone:</span> ${contract.buyerPhone}</p>
+                            <!-- Buyer -->
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                                <h2 class="font-bold mb-4 text-xl text-blue-700 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                    </svg>
+                                    Buyer
+                                </h2>
+                                <div class="space-y-2 text-sm">
+                                    <p><span class="font-semibold text-blue-700">Name:</span> ${contract.actualBuyer?.name || contract.buyerName}</p>
+                                    <p><span class="font-semibold text-blue-700">ID:</span> ${contract.actualBuyer?.id || contract.buyerId}</p>
+                                    <p><span class="font-semibold text-blue-700">Address:</span> ${contract.actualBuyer?.address || contract.buyerAddress}</p>
+                                    <p><span class="font-semibold text-blue-700">Phone:</span> ${contract.actualBuyer?.phone || contract.buyerPhone}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                `
+                        : `
+                    <!-- Regular Deal - Two Parties -->
+                    <div class="grid grid-cols-2 gap-6 w-full">
+                        <!-- Seller -->
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
+                            <h2 class="font-bold mb-4 text-xl text-green-700 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                </svg>
+                                Seller
+                            </h2>
+                            <div class="space-y-2 text-sm">
+                                <p><span class="font-semibold text-green-700">Company:</span> ${contract.sellerName}</p>
+                                <p><span class="font-semibold text-green-700">Tax Number:</span> ${contract.sellerTaxNumber}</p>
+                                <p><span class="font-semibold text-green-700">Address:</span> ${contract.sellerAddress}</p>
+                                <p><span class="font-semibold text-green-700">Phone:</span> ${contract.sellerPhone}</p>
+                            </div>
+                        </div>
+
+                        <!-- Buyer -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                            <h2 class="font-bold mb-4 text-xl text-blue-700 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                </svg>
+                                Buyer
+                            </h2>
+                            <div class="space-y-2 text-sm">
+                                <p><span class="font-semibold text-blue-700">Name:</span> ${contract.buyerName}</p>
+                                <p><span class="font-semibold text-blue-700">ID:</span> ${contract.buyerId}</p>
+                                <p><span class="font-semibold text-blue-700">Address:</span> ${contract.buyerAddress}</p>
+                                <p><span class="font-semibold text-blue-700">Phone:</span> ${contract.buyerPhone}</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+                }
 
                 <!-- Vehicle Information -->
-                <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
-                    <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                        </svg>
-                        Vehicle Information
-                    </h2>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <p><span class="font-semibold text-purple-700">Make:</span> ${contract.carMake}</p>
-                        <p><span class="font-semibold text-purple-700">Model:</span> ${contract.carModel}</p>
-                        <p><span class="font-semibold text-purple-700">Year:</span> ${contract.carYear}</p>
-                        <p><span class="font-semibold text-purple-700">Type:</span> ${contract.carType}</p>
-                        <p><span class="font-semibold text-purple-700">Plate Number:</span> ${contract.carPlateNumber}</p>
-                        <p><span class="font-semibold text-purple-700">Kilometers:</span> ${contract.carKilometers.toLocaleString()}</p>
-                        ${contract.carVin ? `<p><span class="font-semibold text-purple-700">VIN:</span> ${contract.carVin}</p>` : ''}
-                        ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">Engine Number:</span> ${contract.carEngineNumber}</p>` : ''}
+                ${
+                    contract.dealType === 'trade-in'
+                        ? `
+                    <!-- Car Being Sold (Primary Vehicle) -->
+                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
+                        <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                            </svg>
+                            Vehicle Being Sold
+                        </h2>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <p><span class="font-semibold text-purple-700">Make:</span> ${contract.carMake}</p>
+                            <p><span class="font-semibold text-purple-700">Model:</span> ${contract.carModel}</p>
+                            <p><span class="font-semibold text-purple-700">Year:</span> ${contract.carYear}</p>
+                            <p><span class="font-semibold text-purple-700">Type:</span> ${contract.carType}</p>
+                            <p><span class="font-semibold text-purple-700">Plate Number:</span> ${contract.carPlateNumber}</p>
+                            <p><span class="font-semibold text-purple-700">Kilometers:</span> ${contract.carKilometers.toLocaleString()}</p>
+                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">VIN:</span> ${contract.carVin}</p>` : ''}
+                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">Engine Number:</span> ${contract.carEngineNumber}</p>` : ''}
+                        </div>
                     </div>
-                </div>
+
+                    <!-- Trade-in Vehicle (Car Received from Client) -->
+                    ${
+                        contract.tradeInCar
+                            ? `
+                        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-6 border border-orange-200">
+                            <h2 class="font-bold mb-4 text-xl text-orange-700 flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                </svg>
+                                Trade-in Vehicle (Received from Client)
+                            </h2>
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <p><span class="font-semibold text-orange-700">Make:</span> ${contract.tradeInCar.make}</p>
+                                <p><span class="font-semibold text-orange-700">Model:</span> ${contract.tradeInCar.model}</p>
+                                <p><span class="font-semibold text-orange-700">Type:</span> ${contract.tradeInCar.type}</p>
+                                <p><span class="font-semibold text-orange-700">Year:</span> ${contract.tradeInCar.year}</p>
+                                <p><span class="font-semibold text-orange-700">Plate Number:</span> ${contract.tradeInCar.plateNumber}</p>
+                                <p><span class="font-semibold text-orange-700">Kilometers:</span> ${contract.tradeInCar.kilometers.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    `
+                            : ''
+                    }
+                `
+                        : `
+                    <!-- Single Vehicle Information (Non-Exchange Deal) -->
+                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
+                        <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                            </svg>
+                            Vehicle Information
+                        </h2>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <p><span class="font-semibold text-purple-700">Make:</span> ${contract.carMake}</p>
+                            <p><span class="font-semibold text-purple-700">Model:</span> ${contract.carModel}</p>
+                            <p><span class="font-semibold text-purple-700">Year:</span> ${contract.carYear}</p>
+                            <p><span class="font-semibold text-purple-700">Type:</span> ${contract.carType}</p>
+                            <p><span class="font-semibold text-purple-700">Plate Number:</span> ${contract.carPlateNumber}</p>
+                            <p><span class="font-semibold text-purple-700">Kilometers:</span> ${contract.carKilometers.toLocaleString()}</p>
+                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">VIN:</span> ${contract.carVin}</p>` : ''}
+                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">Engine Number:</span> ${contract.carEngineNumber}</p>` : ''}
+                        </div>
+                    </div>
+                `
+                }
 
                 <!-- Payment Information -->
                 <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-6 border border-emerald-200">
@@ -478,55 +590,169 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
             <!-- Contract Content -->
             <div class="p-8 space-y-6 w-full">
                 <!-- Parties Information -->
-                <div class="grid grid-cols-2 gap-6 w-full">
-                    <!-- Buyer -->
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-                        <h2 class="font-bold mb-4 text-xl text-blue-700 flex items-center gap-2 justify-end section-title">
-                            <span>المشتري</span>
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                            </svg>
-                        </h2>
-                        <div class="space-y-2 text-sm text-right">
-                            <p><span class="font-semibold text-blue-700">الاسم:</span> ${contract.buyerName}</p>
-                            <p><span class="font-semibold text-blue-700">الهوية:</span> ${contract.buyerId}</p>
-                            <p><span class="font-semibold text-blue-700">العنوان:</span> ${contract.buyerAddress}</p>
-                            <p><span class="font-semibold text-blue-700">الهاتف:</span> ${contract.buyerPhone}</p>
+                ${
+                    contract.isIntermediaryDeal
+                        ? `
+                    <!-- Intermediary Deal - Three Parties -->
+                    <div class="space-y-4 w-full">
+                        <!-- Company/Intermediary -->
+                        <div class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-6 border border-indigo-200">
+                            <h2 class="font-bold mb-4 text-xl text-indigo-700 flex items-center gap-2 justify-end section-title">
+                                <span>الوسيط/الشركة</span>
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </h2>
+                            <div class="space-y-2 text-sm text-right">
+                                <p><span class="font-semibold text-indigo-700">الشركة:</span> ${contract.companyName}</p>
+                                <p><span class="font-semibold text-indigo-700">رقم الضريبة:</span> ${contract.companyTaxNumber}</p>
+                                <p><span class="font-semibold text-indigo-700">العنوان:</span> ${contract.companyAddress}</p>
+                                <p><span class="font-semibold text-indigo-700">الهاتف:</span> ${contract.companyPhone}</p>
+                            </div>
                         </div>
-                    </div>
+                        
+                        <!-- Seller and Buyer -->
+                        <div class="grid grid-cols-2 gap-6 w-full">
+                            <!-- Buyer -->
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                                <h2 class="font-bold mb-4 text-xl text-blue-700 flex items-center gap-2 justify-end section-title">
+                                    <span>المشتري</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                    </svg>
+                                </h2>
+                                <div class="space-y-2 text-sm text-right">
+                                    <p><span class="font-semibold text-blue-700">الاسم:</span> ${contract.actualBuyer?.name || contract.buyerName}</p>
+                                    <p><span class="font-semibold text-blue-700">الهوية:</span> ${contract.actualBuyer?.id || contract.buyerId}</p>
+                                    <p><span class="font-semibold text-blue-700">العنوان:</span> ${contract.actualBuyer?.address || contract.buyerAddress}</p>
+                                    <p><span class="font-semibold text-blue-700">الهاتف:</span> ${contract.actualBuyer?.phone || contract.buyerPhone}</p>
+                                </div>
+                            </div>
 
-                    <!-- Seller -->
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
-                        <h2 class="font-bold mb-4 text-xl text-green-700 flex items-center gap-2 justify-end section-title">
-                            <span>البائع</span>
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                            </svg>
-                        </h2>
-                        <div class="space-y-2 text-sm text-right">
-                            <p><span class="font-semibold text-green-700">الشركة:</span> ${contract.sellerName}</p>
-                            <p><span class="font-semibold text-green-700">رقم الضريبة:</span> ${contract.sellerTaxNumber}</p>
-                            <p><span class="font-semibold text-green-700">العنوان:</span> ${contract.sellerAddress}</p>
-                            <p><span class="font-semibold text-green-700">الهاتف:</span> ${contract.sellerPhone}</p>
+                            <!-- Seller -->
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
+                                <h2 class="font-bold mb-4 text-xl text-green-700 flex items-center gap-2 justify-end section-title">
+                                    <span>البائع</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                    </svg>
+                                </h2>
+                                <div class="space-y-2 text-sm text-right">
+                                    <p><span class="font-semibold text-green-700">الاسم:</span> ${contract.actualSeller?.name || contract.sellerName}</p>
+                                    <p><span class="font-semibold text-green-700">الهوية:</span> ${contract.actualSeller?.id || 'غير متوفر'}</p>
+                                    <p><span class="font-semibold text-green-700">العنوان:</span> ${contract.actualSeller?.address || 'غير متوفر'}</p>
+                                    <p><span class="font-semibold text-green-700">الهاتف:</span> ${contract.actualSeller?.phone || 'غير متوفر'}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                `
+                        : `
+                    <!-- Regular Deal - Two Parties -->
+                    <div class="grid grid-cols-2 gap-6 w-full">
+                        <!-- Buyer -->
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                            <h2 class="font-bold mb-4 text-xl text-blue-700 flex items-center gap-2 justify-end section-title">
+                                <span>المشتري</span>
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                </svg>
+                            </h2>
+                            <div class="space-y-2 text-sm text-right">
+                                <p><span class="font-semibold text-blue-700">الاسم:</span> ${contract.buyerName}</p>
+                                <p><span class="font-semibold text-blue-700">الهوية:</span> ${contract.buyerId}</p>
+                                <p><span class="font-semibold text-blue-700">العنوان:</span> ${contract.buyerAddress}</p>
+                                <p><span class="font-semibold text-blue-700">الهاتف:</span> ${contract.buyerPhone}</p>
+                            </div>
+                        </div>
+
+                        <!-- Seller -->
+                        <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
+                            <h2 class="font-bold mb-4 text-xl text-green-700 flex items-center gap-2 justify-end section-title">
+                                <span>البائع</span>
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                </svg>
+                            </h2>
+                            <div class="space-y-2 text-sm text-right">
+                                <p><span class="font-semibold text-green-700">الشركة:</span> ${contract.sellerName}</p>
+                                <p><span class="font-semibold text-green-700">رقم الضريبة:</span> ${contract.sellerTaxNumber}</p>
+                                <p><span class="font-semibold text-green-700">العنوان:</span> ${contract.sellerAddress}</p>
+                                <p><span class="font-semibold text-green-700">الهاتف:</span> ${contract.sellerPhone}</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+                }
 
                 <!-- Vehicle Information -->
-                <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
-                    <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2 justify-end section-title">
-                        <span>معلومات المركبة</span>
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                    </h2>
-                    <div class="grid grid-cols-2 gap-4 text-sm text-right">
-                        <p><span class="font-semibold text-purple-700">الماركة:</span> ${contract.carMake}</p>
-                        <p><span class="font-semibold text-purple-700">الموديل:</span> ${contract.carModel}</p>
-                        <p><span class="font-semibold text-purple-700">السنة:</span> ${contract.carYear}</p>
-                        <p><span class="font-semibold text-purple-700">النوع:</span> ${contract.carType}</p>
-                        <p><span class="font-semibold text-purple-700">رقم اللوحة:</span> ${contract.carPlateNumber}</p>
-                        <p><span class="font-semibold text-purple-700">الكيلومترات:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
-                        ${contract.carVin ? `<p><span class="font-semibold text-purple-700">رقم الهيكل:</span> ${contract.carVin}</p>` : ''}
+                ${
+                    contract.dealType === 'trade-in'
+                        ? `
+                    <!-- Car Being Sold (Primary Vehicle) -->
+                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
+                        <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2 justify-end section-title">
+                            <span>المركبة المباعة</span>
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </h2>
+                        <div class="grid grid-cols-2 gap-4 text-sm text-right">
+                            <p><span class="font-semibold text-purple-700">الماركة:</span> ${contract.carMake}</p>
+                            <p><span class="font-semibold text-purple-700">الموديل:</span> ${contract.carModel}</p>
+                            <p><span class="font-semibold text-purple-700">السنة:</span> ${contract.carYear}</p>
+                            <p><span class="font-semibold text-purple-700">النوع:</span> ${contract.carType}</p>
+                            <p><span class="font-semibold text-purple-700">رقم اللوحة:</span> ${contract.carPlateNumber}</p>
+                            <p><span class="font-semibold text-purple-700">الكيلومترات:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
+                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">رقم الهيكل:</span> ${contract.carVin}</p>` : ''}
+                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">رقم المحرك:</span> ${contract.carEngineNumber}</p>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Trade-in Vehicle (Car Received from Client) -->
+                    ${
+                        contract.tradeInCar
+                            ? `
+                        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-6 border border-orange-200">
+                            <h2 class="font-bold mb-4 text-xl text-orange-700 flex items-center gap-2 justify-end section-title">
+                                <span>المركبة المستلمة من العميل</span>
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                </svg>
+                            </h2>
+                            <div class="grid grid-cols-2 gap-4 text-sm text-right">
+                                <p><span class="font-semibold text-orange-700">الماركة:</span> ${contract.tradeInCar.make}</p>
+                                <p><span class="font-semibold text-orange-700">الموديل:</span> ${contract.tradeInCar.model}</p>
+                                <p><span class="font-semibold text-orange-700">النوع:</span> ${contract.tradeInCar.type}</p>
+                                <p><span class="font-semibold text-orange-700">السنة:</span> ${contract.tradeInCar.year}</p>
+                                <p><span class="font-semibold text-orange-700">رقم اللوحة:</span> ${contract.tradeInCar.plateNumber}</p>
+                                <p><span class="font-semibold text-orange-700">الكيلومترات:</span> ${contract.tradeInCar.kilometers.toLocaleString('en-US')}</p>
+                            </div>
+                        </div>
+                    `
+                            : ''
+                    }
+                `
+                        : `
+                    <!-- Single Vehicle Information (Non-Exchange Deal) -->
+                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
+                        <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2 justify-end section-title">
+                            <span>معلومات المركبة</span>
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </h2>
+                        <div class="grid grid-cols-2 gap-4 text-sm text-right">
+                            <p><span class="font-semibold text-purple-700">الماركة:</span> ${contract.carMake}</p>
+                            <p><span class="font-semibold text-purple-700">الموديل:</span> ${contract.carModel}</p>
+                            <p><span class="font-semibold text-purple-700">السنة:</span> ${contract.carYear}</p>
+                            <p><span class="font-semibold text-purple-700">النوع:</span> ${contract.carType}</p>
+                            <p><span class="font-semibold text-purple-700">رقم اللوحة:</span> ${contract.carPlateNumber}</p>
+                            <p><span class="font-semibold text-purple-700">الكيلومترات:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
+                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">رقم الهيكل:</span> ${contract.carVin}</p>` : ''}
+                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">رقم المحرك:</span> ${contract.carEngineNumber}</p>` : ''}
+                        </div>
+                    </div>
+                `
+                }
                         ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">رقم المحرك:</span> ${contract.carEngineNumber}</p>` : ''}
                     </div>
                 </div>
@@ -745,58 +971,166 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
             <!-- Contract Content -->
             <div class="p-8 space-y-6 w-full">
                 <!-- Parties Information -->
-                <div class="grid grid-cols-2 gap-6 w-full">
-                    <!-- Buyer -->
-                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
-                        <h2 class="font-bold mb-4 text-xl text-blue-700 flex items-center gap-2 justify-end section-title">
-                            <span>קונה</span>
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
-                            </svg>
-                        </h2>
-                        <div class="space-y-2 text-sm text-right">
-                            <p><span class="font-semibold text-blue-700">שם:</span> ${contract.buyerName}</p>
-                            <p><span class="font-semibold text-blue-700">ת.ז.:</span> ${contract.buyerId}</p>
-                            <p><span class="font-semibold text-blue-700">כתובת:</span> ${contract.buyerAddress}</p>
-                            <p><span class="font-semibold text-blue-700">טלפון:</span> ${contract.buyerPhone}</p>
-                        </div>
-                    </div>
+                ${
+                    contract.dealType === 'intermediary' || contract.dealType === 'financing_assistance_intermediary'
+                        ? `
+                        <!-- Three-party layout for intermediary deals -->
+                        <div class="grid grid-cols-3 gap-4 w-full">
+                            <!-- Company (Intermediary) -->
+                            <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
+                                <h2 class="font-bold mb-4 text-lg text-purple-700 flex items-center gap-2 justify-end section-title">
+                                    <span>חברה (מתווך)</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zM14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10z" />
+                                    </svg>
+                                </h2>
+                                <div class="space-y-2 text-xs text-right">
+                                    <p><span class="font-semibold text-purple-700">חברה:</span> ${contract.companyName}</p>
+                                    <p><span class="font-semibold text-purple-700">מס׳ עוסק:</span> ${contract.companyTaxNumber}</p>
+                                    <p><span class="font-semibold text-purple-700">כתובת:</span> ${contract.companyAddress}</p>
+                                    <p><span class="font-semibold text-purple-700">טלפון:</span> ${contract.companyPhone}</p>
+                                </div>
+                            </div>
 
-                    <!-- Seller -->
-                    <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
-                        <h2 class="font-bold mb-4 text-xl text-green-700 flex items-center gap-2 justify-end section-title">
-                            <span>מוכר</span>
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-                            </svg>
-                        </h2>
-                        <div class="space-y-2 text-sm text-right">
-                            <p><span class="font-semibold text-green-700">חברה:</span> ${contract.sellerName}</p>
-                            <p><span class="font-semibold text-green-700">מס׳ עוסק:</span> ${contract.sellerTaxNumber}</p>
-                            <p><span class="font-semibold text-green-700">כתובת:</span> ${contract.sellerAddress}</p>
-                            <p><span class="font-semibold text-green-700">טלפון:</span> ${contract.sellerPhone}</p>
+                            <!-- Actual Seller -->
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
+                                <h2 class="font-bold mb-4 text-lg text-green-700 flex items-center gap-2 justify-end section-title">
+                                    <span>המוכר בפועל</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                    </svg>
+                                </h2>
+                                <div class="space-y-2 text-xs text-right">
+                                    <p><span class="font-semibold text-green-700">שם:</span> ${contract.actualSeller?.name || 'לא צוין'}</p>
+                                    <p><span class="font-semibold text-green-700">ת.ז.:</span> ${contract.actualSeller?.id || 'לא צוין'}</p>
+                                    <p><span class="font-semibold text-green-700">כתובת:</span> ${contract.actualSeller?.address || 'לא צוין'}</p>
+                                    <p><span class="font-semibold text-green-700">טלפון:</span> ${contract.actualSeller?.phone || 'לא צוין'}</p>
+                                </div>
+                            </div>
+
+                            <!-- Buyer -->
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                                <h2 class="font-bold mb-4 text-lg text-blue-700 flex items-center gap-2 justify-end section-title">
+                                    <span>קונה</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                    </svg>
+                                </h2>
+                                <div class="space-y-2 text-xs text-right">
+                                    <p><span class="font-semibold text-blue-700">שם:</span> ${contract.buyerName}</p>
+                                    <p><span class="font-semibold text-blue-700">ת.ז.:</span> ${contract.buyerId}</p>
+                                    <p><span class="font-semibold text-blue-700">כתובת:</span> ${contract.buyerAddress}</p>
+                                    <p><span class="font-semibold text-blue-700">טלפון:</span> ${contract.buyerPhone}</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
+                        `
+                        : `
+                        <!-- Two-party layout for regular deals -->
+                        <div class="grid grid-cols-2 gap-6 w-full">
+                            <!-- Buyer -->
+                            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                                <h2 class="font-bold mb-4 text-xl text-blue-700 flex items-center gap-2 justify-end section-title">
+                                    <span>קונה</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                    </svg>
+                                </h2>
+                                <div class="space-y-2 text-sm text-right">
+                                    <p><span class="font-semibold text-blue-700">שם:</span> ${contract.buyerName}</p>
+                                    <p><span class="font-semibold text-blue-700">ת.ז.:</span> ${contract.buyerId}</p>
+                                    <p><span class="font-semibold text-blue-700">כתובת:</span> ${contract.buyerAddress}</p>
+                                    <p><span class="font-semibold text-blue-700">טלפון:</span> ${contract.buyerPhone}</p>
+                                </div>
+                            </div>
+
+                            <!-- Seller -->
+                            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
+                                <h2 class="font-bold mb-4 text-xl text-green-700 flex items-center gap-2 justify-end section-title">
+                                    <span>מוכר</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
+                                    </svg>
+                                </h2>
+                                <div class="space-y-2 text-sm text-right">
+                                    <p><span class="font-semibold text-green-700">חברה:</span> ${contract.sellerName}</p>
+                                    <p><span class="font-semibold text-green-700">מס׳ עוסק:</span> ${contract.sellerTaxNumber}</p>
+                                    <p><span class="font-semibold text-green-700">כתובת:</span> ${contract.sellerAddress}</p>
+                                    <p><span class="font-semibold text-green-700">טלפון:</span> ${contract.sellerPhone}</p>
+                                </div>
+                            </div>
+                        </div>
+                        `
+                }
 
                 <!-- Vehicle Information -->
-                <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
-                    <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2 justify-end section-title">
-                        <span>פרטי הרכב</span>
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                    </h2>
-                    <div class="grid grid-cols-2 gap-4 text-sm text-right">
-                        <p><span class="font-semibold text-purple-700">יצרן:</span> ${contract.carMake}</p>
-                        <p><span class="font-semibold text-purple-700">דגם:</span> ${contract.carModel}</p>
-                        <p><span class="font-semibold text-purple-700">שנה:</span> ${contract.carYear}</p>
-                        <p><span class="font-semibold text-purple-700">סוג:</span> ${contract.carType}</p>
-                        <p><span class="font-semibold text-purple-700">מס׳ רישוי:</span> ${contract.carPlateNumber}</p>
-                        <p><span class="font-semibold text-purple-700">קילומטרז׳:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
-                        ${contract.carVin ? `<p><span class="font-semibold text-purple-700">מס׳ שלדה:</span> ${contract.carVin}</p>` : ''}
-                        ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">מס׳ מנוע:</span> ${contract.carEngineNumber}</p>` : ''}
+                ${
+                    contract.dealType === 'trade-in'
+                        ? `
+                    <!-- Car Being Sold (Primary Vehicle) -->
+                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
+                        <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2 justify-end section-title">
+                            <span>הרכב הנמכר</span>
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </h2>
+                        <div class="grid grid-cols-2 gap-4 text-sm text-right">
+                            <p><span class="font-semibold text-purple-700">יצרן:</span> ${contract.carMake}</p>
+                            <p><span class="font-semibold text-purple-700">דגם:</span> ${contract.carModel}</p>
+                            <p><span class="font-semibold text-purple-700">שנה:</span> ${contract.carYear}</p>
+                            <p><span class="font-semibold text-purple-700">סוג:</span> ${contract.carType}</p>
+                            <p><span class="font-semibold text-purple-700">מס׳ רישוי:</span> ${contract.carPlateNumber}</p>
+                            <p><span class="font-semibold text-purple-700">קילומטרז׳:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
+                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">מס׳ שלדה:</span> ${contract.carVin}</p>` : ''}
+                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">מס׳ מנוע:</span> ${contract.carEngineNumber}</p>` : ''}
+                        </div>
                     </div>
-                </div>
+
+                    <!-- Trade-in Vehicle (Car Received from Client) -->
+                    ${
+                        contract.tradeInCar
+                            ? `
+                        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-6 border border-orange-200">
+                            <h2 class="font-bold mb-4 text-xl text-orange-700 flex items-center gap-2 justify-end section-title">
+                                <span>הרכב המתקבל מהלקוח</span>
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                </svg>
+                            </h2>
+                            <div class="grid grid-cols-2 gap-4 text-sm text-right">
+                                <p><span class="font-semibold text-orange-700">יצרן:</span> ${contract.tradeInCar.make}</p>
+                                <p><span class="font-semibold text-orange-700">דגם:</span> ${contract.tradeInCar.model}</p>
+                                <p><span class="font-semibold text-orange-700">סוג:</span> ${contract.tradeInCar.type}</p>
+                                <p><span class="font-semibold text-orange-700">שנה:</span> ${contract.tradeInCar.year}</p>
+                                <p><span class="font-semibold text-orange-700">מס׳ רישוי:</span> ${contract.tradeInCar.plateNumber}</p>
+                                <p><span class="font-semibold text-orange-700">קילומטרז׳:</span> ${contract.tradeInCar.kilometers.toLocaleString('en-US')}</p>
+                            </div>
+                        </div>
+                    `
+                            : ''
+                    }
+                `
+                        : `
+                    <!-- Single Vehicle Information (Non-Exchange Deal) -->
+                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-6 border border-purple-200">
+                        <h2 class="font-bold mb-4 text-xl text-purple-700 flex items-center gap-2 justify-end section-title">
+                            <span>פרטי הרכב</span>
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                        </h2>
+                        <div class="grid grid-cols-2 gap-4 text-sm text-right">
+                            <p><span class="font-semibold text-purple-700">יצרן:</span> ${contract.carMake}</p>
+                            <p><span class="font-semibold text-purple-700">דגם:</span> ${contract.carModel}</p>
+                            <p><span class="font-semibold text-purple-700">שנה:</span> ${contract.carYear}</p>
+                            <p><span class="font-semibold text-purple-700">סוג:</span> ${contract.carType}</p>
+                            <p><span class="font-semibold text-purple-700">מס׳ רישוי:</span> ${contract.carPlateNumber}</p>
+                            <p><span class="font-semibold text-purple-700">קילומטרז׳:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
+                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">מס׳ שלדה:</span> ${contract.carVin}</p>` : ''}
+                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">מס׳ מנוע:</span> ${contract.carEngineNumber}</p>` : ''}
+                        </div>
+                    </div>
+                `
+                }
 
                 <!-- Payment Information -->
                 <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-6 border border-emerald-200">

@@ -97,7 +97,6 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
 
                 if (data) {
                     setDeal(data);
-                    console.log('Fetched deal:', data);
 
                     // Load payment methods if they exist
                     if (data.payment_methods && Array.isArray(data.payment_methods)) {
@@ -114,6 +113,33 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                         const { data: customerData } = await supabase.from('customers').select('*').eq('id', data.customer_id).single();
                         if (customerData) {
                             setCustomer(customerData);
+                        }
+                    }
+
+                    // For intermediary deals, fetch seller and buyer details
+                    if (data.deal_type === 'intermediary' || data.deal_type === 'financing_assistance_intermediary') {
+                        // Fetch seller details if seller_id exists
+                        if (data.seller_id) {
+                            const { data: sellerData } = await supabase.from('customers').select('*').eq('id', data.seller_id).single();
+                            if (sellerData) {
+                                // Add seller data to the deal object
+                                data.seller = {
+                                    name: sellerData.name,
+                                    id_number: sellerData.id,
+                                };
+                            }
+                        }
+
+                        // Fetch buyer details if buyer_id exists
+                        if (data.buyer_id) {
+                            const { data: buyerData } = await supabase.from('customers').select('*').eq('id', data.buyer_id).single();
+                            if (buyerData) {
+                                // Add buyer data to the deal object
+                                data.buyer = {
+                                    name: buyerData.name,
+                                    id_number: buyerData.id,
+                                };
+                            }
                         }
                     } // Fetch car details if car_id exists
                     if (data.car_id) {
@@ -258,23 +284,71 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     };
 
     const createContractData = (bill?: Bill): CarContract => {
-        if (!deal || !customer || !car) throw new Error('Missing required data');
+        // For intermediary deals, we need deal and car, but customer might not exist (seller_id and buyer_id instead)
+        const isIntermediaryDeal = deal?.deal_type === 'intermediary' || deal?.deal_type === 'financing_assistance_intermediary';
+
+        if (!deal || !car) throw new Error('Missing required data: deal or car');
+
+        // For non-intermediary deals, customer is required
+        if (!isIntermediaryDeal && !customer) {
+            throw new Error('Missing required data: customer is required for non-intermediary deals');
+        }
+
+        // For intermediary deals, we need seller and buyer info
+        if (isIntermediaryDeal && (!deal.seller || !deal.buyer)) {
+            throw new Error('Missing required data: seller and buyer are required for intermediary deals');
+        }
+
+        // Determine deal type for contract
+        let contractDealType: 'normal' | 'trade-in' | 'intermediary' | 'financing_assistance_intermediary';
+        if (deal.deal_type === 'exchange') {
+            contractDealType = 'trade-in';
+        } else if (deal.deal_type === 'intermediary') {
+            contractDealType = 'intermediary';
+        } else if (deal.deal_type === 'financing_assistance_intermediary') {
+            contractDealType = 'financing_assistance_intermediary';
+        } else {
+            contractDealType = 'normal';
+        }
 
         return {
-            dealType: deal.deal_type === 'exchange' ? 'trade-in' : 'normal',
+            dealType: contractDealType,
             dealDate: new Date(deal.created_at).toISOString().split('T')[0],
 
-            // Use real company info instead of translation keys
-            sellerName: companyInfo?.name || 'Car Dealership',
-            sellerTaxNumber: companyInfo?.tax_number || '',
-            sellerAddress: companyInfo?.address || '',
-            sellerPhone: companyInfo?.phone || '',
+            // Company info (always the dealership/intermediary)
+            companyName: companyInfo?.name || 'Car Dealership',
+            companyTaxNumber: companyInfo?.tax_number || '',
+            companyAddress: companyInfo?.address || '',
+            companyPhone: companyInfo?.phone || '',
 
-            // Customer info
-            buyerName: customer.name,
-            buyerId: customer.id,
+            // For intermediary deals, these are the actual seller and buyer
+            // For regular deals, seller is the company and buyer is the customer
+            sellerName: isIntermediaryDeal ? deal.seller?.name || 'Unknown Seller' : companyInfo?.name || 'Car Dealership',
+            sellerTaxNumber: isIntermediaryDeal ? '' : companyInfo?.tax_number || '',
+            sellerAddress: isIntermediaryDeal ? '' : companyInfo?.address || '',
+            sellerPhone: isIntermediaryDeal ? '' : companyInfo?.phone || '',
+
+            buyerName: isIntermediaryDeal ? deal.buyer?.name || 'Unknown Buyer' : customer?.name || 'Unknown Customer',
+            buyerId: isIntermediaryDeal ? deal.buyer?.id_number || '' : customer?.id || '',
             buyerAddress: '',
-            buyerPhone: customer.phone,
+            buyerPhone: isIntermediaryDeal ? '' : customer?.phone || '',
+
+            // Mark as intermediary deal and include additional info
+            ...(isIntermediaryDeal && {
+                isIntermediaryDeal: true,
+                actualSeller: {
+                    name: deal.seller?.name || 'Unknown Seller',
+                    id: deal.seller?.id_number || '',
+                    address: '',
+                    phone: '',
+                },
+                actualBuyer: {
+                    name: deal.buyer?.name || 'Unknown Buyer',
+                    id: deal.buyer?.id_number || '',
+                    address: '',
+                    phone: '',
+                },
+            }),
 
             // Car info
             carType: car.type || '',
@@ -303,8 +377,11 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             ...(carTakenFromClient && {
                 tradeInCar: {
                     type: carTakenFromClient.type || '',
+                    make: carTakenFromClient.brand || '',
+                    model: carTakenFromClient.title || '',
                     plateNumber: carTakenFromClient.car_number || '',
                     year: carTakenFromClient.year,
+                    kilometers: carTakenFromClient.kilometers,
                     estimatedValue: carTakenFromClient.buy_price,
                 },
             }),

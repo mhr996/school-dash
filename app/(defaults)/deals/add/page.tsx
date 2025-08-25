@@ -572,7 +572,7 @@ const AddDeal = () => {
 
             if (dealType === 'new_used_sale' || dealType === 'new_sale' || dealType === 'used_sale' || dealType === 'new_used_sale_tax_inclusive') {
                 // Calculate profit commission (amount) = selling price - buy price - loss
-                const sellingPrice = parseFloat(saleForm.selling_price);
+                const sellingPrice =  parseFloat(saleForm.selling_price);
                 const buyPrice = selectedCar?.buy_price || 0;
                 const loss = parseFloat(saleForm.loss_amount || '0');
                 const profitCommission = sellingPrice - buyPrice - loss;
@@ -658,8 +658,7 @@ const AddDeal = () => {
                     amount: parseFloat(intermediaryForm.profit_commission),
                     car_id: selectedCar?.id,
                     customer_id: null, // No single customer for intermediary deals
-                    selling_price: intermediaryForm.selling_price ? parseFloat(intermediaryForm.selling_price) : null,
-                    // Intermediary specific fields
+                    selling_price: parseFloat(intermediaryForm.profit_commission),                 // Intermediary specific fields
                     profit_commission: parseFloat(intermediaryForm.profit_commission),
                     seller_id: selectedSeller?.id,
                     buyer_id: selectedBuyer?.id,
@@ -674,7 +673,7 @@ const AddDeal = () => {
                     amount: parseFloat(financingAssistanceForm.commission),
                     car_id: selectedCar?.id,
                     customer_id: selectedCustomer?.id,
-                    selling_price: financingAssistanceForm.selling_price ? parseFloat(financingAssistanceForm.selling_price) : null,
+                    selling_price: parseFloat(financingAssistanceForm.commission),
                     // Financing assistance specific fields
                     commission: parseFloat(financingAssistanceForm.commission),
                     notes: financingAssistanceForm.notes.trim(),

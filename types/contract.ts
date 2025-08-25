@@ -1,9 +1,15 @@
 export interface CarContract {
     // Deal Info
-    dealType: 'normal' | 'trade-in';
+    dealType: 'normal' | 'trade-in' | 'intermediary' | 'financing_assistance_intermediary';
     dealDate: string;
 
-    // Seller Info (Provider)
+    // Company Info (Always the intermediary/dealer)
+    companyName: string;
+    companyTaxNumber: string;
+    companyAddress: string;
+    companyPhone: string;
+
+    // Seller Info (Provider for regular deals, or actual seller for intermediary)
     sellerName: string;
     sellerTaxNumber: string;
     sellerAddress: string;
@@ -14,6 +20,21 @@ export interface CarContract {
     buyerId: string;
     buyerAddress: string;
     buyerPhone: string;
+
+    // For intermediary deals - additional seller/buyer info
+    isIntermediaryDeal?: boolean;
+    actualSeller?: {
+        name: string;
+        id: string;
+        address: string;
+        phone: string;
+    };
+    actualBuyer?: {
+        name: string;
+        id: string;
+        address: string;
+        phone: string;
+    };
 
     // Car Info
     carType: string;
@@ -29,8 +50,11 @@ export interface CarContract {
     // Trade-in Car Info (optional)
     tradeInCar?: {
         type: string;
+        make: string;
+        model: string;
         plateNumber: string;
         year: number;
+        kilometers: number;
         estimatedValue: number;
     };
 

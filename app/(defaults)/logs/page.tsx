@@ -28,6 +28,7 @@ const LogsPage = () => {
     const { t } = getTranslation();
     const [items, setItems] = useState<Log[]>([]);
     const [loading, setLoading] = useState(true);
+    const [billsData, setBillsData] = useState<{ [dealId: string]: any[] }>({});
 
     const [page, setPage] = useState(1);
     const PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -69,11 +70,55 @@ const LogsPage = () => {
 
             if (error) throw error;
             setItems(data || []);
+
+            // Fetch bills for all deals in the logs
+            await fetchBillsForDeals(data || []);
         } catch (error) {
             console.error('Error fetching logs:', error);
             setAlertState({ message: t('error_loading_data'), type: 'danger' });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchBillsForDeals = async (logs: Log[]) => {
+        try {
+            // Get all unique deal IDs from logs
+            const dealIds = logs
+                .filter((log) => log.deal && log.deal.id)
+                .map((log) => log.deal.id)
+                .filter((id, index, arr) => arr.indexOf(id) === index); // Remove duplicates
+
+            if (dealIds.length === 0) return;
+
+            // Fetch all bills for these deals with their payments
+            const { data: bills, error } = await supabase
+                .from('bills')
+                .select(
+                    `
+                    *,
+                    bill_payments (*)
+                `,
+                )
+                .in('deal_id', dealIds);
+
+            if (error) {
+                console.error('Error fetching bills:', error);
+                return;
+            }
+
+            // Group bills by deal_id
+            const billsByDeal: { [dealId: string]: any[] } = {};
+            bills?.forEach((bill) => {
+                if (!billsByDeal[bill.deal_id]) {
+                    billsByDeal[bill.deal_id] = [];
+                }
+                billsByDeal[bill.deal_id].push(bill);
+            });
+
+            setBillsData(billsByDeal);
+        } catch (error) {
+            console.error('Error fetching bills for deals:', error);
         }
     };
 
@@ -91,24 +136,16 @@ const LogsPage = () => {
                     (log.deal?.customer_name && log.deal.customer_name.toLowerCase().includes(searchLower)) ||
                     (log.car?.title && log.car.title.toLowerCase().includes(searchLower)) ||
                     (log.car?.brand && log.car.brand.toLowerCase().includes(searchLower)) ||
-                    (log.car?.car_number && log.car.car_number.toLowerCase().includes(searchLower)) ||
-                    (log.bill?.customer_name && log.bill.customer_name.toLowerCase().includes(searchLower)) ||
-                    (log.bill?.bill_type && log.bill.bill_type.toLowerCase().includes(searchLower));
+                    (log.car?.car_number && log.car.car_number.toLowerCase().includes(searchLower));
 
                 // Car number filter
                 const matchesCarNumber = !activeFilters.carNumber || (log.car?.car_number && log.car.car_number.toLowerCase().includes(activeFilters.carNumber.toLowerCase()));
 
                 // Client ID filter
-                const matchesClientId =
-                    !activeFilters.clientId ||
-                    (log.deal?.customer?.id_number && log.deal.customer.id_number.toLowerCase().includes(activeFilters.clientId.toLowerCase())) ||
-                    (log.bill?.customer_id_number && log.bill.customer_id_number.toLowerCase().includes(activeFilters.clientId.toLowerCase()));
+                const matchesClientId = !activeFilters.clientId || (log.deal?.customer?.id_number && log.deal.customer.id_number.toLowerCase().includes(activeFilters.clientId.toLowerCase()));
 
                 // Client name filter
-                const matchesClientName =
-                    !activeFilters.clientName ||
-                    (log.deal?.customer_name && log.deal.customer_name.toLowerCase().includes(activeFilters.clientName.toLowerCase())) ||
-                    (log.bill?.customer_name && log.bill.customer_name.toLowerCase().includes(activeFilters.clientName.toLowerCase()));
+                const matchesClientName = !activeFilters.clientName || (log.deal?.customer_name && log.deal.customer_name.toLowerCase().includes(activeFilters.clientName.toLowerCase()));
 
                 // Date range filter
                 const logDate = new Date(log.created_at);
@@ -183,28 +220,64 @@ const LogsPage = () => {
     };
 
     const getPaymentReceiptInfo = (log: Log) => {
-        if (!log.bill) return t('not_available');
+        if (!log.deal || !log.deal.id) return t('not_available');
 
-        const bill = log.bill;
+        const dealBills = billsData[log.deal.id] || [];
+
+        // Find receipt-type bills (receipt_only or tax_invoice_receipt)
+        const receiptBills = dealBills.filter((bill) => bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt');
+
+        if (receiptBills.length === 0) {
+            return <span className="text-gray-400">{t('not_available')}</span>;
+        }
+
+        // For now, show the first receipt bill (you can modify this logic if needed)
+        const bill = receiptBills[0];
+
+        // Calculate total from bill_payments if available, otherwise use bill amounts
+        let totalAmount = 0;
+
+        if (bill.bill_payments && Array.isArray(bill.bill_payments)) {
+            // Sum up all payments linked to this bill
+            totalAmount = bill.bill_payments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+        } else {
+            // Fallback to bill's total amounts
+            totalAmount = bill.total_with_tax || bill.total || bill.bill_amount || 0;
+        }
 
         return (
             <div className="text-sm">
-                <div className="font-medium">{bill.payment_type ? getLocalizedPaymentType(bill.payment_type) : t('not_available')}</div>
-                <div className="text-gray-500 dark:text-gray-400">₪{bill.total_with_tax?.toLocaleString() || '0'}</div>
+                <div className="font-medium">{getLocalizedBillType(bill.bill_type)}</div>
+                <div className="text-gray-500 dark:text-gray-400">₪{totalAmount.toLocaleString()}</div>
+                {receiptBills.length > 1 && <div className="text-xs text-gray-400">+{receiptBills.length - 1} more</div>}
             </div>
         );
     };
 
     const getInvoiceInfo = (log: Log) => {
-        if (!log.bill) return t('not_available');
+        if (!log.deal || !log.deal.id) return t('not_available');
 
-        const bill = log.bill;
+        const dealBills = billsData[log.deal.id] || [];
+
+        // Find tax invoice bills (tax_invoice or tax_invoice_receipt)
+        const invoiceBills = dealBills.filter((bill) => bill.bill_type === 'tax_invoice' || bill.bill_type === 'tax_invoice_receipt');
+
+        if (invoiceBills.length === 0) {
+            return <span className="text-gray-400">{t('not_available')}</span>;
+        }
+
+        // For now, show the first invoice bill (you can modify this logic if needed)
+        const bill = invoiceBills[0];
+
+        // For tax invoices, show ID and total_with_tax amount
+        const displayAmount = bill.total_with_tax || 0;
 
         return (
             <div className="text-sm">
                 <div className="font-medium">#{bill.id || t('not_available')}</div>
-                <div className="text-gray-500 dark:text-gray-400">{bill.bill_type ? getLocalizedBillType(bill.bill_type) : t('not_available')}</div>
-                <div className="text-gray-500 dark:text-gray-400">₪{bill.total_with_tax?.toLocaleString() || '0'}</div>
+                <div className="text-gray-500 dark:text-gray-400">{getLocalizedBillType(bill.bill_type)}</div>
+                <div className="text-gray-500 dark:text-gray-400">₪{displayAmount.toLocaleString()}</div>
+                {invoiceBills.length > 1 && <div className="text-xs text-gray-400">+{invoiceBills.length - 1} more</div>}
             </div>
         );
     };
@@ -275,28 +348,12 @@ const LogsPage = () => {
             );
         }
 
-        if (log.bill) {
-            return (
-                <div className="text-sm">
-                    <div className="font-medium">{log.bill.bill_type ? getLocalizedBillType(log.bill.bill_type) : t('not_available')}</div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                        {t('customer')}: {log.bill.customer_name}
-                    </div>
-                    <div className="text-gray-500 dark:text-gray-400">
-                        {t('amount')}: {log.bill.total_with_tax?.toLocaleString()}
-                        {log.bill.payment_type && ` | ${t('payment_type')}: ${getLocalizedPaymentType(log.bill.payment_type)}`}
-                    </div>
-                </div>
-            );
-        }
-
         return <div className="text-sm text-gray-500">{t('no_details_available')}</div>;
     };
 
     const getRelatedItemLink = (log: Log) => {
         if (log.car) return `/cars`;
         if (log.deal) return `/deals`;
-        if (log.bill) return `/bills`;
         return null;
     };
 
@@ -369,6 +426,16 @@ const LogsPage = () => {
                                 render: (log) => getSaleInfo(log),
                             },
                             {
+                                accessor: 'deal_amount',
+                                title: t('commission'),
+                                render: (log) => {
+                                    if (!log.deal || !log.deal.amount) {
+                                        return <span className="text-gray-400">{t('not_available')}</span>;
+                                    }
+                                    return <div className="text-sm font-medium">₪{log.deal.amount.toLocaleString()}</div>;
+                                },
+                            },
+                            {
                                 accessor: 'payment_info',
                                 title: t('payment_receipt_type') + ' / ' + t('amount'),
                                 render: (log) => getPaymentReceiptInfo(log),
@@ -378,6 +445,7 @@ const LogsPage = () => {
                                 title: t('invoice_number') + ' / ' + t('amount'),
                                 render: (log) => getInvoiceInfo(log),
                             },
+
                             {
                                 accessor: 'type',
                                 title: t('activity_type'),

@@ -1778,7 +1778,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         name="selling_price"
                                                         step="0.01"
                                                         min="0"
-                                                        value={form.selling_price || ''}
+                                                        value={selectedCar.sale_price || ''}
                                                         onChange={handleInputChange}
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
@@ -1846,7 +1846,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                                         name="selling_price"
                                                         step="0.01"
                                                         min="0"
-                                                        value={form.selling_price || ''}
+                                                        value={selectedCar.sale_price || ''}
                                                         onChange={handleInputChange}
                                                         className="form-input ltr:rounded-l-none rtl:rounded-r-none w-24"
                                                         style={{ direction: 'ltr', textAlign: 'center' }}
