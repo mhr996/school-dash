@@ -20,7 +20,6 @@ import IconPaperclip from '@/components/icon/icon-paperclip';
 import { Deal, DealAttachment } from '@/types';
 import { PaymentMethod } from '@/components/deal-payment-methods/deal-payment-methods';
 import AttachmentsDisplay from '@/components/attachments/attachments-display';
-import ContractGenerator from '@/components/contracts/contract-generator';
 import { CarContract } from '@/types/contract';
 import { ContractPDFGenerator } from '@/utils/contract-pdf-generator-new';
 import IconDocument from '@/components/icon/icon-document';
