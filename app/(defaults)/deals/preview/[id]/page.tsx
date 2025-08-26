@@ -488,7 +488,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{t('amount')}</label>
                                 <div className="flex items-center gap-2">
                                     <IconDollarSign className="w-5 h-5 text-success" />
-                                    <span className="text-xl font-bold text-success">{formatCurrency(car?.sale_price || 0)}</span>
+                                    <span className="text-xl font-bold text-success">{formatCurrency(deal.selling_price || 0)}</span>
                                 </div>
                             </div>
                             <div className="flex justify-center items-center flex-col gap-2">
