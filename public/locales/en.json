@@ -73,6 +73,7 @@
     "car_added": "Car Added",
     "car_updated": "Car Updated",
     "car_deleted": "Car Deleted",
+    "car_received_from_client": "Car Received from Client",
     "deal_created": "Deal Created",
     "deal_updated": "Deal Updated",
     "deal_deleted": "Deal Deleted",

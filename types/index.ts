@@ -101,6 +101,7 @@ export interface Log {
         | 'car_added'
         | 'car_updated'
         | 'car_deleted'
+        | 'car_received_from_client'
         | 'deal_created'
         | 'deal_updated'
         | 'deal_deleted'

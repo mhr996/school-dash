@@ -68,6 +68,7 @@
     "car_added": "تم إضافة سيارة",
     "car_updated": "تم تحديث سيارة",
     "car_deleted": "تم حذف سيارة",
+    "car_received_from_client": "تم استلام سيارة من العميل",
     "deal_created": "تم إنشاء صفقة",
     "deal_updated": "تم تحديث صفقة",
     "deal_deleted": "تم حذف صفقة",
