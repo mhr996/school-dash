@@ -173,6 +173,8 @@
     "popovers": "بوبوفرز",
     "progress_bar": "شريط التقدم",
     "search": "ابحث",
+    "searching": "جاري البحث",
+    "no_results_found": "لم يتم العثور على نتائج",
     "tooltips": "تلميحات",
     "treeview": "تريفيو",
     "typography": "الطباعة",

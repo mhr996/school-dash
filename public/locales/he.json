@@ -74,6 +74,8 @@
     "popovers": "חלונות קופצים",
     "progress_bar": "סרגל התקדמות",
     "search": "חיפוש",
+    "searching": "מחפש",
+    "no_results_found": "לא נמצאו תוצאות",
     "tooltips": "טיפים",
     "treeview": "תצוגת עץ",
     "typography": "טיפוגרפיה",
@@ -975,5 +977,6 @@
     "deal_created_date": "תאריך עסקה",
     "total_revenue": "סך הכנסות",
     "payment_notes_placeholder": "הכנס הערות על שיטות התשלום...",
-    "selected_payment_methods": "שיטות תשלום שנבחרו"
+    "selected_payment_methods": "שיטות תשלום שנבחרו",
+    "deal_amount": "סכום העסקה"
 }
