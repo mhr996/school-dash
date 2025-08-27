@@ -44,12 +44,23 @@ interface Car {
         address: string;
         phone: string;
     };
+    deals?: Array<{
+        id: number;
+        title: string;
+        deal_type: string;
+        status: string;
+        customer_name: string;
+        created_at: string;
+    }>;
 }
+
+type TabType = 'available' | 'archived';
 
 const CarsList = () => {
     const { t } = getTranslation();
     const [items, setItems] = useState<Car[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<TabType>('available');
 
     const [page, setPage] = useState(1);
     const PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -94,7 +105,17 @@ const CarsList = () => {
     useEffect(() => {
         const fetchCars = async () => {
             try {
-                const { data, error } = await supabase.from('cars').select('*, providers(id, name, address, phone)').order('created_at', { ascending: false });
+                const { data, error } = await supabase
+                    .from('cars')
+                    .select(
+                        `
+                        *, 
+                        providers(id, name, address, phone),
+                        deals!deals_car_id_fkey(id, title, deal_type, status, customer_name, created_at)
+                    `,
+                    )
+                    .order('created_at', { ascending: false });
+
                 if (error) throw error;
 
                 setItems(data as Car[]);
@@ -120,6 +141,12 @@ const CarsList = () => {
     useEffect(() => {
         setInitialRecords(
             items.filter((item) => {
+                // Tab-based filtering: Available cars (no deals) vs Archived cars (has deals)
+                const hasDeals = item.deals && item.deals.length > 0;
+                const matchesTab = activeTab === 'available' ? !hasDeals : hasDeals;
+
+                if (!matchesTab) return false;
+
                 // Search filter (now using filters.search instead of search)
                 const searchTerm = filters.search.toLowerCase();
                 const matchesSearch =
@@ -172,7 +199,7 @@ const CarsList = () => {
                 );
             }),
         );
-    }, [items, filters]);
+    }, [items, filters, activeTab]);
 
     useEffect(() => {
         const sorted = sortBy(initialRecords, sortStatus.columnAccessor);
@@ -340,6 +367,49 @@ const CarsList = () => {
                     />
                 </div>
             )}
+
+            {/* Tab Navigation */}
+            <div className="mb-5 px-5">
+                <div className="border-b border-[#ebedf2] dark:border-[#191e3a]">
+                    <ul className="flex flex-wrap">
+                        <li className="mx-2">
+                            <button
+                                type="button"
+                                className={`flex items-center gap-2 p-4 text-sm font-medium ${
+                                    activeTab === 'available' ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                }`}
+                                onClick={() => setActiveTab('available')}
+                            >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                                {t('available_cars')}
+                                <span className="badge bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{items.filter((car) => !car.deals || car.deals.length === 0).length}</span>
+                            </button>
+                        </li>
+                        <li className="mx-2">
+                            <button
+                                type="button"
+                                className={`flex items-center gap-2 p-4 text-sm font-medium ${
+                                    activeTab === 'archived' ? 'border-b-2 border-primary text-primary' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                }`}
+                                onClick={() => setActiveTab('archived')}
+                            >
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
+                                    <path fillRule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
+                                </svg>
+                                {t('archived_cars')}
+                                <span className="badge bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{items.filter((car) => car.deals && car.deals.length > 0).length}</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
             <div className="invoice-table">
                 <div className="mb-4.5 flex flex-wrap items-start justify-between gap-4 px-5">
                     <div className="flex items-center gap-2 ml-auto">
@@ -359,7 +429,7 @@ const CarsList = () => {
 
                 <div className="datatables pagination-padding relative">
                     <DataTable
-                        className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
+                        className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'} rtl-table-headers`}
                         records={records}
                         columns={[
                             {
@@ -446,6 +516,27 @@ const CarsList = () => {
                                 sortable: true,
                                 render: ({ sale_price }) => <span>{formatCurrency(sale_price)}</span>,
                             },
+                            // Conditional column for archived cars - Deal information
+                            ...(activeTab === 'archived'
+                                ? [
+                                      {
+                                          accessor: 'deals',
+                                          title: t('deal_info'),
+                                          sortable: false,
+                                          render: (car: Car) => {
+                                              if (!car.deals || car.deals.length === 0) return <span className="text-gray-400">-</span>;
+                                              const deal = car.deals[0]; // Show the first deal
+                                              return (
+                                                  <div className="text-sm">
+                                                      <div className="font-medium">{deal.title}</div>
+                                                      <div className="text-gray-500">{deal.customer_name}</div>
+                                                      <div className="text-xs text-gray-400">{new Date(deal.created_at).toLocaleDateString()}</div>
+                                                  </div>
+                                              );
+                                          },
+                                      },
+                                  ]
+                                : []),
                             {
                                 accessor: 'created_at',
                                 title: t('created_date'),
@@ -460,30 +551,35 @@ const CarsList = () => {
                                     </span>
                                 ),
                             },
-                            {
-                                accessor: 'public',
-                                title: t('public'),
-                                sortable: true,
-                                textAlignment: 'center',
-                                render: (car) => (
-                                    <div className="flex justify-center">
-                                        <label className="w-12 h-6 relative">
-                                            <input
-                                                type="checkbox"
-                                                className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
-                                                checked={car.public || false}
-                                                onChange={() => togglePublicStatus(car)}
-                                            />
-                                            <span className="bg-[#ebedf2] dark:bg-dark block h-full rounded-full before:absolute before:left-1 before:bg-white dark:before:bg-white-dark dark:peer-checked:before:bg-white before:bottom-1 before:w-4 before:h-4 before:rounded-full peer-checked:before:left-7 peer-checked:bg-primary before:transition-all before:duration-300"></span>
-                                        </label>
-                                    </div>
-                                ),
-                            },
+                            // Only show public toggle for available cars, not archived cars
+                            ...(activeTab === 'available'
+                                ? [
+                                      {
+                                          accessor: 'public',
+                                          title: t('public'),
+                                          sortable: true,
+                                          textAlignment: 'center' as const,
+                                          render: (car: Car) => (
+                                              <div className="flex justify-center">
+                                                  <label className="w-12 h-6 relative">
+                                                      <input
+                                                          type="checkbox"
+                                                          className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
+                                                          checked={car.public || false}
+                                                          onChange={() => togglePublicStatus(car)}
+                                                      />
+                                                      <span className="bg-[#ebedf2] dark:bg-dark block h-full rounded-full before:absolute before:left-1 before:bg-white dark:before:bg-white-dark dark:peer-checked:before:bg-white before:bottom-1 before:w-4 before:h-4 before:rounded-full peer-checked:before:left-7 peer-checked:bg-primary before:transition-all before:duration-300"></span>
+                                                  </label>
+                                              </div>
+                                          ),
+                                      },
+                                  ]
+                                : []),
                             {
                                 accessor: 'action',
                                 title: t('actions'),
                                 sortable: false,
-                                textAlignment: 'center',
+                                textAlignment: 'center' as const,
                                 render: ({ id }) => (
                                     <div className="mx-auto flex w-max items-center gap-4">
                                         <Link href={`/cars/edit/${id}`} className="flex hover:text-info">

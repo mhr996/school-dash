@@ -135,3 +135,19 @@ table tr .mantine-Checkbox-root {
 .dark .mantine-UnstyledButton-root.mantine-Button-root.mantine-y4ntz3 {
     @apply bg-[#1b2e4b] text-white-dark border-[#191e3a];
 }
+
+/* RTL Table Headers Alignment */
+.rtl-table-headers th {
+    text-align: right !important;
+    direction: rtl;
+}
+
+[dir='ltr'] .rtl-table-headers th {
+    text-align: left !important;
+    direction: ltr;
+}
+
+[dir='rtl'] .rtl-table-headers th {
+    text-align: right !important;
+    direction: rtl;
+}

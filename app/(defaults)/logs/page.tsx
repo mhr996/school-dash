@@ -401,7 +401,7 @@ const LogsPage = () => {
                 <div className="datatables">
                     <DataTable
                         highlightOnHover
-                        className="table-hover whitespace-nowrap"
+                        className="table-hover whitespace-nowrap rtl-table-headers"
                         records={records}
                         columns={[
                             {

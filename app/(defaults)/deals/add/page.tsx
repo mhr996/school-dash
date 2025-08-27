@@ -552,10 +552,17 @@ const AddDeal = () => {
 
                 if (sellingPrice && sellingPrice > 0) {
                     // Always update the car's sale_price to match the deal's selling_price
-                    const { error: carUpdateError } = await supabase.from('cars').update({ sale_price: sellingPrice }).eq('id', selectedCar.id);
+                    // Also set the car as private since sold cars should not be publicly visible
+                    const { error: carUpdateError } = await supabase
+                        .from('cars')
+                        .update({
+                            sale_price: sellingPrice,
+                            public: false,
+                        })
+                        .eq('id', selectedCar.id);
 
                     if (carUpdateError) {
-                        console.error('Error updating car sale price:', carUpdateError);
+                        console.error('Error updating car sale price and public status:', carUpdateError);
                         // Continue with deal creation but log the error
                     }
                 }

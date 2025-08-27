@@ -214,7 +214,7 @@ const CustomersList = () => {
             {/* Total Balance Display */}
             <div className="mb-4 px-5">
                 <div className="text-lg font-semibold">
-                    {t('total_balance')}: {" "}
+                    {t('total_balance')}:{' '}
                     <span className={totalBalance >= 0 ? 'text-success ml-2' : 'text-danger ml-2'}>
                         {totalBalance >= 0 ? formatCurrency(totalBalance) : `-${formatCurrency(Math.abs(totalBalance))}`}
                     </span>
@@ -251,7 +251,7 @@ const CustomersList = () => {
 
                 <div className="datatables pagination-padding relative">
                     <DataTable
-                        className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
+                        className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'} rtl-table-headers`}
                         records={records}
                         columns={[
                             {

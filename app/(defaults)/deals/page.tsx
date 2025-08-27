@@ -322,11 +322,18 @@ const DealsList = () => {
                 }
 
                 // Receipt payments always increase the balance (moving towards 0 and potentially beyond)
-                // Apply bill direction: negative receipts should reduce the balance, positive should increase
-                if (bill.bill_direction === 'negative') {
-                    totalBalance -= Math.abs(billAmount);
-                } else {
+                // For tax_invoice_receipt bills, the receipt portion should always be treated as payment
+                // regardless of bill direction (bill direction is for tax/accounting purposes)
+                if (bill.bill_type === 'tax_invoice_receipt') {
+                    // Tax invoice with receipt: receipt portion is always a payment towards the deal
                     totalBalance += Math.abs(billAmount);
+                } else {
+                    // For receipt_only bills, apply bill direction
+                    if (bill.bill_direction === 'negative') {
+                        totalBalance -= Math.abs(billAmount);
+                    } else {
+                        totalBalance += Math.abs(billAmount);
+                    }
                 }
             }
         });
@@ -408,7 +415,7 @@ const DealsList = () => {
 
                 <div className="datatables pagination-padding relative">
                     <DataTable
-                        className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
+                        className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'} rtl-table-headers`}
                         records={records}
                         columns={[
                             {

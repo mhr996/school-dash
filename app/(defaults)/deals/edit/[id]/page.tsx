@@ -845,10 +845,17 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                 const newSellingPrice = parseFloat(form.selling_price);
 
                 // Always update the car's sale_price to match the deal's selling_price
-                const { error: carUpdateError } = await supabase.from('cars').update({ sale_price: newSellingPrice }).eq('id', selectedCar.id);
+                // Also set the car as private since sold cars should not be publicly visible
+                const { error: carUpdateError } = await supabase
+                    .from('cars')
+                    .update({
+                        sale_price: newSellingPrice,
+                        public: false,
+                    })
+                    .eq('id', selectedCar.id);
 
                 if (carUpdateError) {
-                    console.error('Error updating car sale price:', carUpdateError);
+                    console.error('Error updating car sale price and public status:', carUpdateError);
                     // Continue with deal update but log the error
                 }
             }
