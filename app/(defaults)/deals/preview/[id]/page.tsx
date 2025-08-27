@@ -116,7 +116,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                     }
 
                     // For intermediary deals, fetch seller and buyer details
-                    if (data.deal_type === 'intermediary' || data.deal_type === 'financing_assistance_intermediary') {
+                    if (data.deal_type === 'intermediary') {
                         // Fetch seller details if seller_id exists
                         if (data.seller_id) {
                             const { data: sellerData } = await supabase.from('customers').select('*').eq('id', data.seller_id).single();
@@ -284,7 +284,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
 
     const createContractData = (bill?: Bill): CarContract => {
         // For intermediary deals, we need deal and car, but customer might not exist (seller_id and buyer_id instead)
-        const isIntermediaryDeal = deal?.deal_type === 'intermediary' || deal?.deal_type === 'financing_assistance_intermediary';
+        const isIntermediaryDeal = deal?.deal_type === 'intermediary';
 
         if (!deal || !car) throw new Error('Missing required data: deal or car');
 
@@ -299,13 +299,11 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
         }
 
         // Determine deal type for contract
-        let contractDealType: 'normal' | 'trade-in' | 'intermediary' | 'financing_assistance_intermediary';
+        let contractDealType: 'normal' | 'trade-in' | 'intermediary';
         if (deal.deal_type === 'exchange') {
             contractDealType = 'trade-in';
         } else if (deal.deal_type === 'intermediary') {
             contractDealType = 'intermediary';
-        } else if (deal.deal_type === 'financing_assistance_intermediary') {
-            contractDealType = 'financing_assistance_intermediary';
         } else {
             contractDealType = 'normal';
         }

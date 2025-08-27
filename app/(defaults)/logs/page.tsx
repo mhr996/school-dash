@@ -308,6 +308,19 @@ const LogsPage = () => {
         return translationKey ? t(translationKey) : t(paymentType) || paymentType.replace('_', ' ');
     };
 
+    const getStatusBadgeClass = (status: string) => {
+        switch (status) {
+            case 'active':
+                return 'badge-outline-success';
+            case 'completed':
+                return 'badge-outline-primary';
+            case 'cancelled':
+                return 'badge-outline-danger';
+            default:
+                return 'badge-outline-secondary';
+        }
+    };
+
     const getActivityIcon = (type: string) => {
         if (type.includes('car')) return <IconCar className="w-4 h-4" />;
         if (type.includes('deal')) return <IconMenuInvoice className="w-4 h-4" />;
@@ -436,6 +449,26 @@ const LogsPage = () => {
                                 },
                             },
                             {
+                                accessor: 'deal_status',
+                                title: t('deal_status'),
+                                render: (log) => {
+                                    if (!log.deal || !log.deal.status) {
+                                        return <span className="text-gray-400">{t('not_available')}</span>;
+                                    }
+                                    return <span className={`badge ${getStatusBadgeClass(log.deal.status)}`}>{t(`status_${log.deal.status}`)}</span>;
+                                },
+                            },
+                            {
+                                accessor: 'deal_type',
+                                title: t('deal_type'),
+                                render: (log) => {
+                                    if (!log.deal || !log.deal.deal_type) {
+                                        return <span className="text-gray-400">{t('not_available')}</span>;
+                                    }
+                                    return <div className="text-sm font-medium">{getLocalizedDealType(log.deal.deal_type)}</div>;
+                                },
+                            },
+                            {
                                 accessor: 'payment_info',
                                 title: t('payment_receipt_type') + ' / ' + t('amount'),
                                 render: (log) => getPaymentReceiptInfo(log),
@@ -444,18 +477,6 @@ const LogsPage = () => {
                                 accessor: 'invoice_info',
                                 title: t('invoice_number') + ' / ' + t('amount'),
                                 render: (log) => getInvoiceInfo(log),
-                            },
-
-                            {
-                                accessor: 'type',
-                                title: t('activity_type'),
-                                sortable: true,
-                                render: ({ type }) => (
-                                    <div className="flex items-center gap-2">
-                                        {getActivityIcon(type)}
-                                        <span className="font-medium text-xs">{getActivityTypeLabel(type)}</span>
-                                    </div>
-                                ),
                             },
                         ]}
                         totalRecords={initialRecords.length}

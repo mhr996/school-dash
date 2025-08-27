@@ -311,49 +311,52 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
                 ${
                     contract.dealType === 'trade-in'
                         ? `
-                    <!-- Car Being Sold (Primary Vehicle) -->
-                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-4 border border-purple-200 compact-section">
-                        <h2 class="font-bold mb-2 text-lg text-purple-700 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                            </svg>
-                            Vehicle Being Sold
-                        </h2>
-                        <div class="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                            <p><span class="font-semibold text-purple-700">Make:</span> ${contract.carMake}</p>
-                            <p><span class="font-semibold text-purple-700">Model:</span> ${contract.carModel}</p>
-                            <p><span class="font-semibold text-purple-700">Year:</span> ${contract.carYear}</p>
-                            <p><span class="font-semibold text-purple-700">Type:</span> ${contract.carType}</p>
-                            <p><span class="font-semibold text-purple-700">Plate:</span> ${contract.carPlateNumber}</p>
-                            <p><span class="font-semibold text-purple-700">KM:</span> ${contract.carKilometers.toLocaleString()}</p>
-                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">VIN:</span> ${contract.carVin}</p>` : ''}
-                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">Engine:</span> ${contract.carEngineNumber}</p>` : ''}
-                        </div>
-                    </div>
-
-                    <!-- Trade-in Vehicle (Car Received from Client) -->
-                    ${
-                        contract.tradeInCar
-                            ? `
-                        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200 compact-section">
-                            <h2 class="font-bold mb-2 text-lg text-orange-700 flex items-center gap-2">
+                    <!-- Exchange Deal - Two Vehicles Side by Side -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Car Being Sold (Primary Vehicle) -->
+                        <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-4 border border-purple-200 compact-section">
+                            <h2 class="font-bold mb-2 text-lg text-purple-700 flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
                                 </svg>
-                                Trade-in Vehicle
+                                Vehicle Being Sold
                             </h2>
-                            <div class="grid grid-cols-3 gap-x-4 gap-y-1 text-xs">
-                                <p><span class="font-semibold text-orange-700">Make:</span> ${contract.tradeInCar.make}</p>
-                                <p><span class="font-semibold text-orange-700">Model:</span> ${contract.tradeInCar.model}</p>
-                                <p><span class="font-semibold text-orange-700">Type:</span> ${contract.tradeInCar.type}</p>
-                                <p><span class="font-semibold text-orange-700">Year:</span> ${contract.tradeInCar.year}</p>
-                                <p><span class="font-semibold text-orange-700">Plate:</span> ${contract.tradeInCar.plateNumber}</p>
-                                <p><span class="font-semibold text-orange-700">KM:</span> ${contract.tradeInCar.kilometers.toLocaleString()}</p>
+                            <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                                <p><span class="font-semibold text-purple-700">Make:</span> ${contract.carMake}</p>
+                                <p><span class="font-semibold text-purple-700">Model:</span> ${contract.carModel}</p>
+                                <p><span class="font-semibold text-purple-700">Year:</span> ${contract.carYear}</p>
+                                <p><span class="font-semibold text-purple-700">Type:</span> ${contract.carType}</p>
+                                <p><span class="font-semibold text-purple-700">Plate:</span> ${contract.carPlateNumber}</p>
+                                <p><span class="font-semibold text-purple-700">KM:</span> ${contract.carKilometers.toLocaleString()}</p>
+                                ${contract.carVin ? `<p><span class="font-semibold text-purple-700">VIN:</span> ${contract.carVin}</p>` : ''}
+                                ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">Engine:</span> ${contract.carEngineNumber}</p>` : ''}
                             </div>
                         </div>
-                    `
-                            : ''
-                    }
+
+                        <!-- Trade-in Vehicle (Car Received from Client) -->
+                        ${
+                            contract.tradeInCar
+                                ? `
+                            <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200 compact-section">
+                                <h2 class="font-bold mb-2 text-lg text-orange-700 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                    </svg>
+                                    Trade-in Vehicle
+                                </h2>
+                                <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                                    <p><span class="font-semibold text-orange-700">Make:</span> ${contract.tradeInCar.make}</p>
+                                    <p><span class="font-semibold text-orange-700">Model:</span> ${contract.tradeInCar.model}</p>
+                                    <p><span class="font-semibold text-orange-700">Type:</span> ${contract.tradeInCar.type}</p>
+                                    <p><span class="font-semibold text-orange-700">Year:</span> ${contract.tradeInCar.year}</p>
+                                    <p><span class="font-semibold text-orange-700">Plate:</span> ${contract.tradeInCar.plateNumber}</p>
+                                    <p><span class="font-semibold text-orange-700">KM:</span> ${contract.tradeInCar.kilometers.toLocaleString()}</p>
+                                </div>
+                            </div>
+                        `
+                                : ''
+                        }
+                    </div>
                 `
                         : `
                     <!-- Single Vehicle Information (Non-Exchange Deal) -->
@@ -380,22 +383,31 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
 
                 <!-- Payment Information -->
                 <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-4 border border-emerald-200 compact-section">
-                    <h2 class="font-bold mb-2 text-lg text-emerald-700 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
-                            <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
-                        </svg>
-                        Payment Details
-                    </h2>
-                    <div class="space-y-2">
-                        <p class="text-base font-bold text-emerald-700 bg-white rounded-lg p-2 border-2 border-emerald-300 text-center">Total: ${formatCurrency(contract.dealAmount)}</p>
+                    <div class="grid grid-cols-2 gap-4 items-start">
+                        <!-- Payment Details Header -->
+                        <div>
+                            <h2 class="font-bold text-lg text-emerald-700 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
+                                    <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
+                                </svg>
+                                Payment Details
+                            </h2>
+                        </div>
                         
+                        <!-- Total Amount -->
+                        <div>
+                            <p class="text-base font-bold text-emerald-700 bg-white rounded-lg p-2 border-2 border-emerald-300 text-center">Total: ${formatCurrency(contract.dealAmount)}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 space-y-2">
                         ${
                             contract.paymentMethods && contract.paymentMethods.length > 0
                                 ? `
                             <div class="bg-white rounded-lg p-2 border border-emerald-200">
                                 <h3 class="font-semibold text-emerald-700 mb-1 text-sm">Payment Methods:</h3>
-                                <div class="grid grid-cols-2 gap-1">
+                                <div class="flex flex-wrap gap-2">
                                     ${contract.paymentMethods
                                         .filter((method) => method.selected)
                                         .map((method) => {
@@ -407,9 +419,7 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
                                             };
 
                                             return `
-                                            <div class="flex items-center gap-1 p-1 bg-emerald-50 rounded border text-xs">
-                                                <span class="font-medium text-emerald-700">${methodLabels[method.type] || method.type}</span>
-                                            </div>
+                                            <span class="font-medium text-emerald-700 bg-emerald-50 px-2 py-1 rounded border text-xs">${methodLabels[method.type] || method.type}</span>
                                         `;
                                         })
                                         .join('')}
@@ -718,48 +728,51 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
                 ${
                     contract.dealType === 'trade-in'
                         ? `
-                    <!-- Car Being Sold (Primary Vehicle) -->
-                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-4 border border-purple-200">
-                        <h2 class="font-bold mb-2 text-lg text-purple-700 flex items-center gap-2 justify-end section-title">
-                            <span>المركبة المباعة</span>
-                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                        </h2>
-                        <div class="grid grid-cols-3 gap-x-3 gap-y-1 text-xs text-right">
-                            <p><span class="font-semibold text-purple-700">الماركة:</span> ${contract.carMake}</p>
-                            <p><span class="font-semibold text-purple-700">الموديل:</span> ${contract.carModel}</p>
-                            <p><span class="font-semibold text-purple-700">السنة:</span> ${contract.carYear}</p>
-                            <p><span class="font-semibold text-purple-700">النوع:</span> ${contract.carType}</p>
-                            <p><span class="font-semibold text-purple-700">رقم اللوحة:</span> ${contract.carPlateNumber}</p>
-                            <p><span class="font-semibold text-purple-700">الكيلومترات:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
-                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">رقم الهيكل:</span> ${contract.carVin}</p>` : ''}
-                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">رقم المحرك:</span> ${contract.carEngineNumber}</p>` : ''}
-                        </div>
-                    </div>
-
-                    <!-- Trade-in Vehicle (Car Received from Client) -->
-                    ${
-                        contract.tradeInCar
-                            ? `
-                        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200">
-                            <h2 class="font-bold mb-2 text-lg text-orange-700 flex items-center gap-2 justify-end section-title">
-                                <span>المركبة المستلمة من العميل</span>
+                    <!-- Exchange Deal - Two Vehicles Side by Side -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Car Being Sold (Primary Vehicle) -->
+                        <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-4 border border-purple-200">
+                            <h2 class="font-bold mb-2 text-lg text-purple-700 flex items-center gap-2 justify-end section-title">
+                                <span>المركبة المباعة</span>
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                                </svg>
                             </h2>
-                            <div class="grid grid-cols-3 gap-x-3 gap-y-1 text-xs text-right">
-                                <p><span class="font-semibold text-orange-700">الماركة:</span> ${contract.tradeInCar.make}</p>
-                                <p><span class="font-semibold text-orange-700">الموديل:</span> ${contract.tradeInCar.model}</p>
-                                <p><span class="font-semibold text-orange-700">النوع:</span> ${contract.tradeInCar.type}</p>
-                                <p><span class="font-semibold text-orange-700">السنة:</span> ${contract.tradeInCar.year}</p>
-                                <p><span class="font-semibold text-orange-700">رقم اللوحة:</span> ${contract.tradeInCar.plateNumber}</p>
-                                <p><span class="font-semibold text-orange-700">الكيلومترات:</span> ${contract.tradeInCar.kilometers.toLocaleString('en-US')}</p>
+                            <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-right">
+                                <p><span class="font-semibold text-purple-700">الماركة:</span> ${contract.carMake}</p>
+                                <p><span class="font-semibold text-purple-700">الموديل:</span> ${contract.carModel}</p>
+                                <p><span class="font-semibold text-purple-700">السنة:</span> ${contract.carYear}</p>
+                                <p><span class="font-semibold text-purple-700">النوع:</span> ${contract.carType}</p>
+                                <p><span class="font-semibold text-purple-700">رقم اللوحة:</span> ${contract.carPlateNumber}</p>
+                                <p><span class="font-semibold text-purple-700">الكيلومترات:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
+                                ${contract.carVin ? `<p><span class="font-semibold text-purple-700">رقم الهيكل:</span> ${contract.carVin}</p>` : ''}
+                                ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">رقم المحرك:</span> ${contract.carEngineNumber}</p>` : ''}
                             </div>
                         </div>
-                    `
-                            : ''
-                    }
+
+                        <!-- Trade-in Vehicle (Car Received from Client) -->
+                        ${
+                            contract.tradeInCar
+                                ? `
+                            <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200">
+                                <h2 class="font-bold mb-2 text-lg text-orange-700 flex items-center gap-2 justify-end section-title">
+                                    <span>المركبة المستلمة من العميل</span>
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                    </svg>
+                                </h2>
+                                <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-right">
+                                    <p><span class="font-semibold text-orange-700">الماركة:</span> ${contract.tradeInCar.make}</p>
+                                    <p><span class="font-semibold text-orange-700">الموديل:</span> ${contract.tradeInCar.model}</p>
+                                    <p><span class="font-semibold text-orange-700">النوع:</span> ${contract.tradeInCar.type}</p>
+                                    <p><span class="font-semibold text-orange-700">السنة:</span> ${contract.tradeInCar.year}</p>
+                                    <p><span class="font-semibold text-orange-700">رقم اللوحة:</span> ${contract.tradeInCar.plateNumber}</p>
+                                    <p><span class="font-semibold text-orange-700">الكيلومترات:</span> ${contract.tradeInCar.kilometers.toLocaleString('en-US')}</p>
+                                </div>
+                            </div>
+                        `
+                                : ''
+                        }
+                    </div>
                 `
                         : `
                     <!-- Single Vehicle Information (Non-Exchange Deal) -->
@@ -785,22 +798,31 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
 
                 <!-- Payment Information -->
                 <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-4 border border-emerald-200">
-                    <h2 class="font-bold mb-2 text-lg text-emerald-700 flex items-center gap-2 justify-end section-title">
-                        <span>تفاصيل الدفع</span>
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
-                            <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
-                        </svg>
-                    </h2>
-                    <div class="space-y-3">
-                        <p class="text-base font-bold text-emerald-700 bg-white rounded-lg p-3 border-2 border-emerald-300 text-center">المبلغ الإجمالي: ${formatCurrency(contract.dealAmount)}</p>
+                    <div class="grid grid-cols-2 gap-4 items-start">
+                        <!-- Payment Details Header and Total Amount -->
+                        <div class="space-y-3">
+                            <h2 class="font-bold text-lg text-emerald-700 flex items-center gap-2 justify-end section-title">
+                                <span>تفاصيل الدفع</span>
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
+                                    <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
+                                </svg>
+                            </h2>
+                        </div>
                         
+                        <!-- Total Amount -->
+                        <div>
+                            <p class="text-base font-bold text-emerald-700 bg-white rounded-lg p-3 border-2 border-emerald-300 text-center">المبلغ الإجمالي: ${formatCurrency(contract.dealAmount)}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 space-y-3">
                         ${
                             contract.paymentMethods && contract.paymentMethods.length > 0
                                 ? `
                             <div class="bg-white rounded-lg p-4 border border-emerald-200">
                                 <h3 class="font-semibold text-emerald-700 mb-3 text-right">طرق الدفع:</h3>
-                                <div class="grid grid-cols-2 gap-3">
+                                <div class="flex flex-wrap gap-3 justify-start">
                                     ${contract.paymentMethods
                                         .filter((method) => method.selected)
                                         .map((method) => {
@@ -812,9 +834,7 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
                                             };
 
                                             return `
-                                            <div class="flex items-center gap-2 p-2 bg-emerald-50 rounded border justify-start">
-                                                <span class="text-sm font-medium text-emerald-700">${methodLabels[method.type] || method.type}</span>
-                                            </div>
+                                            <span class="text-sm font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded border">${methodLabels[method.type] || method.type}</span>
                                         `;
                                         })
                                         .join('')}
@@ -1024,7 +1044,7 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
             <div class="compact-content space-y-3 w-full">
                 <!-- Parties Information -->
                 ${
-                    contract.dealType === 'intermediary' || contract.dealType === 'financing_assistance_intermediary'
+                    contract.dealType === 'intermediary'
                         ? `
                         <!-- Three-party layout for intermediary deals -->
                         <div class="compact-section">
@@ -1124,48 +1144,51 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
                 ${
                     contract.dealType === 'trade-in'
                         ? `
-                    <!-- Car Being Sold (Primary Vehicle) -->
-                    <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-4 border border-purple-200 mb-3">
-                        <h2 class="font-bold mb-3 text-lg text-purple-700 flex items-center gap-2 justify-end section-title">
-                            <span>הרכב הנמכר</span>
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                        </h2>
-                        <div class="grid grid-cols-3 gap-x-3 gap-y-1 text-xs text-right">
-                            <p><span class="font-semibold text-purple-700">יצרן:</span> ${contract.carMake}</p>
-                            <p><span class="font-semibold text-purple-700">דגם:</span> ${contract.carModel}</p>
-                            <p><span class="font-semibold text-purple-700">שנה:</span> ${contract.carYear}</p>
-                            <p><span class="font-semibold text-purple-700">סוג:</span> ${contract.carType}</p>
-                            <p><span class="font-semibold text-purple-700">מס׳ רישוי:</span> ${contract.carPlateNumber}</p>
-                            <p><span class="font-semibold text-purple-700">קילומטרז׳:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
-                            ${contract.carVin ? `<p><span class="font-semibold text-purple-700">מס׳ שלדה:</span> ${contract.carVin}</p>` : ''}
-                            ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">מס׳ מנוע:</span> ${contract.carEngineNumber}</p>` : ''}
-                        </div>
-                    </div>
-
-                    <!-- Trade-in Vehicle (Car Received from Client) -->
-                    ${
-                        contract.tradeInCar
-                            ? `
-                        <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200">
-                            <h2 class="font-bold mb-3 text-lg text-orange-700 flex items-center gap-2 justify-end section-title">
-                                <span>הרכב המתקבל מהלקוח</span>
+                    <!-- Exchange Deal - Two Vehicles Side by Side -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Car Being Sold (Primary Vehicle) -->
+                        <div class="bg-gradient-to-br from-purple-50 to-violet-50 rounded-lg p-4 border border-purple-200">
+                            <h2 class="font-bold mb-3 text-lg text-purple-700 flex items-center gap-2 justify-end section-title">
+                                <span>הרכב הנמכר</span>
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
-                                </svg>
                             </h2>
-                            <div class="grid grid-cols-3 gap-x-3 gap-y-1 text-xs text-right">
-                                <p><span class="font-semibold text-orange-700">יצרן:</span> ${contract.tradeInCar.make}</p>
-                                <p><span class="font-semibold text-orange-700">דגם:</span> ${contract.tradeInCar.model}</p>
-                                <p><span class="font-semibold text-orange-700">סוג:</span> ${contract.tradeInCar.type}</p>
-                                <p><span class="font-semibold text-orange-700">שנה:</span> ${contract.tradeInCar.year}</p>
-                                <p><span class="font-semibold text-orange-700">מס׳ רישוי:</span> ${contract.tradeInCar.plateNumber}</p>
-                                <p><span class="font-semibold text-orange-700">קילומטרז׳:</span> ${contract.tradeInCar.kilometers.toLocaleString('en-US')}</p>
+                            <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-right">
+                                <p><span class="font-semibold text-purple-700">יצרן:</span> ${contract.carMake}</p>
+                                <p><span class="font-semibold text-purple-700">דגם:</span> ${contract.carModel}</p>
+                                <p><span class="font-semibold text-purple-700">שנה:</span> ${contract.carYear}</p>
+                                <p><span class="font-semibold text-purple-700">סוג:</span> ${contract.carType}</p>
+                                <p><span class="font-semibold text-purple-700">מס׳ רישוי:</span> ${contract.carPlateNumber}</p>
+                                <p><span class="font-semibold text-purple-700">קילומטרז׳:</span> ${contract.carKilometers.toLocaleString('en-US')}</p>
+                                ${contract.carVin ? `<p><span class="font-semibold text-purple-700">מס׳ שלדה:</span> ${contract.carVin}</p>` : ''}
+                                ${contract.carEngineNumber ? `<p><span class="font-semibold text-purple-700">מס׳ מנוע:</span> ${contract.carEngineNumber}</p>` : ''}
                             </div>
                         </div>
-                    `
-                            : ''
-                    }
+
+                        <!-- Trade-in Vehicle (Car Received from Client) -->
+                        ${
+                            contract.tradeInCar
+                                ? `
+                            <div class="bg-gradient-to-br from-orange-50 to-red-50 rounded-lg p-4 border border-orange-200">
+                                <h2 class="font-bold mb-3 text-lg text-orange-700 flex items-center gap-2 justify-end section-title">
+                                    <span>הרכב המתקבל מהלקוח</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 6a2 2 0 100-4 2 2 0 000 4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                    </svg>
+                                </h2>
+                                <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-right">
+                                    <p><span class="font-semibold text-orange-700">יצרן:</span> ${contract.tradeInCar.make}</p>
+                                    <p><span class="font-semibold text-orange-700">דגם:</span> ${contract.tradeInCar.model}</p>
+                                    <p><span class="font-semibold text-orange-700">סוג:</span> ${contract.tradeInCar.type}</p>
+                                    <p><span class="font-semibold text-orange-700">שנה:</span> ${contract.tradeInCar.year}</p>
+                                    <p><span class="font-semibold text-orange-700">מס׳ רישוי:</span> ${contract.tradeInCar.plateNumber}</p>
+                                    <p><span class="font-semibold text-orange-700">קילומטרז׳:</span> ${contract.tradeInCar.kilometers.toLocaleString('en-US')}</p>
+                                </div>
+                            </div>
+                        `
+                                : ''
+                        }
+                    </div>
                 `
                         : `
                     <!-- Single Vehicle Information (Non-Exchange Deal) -->
@@ -1193,22 +1216,31 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
                 <!-- Payment Information -->
                 <div class="compact-section">
                     <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-lg p-4 border border-emerald-200">
-                        <h2 class="font-bold mb-3 text-lg text-emerald-700 flex items-center gap-2 justify-end section-title">
-                            <span>פרטי תשלום</span>
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
-                                <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
-                            </svg>
-                        </h2>
-                        <div class="space-y-3">
-                            <p class="text-base font-bold text-emerald-700 bg-white rounded-lg p-3 border-2 border-emerald-300 text-center">סכום כולל: ${formatCurrency(contract.dealAmount)}</p>
+                        <div class="grid grid-cols-2 gap-4 items-start">
+                            <!-- Payment Details Header -->
+                            <div class="space-y-3">
+                                <h2 class="font-bold text-lg text-emerald-700 flex items-center gap-2 justify-end section-title">
+                                    <span>פרטי תשלום</span>
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
+                                        <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
+                                    </svg>
+                                </h2>
+                            </div>
+                            
+                            <!-- Total Amount -->
+                            <div>
+                                <p class="text-base font-bold text-emerald-700 bg-white rounded-lg p-3 border-2 border-emerald-300 text-center">סכום כולל: ${formatCurrency(contract.dealAmount)}</p>
+                            </div>
+                        </div>
                         
+                        <div class="mt-4 space-y-3">
                         ${
                             contract.paymentMethods && contract.paymentMethods.length > 0
                                 ? `
                             <div class="bg-white rounded-lg p-3 border border-emerald-200">
                                 <h3 class="font-semibold text-emerald-700 mb-2 text-right text-xs">אמצעי תשלום:</h3>
-                                <div class="grid grid-cols-2 gap-2">
+                                <div class="flex flex-wrap gap-3 justify-start">
                                     ${contract.paymentMethods
                                         .filter((method) => method.selected)
                                         .map((method) => {
@@ -1220,9 +1252,7 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
                                             };
 
                                             return `
-                                            <div class="flex items-center gap-2 p-1 bg-emerald-50 rounded border justify-start">
-                                                <span class="text-xs font-medium text-emerald-700">${methodLabels[method.type] || method.type}</span>
-                                            </div>
+                                            <span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-3 py-2 rounded border">${methodLabels[method.type] || method.type}</span>
                                         `;
                                         })
                                         .join('')}

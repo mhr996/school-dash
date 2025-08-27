@@ -433,6 +433,16 @@ const Bills = () => {
             ),
         },
         {
+            accessor: 'bill_number',
+            title: t('bill_number'),
+            sortable: true,
+            render: ({ id }) => (
+                <div className="text-sm font-mono">
+                    <span className="font-medium">{String(id).padStart(6, '0')}</span>
+                </div>
+            ),
+        },
+        {
             accessor: 'customer_name',
             title: t('customer_name'),
             sortable: true,
