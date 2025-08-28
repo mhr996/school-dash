@@ -4,11 +4,11 @@ import { formatDate } from '@/utils/date-formatter';
 import { getCompanyInfo } from '@/lib/company-info';
 
 export class LogsPDFGenerator {
-    static async generateFromLogs(logs: Log[], billsData: { [dealId: string]: any[] }): Promise<void> {
+    static async generateFromLogs(logs: Log[], billsData: { [dealId: string]: any[] }, locale?: string): Promise<void> {
         try {
-            const { t } = getTranslation();
+            const { t } = this.getTranslationWithLocale(locale);
 
-            console.log(`Starting PDF export for ${logs.length} records`);
+            console.log(`Starting PDF export for ${logs.length} records with locale: ${locale || 'default'}`);
 
             // For very large datasets, process in batches to avoid memory issues
             if (logs.length > 1000) {
@@ -20,6 +20,28 @@ export class LogsPDFGenerator {
             console.error('PDF Error:', error);
             throw new Error('PDF export failed. Please try again.');
         }
+    }
+
+    private static getTranslationWithLocale(locale?: string) {
+        if (!locale) {
+            return getTranslation();
+        }
+
+        // Import the translation files
+        const en = require('../public/locales/en.json');
+        const ae = require('../public/locales/ae.json');
+        const he = require('../public/locales/he.json');
+        
+        const langObj: any = { en, ae, he };
+        const data: any = langObj[locale] || langObj['he']; // fallback to Hebrew
+        const fallbackData: any = langObj['en']; // English as ultimate fallback
+
+        const t = (key: string) => {
+            // First try the requested locale, then fallback to English, then return the key itself
+            return data[key] || fallbackData[key] || key;
+        };
+
+        return { t };
     }
 
     private static async generateSinglePDF(logs: Log[], billsData: any, t: any): Promise<void> {
