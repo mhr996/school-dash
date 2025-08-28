@@ -14,6 +14,8 @@ import IconListCheck from '@/components/icon/icon-list-check';
 import Link from 'next/link';
 import LogFilters from '@/components/log-filters/log-filters';
 import { formatDate } from '@/utils/date-formatter';
+import { LogsPDFGenerator } from '@/utils/logs-pdf-generator';
+import IconDownload from '@/components/icon/icon-download';
 
 interface LogFilters {
     search: string;
@@ -48,6 +50,7 @@ const LogsPage = () => {
         }
     }, []);
     const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+    const [isExporting, setIsExporting] = useState(false);
 
     // Active filters state
     const [activeFilters, setActiveFilters] = useState<LogFilters>({
@@ -370,11 +373,43 @@ const LogsPage = () => {
         return null;
     };
 
+    const handleExportPDF = async () => {
+        if (initialRecords.length === 0) {
+            setAlertState({ message: t('no_data_to_export'), type: 'danger' });
+            return;
+        }
+
+        setIsExporting(true);
+        setAlertState(null);
+
+        try {
+            // Export all filtered records
+            await LogsPDFGenerator.generateFromLogs(initialRecords, billsData);
+
+            setAlertState({ message: t('pdf_exported_successfully'), type: 'success' });
+        } catch (error) {
+            console.error('PDF export failed:', error);
+            setAlertState({
+                message: error instanceof Error ? error.message : t('pdf_export_failed'),
+                type: 'danger',
+            });
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     return (
         <div>
             <div className="panel">
-                <div className="mb-5 flex flex-col gap-5 md:flex-row md:items-center">
+                <div className="mb-5 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                     <h5 className="text-lg font-semibold dark:text-white-light">{t('activity_logs')}</h5>
+
+                    <div className="flex items-center gap-3">
+                        <button type="button" className="btn btn-primary gap-2" onClick={handleExportPDF} disabled={isExporting || initialRecords.length === 0}>
+                            <IconDownload className="w-4 h-4" />
+                            {isExporting ? t('generating_pdf') : `${t('export_pdf')} (${initialRecords.length})`}
+                        </button>
+                    </div>
                 </div>
 
                 {alertState && <Alert message={alertState.message} type={alertState.type} onClose={() => setAlertState(null)} />}

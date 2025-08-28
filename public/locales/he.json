@@ -981,5 +981,17 @@
     "total_revenue": "סך הכנסות",
     "payment_notes_placeholder": "הכנס הערות על שיטות התשלום...",
     "selected_payment_methods": "שיטות תשלום שנבחרו",
-    "deal_amount": "סכום העסקה"
+    "deal_amount": "סכום העסקה",
+    "export_pdf": "ייצא PDF",
+    "activity_logs_report": "דוח יומני פעילות",
+    "generated_on": "נוצר בתאריך",
+    "total_records": "סך הרשומות",
+    "export_summary": "סיכום הייצוא",
+    "total_logs": "סך היומנים",
+    "date_range": "טווח תאריכים",
+    "purchase_info": "מידע רכישה",
+    "sale_info": "מידע מכירה",
+    "payment_info": "מידע תשלום",
+    "invoice_info": "מידע חשבונית",
+    "report_generated_by": "דוח נוצר על ידי"
 }

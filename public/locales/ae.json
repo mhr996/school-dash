@@ -1372,5 +1372,17 @@
     "deal_created_date": "تاريخ الصفقة",
     "car_taken_from_client": "السيارة المستلمة من العميل",
     "payment_notes_placeholder": "أدخل أي ملاحظات حول طرق الدفع...",
-    "selected_payment_methods": "طرق الدفع المحددة"
+    "selected_payment_methods": "طرق الدفع المحددة",
+    "export_pdf": "تصدير PDF",
+    "activity_logs_report": "تقرير سجلات النشاط",
+    "generated_on": "تم إنشاؤه في",
+    "total_records": "إجمالي السجلات",
+    "export_summary": "ملخص التصدير",
+    "total_logs": "إجمالي السجلات",
+    "date_range": "نطاق التاريخ",
+    "purchase_info": "معلومات الشراء",
+    "sale_info": "معلومات البيع",
+    "payment_info": "معلومات الدفع",
+    "invoice_info": "معلومات الفاتورة",
+    "report_generated_by": "التقرير مُنشأ بواسطة"
 }
