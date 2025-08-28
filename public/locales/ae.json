@@ -1384,5 +1384,14 @@
     "sale_info": "معلومات البيع",
     "payment_info": "معلومات الدفع",
     "invoice_info": "معلومات الفاتورة",
-    "report_generated_by": "التقرير مُنشأ بواسطة"
+    "report_generated_by": "التقرير مُنشأ بواسطة",
+    "pdf_exported_successfully": "تم تصدير PDF بنجاح",
+    "pdf_export_failed": "فشل تصدير PDF",
+    "no_data_to_export": "لا توجد بيانات للتصدير",
+    "pdf_generation_error": "خطأ في إنشاء PDF",
+    "please_try_again_later": "يرجى المحاولة مرة أخرى لاحقاً",
+    "network_error": "خطأ في الشبكة",
+    "check_internet_connection": "تحقق من اتصال الإنترنت",
+    "request_timeout": "انتهت مهلة الطلب",
+    "try_with_fewer_records": "جرب مع عدد أقل من السجلات"
 }

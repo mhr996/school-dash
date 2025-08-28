@@ -52,6 +52,16 @@ const LogsPage = () => {
     const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
     const [isExporting, setIsExporting] = useState(false);
 
+    // Auto-dismiss success alerts after 3 seconds
+    useEffect(() => {
+        if (alertState?.type === 'success') {
+            const timer = setTimeout(() => {
+                setAlertState(null);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [alertState]);
+
     // Active filters state
     const [activeFilters, setActiveFilters] = useState<LogFilters>({
         search: '',
@@ -431,7 +441,12 @@ const LogsPage = () => {
                     </div>
                 </div>
 
-                {alertState && <Alert message={alertState.message} type={alertState.type} onClose={() => setAlertState(null)} />}
+                {/* Fixed positioned alert */}
+                {alertState && (
+                    <div className="fixed top-4 right-4 z-50 max-w-md">
+                        <Alert message={alertState.message} type={alertState.type} onClose={() => setAlertState(null)} />
+                    </div>
+                )}
 
                 <LogFilters
                     onFilterChange={(newFilters) => {

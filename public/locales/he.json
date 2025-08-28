@@ -993,5 +993,14 @@
     "sale_info": "מידע מכירה",
     "payment_info": "מידע תשלום",
     "invoice_info": "מידע חשבונית",
-    "report_generated_by": "דוח נוצר על ידי"
+    "report_generated_by": "דוח נוצר על ידי",
+    "pdf_exported_successfully": "PDF יוצא בהצלחה",
+    "pdf_export_failed": "ייצוא PDF נכשל",
+    "no_data_to_export": "אין נתונים לייצוא",
+    "pdf_generation_error": "שגיאה ביצירת PDF",
+    "please_try_again_later": "אנא נסה שוב מאוחר יותר",
+    "network_error": "שגיאת רשת",
+    "check_internet_connection": "בדוק את חיבור האינטרנט",
+    "request_timeout": "זמן הבקשה פג",
+    "try_with_fewer_records": "נסה עם פחות רשומות"
 }
