@@ -4,11 +4,11 @@ import { formatDate } from '@/utils/date-formatter';
 import { getCompanyInfo } from '@/lib/company-info';
 
 export class LogsPDFGenerator {
-    static async generateFromLogs(logs: Log[], billsData: { [dealId: string]: any[] }, locale?: string): Promise<void> {
+    static async generateFromLogs(logs: Log[], billsData: { [dealId: string]: any[] }): Promise<void> {
         try {
-            const { t } = this.getTranslationWithLocale(locale);
+            const { t } = getTranslation();
 
-            console.log(`Starting PDF export for ${logs.length} records with locale: ${locale || 'default'}`);
+            console.log(`Starting PDF export for ${logs.length} records`);
 
             // For very large datasets, process in batches to avoid memory issues
             if (logs.length > 1000) {
@@ -20,28 +20,6 @@ export class LogsPDFGenerator {
             console.error('PDF Error:', error);
             throw new Error('PDF export failed. Please try again.');
         }
-    }
-
-    private static getTranslationWithLocale(locale?: string) {
-        if (!locale) {
-            return getTranslation();
-        }
-
-        // Import the translation files
-        const en = require('../public/locales/en.json');
-        const ae = require('../public/locales/ae.json');
-        const he = require('../public/locales/he.json');
-        
-        const langObj: any = { en, ae, he };
-        const data: any = langObj[locale] || langObj['he']; // fallback to Hebrew
-        const fallbackData: any = langObj['en']; // English as ultimate fallback
-
-        const t = (key: string) => {
-            // First try the requested locale, then fallback to English, then return the key itself
-            return data[key] || fallbackData[key] || key;
-        };
-
-        return { t };
     }
 
     private static async generateSinglePDF(logs: Log[], billsData: any, t: any): Promise<void> {
@@ -391,17 +369,33 @@ export class LogsPDFGenerator {
         if (!log.deal?.id || !billsData) return t('not_available');
 
         try {
-            const bills = billsData[log.deal.id] || [];
-            if (bills.length === 0) return t('no_bill_created');
+            const dealBills = billsData[log.deal.id] || [];
+
+            // Find tax invoice bills (same logic as in logs page)
+            const invoiceBills = dealBills.filter((bill: any) => bill.bill_type === 'tax_invoice' || bill.bill_type === 'tax_invoice_receipt');
+
+            if (invoiceBills.length === 0) {
+                return t('not_available');
+            }
 
             let invoiceInfo = '';
-            bills.forEach((bill: any, index: number) => {
+            invoiceBills.forEach((bill: any, index: number) => {
                 if (index > 0) invoiceInfo += '<br>';
-                invoiceInfo += `${bill.invoice_number || t('not_available')}`;
-                if (bill.amount) {
-                    invoiceInfo += `<br><span style="color: #6b7280; font-size: 8px;">₪${parseFloat(bill.amount).toLocaleString()}</span>`;
+
+                // Use bill.id as invoice number (same as logs page)
+                invoiceInfo += `#${bill.id || t('not_available')}`;
+
+                // Use total_with_tax as amount (same as logs page)
+                const displayAmount = bill.total_with_tax || 0;
+                if (displayAmount > 0) {
+                    invoiceInfo += `<br><span style="color: #6b7280; font-size: 8px;">₪${displayAmount.toLocaleString()}</span>`;
                 }
             });
+
+            // If there are multiple invoices, show count like in logs page
+            if (invoiceBills.length > 1) {
+                invoiceInfo += `<br><span style="color: #6b7280; font-size: 7px;">+${invoiceBills.length - 1} more</span>`;
+            }
 
             return invoiceInfo;
         } catch {

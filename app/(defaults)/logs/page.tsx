@@ -27,7 +27,7 @@ interface LogFilters {
 }
 
 const LogsPage = () => {
-    const { t, i18n } = getTranslation();
+    const { t } = getTranslation();
     const [items, setItems] = useState<Log[]>([]);
     const [loading, setLoading] = useState(true);
     const [billsData, setBillsData] = useState<{ [dealId: string]: any[] }>({});
@@ -385,8 +385,8 @@ const LogsPage = () => {
         try {
             console.log('Starting PDF export with', initialRecords.length, 'records');
 
-            // Export all filtered records with current locale
-            await LogsPDFGenerator.generateFromLogs(initialRecords, billsData, i18n.language);
+            // Export all filtered records
+            await LogsPDFGenerator.generateFromLogs(initialRecords, billsData);
 
             setAlertState({ message: t('pdf_exported_successfully'), type: 'success' });
         } catch (error) {
