@@ -24,6 +24,11 @@ interface ContractPDFOptions extends PDFGenerationOptions {
     baseUrl?: string;
 }
 
+interface LogsPDFOptions extends PDFGenerationOptions {
+    html: string;
+    baseUrl?: string;
+}
+
 export class PDFService {
     private static instance: PDFService;
     private browser: Browser | BrowserCore | null = null;
@@ -94,6 +99,47 @@ export class PDFService {
 
             // Load the HTML content
             await page.setContent(contractHtml, { waitUntil: 'networkidle0' });
+
+            // Generate PDF
+            const pdfBuffer = await page.pdf({
+                format,
+                landscape: orientation === 'landscape',
+                margin: margins,
+                printBackground,
+                scale,
+                preferCSSPageSize: true,
+            });
+
+            return new Uint8Array(pdfBuffer);
+        } finally {
+            await page.close();
+        }
+    }
+
+    async generateLogsPDF(options: LogsPDFOptions): Promise<Uint8Array> {
+        const {
+            html,
+            format = 'A4',
+            orientation = 'landscape',
+            margins = {
+                top: '15mm',
+                right: '10mm',
+                bottom: '15mm',
+                left: '10mm',
+            },
+            printBackground = true,
+            scale = 1,
+        } = options;
+
+        const browser = await this.getBrowser();
+        const page = await browser.newPage();
+
+        try {
+            // Set viewport for consistent rendering
+            await page.setViewport({ width: 1200, height: 800 });
+
+            // Load the HTML content
+            await page.setContent(html, { waitUntil: 'networkidle0' });
 
             // Generate PDF
             const pdfBuffer = await page.pdf({

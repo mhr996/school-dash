@@ -33,7 +33,21 @@ export class LogsPDFGenerator {
         const response = await fetch('/api/generate-logs-pdf', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ html }),
+            body: JSON.stringify({
+                html,
+                filename: 'activity-logs.pdf',
+                options: {
+                    format: 'A4',
+                    orientation: 'landscape',
+                    margins: {
+                        top: '15mm',
+                        right: '10mm',
+                        bottom: '15mm',
+                        left: '10mm',
+                    },
+                    printBackground: true,
+                },
+            }),
         });
 
         if (!response.ok) {

@@ -1,46 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import puppeteer from 'puppeteer';
+import { PDFService } from '@/utils/pdf-service';
 
 export async function POST(request: NextRequest) {
     try {
-        const { html } = await request.json();
+        const { html, filename = 'activity-logs.pdf', options = {} } = await request.json();
 
         if (!html) {
-            return NextResponse.json({ error: 'No HTML provided' }, { status: 400 });
+            return NextResponse.json({ error: 'HTML content is required' }, { status: 400 });
         }
 
-        console.log('Launching browser...');
-
-        // Minimal Puppeteer config
-        const browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        });
-
-        const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
-
-        // Wait for fonts and any external resources to load
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        const pdf = await page.pdf({
+        // Generate PDF using the same PDFService as contract generation
+        const pdfService = PDFService.getInstance();
+        const pdfBuffer = await pdfService.generateLogsPDF({
+            html,
+            filename,
             format: 'A4',
-            landscape: true,
-            margin: { top: '15mm', right: '10mm', bottom: '15mm', left: '10mm' },
-            printBackground: true, // This ensures background colors/gradients are included
-            preferCSSPageSize: false,
+            orientation: 'landscape',
+            margins: {
+                top: '15mm',
+                right: '10mm',
+                bottom: '15mm',
+                left: '10mm',
+            },
+            printBackground: true,
+            ...options,
         });
 
-        await browser.close();
-
-        return new NextResponse(pdf as BodyInit, {
+        // Return PDF as response
+        return new NextResponse(Buffer.from(pdfBuffer), {
+            status: 200,
             headers: {
                 'Content-Type': 'application/pdf',
-                'Content-Disposition': 'attachment; filename="logs.pdf"',
+                'Content-Disposition': `attachment; filename="${filename}"`,
+                'Content-Length': pdfBuffer.length.toString(),
             },
         });
     } catch (error) {
         console.error('PDF generation error:', error);
-        return NextResponse.json({ error: 'PDF generation failed', details: error }, { status: 500 });
+        return NextResponse.json(
+            {
+                error: 'Failed to generate PDF',
+                details: error instanceof Error ? error.message : 'Unknown error',
+            },
+            { status: 500 },
+        );
     }
 }

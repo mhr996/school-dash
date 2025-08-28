@@ -383,14 +383,33 @@ const LogsPage = () => {
         setAlertState(null);
 
         try {
+            console.log('Starting PDF export with', initialRecords.length, 'records');
+
             // Export all filtered records
             await LogsPDFGenerator.generateFromLogs(initialRecords, billsData);
 
             setAlertState({ message: t('pdf_exported_successfully'), type: 'success' });
         } catch (error) {
             console.error('PDF export failed:', error);
+
+            // More detailed error handling
+            let errorMessage = t('pdf_export_failed');
+
+            if (error instanceof Error) {
+                // Check for specific error types
+                if (error.message.includes('PDF generation failed')) {
+                    errorMessage = t('pdf_generation_error') + ' - ' + t('please_try_again_later');
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    errorMessage = t('network_error') + ' - ' + t('check_internet_connection');
+                } else if (error.message.includes('timeout')) {
+                    errorMessage = t('request_timeout') + ' - ' + t('try_with_fewer_records');
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+
             setAlertState({
-                message: error instanceof Error ? error.message : t('pdf_export_failed'),
+                message: errorMessage,
                 type: 'danger',
             });
         } finally {
