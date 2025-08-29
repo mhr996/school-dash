@@ -1393,5 +1393,7 @@
     "network_error": "خطأ في الشبكة",
     "check_internet_connection": "تحقق من اتصال الإنترنت",
     "request_timeout": "انتهت مهلة الطلب",
-    "try_with_fewer_records": "جرب مع عدد أقل من السجلات"
+    "try_with_fewer_records": "جرب مع عدد أقل من السجلات",
+    "car_info": "معلومات السيارة",
+    "no_car_assigned": "لم يتم تخصيص سيارة"
 }

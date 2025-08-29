@@ -1002,5 +1002,7 @@
     "network_error": "שגיאת רשת",
     "check_internet_connection": "בדוק את חיבור האינטרנט",
     "request_timeout": "זמן הבקשה פג",
-    "try_with_fewer_records": "נסה עם פחות רשומות"
+    "try_with_fewer_records": "נסה עם פחות רשומות",
+    "car_info": "מידע רכב",
+    "no_car_assigned": "לא שויך רכב"
 }

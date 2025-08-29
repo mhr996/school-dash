@@ -1254,5 +1254,7 @@
     "network_error": "Network error",
     "check_internet_connection": "Check your internet connection",
     "request_timeout": "Request timeout",
-    "try_with_fewer_records": "Try with fewer records"
+    "try_with_fewer_records": "Try with fewer records",
+    "car_info": "Car Info",
+    "no_car_assigned": "No car assigned"
 }

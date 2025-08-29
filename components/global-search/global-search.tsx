@@ -142,19 +142,61 @@ const GlobalSearch = () => {
                 });
             }
 
-            // Search bills
-            const { data: bills } = await supabase
-                .from('bills')
-                .select('id, customer_name, bill_type, total_with_tax, total, status, car_details')
-                .or(`customer_name.ilike.%${query}%, bill_type.ilike.%${query}%, car_details.ilike.%${query}%`)
-                .limit(10);
+            // Search bills - include bill_payments data
+            const billQueries = await Promise.all([
+                // Search bills table directly
+                supabase
+                    .from('bills')
+                    .select('id, customer_name, bill_type, total_with_tax, total, status, car_details')
+                    .or(`customer_name.ilike.%${query}%, bill_type.ilike.%${query}%, car_details.ilike.%${query}%`)
+                    .limit(10),
 
-            if (bills) {
-                bills.forEach((bill) => {
+                // Search bills through bill_payments (for transfer_number, check_number, etc.)
+                supabase
+                    .from('bill_payments')
+                    .select(
+                        `
+                        bill_id,
+                        transfer_number,
+                        check_number,
+                        approval_number,
+                        bills!inner(id, customer_name, bill_type, total_with_tax, total, status, car_details)
+                    `,
+                    )
+                    .or(`transfer_number.ilike.%${query}%, check_number.ilike.%${query}%, approval_number.ilike.%${query}%, bank_name.ilike.%${query}%, check_bank_name.ilike.%${query}%`)
+                    .limit(10),
+            ]);
+
+            const [directBills, paymentBills] = billQueries;
+            const allBills: any[] = [];
+
+            // Add direct bill matches
+            if (directBills.data) {
+                allBills.push(...directBills.data);
+            }
+
+            // Add bills found through payments
+            if (paymentBills.data) {
+                paymentBills.data.forEach((payment: any) => {
+                    if (payment.bills) {
+                        allBills.push({
+                            ...payment.bills,
+                            payment_match: payment.transfer_number || payment.check_number || payment.approval_number,
+                        });
+                    }
+                });
+            }
+
+            // Remove duplicate bills
+            const uniqueBills = allBills.filter((bill, index, self) => index === self.findIndex((b) => b.id === bill.id));
+
+            if (uniqueBills.length > 0) {
+                uniqueBills.forEach((bill: any) => {
+                    const matchInfo = bill.payment_match ? ` (${bill.payment_match})` : '';
                     results.push({
                         id: bill.id.toString(),
                         type: 'bill',
-                        title: `${bill.bill_type || 'Bill'} - ${bill.customer_name || 'Unknown'}`,
+                        title: `${bill.bill_type || 'Bill'} - ${bill.customer_name || 'Unknown'}${matchInfo}`,
                         subtitle: bill.car_details || '',
                         metadata: `₪${(bill.total_with_tax || bill.total || 0).toLocaleString()}`,
                         link: `/bills/preview/${bill.id}`,

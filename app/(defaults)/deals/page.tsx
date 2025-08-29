@@ -89,6 +89,13 @@ const DealsList = () => {
                             name,
                             id_number
                         ),
+                        cars!deals_car_id_fkey (
+                            id,
+                            title,
+                            brand,
+                            car_number,
+                            year
+                        ),
                         bills (
                             id,
                             bill_type,
@@ -482,6 +489,36 @@ const DealsList = () => {
                                             </div>
                                         ) : (
                                             customers?.id_number || '-'
+                                        )}
+                                    </div>
+                                ),
+                            },
+                            {
+                                accessor: 'car_info',
+                                title: t('car_info'),
+                                sortable: true,
+                                render: (deal: any) => (
+                                    <div className="text-sm">
+                                        {deal.cars ? (
+                                            <div>
+                                                <div className="font-semibold">
+                                                    {deal.cars.brand} {deal.cars.title}
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    {deal.cars.car_number && (
+                                                        <span className="text-blue-600">
+                                                            {deal.cars.car_number}
+                                                        </span>
+                                                    )}
+                                                    {deal.cars.year && (
+                                                        <span className="ml-2">
+                                                           {deal.cars.year}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <span className="text-gray-400">{t('no_car_assigned')}</span>
                                         )}
                                     </div>
                                 ),

@@ -39,14 +39,14 @@ const LogsPage = () => {
     const [records, setRecords] = useState<Log[]>([]);
     const [search, setSearch] = useState('');
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'id',
+        columnAccessor: 'created_at',
         direction: 'desc',
     });
 
-    // Always default sort by ID in descending order
+    // Always default sort by car created_at in descending order (newer first)
     useEffect(() => {
-        if (sortStatus.columnAccessor !== 'id') {
-            setSortStatus({ columnAccessor: 'id', direction: 'desc' });
+        if (sortStatus.columnAccessor !== 'created_at' || sortStatus.direction !== 'desc') {
+            setSortStatus({ columnAccessor: 'created_at', direction: 'desc' });
         }
     }, []);
     const [alertState, setAlertState] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
@@ -175,14 +175,37 @@ const LogsPage = () => {
     }, [pageSize]);
 
     useEffect(() => {
+        const sortedByCarDate = [...initialRecords].sort((a, b) => {
+            // Sort by car.created_at from newer to older
+            const dateA = new Date(a.car?.created_at || 0);
+            const dateB = new Date(b.car?.created_at || 0);
+            return dateB.getTime() - dateA.getTime();
+        });
+
         const from = (page - 1) * pageSize;
         const to = from + pageSize;
-        setRecords([...initialRecords.slice(from, to)]);
+        setRecords(sortedByCarDate.slice(from, to));
     }, [page, pageSize, initialRecords]);
 
     useEffect(() => {
-        const sorted = sortBy(initialRecords, sortStatus.columnAccessor);
-        setRecords(sortStatus.direction === 'desc' ? sorted.reverse() : sorted);
+        let sorted = [...initialRecords];
+
+        if (sortStatus.columnAccessor === 'created_at') {
+            // Sort by car.created_at
+            sorted = sorted.sort((a, b) => {
+                const dateA = new Date(a.car?.created_at || 0);
+                const dateB = new Date(b.car?.created_at || 0);
+                return sortStatus.direction === 'desc' ? dateB.getTime() - dateA.getTime() : dateA.getTime() - dateB.getTime();
+            });
+        } else {
+            // Sort by other columns using lodash sortBy
+            sorted = sortBy(initialRecords, sortStatus.columnAccessor);
+            if (sortStatus.direction === 'desc') {
+                sorted = sorted.reverse();
+            }
+        }
+
+        setRecords(sorted);
         setPage(1);
     }, [sortStatus, initialRecords]);
 
@@ -260,7 +283,8 @@ const LogsPage = () => {
 
         return (
             <div className="text-sm">
-                <div className="font-medium">{getLocalizedBillType(bill.bill_type)}</div>
+                <div className="font-medium">#{bill.id || t('not_available')}</div>
+                <div className="text-gray-500 dark:text-gray-400">{getLocalizedBillType(bill.bill_type)}</div>
                 <div className="text-gray-500 dark:text-gray-400">₪{totalAmount.toLocaleString()}</div>
                 {receiptBills.length > 1 && <div className="text-xs text-gray-400">+{receiptBills.length - 1} more</div>}
             </div>
@@ -518,16 +542,6 @@ const LogsPage = () => {
                                 },
                             },
                             {
-                                accessor: 'deal_status',
-                                title: t('deal_status'),
-                                render: (log) => {
-                                    if (!log.deal || !log.deal.status) {
-                                        return <span className="text-gray-400">{t('not_available')}</span>;
-                                    }
-                                    return <span className={`badge ${getStatusBadgeClass(log.deal.status)}`}>{t(`status_${log.deal.status}`)}</span>;
-                                },
-                            },
-                            {
                                 accessor: 'deal_type',
                                 title: t('deal_type'),
                                 render: (log) => {
@@ -546,6 +560,16 @@ const LogsPage = () => {
                                 accessor: 'invoice_info',
                                 title: t('invoice_number') + ' / ' + t('amount'),
                                 render: (log) => getInvoiceInfo(log),
+                            },
+                            {
+                                accessor: 'deal_status',
+                                title: t('deal_status'),
+                                render: (log) => {
+                                    if (!log.deal || !log.deal.status) {
+                                        return <span className="text-gray-400">{t('not_available')}</span>;
+                                    }
+                                    return <span className={`badge ${getStatusBadgeClass(log.deal.status)}`}>{t(`status_${log.deal.status}`)}</span>;
+                                },
                             },
                         ]}
                         totalRecords={initialRecords.length}
