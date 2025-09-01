@@ -58,6 +58,7 @@ export interface BillWithPayments {
         title: string;
         amount: number;
         loss_amount?: number;
+        customer_car_eval_value?: number;
         selling_price?: number;
         deal_type: string;
         customer?: {

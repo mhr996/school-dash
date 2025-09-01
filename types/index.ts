@@ -24,6 +24,12 @@ export interface Deal {
     seller_id?: string;
     buyer_id?: string;
     car_taken_from_client?: string; // For exchange deals - links to the car received from client
+
+    // Exchange deal specific fields
+    customer_car_eval_value?: number;
+    additional_customer_amount?: number;
+    loss_amount?: number;
+
     attachments?: DealAttachment[];
     cancellation_reason?: string;
 

@@ -1004,5 +1004,7 @@
     "request_timeout": "זמן הבקשה פג",
     "try_with_fewer_records": "נסה עם פחות רשומות",
     "car_info": "מידע רכב",
-    "no_car_assigned": "לא שויך רכב"
+    "no_car_assigned": "לא שויך רכב",
+    "car_taken_from_client_label": "הרכב נלקח מהלקוח",
+    "bank_transfer_order_customer": "הוראת העברה בנקאית ללקוח"
 }

@@ -64,28 +64,6 @@ const convertBillToBillData = (bill: Bill): BillData => {
     };
 };
 
-interface Deal {
-    id: string;
-    title: string;
-    deal_type: string;
-    amount: number;
-    customer_id: string;
-    customer?: {
-        name: string;
-        phone: string;
-        id_number: string;
-    };
-    car_id: string;
-    car?: {
-        id: number;
-        title: string;
-        brand: string;
-        year: number;
-        car_number?: string;
-        buy_price?: number;
-        sale_price?: number;
-    };
-}
 
 interface Bill extends BillWithPayments {
     // Legacy payment fields for backward compatibility
@@ -522,13 +500,13 @@ const BillPreview = () => {
                                             <div className="font-medium">{t('customer_car_evaluation')}</div>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(0) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.customer_car_eval_value ?? 0) as number).toFixed(0)}</span>
                                         </div>
                                         <div className="text-center">
                                             <span className="text-sm text-gray-700 dark:text-gray-300">1</span>
                                         </div>
                                         <div className="text-center">
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{bill.deal.amount?.toFixed(0) || '0.00'}</span>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">₪{((bill.deal.customer_car_eval_value ?? 0) as number).toFixed(0)}</span>
                                         </div>
                                     </div>
 

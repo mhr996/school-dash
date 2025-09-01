@@ -1692,6 +1692,12 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                                         <div className="grid grid-cols-3 gap-4 mb-3 py-2">
                                             <div className="text-sm text-gray-700 dark:text-gray-300 text-right">
                                                 <div className="font-medium">{t('customer_car_evaluation')}</div>
+                                                {carTakenFromClient && (
+                                                    <div className="text-xs mt-1 text-gray-500">
+                                                        {carTakenFromClient.brand} {carTakenFromClient.title} - {carTakenFromClient.year}
+                                                        {carTakenFromClient.car_number && ` - ${carTakenFromClient.car_number}`}
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="text-center">
                                                 <span className="text-sm text-gray-700 dark:text-gray-300">₪{parseFloat(form.customer_car_eval_value || '0').toFixed(0)}</span>
@@ -2761,6 +2767,7 @@ const EditDeal = ({ params }: { params: { id: string } }) => {
                         downloadingPDF={downloadingPDF}
                         readOnly={false}
                         deal={deal}
+                        car={selectedCar}
                         carTakenFromClient={carTakenFromClient}
                         selectedCustomer={selectedCustomer}
                     />

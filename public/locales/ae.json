@@ -1395,5 +1395,7 @@
     "request_timeout": "انتهت مهلة الطلب",
     "try_with_fewer_records": "جرب مع عدد أقل من السجلات",
     "car_info": "معلومات السيارة",
-    "no_car_assigned": "لم يتم تخصيص سيارة"
+    "no_car_assigned": "لم يتم تخصيص سيارة",
+    "car_taken_from_client_label": "معرف سيارة العميل",
+    "bank_transfer_order_customer": "أمر تحويل بنكي للزبون"
 }

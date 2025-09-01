@@ -1,6 +1,16 @@
 export interface CarContract {
     // Deal Info
-    dealType: 'normal' | 'trade-in' | 'intermediary' | 'financing_assistance_intermediary';
+    dealType:
+        | 'normal'
+        | 'trade-in'
+        | 'intermediary'
+        | 'financing_assistance_intermediary'
+        | 'new_sale'
+        | 'used_sale'
+        | 'new_used_sale'
+        | 'new_used_sale_tax_inclusive'
+        | 'exchange'
+        | 'company_commission';
     dealDate: string;
 
     // Company Info (Always the intermediary/dealer)

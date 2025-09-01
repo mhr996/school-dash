@@ -508,6 +508,8 @@ const AddDeal = () => {
         }
         return true;
     };
+    
+    
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -817,6 +819,9 @@ const AddDeal = () => {
             setSaving(false);
         }
     };
+
+
+
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('en-US', {

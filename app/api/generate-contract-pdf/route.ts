@@ -115,13 +115,30 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
         });
     };
 
+    // Function to get localized deal type
+    const getDealTypeLabel = (dealType: string): string => {
+        const dealTypeLabels: { [key: string]: string } = {
+            new_sale: 'New Sale',
+            used_sale: 'Used Sale',
+            new_used_sale: 'New/Used Sale',
+            new_used_sale_tax_inclusive: 'New/Used Sale Tax Inclusive for Dealers',
+            exchange: 'Exchange',
+            intermediary: 'Intermediary',
+            financing_assistance_intermediary: 'Financing Assistance Intermediary',
+            company_commission: 'Company Commission',
+            normal: 'Sale',
+            'trade-in': 'Exchange Deal',
+        };
+        return dealTypeLabels[dealType] || dealType;
+    };
+
     return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Vehicle Purchase Agreement</title>
+        <title>Vehicle Sale Agreement</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
             @page { size: A4; margin: 8mm; }
@@ -200,6 +217,7 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
                         <!-- Contract Title and Date -->
                         <div class="text-white text-right">
                             <h2 class="text-lg font-bold mb-1">Vehicle Purchase Agreement</h2>
+                            <p class="text-sm font-medium text-white/80 mb-2">${getDealTypeLabel(contract.dealType)}</p>
                             <div class="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/20">
                                 <p class="text-xs font-medium">Contract Date</p>
                                 <p class="text-sm font-bold">${formatDate(contract.dealDate)}</p>
@@ -391,7 +409,8 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
                                     <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
                                     <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
                                 </svg>
-                                Payment Details
+                                
+                                ${contract.dealType === 'trade-in' ? '<span>Amount Added From Customer</span>' : '<span>Payment Details</span>'}
                             </h2>
                         </div>
                         
@@ -523,13 +542,30 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
         });
     };
 
+    // Function to get localized deal type in Arabic
+    const getDealTypeLabel = (dealType: string): string => {
+        const dealTypeLabels: { [key: string]: string } = {
+            new_sale: 'صفقة بيع جديد',
+            used_sale: 'صفقة بيع مستعمل',
+            new_used_sale: 'صفقة بيع جديد/مستعمل',
+            new_used_sale_tax_inclusive: 'صفقة بيع جديد/مستعمل شاملة الضريبة للتجار',
+            exchange: 'صفقة تبديل',
+            intermediary: 'صفقة وسيط',
+            financing_assistance_intermediary: 'صفقة وسيط مساعدة للتمويل',
+            company_commission: 'صفقة عمولة من الشركات',
+            normal: 'صفقة بيع',
+            'trade-in': 'صفقة تبديل',
+        };
+        return dealTypeLabels[dealType] || dealType;
+    };
+
     return `
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>اتفاقية شراء مركبة</title>
+        <title>اتفاقية بيع مركبة</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
         <style>
@@ -616,7 +652,8 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
 
                         <!-- Contract Title and Date (moved to left for RTL) -->
                         <div class="text-white text-left">
-                            <h2 class="text-lg font-bold mb-1">اتفاقية شراء مركبة</h2>
+                            <h2 class="text-lg font-bold mb-1">اتفاقية بيع مركبة</h2>
+                            <p class="text-sm font-medium text-white/80 mb-2">${getDealTypeLabel(contract.dealType)}</p>
                             <div class="bg-white/10 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-white/20">
                                 <p class="text-xs font-medium">تاريخ العقد</p>
                                 <p class="text-sm font-bold">${formatDate(contract.dealDate)}</p>
@@ -802,7 +839,7 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
                         <!-- Payment Details Header and Total Amount -->
                         <div class="space-y-3">
                             <h2 class="font-bold text-lg text-emerald-700 flex items-center gap-2 justify-end section-title">
-                                <span>تفاصيل الدفع</span>
+                              ${contract.dealType === 'trade-in' ? '<span>المبلغ المضاف من الزبون</span>' : '<span>تفاصيل الدفع</span>'}
                                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                     <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
                                     <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />
@@ -938,13 +975,30 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
         });
     };
 
+    // Function to get localized deal type in Hebrew
+    const getDealTypeLabel = (dealType: string): string => {
+        const dealTypeLabels: { [key: string]: string } = {
+            new_sale: 'עסקת מכר רכב חדש',
+            used_sale: 'עסקת מכר רכב יד שנייה',
+            new_used_sale: 'מכירה חדש/יד שנייה',
+            new_used_sale_tax_inclusive: 'מכירה חדש/יד שנייה כולל מס לסוחרים',
+            exchange: 'החלפה',
+            intermediary: 'תיווך',
+            financing_assistance_intermediary: 'תיווך סיוע מימון',
+            company_commission: 'עמלת חברות',
+            normal: 'מכירה',
+            'trade-in': 'החלפה',
+        };
+        return dealTypeLabels[dealType] || dealType;
+    };
+
     return `
     <!DOCTYPE html>
     <html lang="he" dir="rtl">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>הסכם רכישת רכב</title>
+        <title>הסכם מכירת רכב</title>
         <script src="https://cdn.tailwindcss.com"></script>
         <style>
             @page { size: A4; margin: 8mm; }
@@ -1031,6 +1085,7 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
                         <!-- Contract Title and Date (moved to left for RTL) -->
                         <div class="text-white text-left">
                             <h2 class="text-xl font-bold mb-2">הסכם רכישת רכב</h2>
+                            <p class="text-sm font-medium text-white/80 mb-2">${getDealTypeLabel(contract.dealType)}</p>
                             <div class="bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 border border-white/20">
                                 <p class="text-sm font-medium">תאריך החוזה</p>
                                 <p class="text-lg font-bold">${formatDate(contract.dealDate)}</p>
@@ -1220,7 +1275,7 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
                             <!-- Payment Details Header -->
                             <div class="space-y-3">
                                 <h2 class="font-bold text-lg text-emerald-700 flex items-center gap-2 justify-end section-title">
-                                    <span>פרטי תשלום</span>
+                                    ${contract.dealType === 'trade-in' ? '<span>הסכום שנוסף על ידי הלקוח</span>' : '<span>פרטי תשלום</span>'}
                                     <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4z" />
                                         <path d="M14 6a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h10zM4 8a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" />

@@ -15,11 +15,12 @@ interface BillsTableProps {
     readOnly?: boolean; // For preview mode
     className?: string;
     deal?: any; // Deal information for exchange deals
+    car?: any; // Car data for the deal
     carTakenFromClient?: any; // Car taken from client for exchange deals
     selectedCustomer?: any; // Selected customer for display
 }
 
-const BillsTable: React.FC<BillsTableProps> = ({ bills, loading = false, onDownloadPDF, downloadingPDF, readOnly = false, className = '', deal, carTakenFromClient, selectedCustomer }) => {
+const BillsTable: React.FC<BillsTableProps> = ({ bills, loading = false, onDownloadPDF, downloadingPDF, readOnly = false, className = '', deal, car, carTakenFromClient, selectedCustomer }) => {
     const { t } = getTranslation();
 
     // Helper function to get bill amount based on bill type and payment method
@@ -128,7 +129,7 @@ const BillsTable: React.FC<BillsTableProps> = ({ bills, loading = false, onDownl
                             <tr className="bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-200 dark:border-blue-700">
                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                                        معرف سيارة العميل
+                                        {t('car_taken_from_client_label')}
                                     </span>
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
@@ -136,6 +137,27 @@ const BillsTable: React.FC<BillsTableProps> = ({ bills, loading = false, onDownl
                                 </td>
                                 <td className="px-4 py-3 text-sm">
                                     <span className="text-green-600 dark:text-green-400 font-medium">{formatCurrency(carTakenFromClient.buy_price || 0)}</span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{formatDate(deal.created_at)}</td>
+                                <td className="px-4 py-3 text-center">
+                                    <span className="text-gray-500 dark:text-gray-400 text-xs">-</span>
+                                </td>
+                            </tr>
+                        )}
+
+                        {/* Add special row for financing assistance intermediary deals showing bank transfer order */}
+                        {deal?.deal_type === 'financing_assistance_intermediary' && car && (
+                            <tr className="bg-purple-50 dark:bg-purple-900/20 border-b-2 border-purple-200 dark:border-purple-700">
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">
+                                        {t('bank_transfer_order_customer')}
+                                    </span>
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                                    {deal?.customers?.name || deal?.customer?.name || selectedCustomer?.name || t('unknown_customer')}
+                                </td>
+                                <td className="px-4 py-3 text-sm">
+                                    <span className="text-purple-600 dark:text-purple-400 font-medium">{formatCurrency((car?.sale_price || 0) - (deal?.amount || 0))}</span>
                                 </td>
                                 <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">{formatDate(deal.created_at)}</td>
                                 <td className="px-4 py-3 text-center">

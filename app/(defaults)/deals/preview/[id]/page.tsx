@@ -283,7 +283,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
     };
 
     const createContractData = (bill?: Bill): CarContract => {
-        // For intermediary deals, we need deal and car, but customer might not exist (seller_id and buyer_id instead)
+        // For intermediary deal, we need deal and car, but customer might not exist (seller_id and buyer_id instead)
         const isIntermediaryDeal = deal?.deal_type === 'intermediary';
 
         if (!deal || !car) throw new Error('Missing required data: deal or car');
@@ -293,23 +293,26 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             throw new Error('Missing required data: customer is required for non-intermediary deals');
         }
 
-        // For intermediary deals, we need seller and buyer info
+        // For intermediary deal, we need seller and buyer info
         if (isIntermediaryDeal && (!deal.seller || !deal.buyer)) {
             throw new Error('Missing required data: seller and buyer are required for intermediary deals');
         }
 
-        // Determine deal type for contract
-        let contractDealType: 'normal' | 'trade-in' | 'intermediary';
+        // Determine deal type for contract - now we pass the actual deal type
+        let contractDealType: string;
         if (deal.deal_type === 'exchange') {
             contractDealType = 'trade-in';
         } else if (deal.deal_type === 'intermediary') {
             contractDealType = 'intermediary';
+        } else if (deal.deal_type === 'financing_assistance_intermediary') {
+            contractDealType = 'financing_assistance_intermediary';
         } else {
-            contractDealType = 'normal';
+            // Pass the actual deal type for all other types
+            contractDealType = deal.deal_type;
         }
 
         return {
-            dealType: contractDealType,
+            dealType: contractDealType as any, // Cast to satisfy TypeScript
             dealDate: new Date(deal.created_at).toISOString().split('T')[0],
 
             // Company info (always the dealership/intermediary)
@@ -357,8 +360,8 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
             carEngineNumber: '', // Would need to be added to car data
             carKilometers: car.kilometers,
 
-            // Deal amount - use car's selling price instead of deal.amount
-            dealAmount: deal.selling_price || 0,
+            // Deal amount - for exchange deals, use customer_car_eval_value, otherwise use selling_price
+            dealAmount: deal.deal_type === 'exchange' && deal.customer_car_eval_value ? deal.customer_car_eval_value : deal.selling_price || 0,
 
             // Payment Methods - include if they exist
             ...(paymentMethods.length > 0 && {
@@ -588,14 +591,16 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                             </div>
 
                             {/* Row 5: Profit/Loss */}
-                            <div className="grid grid-cols-3 gap-4 mb-3 py-2 border-t border-gray-200 dark:border-gray-600 pt-2">
-                                <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
-                                <div className="text-center">
-                                    <span className={`text-sm font-bold ${(car.sale_price || 0) - (car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        ₪{((car.sale_price || 0) - (car.buy_price || 0)).toFixed(0)}
-                                    </span>
+                            {deal.deal_type !== 'intermediary' && deal.deal_type !== 'financing_assistance_intermediary' && (
+                                <div className="grid grid-cols-3 gap-4 mb-3 py-2 border-t border-gray-200 dark:border-gray-600 pt-2">
+                                    <div className="text-sm font-bold text-gray-700 dark:text-white text-right">{t('profit_loss')}</div>
+                                    <div className="text-center">
+                                        <span className={`text-sm font-bold ${(car.sale_price || 0) - (car.buy_price || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            ₪{((car.sale_price || 0) - (car.buy_price || 0)).toFixed(0)}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -881,7 +886,7 @@ const PreviewDeal = ({ params }: { params: { id: string } }) => {
                     </div>
                 )}
                 {/* Bills Section */}
-                <BillsTable bills={bills} loading={false} readOnly={true} deal={deal} carTakenFromClient={carTakenFromClient} selectedCustomer={customer} />
+                <BillsTable bills={bills} loading={false} readOnly={true} deal={deal} car={car} carTakenFromClient={carTakenFromClient} selectedCustomer={customer} />
                 {/* Actions */}
                 <div className="panel">
                     <div className="mb-5">
