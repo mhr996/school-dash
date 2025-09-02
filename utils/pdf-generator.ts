@@ -334,8 +334,9 @@ export const printElement = (elementId: string): void => {
         <html>
         <head>
             <title>Print</title>
+            <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
             <style>
-                body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+                body { font-family: 'Noto Sans Arabic', 'Noto Sans', 'Arial Unicode MS', 'Tahoma', 'DejaVu Sans', 'Liberation Sans', 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; }
                 @media print {
                     body { margin: 0; }
                 }

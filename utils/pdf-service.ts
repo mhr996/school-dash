@@ -57,7 +57,7 @@ export class PDFService {
 
                 this.browser = await puppeteerCore.launch({
                     executablePath,
-                    args: chromium.args,
+                    args: [...chromium.args, '--disable-web-security', '--disable-features=VizDisplayCompositor', '--font-render-hinting=none'],
                     headless: chromium.headless,
                     defaultViewport: chromium.defaultViewport,
                 });
@@ -67,7 +67,7 @@ export class PDFService {
 
                 this.browser = await puppeteer.launch({
                     headless: true,
-                    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-web-security', '--disable-features=VizDisplayCompositor', '--font-render-hinting=none'],
                 });
                 console.log('Browser launched successfully with local puppeteer');
             }
@@ -138,8 +138,11 @@ export class PDFService {
             // Set viewport for consistent rendering
             await page.setViewport({ width: 1200, height: 800 });
 
-            // Load the HTML content
+            // Load the HTML content and wait for network to be idle (including font loading)
             await page.setContent(html, { waitUntil: 'networkidle0' });
+
+            // Additional delay to ensure fonts are loaded (especially important for Arabic fonts on production)
+            await new Promise((resolve) => setTimeout(resolve, 2000));
 
             // Generate PDF
             const pdfBuffer = await page.pdf({

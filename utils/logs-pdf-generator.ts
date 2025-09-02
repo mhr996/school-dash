@@ -99,6 +99,9 @@ export class LogsPDFGenerator {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${t('activity_logs')} ${t('report') || 'דוח'}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts with Arabic support -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         @page { 
             size: A4 landscape; 
@@ -109,12 +112,14 @@ export class LogsPDFGenerator {
             print-color-adjust: exact !important;
         }
         body { 
-            font-family: Arial, sans-serif; 
+            font-family: 'Cairo', 'Noto Sans Arabic', 'Noto Sans', 'Arial Unicode MS', 'Tahoma', 'DejaVu Sans', 'Liberation Sans', 'Segoe UI', Arial, sans-serif; 
             font-size: 10px; 
             line-height: 1.3; 
             margin: 0;
             padding: 0;
             width: 100%;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
         }
         .avoid-break-inside { page-break-inside: avoid; }
         .compact-section { margin-bottom: 12px; }
