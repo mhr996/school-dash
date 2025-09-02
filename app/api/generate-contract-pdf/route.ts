@@ -469,10 +469,22 @@ function generateEnglishContractHTML(contract: CarContract, companyInfo: any): s
                         </svg>
                         Terms and Conditions
                     </h2>
-                    <div class="grid grid-cols-1 gap-1 text-xs">
-                        <div class="bg-white rounded p-2 border border-red-200">• Vehicle sold "as is" with no warranties</div>
-                        <div class="bg-white rounded p-2 border border-red-200">• Ownership transfer within ${contract.ownershipTransferDays} days</div>
-                        <div class="bg-white rounded p-2 border border-red-200">• Agreement binding upon both parties once signed</div>
+                    <div class="grid grid-cols-2 gap-4 text-xs">
+                        <div class="space-y-1">
+                            <!-- Original Terms -->
+                            <div class="bg-white rounded p-2 border border-red-200">• Vehicle sold "as is" with no warranties</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• Ownership transfer within ${contract.ownershipTransferDays} days</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• Agreement binding upon both parties once signed</div>
+                            <!-- New Terms -->
+                            <div class="bg-white rounded p-2 border border-red-200">• Vehicle possession transfers to buyer on (${formatDate(contract.dealDate)}) and parties agree that from transfer date, vehicle belongs to buyer exclusively, even if formal ownership transfer hasn't been completed at DMV</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• Seller commits to bear all parking, traffic fines or other payments related to vehicle use until delivery date</div>
+                        </div>
+                        <div class="space-y-1">
+                            <div class="bg-white rounded p-2 border border-red-200">• Parties agree that ownership transfer expenses will be borne by the buyer</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• Party breaching this contract materially shall pay other party 2000 NIS as predetermined compensation without proof of damage</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• Parties agree that Auto Market purchases vehicles from both organized suppliers and private clients and has no knowledge of depreciation or insurance history, buyer must verify this information</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• Buyer declares having inspected the vehicle's external, internal and mechanical condition and found it in good working order to their satisfaction</div>
+                        </div>
                     </div>
                 </div>
 
@@ -902,11 +914,23 @@ function generateArabicContractHTML(contract: CarContract, companyInfo: any): st
                             <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1z" clip-rule="evenodd" />
                         </svg>
                     </h2>
-                    <ul class="space-y-1 text-xs text-right list-disc list-inside text-red-700">
-                        <li>يضمن البائع أن المركبة خالية من أي رهون أو أعباء</li>
-                        <li>تباع المركبة "كما هي" دون أي ضمانات صريحة أو ضمنية</li>
-                        <li>يوافق البائع على نقل الملكية خلال ${contract.ownershipTransferDays} أيام</li>
-                    </ul>
+                    <div class="grid grid-cols-2 gap-4 text-xs text-right">
+                        <div class="space-y-2">
+                            <!-- Original Terms -->
+                            <div class="bg-white rounded p-2 border border-red-200">• يضمن البائع أن المركبة خالية من أي رهون أو أعباء</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• تباع المركبة "كما هي" دون أي ضمانات صريحة أو ضمنية</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• يوافق البائع على نقل الملكية خلال ${contract.ownershipTransferDays} أيام</div>
+                            <!-- New Terms -->
+                            <div class="bg-white rounded p-2 border border-red-200">• تنتقل حيازة المركبة إلى المشتري في (${formatDate(contract.dealDate)}) ويتفق الطرفان على أنه من تاريخ نقل الحيازة ستكون المركبة ملك المشتري حصرياً، حتى لو لم يتم نقل الملكية الرسمي في دائرة النقل</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• يلتزم البائع بتحمل جميع مخالفات الوقوف أو المرور أو أي مدفوعات أخرى متعلقة باستخدام المركبة حتى تاريخ التسليم</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="bg-white rounded p-2 border border-red-200">• يتفق الطرفان على أن تكاليف نقل الملكية يتحملها المشتري</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• الطرف المخل إخلالاً جوهرياً بالعقد يدفع للطرف الآخر مبلغ 2000 شيكل كتعويض ثابت ومتفق عليه مسبقاً دون إثبات ضرر</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• متفق بين الطرفين أن أوتو شوق تشتري المركبات من موردين منظمين ومن عملاء خاصين وأنه لا علم لها بانخفاض القيمة أو التاريخ التأميني وأن على المشتري فحص هذه البيانات</div>
+                            <div class="bg-white rounded p-2 border border-red-200">• يقر المشتري أنه فحص المركبة وحالتها الخارجية والداخلية والميكانيكية ووجدها في حالة جيدة ومرضية له</div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Signatures -->
@@ -1340,10 +1364,22 @@ function generateHebrewContractHTML(contract: CarContract, companyInfo: any): st
                                 <path fill-rule="evenodd" d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H6zm1 2a1 1 0 000 2h6a1 1 0 100-2H7zm6 7a1 1 0 011 1v3a1 1 0 11-2 0v-3a1 1 0 011-1zm-3 3a1 1 0 100 2h.01a1 1 0 100-2H10zm-4 1a1 1 0 011-1h.01a1 1 0 110 2H7a1 1 0 01-1-1z" clip-rule="evenodd" />
                             </svg>
                         </h2>
-                        <div class="space-y-2 text-xs text-right">
-                            • המוכר מבטיח כי הרכב נקי מכל שעבודים או החרמות.<br/>
-                            • הרכב נמכר "כפי שהוא" ללא כל אחריות מפורשת או משתמעת.<br/>
-                            • המוכר מסכים להעביר בעלות תוך ${contract.ownershipTransferDays} ימים.
+                        <div class="grid grid-cols-2 gap-4 text-xs text-right">
+                            <div class="space-y-2">
+                                <!-- Original Terms -->
+                                <div class="bg-white rounded p-2 border border-red-200">• המוכר מבטיח כי הרכב נקי מכל שעבודים או החרמות</div>
+                                <div class="bg-white rounded p-2 border border-red-200">• הרכב נמכר "כפי שהוא" ללא כל אחריות מפורשת או משתמעת</div>
+                                <div class="bg-white rounded p-2 border border-red-200">• המוכר מסכים להעביר בעלות תוך ${contract.ownershipTransferDays} ימים</div>
+                                <!-- New Terms -->
+                                <div class="bg-white rounded p-2 border border-red-200">• החזקה ברכב תימסר לקונה (${formatDate(contract.dealDate)}) ומוסכם על הצדדים כי מיום העברת החזקה יהיה הרכב של הקונה ושלו בלבד, גם אם טרם הועברה הבעלות הפורמלית במשרד התחבורה ו/או משרד הרישוי</div>
+                                <div class="bg-white rounded p-2 border border-red-200">• המוכר מתחייב לשאת בכל קנס בגין חניה או תעבורה או כל תשלום אחר הקשור לשימוש בכלי הרכב, עד מועד המסירה</div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="bg-white rounded p-2 border border-red-200">• הצדדים מסכימים כי הוצאות העברת הבעלות יחולו על הקונה</div>
+                                <div class="bg-white rounded p-2 border border-red-200">• צד המפר הפרה יסודית את החוזה ישלם לצד מנגד סך של 2000 ש"ח, כפיצוי קבוע ומוסכם מראש, ללא הוכחת נזק</div>
+                                <div class="bg-white rounded p-2 border border-red-200">• מוסכם בין הצדדים כי אוטו שוק רוכשת כלי רכב הן מספקי רכב מסודרים והן מלקוחות פרטיים וכי לא ידוע לה על הורדת ערך או עבר ביטוחי בעניינים וכי מחובת הרוכש לבדוק נתונים אלה</div>
+                                <div class="bg-white rounded p-2 border border-red-200">• הקונה מצהיר כי בדק את הרכב, את מצבו החיצוני, הפנימי והמכני, ומצא כי הרכב במצב תקין וטוב לשביעת רצונו</div>
+                            </div>
                         </div>
                     </div>
                 </div>
