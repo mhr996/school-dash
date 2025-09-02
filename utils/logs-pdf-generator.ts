@@ -26,8 +26,15 @@ export class LogsPDFGenerator {
         // Fetch company info
         const companyInfo = await getCompanyInfo();
 
+        // Sort logs by car.created_at from newest to oldest (same as logs page)
+        const sortedLogs = [...logs].sort((a, b) => {
+            const dateA = new Date(a.car?.created_at || 0);
+            const dateB = new Date(b.car?.created_at || 0);
+            return dateB.getTime() - dateA.getTime();
+        });
+
         // Generate HTML for all records
-        const html = this.createContractHeaderHTML(logs, billsData, t, companyInfo);
+        const html = this.createContractHeaderHTML(sortedLogs, billsData, t, companyInfo);
 
         // Call API
         const response = await fetch('/api/generate-logs-pdf', {
@@ -79,6 +86,10 @@ export class LogsPDFGenerator {
 
     private static createContractHeaderHTML(logs: Log[], billsData: any, t: any, companyInfo: any): string {
         const currentDate = new Date().toLocaleDateString();
+        const { i18n } = getTranslation();
+        const isRTL = i18n.language === 'he' || i18n.language === 'ae';
+        const direction = isRTL ? 'rtl' : 'ltr';
+        const textAlign = isRTL ? 'right' : 'left';
 
         return `
 <!DOCTYPE html>
@@ -86,7 +97,7 @@ export class LogsPDFGenerator {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Activity Logs Report</title>
+    <title>${t('activity_logs')} ${t('report') || 'דוח'}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @page { 
@@ -118,7 +129,7 @@ export class LogsPDFGenerator {
         th, td { 
             border: 1px solid #e5e7eb; 
             padding: 4px 3px; 
-            text-align: left; 
+            text-align: ${textAlign}; 
             vertical-align: top;
             word-wrap: break-word;
             font-size: 8px;
@@ -165,7 +176,7 @@ export class LogsPDFGenerator {
     </style>
 </head>
 <body>
-    <div class="bg-white w-full max-w-none avoid-break-inside" style="direction: ltr">
+    <div class="bg-white w-full max-w-none avoid-break-inside" style="direction: ${direction}">
 
         <!-- Modern Colorful Header (Same as Deal Contract) -->
         <div class="relative overflow-hidden w-full">
@@ -187,8 +198,8 @@ export class LogsPDFGenerator {
                         `
                                 : ''
                         }
-                        <div class="text-left">
-                            <h1 class="text-xl font-bold mb-1">${companyInfo?.name || 'Car Dealership'}</h1>
+                        <div class="text-${isRTL ? 'right' : 'left'}">
+                            <h1 class="text-xl font-bold mb-1 text-${isRTL ? 'right' : 'left'}">${companyInfo?.name || t('car_dealership') || 'מכירת רכבים'}</h1>
                             <div class="space-y-0.5 text-xs opacity-90">
                                 ${
                                     companyInfo?.address
@@ -222,7 +233,7 @@ export class LogsPDFGenerator {
                                             <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
                                             <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" />
                                         </svg>
-                                        <span>Tax ID: ${companyInfo.tax_number}</span>
+                                        <span>${t('tax_id') || 'מספר עוסק'}: ${companyInfo.tax_number}</span>
                                     </p>
                                 `
                                         : ''
@@ -232,7 +243,7 @@ export class LogsPDFGenerator {
                     </div>
 
                     <!-- Report Title and Date -->
-                    <div class="text-right text-white">
+                    <div class="text-${isRTL ? 'left' : 'right'} text-white">
                         <h2 class="text-2xl font-bold mb-1">${t('activity_logs')}</h2>
                         <div class="text-sm opacity-90">
                             <p>${t('generated_on')}: ${currentDate}</p>
@@ -252,7 +263,7 @@ export class LogsPDFGenerator {
                         <th>${t('car_model_details')}</th>
                         <th>${t('purchase_date')} / ${t('provider_name')} / ${t('purchase_price')}</th>
                         <th>${t('sale_date')} / ${t('buyer_name')} / ${t('sale_price')}</th>
-                        <th>${t('commission')}</th>
+                        <th>${t('commission') || t('profit_commission') || 'עמלה'}</th>
                         <th>${t('deal_status')}</th>
                         <th>${t('deal_type')}</th>
                         <th>${t('payment_receipt_type')} / ${t('amount')}</th>
@@ -281,7 +292,7 @@ export class LogsPDFGenerator {
                 <td class="data-cell amount">${this.getCommission(log, t)}</td>
                 <td class="data-cell">${this.getDealStatus(log, t)}</td>
                 <td class="data-cell">${this.getDealType(log, t)}</td>
-                <td class="data-cell">${this.getPaymentReceiptInfo(log, t)}</td>
+                <td class="data-cell">${this.getPaymentReceiptInfo(log, billsData, t)}</td>
                 <td class="data-cell">${this.getInvoiceInfo(log, billsData, t)}</td>
             </tr>
         `,
@@ -301,8 +312,8 @@ export class LogsPDFGenerator {
 
         const car = log.car;
         const provider = car.providers || car.provider_details;
-        const providerName = provider?.name || t('not_available');
-        const purchaseDate = car.purchase_date ? formatDate(car.purchase_date) : t('not_available');
+        const providerName = provider?.name || car.provider || t('not_available');
+        const purchaseDate = car.created_at ? formatDate(car.created_at) : t('not_available');
         const purchasePrice = car.buy_price ? `₪${car.buy_price.toLocaleString()}` : t('not_available');
 
         return `${purchaseDate}<br><span style="color: #6b7280; font-size: 8px;">${providerName}<br>${purchasePrice}</span>`;
@@ -312,9 +323,10 @@ export class LogsPDFGenerator {
         if (!log.deal) return t('not_available');
 
         const deal = log.deal;
-        const saleDate = deal.sale_date ? formatDate(deal.sale_date) : t('not_available');
-        const buyerName = deal.customer_name || t('not_available');
-        const salePrice = deal.selling_price ? `₪${deal.selling_price.toLocaleString()}` : t('not_available');
+        const customer = deal.customer || deal.customers;
+        const saleDate = deal.created_at ? formatDate(deal.created_at) : t('not_available');
+        const buyerName = customer?.name || deal.customer_name || t('not_available');
+        const salePrice = deal.selling_price ? `₪${deal.selling_price.toLocaleString()}` : deal.amount ? `₪${deal.amount.toLocaleString()}` : t('not_available');
 
         return `${saleDate}<br><span style="color: #6b7280; font-size: 8px;">${buyerName}<br>${salePrice}</span>`;
     }
@@ -340,29 +352,40 @@ export class LogsPDFGenerator {
         return this.getLocalizedDealType(log.deal.deal_type, t);
     }
 
-    private static getPaymentReceiptInfo(log: Log, t: any): string {
-        if (!log.deal) return t('not_available');
+    private static getPaymentReceiptInfo(log: Log, billsData: any, t: any): string {
+        if (!log.deal || !log.deal.id) return t('not_available');
 
-        const deal = log.deal;
-        let paymentInfo = '';
+        const dealBills = billsData[log.deal.id] || [];
 
-        // Payment type
-        if (deal.payment_type) {
-            const paymentType = this.getLocalizedPaymentType(deal.payment_type, t);
-            paymentInfo += paymentType;
+        // Find receipt-type bills (receipt_only or tax_invoice_receipt)
+        const receiptBills = dealBills.filter((bill: any) => bill.bill_type === 'receipt_only' || bill.bill_type === 'tax_invoice_receipt');
+
+        if (receiptBills.length === 0) {
+            return `<span style="color: #9ca3af;">${t('not_available')}</span>`;
         }
 
-        // Payment method
-        if (deal.payment_method) {
-            paymentInfo += paymentInfo ? `<br><span style="color: #6b7280; font-size: 8px;">${deal.payment_method}</span>` : deal.payment_method;
+        // For now, show the first receipt bill (you can modify this logic if needed)
+        const bill = receiptBills[0];
+
+        // Calculate total from bill_payments if available, otherwise use bill amounts
+        let totalAmount = 0;
+
+        if (bill.bill_payments && Array.isArray(bill.bill_payments)) {
+            // Sum up all payments linked to this bill
+            totalAmount = bill.bill_payments.reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+        } else {
+            // Fallback to bill's total amounts
+            totalAmount = bill.total_with_tax || bill.total || bill.bill_amount || 0;
         }
 
-        // Amount
-        if (deal.amount) {
-            paymentInfo += `<br><span style="color: #6b7280; font-size: 8px;">₪${deal.amount.toLocaleString()}</span>`;
+        const billTypeText = this.getLocalizedBillType(bill.bill_type, t);
+        let receiptInfo = `#${bill.id || t('not_available')}<br><span style="color: #6b7280; font-size: 8px;">${billTypeText}<br>₪${totalAmount.toLocaleString()}</span>`;
+
+        if (receiptBills.length > 1) {
+            receiptInfo += `<br><span style="color: #6b7280; font-size: 7px;">+${receiptBills.length - 1} ${t('more')}</span>`;
         }
 
-        return paymentInfo || t('not_available');
+        return receiptInfo;
     }
 
     private static getInvoiceInfo(log: Log, billsData: any, t: any): string {
@@ -394,7 +417,7 @@ export class LogsPDFGenerator {
 
             // If there are multiple invoices, show count like in logs page
             if (invoiceBills.length > 1) {
-                invoiceInfo += `<br><span style="color: #6b7280; font-size: 7px;">+${invoiceBills.length - 1} more</span>`;
+                invoiceInfo += `<br><span style="color: #6b7280; font-size: 7px;">+${invoiceBills.length - 1} ${t('more')}</span>`;
             }
 
             return invoiceInfo;
@@ -404,15 +427,23 @@ export class LogsPDFGenerator {
     }
 
     private static getLocalizedDealType(dealType: string, t: any): string {
-        const dealTypeMap: { [key: string]: string } = {
-            normal: 'normal',
-            exchange: 'exchange',
-            intermediary: 'intermediary',
-            trade_in: 'trade_in',
+        // Try the prefixed translation first
+        let translated = t(`deal_type_${dealType}`);
+        if (translated !== `deal_type_${dealType}`) {
+            return translated;
+        }
+
+        // Fallback to basic translations or Hebrew defaults
+        const fallbacks: { [key: string]: string } = {
+            normal: 'רגיל',
+            exchange: 'החלפה',
+            intermediary: 'תיווך',
+            trade_in: 'מסחר נכנס',
+            new_sale: 'מכירה חדשה',
+            used_sale: 'מכירה יד שנייה',
         };
 
-        const translationKey = dealTypeMap[dealType];
-        return translationKey ? t(translationKey) : dealType.replace('_', ' ');
+        return fallbacks[dealType] || dealType.replace('_', ' ');
     }
 
     private static getLocalizedPaymentType(paymentType: string, t: any): string {
@@ -426,5 +457,9 @@ export class LogsPDFGenerator {
 
         const translationKey = paymentTypeMap[paymentType];
         return translationKey ? t(translationKey) : t(paymentType) || paymentType.replace('_', ' ');
+    }
+
+    private static getLocalizedBillType(billType: string, t: any): string {
+        return t(`bill_type_${billType}`) || billType.replace('_', ' ');
     }
 }

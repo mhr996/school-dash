@@ -1397,5 +1397,6 @@
     "car_info": "معلومات السيارة",
     "no_car_assigned": "لم يتم تخصيص سيارة",
     "car_taken_from_client_label": "معرف سيارة العميل",
-    "bank_transfer_order_customer": "أمر تحويل بنكي للزبون"
+    "bank_transfer_order_customer": "أمر تحويل بنكي للزبون",
+    "tax_id": "الرقم الضريبي"
 }

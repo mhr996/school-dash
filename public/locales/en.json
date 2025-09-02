@@ -1258,5 +1258,6 @@
     "car_info": "Car Info",
     "no_car_assigned": "No car assigned",
     "car_taken_from_client_label": "Car Taken From Client",
-    "bank_transfer_order_customer": "Bank Transfer Order for Customer"
+    "bank_transfer_order_customer": "Bank Transfer Order for Customer",
+    "tax_id": "Tax ID"
 }

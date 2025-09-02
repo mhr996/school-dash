@@ -1006,5 +1006,7 @@
     "car_info": "מידע רכב",
     "no_car_assigned": "לא שויך רכב",
     "car_taken_from_client_label": "הרכב נלקח מהלקוח",
-    "bank_transfer_order_customer": "הוראת העברה בנקאית ללקוח"
+    "bank_transfer_order_customer": "הוראת העברה בנקאית ללקוח",
+    "tax_id": "מספר עוסק",
+    "commission": "עמלה"
 }
