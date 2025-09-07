@@ -170,109 +170,112 @@ const HomePage = () => {
                 // Get date ranges based on current filter
                 const { currentStart, previousStart, previousEnd } = getDateRange(timeFilter);
 
-                // Fetch basic counts with individual error handling
-                let carsQuery = supabase.from('cars').select('*', { count: 'exact', head: true });
-                let dealsQuery = supabase.from('deals').select('*', { count: 'exact', head: true });
-                let customersQuery = supabase.from('customers').select('*', { count: 'exact', head: true });
-                let providersQuery = supabase.from('providers').select('*', { count: 'exact', head: true });
+                // Consolidate all database queries into fewer parallel calls
+                const sixMonthsAgo = new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1);
 
-                // Apply date filters if not "all time"
-                if (timeFilter !== 'all') {
-                    carsQuery = carsQuery.gte('created_at', currentStart.toISOString());
-                    dealsQuery = dealsQuery.gte('created_at', currentStart.toISOString());
-                    customersQuery = customersQuery.gte('created_at', currentStart.toISOString());
-                    providersQuery = providersQuery.gte('created_at', currentStart.toISOString());
-                }
+                const [
+                    // Current period counts
+                    carsResult,
+                    dealsResult,
+                    customersResult,
+                    providersResult,
+                    // Previous period counts (for growth calculation)
+                    previousCarsResult,
+                    previousDealsResult,
+                    previousCustomersResult,
+                    // Revenue data
+                    { data: revenueData },
+                    { data: previousRevenueData },
+                    // Total cars sale price
+                    { data: carsWithSalePrices },
+                    // Chart data (all in single queries)
+                    { data: allDealsForChart },
+                    { data: allCarsForChart },
+                    { data: allRevenueForChart },
+                    // Additional data
+                    { data: dealTypesData },
+                    { data: carStatusData },
+                    { data: recentActivity },
+                ] = await Promise.all([
+                    // Current period queries
+                    timeFilter === 'all'
+                        ? supabase.from('cars').select('*', { count: 'exact', head: true })
+                        : supabase.from('cars').select('*', { count: 'exact', head: true }).gte('created_at', currentStart.toISOString()),
 
-                const [carsResult, dealsResult, customersResult, providersResult] = await Promise.all([carsQuery, dealsQuery, customersQuery, providersQuery]);
+                    timeFilter === 'all'
+                        ? supabase.from('deals').select('*', { count: 'exact', head: true })
+                        : supabase.from('deals').select('*', { count: 'exact', head: true }).gte('created_at', currentStart.toISOString()),
 
-                if (carsResult.error) console.error('Cars query error:', carsResult.error);
-                if (dealsResult.error) console.error('Deals query error:', dealsResult.error);
-                if (customersResult.error) console.error('Customers query error:', customersResult.error);
-                if (providersResult.error) console.error('Providers query error:', providersResult.error);
+                    timeFilter === 'all'
+                        ? supabase.from('customers').select('*', { count: 'exact', head: true })
+                        : supabase.from('customers').select('*', { count: 'exact', head: true }).gte('created_at', currentStart.toISOString()),
 
-                console.log('Raw Supabase Results:', { carsResult, dealsResult, customersResult, providersResult });
+                    timeFilter === 'all'
+                        ? supabase.from('providers').select('*', { count: 'exact', head: true })
+                        : supabase.from('providers').select('*', { count: 'exact', head: true }).gte('created_at', currentStart.toISOString()),
 
+                    // Previous period queries (only if not 'all')
+                    timeFilter === 'all'
+                        ? Promise.resolve({ count: 0 })
+                        : supabase.from('cars').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
+
+                    timeFilter === 'all'
+                        ? Promise.resolve({ count: 0 })
+                        : supabase.from('deals').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
+
+                    timeFilter === 'all'
+                        ? Promise.resolve({ count: 0 })
+                        : supabase.from('customers').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
+
+                    // Revenue queries
+                    timeFilter === 'all'
+                        ? supabase.from('deals').select('amount, created_at').not('amount', 'is', null)
+                        : supabase.from('deals').select('amount, created_at').not('amount', 'is', null).gte('created_at', currentStart.toISOString()),
+
+                    timeFilter === 'all'
+                        ? Promise.resolve({ data: [] })
+                        : supabase.from('deals').select('amount').gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()).not('amount', 'is', null),
+
+                    // Total cars sale price (all cars regardless of date filter)
+                    supabase.from('cars').select('sale_price').not('sale_price', 'is', null),
+
+                    // Chart data queries (last 6 months)
+                    supabase.from('deals').select('created_at').gte('created_at', sixMonthsAgo.toISOString()),
+                    supabase.from('cars').select('created_at').gte('created_at', sixMonthsAgo.toISOString()),
+                    supabase.from('deals').select('amount, created_at').gte('created_at', sixMonthsAgo.toISOString()).not('amount', 'is', null),
+
+                    // Deals by type
+                    timeFilter === 'all' ? supabase.from('deals').select('deal_type') : supabase.from('deals').select('deal_type').gte('created_at', currentStart.toISOString()),
+
+                    // Cars by status
+                    timeFilter === 'all' ? supabase.from('cars').select('status') : supabase.from('cars').select('status').gte('created_at', currentStart.toISOString()),
+
+                    // Recent activity
+                    supabase.from('logs').select('*').order('created_at', { ascending: false }).limit(10),
+                ]);
+
+                // Process results
                 const totalCars = carsResult.count || 0;
                 const totalDeals = dealsResult.count || 0;
                 const totalCustomers = customersResult.count || 0;
                 const totalProviders = providersResult.count || 0;
 
-                console.log('Dashboard Stats:', { totalCars, totalDeals, totalCustomers, totalProviders });
-
-                // Fetch current period data
-                let currentCarsQuery = supabase.from('cars').select('*', { count: 'exact', head: true });
-                let currentDealsQuery = supabase.from('deals').select('*', { count: 'exact', head: true });
-                let currentCustomersQuery = supabase.from('customers').select('*', { count: 'exact', head: true });
-
-                if (timeFilter !== 'all') {
-                    currentCarsQuery = currentCarsQuery.gte('created_at', currentStart.toISOString());
-                    currentDealsQuery = currentDealsQuery.gte('created_at', currentStart.toISOString());
-                    currentCustomersQuery = currentCustomersQuery.gte('created_at', currentStart.toISOString());
-                }
-
-                const [currentCarsResult, currentDealsResult, currentCustomersResult] = await Promise.all([currentCarsQuery, currentDealsQuery, currentCustomersQuery]);
-
-                const currentCars = currentCarsResult.count || 0;
-                const currentDeals = currentDealsResult.count || 0;
-                const currentCustomers = currentCustomersResult.count || 0;
-
-                // Fetch previous period data for growth calculation
-                let previousCarsResult, previousDealsResult, previousCustomersResult;
-
-                if (timeFilter === 'all') {
-                    // For "all time", we can't calculate meaningful growth
-                    previousCarsResult = { count: 0 };
-                    previousDealsResult = { count: 0 };
-                    previousCustomersResult = { count: 0 };
-                } else {
-                    [previousCarsResult, previousDealsResult, previousCustomersResult] = await Promise.all([
-                        supabase.from('cars').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
-                        supabase.from('deals').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
-                        supabase.from('customers').select('*', { count: 'exact', head: true }).gte('created_at', previousStart.toISOString()).lt('created_at', previousEnd.toISOString()),
-                    ]);
-                }
-
                 const previousCars = previousCarsResult.count || 0;
                 const previousDeals = previousDealsResult.count || 0;
                 const previousCustomers = previousCustomersResult.count || 0;
 
-                // Fetch revenue data from deals
-                let revenueQuery = supabase.from('deals').select('amount, created_at').not('amount', 'is', null);
-                if (timeFilter !== 'all') {
-                    revenueQuery = revenueQuery.gte('created_at', currentStart.toISOString());
-                }
-
-                const { data: revenueData } = await revenueQuery;
-
                 const totalRevenue = revenueData?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0;
-                const monthlyRevenue = totalRevenue; // Since we're already filtering by time period
-
-                // Get previous period revenue for growth calculation
-                let previousMonthRevenue = 0;
-                if (timeFilter !== 'all') {
-                    const { data: previousRevenueData } = await supabase
-                        .from('deals')
-                        .select('amount')
-                        .gte('created_at', previousStart.toISOString())
-                        .lt('created_at', previousEnd.toISOString())
-                        .not('amount', 'is', null);
-
-                    previousMonthRevenue = previousRevenueData?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0;
-                }
-
-                // Fetch total cars sale price (all cars regardless of date filter)
-                const { data: carsWithSalePrices } = await supabase.from('cars').select('sale_price').not('sale_price', 'is', null);
-
+                const monthlyRevenue = totalRevenue;
+                const previousMonthRevenue = previousRevenueData?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0;
                 const totalCarsSalePrice = carsWithSalePrices?.reduce((sum, car) => sum + (car.sale_price || 0), 0) || 0;
 
                 // Calculate growth rates
-                const carsGrowth = timeFilter === 'all' ? 0 : calculateGrowth(currentCars || 0, previousCars || 0);
-                const dealsGrowth = timeFilter === 'all' ? 0 : calculateGrowth(currentDeals || 0, previousDeals || 0);
-                const customersGrowth = timeFilter === 'all' ? 0 : calculateGrowth(currentCustomers || 0, previousCustomers || 0);
+                const carsGrowth = timeFilter === 'all' ? 0 : calculateGrowth(totalCars || 0, previousCars || 0);
+                const dealsGrowth = timeFilter === 'all' ? 0 : calculateGrowth(totalDeals || 0, previousDeals || 0);
+                const customersGrowth = timeFilter === 'all' ? 0 : calculateGrowth(totalCustomers || 0, previousCustomers || 0);
                 const revenueGrowth = timeFilter === 'all' ? 0 : calculateGrowth(monthlyRevenue, previousMonthRevenue);
 
-                // Fetch chart data for last 6 months (keep this consistent regardless of filter)
+                // Process chart data efficiently in memory from already fetched data
                 const now = new Date();
                 const chartMonths = [];
                 const chartSales = [];
@@ -285,50 +288,40 @@ const HomePage = () => {
 
                     chartMonths.push(month.toLocaleDateString('en-US', { month: 'short' }));
 
-                    const monthDealsResult = await supabase.from('deals').select('*', { count: 'exact', head: true }).gte('created_at', month.toISOString()).lt('created_at', nextMonth.toISOString());
-                    const monthDeals = monthDealsResult.count || 0;
+                    // Count items for this month from already fetched data
+                    const monthDeals = (allDealsForChart || []).filter((deal) => {
+                        const dealDate = new Date(deal.created_at);
+                        return dealDate >= month && dealDate < nextMonth;
+                    }).length;
 
-                    const { data: monthRevenueData } = await supabase
-                        .from('deals')
-                        .select('amount')
-                        .gte('created_at', month.toISOString())
-                        .lt('created_at', nextMonth.toISOString())
-                        .not('amount', 'is', null);
+                    const monthCars = (allCarsForChart || []).filter((car) => {
+                        const carDate = new Date(car.created_at);
+                        return carDate >= month && carDate < nextMonth;
+                    }).length;
 
-                    const monthCarsResult = await supabase.from('cars').select('*', { count: 'exact', head: true }).gte('created_at', month.toISOString()).lt('created_at', nextMonth.toISOString());
-                    const monthCars = monthCarsResult.count || 0;
+                    const monthRevenueTotal = (allRevenueForChart || [])
+                        .filter((deal) => {
+                            const dealDate = new Date(deal.created_at);
+                            return dealDate >= month && dealDate < nextMonth;
+                        })
+                        .reduce((sum, deal) => sum + (deal.amount || 0), 0);
 
                     chartDeals.push(monthDeals);
                     chartSales.push(monthCars);
-                    chartRevenue.push(monthRevenueData?.reduce((sum, deal) => sum + (deal.amount || 0), 0) || 0);
+                    chartRevenue.push(monthRevenueTotal);
                 }
 
-                // Fetch deals by type
-                let dealTypesQuery = supabase.from('deals').select('deal_type');
-                if (timeFilter !== 'all') {
-                    dealTypesQuery = dealTypesQuery.gte('created_at', currentStart.toISOString());
-                }
-                const { data: dealTypesData } = await dealTypesQuery;
-
+                // Process deals by type
                 const dealsByType: { [key: string]: number } = {};
-                dealTypesData?.forEach((deal) => {
+                (dealTypesData || []).forEach((deal) => {
                     dealsByType[deal.deal_type] = (dealsByType[deal.deal_type] || 0) + 1;
                 });
 
-                // Fetch cars by status
-                let carStatusQuery = supabase.from('cars').select('status');
-                if (timeFilter !== 'all') {
-                    carStatusQuery = carStatusQuery.gte('created_at', currentStart.toISOString());
-                }
-                const { data: carStatusData } = await carStatusQuery;
-
+                // Process cars by status
                 const carsByStatus: { [key: string]: number } = {};
-                carStatusData?.forEach((car) => {
+                (carStatusData || []).forEach((car) => {
                     carsByStatus[car.status] = (carsByStatus[car.status] || 0) + 1;
                 });
-
-                // Fetch recent activity from logs
-                const { data: recentActivity } = await supabase.from('logs').select('*').order('created_at', { ascending: false }).limit(10);
 
                 setStats({
                     totalCars: totalCars || 0,
