@@ -116,14 +116,17 @@ const UsersList = () => {
         try {
             // Delete from users table first
             const { error: profileError } = await supabase.from('users').delete().eq('id', userToDelete.id);
-            if (profileError) throw profileError;
+            if (profileError) {
+                console.error('Profile deletion error:', profileError);
+                throw profileError;
+            }
 
             // Delete account from supabase auth using admin API
             const { data: sessionData } = await supabase.auth.getSession();
             const token = sessionData?.session?.access_token;
 
             if (token) {
-                // Call admin delete endpoint (you might need to create this)
+                // Call admin delete endpoint
                 const response = await fetch('/api/users/delete', {
                     method: 'DELETE',
                     headers: {
@@ -133,9 +136,16 @@ const UsersList = () => {
                     body: JSON.stringify({ userId: userToDelete.id }),
                 });
 
+                const result = await response.json();
+
                 if (!response.ok) {
-                    console.warn('Warning: Could not delete user from auth, but profile was deleted');
+                    console.warn('Auth deletion failed:', result.error);
+                    // Don't throw error here, just warn as profile is already deleted
+                } else {
+                    console.log('User deleted from auth successfully');
                 }
+            } else {
+                console.warn('No auth token available for deletion');
             }
 
             // Remove the user from state arrays.
@@ -152,9 +162,13 @@ const UsersList = () => {
             );
             setSelectedRecords([]);
             setAlert({ visible: true, message: t('user_deleted_successfully'), type: 'success' });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Deletion error:', error);
-            setAlert({ visible: true, message: t('error_deleting_user'), type: 'danger' });
+            setAlert({
+                visible: true,
+                message: error.message || t('error_deleting_user'),
+                type: 'danger',
+            });
         } finally {
             setShowConfirmModal(false);
             setUserToDelete(null);
@@ -170,16 +184,39 @@ const UsersList = () => {
         try {
             // Delete from users table (profiles)
             const { error: profileError } = await supabase.from('users').delete().in('id', ids);
-            if (profileError) throw profileError;
+            if (profileError) {
+                console.error('Bulk profile deletion error:', profileError);
+                throw profileError;
+            }
 
-            // Try to delete from auth (might not work for all users)
+            // Try to delete from auth (requires individual API calls)
             const { data: sessionData } = await supabase.auth.getSession();
             const token = sessionData?.session?.access_token;
 
             if (token) {
-                // Note: Bulk auth deletion would require multiple API calls
-                // For now, we'll just warn the user about potential auth cleanup needed
-                console.warn('Note: Auth cleanup may be needed for deleted users');
+                // Delete each user from auth individually
+                const authDeletionPromises = ids.map(async (userId: string) => {
+                    try {
+                        const response = await fetch('/api/users/delete', {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ userId }),
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            console.warn(`Failed to delete user ${userId} from auth:`, error);
+                        }
+                    } catch (error) {
+                        console.warn(`Error deleting user ${userId} from auth:`, error);
+                    }
+                });
+
+                // Wait for all auth deletions to complete (don't fail if some fail)
+                await Promise.allSettled(authDeletionPromises);
             }
 
             // Update state

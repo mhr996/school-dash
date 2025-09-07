@@ -92,7 +92,6 @@ const ComponentsUsersAccountSettingsTabs = () => {
             const { error: profileError } = await supabase.from('users').upsert({
                 id: user.id,
                 ...profileData, // Include all profile data
-                updated_at: new Date().toISOString(),
             });
 
             if (profileError) throw profileError;
@@ -132,7 +131,6 @@ const ComponentsUsersAccountSettingsTabs = () => {
             const { error } = await supabase.from('users').upsert({
                 id: user.id,
                 avatar_url: url,
-                updated_at: new Date().toISOString(),
             });
 
             if (error) throw error;

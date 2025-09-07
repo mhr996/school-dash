@@ -105,7 +105,6 @@ const EditUserPage = () => {
                     country: form.country,
                     address: form.address,
                     phone: form.phone,
-                    updated_at: new Date().toISOString(),
                 })
                 .eq('id', userId);
 

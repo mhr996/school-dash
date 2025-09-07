@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
         const token = authHeader.split(' ')[1];
 
-        // Verify the user's token with regular supabase client (not admin)
+        // Verify the user's token with admin client
         const {
             data: { user },
             error: authError,
@@ -31,20 +31,22 @@ export default async function handler(req, res) {
         }
 
         // Get user data from request body
-        const { email, userData, profileData } = req.body;
+        const { email, password, userData, profileData } = req.body;
 
-        if (!email) {
-            return res.status(400).json({ error: 'Email is required' });
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
         }
 
-        // Generate a random password (the user will reset this)
-        const temporaryPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).toUpperCase().slice(-2) + Math.random().toString(10).slice(-2);
+        // Validate password strength
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+        }
 
         // Create a new user with admin API
         const { data: newUserData, error: createError } = await supabaseAdmin.auth.admin.createUser({
             email: email,
-            password: temporaryPassword,
-            email_confirm: true,
+            password: password,
+            email_confirm: true, // Set account as fully active
             user_metadata: userData || {},
         });
 
@@ -58,20 +60,10 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Failed to get user ID after creation' });
         }
 
-        // Get the base URL from the request
-        const baseUrl = req.headers.origin || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        // Check if profile exists already (shouldn't for new users)
+        const { data: existingProfile } = await supabaseAdmin.from('users').select('*').eq('id', userId).single();
 
-        // Send password reset email using standard method for consistent behavior
-        // This will work with the default Supabase email templates
-        const { data: passwordResetData, error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(email, { redirectTo: `${baseUrl}/update-password` });
-
-        if (resetError) {
-            console.error('Error sending password reset email:', resetError);
-            // Don't return an error, just log it and proceed
-        }
-
-        // Check if profile exists already
-        const { data: existingProfile } = await supabaseAdmin.from('users').select('*').eq('id', userId).single(); // Prepare profile data with all fields matching the users table structure
+        // Prepare profile data with all fields matching the users table structure
         const profilePayload = {
             id: userId,
             email: email,
@@ -93,12 +85,14 @@ export default async function handler(req, res) {
 
         if (profileOperation.error) {
             console.error('Error with profile:', profileOperation.error);
+            // If profile creation fails, we should delete the auth user to maintain consistency
+            await supabaseAdmin.auth.admin.deleteUser(userId);
             return res.status(400).json({ error: profileOperation.error.message });
         }
 
         return res.status(200).json({
             success: true,
-            message: 'User created successfully and password reset email sent',
+            message: 'User created successfully with active account',
             user: newUserData.user,
         });
     } catch (error) {
