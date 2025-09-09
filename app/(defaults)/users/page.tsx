@@ -4,6 +4,7 @@ import IconEye from '@/components/icon/icon-eye';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconUser from '@/components/icon/icon-user';
+import IconSearch from '@/components/icon/icon-search';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
 import Link from 'next/link';
@@ -11,7 +12,6 @@ import React, { useEffect, useState } from 'react';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
-import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
 
@@ -49,8 +49,6 @@ const UsersList = () => {
     const router = useRouter();
     const [items, setItems] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
-    const [roles, setRoles] = useState<UserRole[]>([]);
-    const [schools, setSchools] = useState<School[]>([]);
 
     const [page, setPage] = useState(1);
     const PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -60,8 +58,6 @@ const UsersList = () => {
     const [selectedRecords, setSelectedRecords] = useState<User[]>([]);
 
     const [search, setSearch] = useState('');
-    const [roleFilter, setRoleFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
 
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'created_at',
@@ -77,36 +73,6 @@ const UsersList = () => {
         message: '',
         type: 'success',
     });
-
-    // Fetch roles
-    useEffect(() => {
-        const fetchRoles = async () => {
-            try {
-                const { data, error } = await supabase.from('user_roles').select('*').order('id');
-
-                if (error) throw error;
-                setRoles(data || []);
-            } catch (error) {
-                console.error('Error fetching roles:', error);
-            }
-        };
-        fetchRoles();
-    }, []);
-
-    // Fetch schools
-    useEffect(() => {
-        const fetchSchools = async () => {
-            try {
-                const { data, error } = await supabase.from('schools').select('id, name, code').eq('status', 'active').order('name');
-
-                if (error) throw error;
-                setSchools(data || []);
-            } catch (error) {
-                console.error('Error fetching schools:', error);
-            }
-        };
-        fetchSchools();
-    }, []);
 
     // Fetch users
     useEffect(() => {
@@ -155,13 +121,10 @@ const UsersList = () => {
                     item.phone?.toLowerCase().includes(search.toLowerCase()) ||
                     item.user_roles?.name_ar?.toLowerCase().includes(search.toLowerCase());
 
-                const matchesRole = !roleFilter || item.role_id.toString() === roleFilter;
-                const matchesStatus = !statusFilter || (statusFilter === 'active' ? item.is_active : !item.is_active);
-
-                return matchesSearch && matchesRole && matchesStatus;
+                return matchesSearch;
             }),
         );
-    }, [items, search, roleFilter, statusFilter]);
+    }, [items, search]);
 
     useEffect(() => {
         const sorted = sortBy(initialRecords, sortStatus.columnAccessor);
@@ -233,44 +196,22 @@ const UsersList = () => {
         }
     };
 
-    const roleOptions: SelectOption[] = [
-        { value: '', label: t('all_roles') },
-        ...roles.map((role) => ({
-            value: role.id.toString(),
-            label: role.name_ar,
-        })),
-    ];
-
-    const statusOptions: SelectOption[] = [
-        { value: '', label: t('all_statuses') },
-        { value: 'active', label: t('active') },
-        { value: 'inactive', label: t('inactive') },
-    ];
-
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
             {/* Header */}
-            <div className="mb-5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
+            <div className="mb-5 flex flex-col gap-5 px-5 md:items-start">
                 <div className="flex items-center gap-2">
-                    <IconUser className="shrink-0" />
-                    <h5 className="text-lg font-semibold dark:text-white-light">{t('users_management')}</h5>
+                    <IconUser className="shrink-0 text-primary" />
+                    <h5 className="text-lg font-semibold dark:text-white">{t('users_management')}</h5>
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">{t('user_management_description')}</div>
             </div>
 
-            {/* Search and Filters */}
+            {/* Search and Actions */}
             <div className="mb-4.5 flex flex-col gap-4 px-5 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center">
-                    <div className="flex-1">
-                        <input type="text" className="form-input w-full" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-                    </div>
-                    <div className="flex gap-2">
-                        <div className="w-48">
-                            <CustomSelect value={roleFilter} onChange={(value) => setRoleFilter(value as string)} options={roleOptions} placeholder={t('user_role_filter')} clearable />
-                        </div>
-                        <div className="w-48">
-                            <CustomSelect value={statusFilter} onChange={(value) => setStatusFilter(value as string)} options={statusOptions} placeholder={t('user_status_filter')} clearable />
-                        </div>
+                <div className="flex flex-1 items-center">
+                    <div className="relative flex-1">
+                        <input type="text" className="form-input ltr:pl-9 rtl:pr-9" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <IconSearch className="absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ltr:left-3 rtl:right-3" />
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -386,7 +327,7 @@ const UsersList = () => {
                     onSortStatusChange={setSortStatus}
                     selectedRecords={selectedRecords}
                     onSelectedRecordsChange={setSelectedRecords}
-                    minHeight={200}
+                    minHeight={300}
                     paginationText={({ from, to, totalRecords }) => `${t('showing')} ${from} ${t('to')} ${to} ${t('of')} ${totalRecords} ${t('entries')}`}
                     noRecordsText={t('no_users_found')}
                     loadingText={t('loading')}

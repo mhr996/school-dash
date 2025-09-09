@@ -4,6 +4,7 @@ import IconEye from '@/components/icon/icon-eye';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconBuilding from '@/components/icon/icon-building';
+import IconSearch from '@/components/icon/icon-search';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
 import Link from 'next/link';
@@ -11,7 +12,6 @@ import React, { useEffect, useState } from 'react';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
-import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
 
@@ -47,8 +47,6 @@ const SchoolsList = () => {
     const [selectedRecords, setSelectedRecords] = useState<School[]>([]);
 
     const [search, setSearch] = useState('');
-    const [typeFilter, setTypeFilter] = useState('');
-    const [statusFilter, setStatusFilter] = useState('');
 
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
         columnAccessor: 'created_at',
@@ -108,16 +106,10 @@ const SchoolsList = () => {
                     item.email?.toLowerCase().includes(searchTerm) ||
                     item.phone?.toLowerCase().includes(searchTerm);
 
-                // Type filter
-                const matchesType = !typeFilter || item.type.toLowerCase() === typeFilter.toLowerCase();
-
-                // Status filter
-                const matchesStatus = !statusFilter || item.status.toLowerCase() === statusFilter.toLowerCase();
-
-                return matchesSearch && matchesType && matchesStatus;
+                return matchesSearch;
             }),
         );
-    }, [items, search, typeFilter, statusFilter]);
+    }, [items, search]);
 
     useEffect(() => {
         const data2 = sortBy(initialRecords, sortStatus.columnAccessor);
@@ -177,89 +169,35 @@ const SchoolsList = () => {
         setShowBulkDeleteModal(false);
     };
 
-    const schoolTypeOptions: SelectOption[] = [
-        { value: '', label: t('all_types') },
-        {
-            value: 'مجلس',
-            label: 'مجلس',
-        },
-        {
-            value: 'كلية',
-            label: 'كلية',
-        },
-        {
-            value: 'مدرسة',
-            label: 'مدرسة',
-        },
-        {
-            value: 'روضه',
-            label: 'روضه',
-        },
-    ];
-
-    const statusOptions: SelectOption[] = [
-        { value: '', label: t('all_statuses') },
-        {
-            value: 'active',
-            label: t('active'),
-        },
-        {
-            value: 'inactive',
-            label: t('inactive'),
-        },
-    ];
-
     return (
-        <div className="panel">
+        <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
             {/* Header */}
-            <div className="mb-4.5 flex flex-col gap-5 md:flex-row md:items-center">
+            <div className="mb-5 flex flex-col gap-5 px-5 md:items-start">
                 <div className="flex items-center gap-2">
                     <IconBuilding className="h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold">{t('schools_management')}</h2>
-                </div>
-                <div className="ltr:ml-auto rtl:mr-auto">
-                    <Link href="/schools/add" className="btn btn-primary gap-2">
-                        <IconPlus />
-                        {t('add_school')}
-                    </Link>
+                    <h2 className="text-xl font-bold dark:text-white">{t('schools_management')}</h2>
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="mb-5 flex flex-col gap-5 md:flex-row md:items-end">
-                <div className="md:w-1/3">
-                    <label htmlFor="search">{t('search')}</label>
-                    <input id="search" type="text" className="form-input" placeholder={t('search_schools')} value={search} onChange={(e) => setSearch(e.target.value)} />
+            {/* Search and Actions */}
+            <div className="mb-4.5 flex flex-col gap-4 px-5 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-1 items-center">
+                    <div className="relative flex-1 max-w-[400px]">
+                        <input type="text" className="form-input ltr:pl-9 rtl:pr-9" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <IconSearch className="absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ltr:left-3 rtl:right-3" />
+                    </div>
                 </div>
-                <div className="md:w-1/4">
-                    <CustomSelect
-                        label={t('institution_type')}
-                        placeholder={t('all_types')}
-                        options={schoolTypeOptions}
-                        value={typeFilter}
-                        onChange={(value) => setTypeFilter(value as string)}
-                        clearable
-                        size="md"
-                    />
-                </div>
-                <div className="md:w-1/4">
-                    <CustomSelect
-                        label={t('status')}
-                        placeholder={t('all_statuses')}
-                        options={statusOptions}
-                        value={statusFilter}
-                        onChange={(value) => setStatusFilter(value as string)}
-                        clearable
-                        size="md"
-                    />
-                </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                     {selectedRecords.length > 0 && (
                         <button type="button" className="btn btn-danger gap-2" onClick={confirmBulkDelete}>
                             <IconTrashLines />
                             {t('delete_selected')} ({selectedRecords.length})
                         </button>
                     )}
+                    <Link href="/schools/add" className="btn btn-primary gap-2">
+                        <IconPlus />
+                        {t('add_school')}
+                    </Link>
                 </div>
             </div>
 

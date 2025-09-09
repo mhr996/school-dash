@@ -186,13 +186,7 @@ const Sidebar = () => {
                                 </ul>
                             </li>
 
-                            {/* Hidden - User and Pages section
-                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]" style={{ display: 'none' }}>
-                                <IconMinus className="hidden h-5 w-4 flex-none" />
-                                <span>{t('user_and_pages')}</span>
-                            </h2>
-
-                            <li className="nav-item" style={{ display: 'none' }}>
+                            <li className="nav-item">
                                 <Link href="/users" className="group">
                                     <div className="flex items-center">
                                         <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
@@ -200,6 +194,9 @@ const Sidebar = () => {
                                     </div>
                                 </Link>
                             </li>
+
+                            {/* Hidden - User and Pages section
+                         
 
                             <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]" style={{ display: 'none' }}>
                                 <IconMinus className="hidden h-5 w-4 flex-none" />
