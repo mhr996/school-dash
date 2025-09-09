@@ -149,6 +149,16 @@ const Sidebar = () => {
                                     </li>
 
                                     <li className="nav-item">
+                                        <Link href="/schools" className="group">
+                                            <div className="flex items-center">
+                                                <IconBuilding className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('schools')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    {/* Hidden old menu items - will be converted later
+                                    <li className="nav-item" style={{ display: 'none' }}>
                                         <Link href="/cars" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuWidgets className="shrink-0 group-hover:!text-primary" />
@@ -156,7 +166,7 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
-                                    <li className="nav-item">
+                                    <li className="nav-item" style={{ display: 'none' }}>
                                         <Link href="/providers" className="group">
                                             <div className="flex items-center">
                                                 <IconBox fill={true} className="shrink-0 group-hover:!text-primary" />
@@ -164,7 +174,7 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
-                                    <li className="nav-item">
+                                    <li className="nav-item" style={{ display: 'none' }}>
                                         <Link href="/customers" className="group">
                                             <div className="flex items-center">
                                                 <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
@@ -172,15 +182,17 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+                                    */}
                                 </ul>
                             </li>
 
-                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
+                            {/* Hidden - User and Pages section
+                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]" style={{ display: 'none' }}>
                                 <IconMinus className="hidden h-5 w-4 flex-none" />
                                 <span>{t('user_and_pages')}</span>
                             </h2>
 
-                            <li className="nav-item">
+                            <li className="nav-item" style={{ display: 'none' }}>
                                 <Link href="/users" className="group">
                                     <div className="flex items-center">
                                         <IconMenuUsers className="shrink-0 group-hover:!text-primary" />
@@ -189,12 +201,12 @@ const Sidebar = () => {
                                 </Link>
                             </li>
 
-                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
+                            <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]" style={{ display: 'none' }}>
                                 <IconMinus className="hidden h-5 w-4 flex-none" />
                                 <span>{t('accounting')}</span>
                             </h2>
 
-                            <li className="nav-item">
+                            <li className="nav-item" style={{ display: 'none' }}>
                                 <Link href="/deals" className="group">
                                     <div className="flex items-center">
                                         <IconMenuInvoice className="shrink-0 group-hover:!text-primary" />
@@ -203,7 +215,7 @@ const Sidebar = () => {
                                 </Link>
                             </li>
 
-                            <li className="nav-item">
+                            <li className="nav-item" style={{ display: 'none' }}>
                                 <Link href="/bills" className="group">
                                     <div className="flex items-center">
                                         <IconMenuInvoice className="shrink-0 group-hover:!text-primary" />
@@ -212,7 +224,7 @@ const Sidebar = () => {
                                 </Link>
                             </li>
 
-                            <li className="nav-item">
+                            <li className="nav-item" style={{ display: 'none' }}>
                                 <Link href="/logs" className="group">
                                     <div className="flex items-center">
                                         <IconListCheck className="shrink-0 group-hover:!text-primary" />
@@ -220,20 +232,13 @@ const Sidebar = () => {
                                     </div>
                                 </Link>
                             </li>
+                            */}
 
                             <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
                                 <IconMinus className="hidden h-5 w-4 flex-none" />
                                 <span>{t('general_settings')}</span>
                             </h2>
 
-                            <li className="nav-item">
-                                <Link href="/home-settings" className="group">
-                                    <div className="flex items-center">
-                                        <IconSettings className="shrink-0 group-hover:!text-primary" />
-                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('home_page_settings')}</span>
-                                    </div>
-                                </Link>
-                            </li>
                             <li className="nav-item">
                                 <Link href="/company-settings" className="group">
                                     <div className="flex items-center">

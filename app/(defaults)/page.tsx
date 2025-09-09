@@ -615,366 +615,366 @@ const HomePage = () => {
         },
     };
 
-    if (stats.loading) {
-        return (
-            <div className="pt-5 max-w-[1500px]">
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('overview_analytics')}</p>
-                    </div>
-                    <div className="flex gap-2 bg-white dark:bg-[#1b2e4b] rounded-lg p-1 border border-gray-200 dark:border-gray-600">
-                        {(['week', 'month', 'year', 'all'] as TimeFilter[]).map((filter) => (
-                            <button
-                                key={filter}
-                                onClick={() => setTimeFilter(filter)}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                                    timeFilter === filter ? 'bg-primary text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
-                            >
-                                {t(`time_filter_${filter}`)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                <div className="space-y-6">
-                    {/* Loading skeleton for summary cards */}
-                    <div className="mb-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                        {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="panel">
-                                <div className="flex items-center justify-between mb-5">
-                                    <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
-                                    <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-12 animate-pulse"></div>
-                                </div>
-                                <div className="mb-5">
-                                    <div className="h-7 bg-gray-400/60 dark:bg-gray-600 rounded w-16 animate-pulse"></div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="h-4 w-4 bg-gray-300/60 dark:bg-gray-700 rounded mr-2 animate-pulse"></div>
-                                    <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+    // if (stats.loading) {
+    //     return (
+    //         <div className="pt-5 max-w-[1500px]">
+    //             <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+    //                 <div>
+    //                     <h1 className="text-2xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
+    //                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('overview_analytics')}</p>
+    //                 </div>
+    //                 <div className="flex gap-2 bg-white dark:bg-[#1b2e4b] rounded-lg p-1 border border-gray-200 dark:border-gray-600">
+    //                     {(['week', 'month', 'year', 'all'] as TimeFilter[]).map((filter) => (
+    //                         <button
+    //                             key={filter}
+    //                             onClick={() => setTimeFilter(filter)}
+    //                             className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+    //                                 timeFilter === filter ? 'bg-primary text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+    //                             }`}
+    //                         >
+    //                             {t(`time_filter_${filter}`)}
+    //                         </button>
+    //                     ))}
+    //                 </div>
+    //             </div>
+    //             <div className="space-y-6">
+    //                 {/* Loading skeleton for summary cards */}
+    //                 <div className="mb-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+    //                     {[1, 2, 3, 4].map((i) => (
+    //                         <div key={i} className="panel">
+    //                             <div className="flex items-center justify-between mb-5">
+    //                                 <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+    //                                 <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-12 animate-pulse"></div>
+    //                             </div>
+    //                             <div className="mb-5">
+    //                                 <div className="h-7 bg-gray-400/60 dark:bg-gray-600 rounded w-16 animate-pulse"></div>
+    //                             </div>
+    //                             <div className="flex items-center gap-2">
+    //                                 <div className="h-4 w-4 bg-gray-300/60 dark:bg-gray-700 rounded mr-2 animate-pulse"></div>
+    //                                 <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+    //                             </div>
+    //                         </div>
+    //                     ))}
+    //                 </div>
 
-                    {/* Loading skeleton for deals by type and quick actions */}
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                        {/* Deals by type skeleton */}
-                        <div className="panel">
-                            <div className="mb-5">
-                                <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
-                            </div>
-                            <div className="flex justify-center">
-                                <div className="h-64 w-64 bg-gray-300/60 dark:bg-gray-700 rounded-full animate-pulse"></div>
-                            </div>
-                        </div>
+    //                 {/* Loading skeleton for deals by type and quick actions */}
+    //                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    //                     {/* Deals by type skeleton */}
+    //                     <div className="panel">
+    //                         <div className="mb-5">
+    //                             <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+    //                         </div>
+    //                         <div className="flex justify-center">
+    //                             <div className="h-64 w-64 bg-gray-300/60 dark:bg-gray-700 rounded-full animate-pulse"></div>
+    //                         </div>
+    //                     </div>
 
-                        {/* Quick actions skeleton */}
-                        <div className="panel lg:col-span-2">
-                            <div className="mb-5">
-                                <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
-                            </div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="flex flex-col items-center rounded-md border border-gray-200 dark:border-gray-600 p-4">
-                                        <div className="h-12 w-12 bg-gray-300/60 dark:bg-gray-700 rounded-lg mb-3 animate-pulse"></div>
-                                        <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-16 mb-2 animate-pulse"></div>
-                                        <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="flex items-center rounded-md border border-gray-200 dark:border-gray-600 p-4 gap-2">
-                                        <div className="h-12 w-12 bg-gray-300/60 dark:bg-gray-700 rounded-lg mr-4 animate-pulse"></div>
-                                        <div className="flex-1">
-                                            <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-20 mb-2 animate-pulse"></div>
-                                            <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+    //                     {/* Quick actions skeleton */}
+    //                     <div className="panel lg:col-span-2">
+    //                         <div className="mb-5">
+    //                             <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+    //                         </div>
+    //                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    //                             {[1, 2, 3, 4].map((i) => (
+    //                                 <div key={i} className="flex flex-col items-center rounded-md border border-gray-200 dark:border-gray-600 p-4">
+    //                                     <div className="h-12 w-12 bg-gray-300/60 dark:bg-gray-700 rounded-lg mb-3 animate-pulse"></div>
+    //                                     <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-16 mb-2 animate-pulse"></div>
+    //                                     <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-20 animate-pulse"></div>
+    //                                 </div>
+    //                             ))}
+    //                         </div>
+    //                         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    //                             {[1, 2, 3, 4].map((i) => (
+    //                                 <div key={i} className="flex items-center rounded-md border border-gray-200 dark:border-gray-600 p-4 gap-2">
+    //                                     <div className="h-12 w-12 bg-gray-300/60 dark:bg-gray-700 rounded-lg mr-4 animate-pulse"></div>
+    //                                     <div className="flex-1">
+    //                                         <div className="h-4 bg-gray-300/60 dark:bg-gray-700 rounded w-20 mb-2 animate-pulse"></div>
+    //                                         <div className="h-3 bg-gray-300/60 dark:bg-gray-700 rounded w-24 animate-pulse"></div>
+    //                                     </div>
+    //                                 </div>
+    //                             ))}
+    //                         </div>
+    //                     </div>
+    //                 </div>
 
-                    {/* Loading skeleton for charts */}
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        {[1, 2].map((i) => (
-                            <div key={i} className="panel">
-                                <div className="mb-5">
-                                    <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-28 animate-pulse"></div>
-                                </div>
-                                <div className="h-64 bg-gray-300/60 dark:bg-gray-700 rounded animate-pulse"></div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    //                 {/* Loading skeleton for charts */}
+    //                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    //                     {[1, 2].map((i) => (
+    //                         <div key={i} className="panel">
+    //                             <div className="mb-5">
+    //                                 <div className="h-5 bg-gray-300/60 dark:bg-gray-700 rounded w-28 animate-pulse"></div>
+    //                             </div>
+    //                             <div className="h-64 bg-gray-300/60 dark:bg-gray-700 rounded animate-pulse"></div>
+    //                         </div>
+    //                     ))}
+    //                 </div>
+    //             </div>
+    //         </div>
+    //     );
+    // }
 
-    return (
-        <div>
-            <div className="pt-5 max-w-[1500px]">
-                {/* Time Filter Buttons */}
-                <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('overview_analytics')}</p>
-                    </div>
-                    <div className="flex gap-2 bg-white dark:bg-[#1b2e4b] rounded-lg p-1 border border-gray-200 dark:border-gray-600">
-                        {(['week', 'month', 'year', 'all'] as TimeFilter[]).map((filter) => (
-                            <button
-                                key={filter}
-                                onClick={() => setTimeFilter(filter)}
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                                    timeFilter === filter ? 'bg-primary text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                }`}
-                            >
-                                {t(`time_filter_${filter}`)}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+    return ( <></>
+        // <div>
+        //     <div className="pt-5 max-w-[1500px]">
+        //         {/* Time Filter Buttons */}
+        //         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        //             <div>
+        //                 <h1 className="text-2xl font-bold text-black dark:text-white">{t('dashboard')}</h1>
+        //                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('overview_analytics')}</p>
+        //             </div>
+        //             <div className="flex gap-2 bg-white dark:bg-[#1b2e4b] rounded-lg p-1 border border-gray-200 dark:border-gray-600">
+        //                 {(['week', 'month', 'year', 'all'] as TimeFilter[]).map((filter) => (
+        //                     <button
+        //                         key={filter}
+        //                         onClick={() => setTimeFilter(filter)}
+        //                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+        //                             timeFilter === filter ? 'bg-primary text-white shadow-md' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+        //                         }`}
+        //                     >
+        //                         {t(`time_filter_${filter}`)}
+        //                     </button>
+        //                 ))}
+        //             </div>
+        //         </div>
 
-                {/* Summary Cards */}
-                <div className="mb-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-                    {/* Total Revenue */}
-                    <div className="panel">
-                        <div className="flex items-center justify-between dark:text-white-light">
-                            <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_revenue')}</div>
-                            <div className="dropdown">
-                                <span className={`badge ${stats.revenueGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-                                    {stats.revenueGrowth >= 0 ? '+' : ''}
-                                    {stats.revenueGrowth.toFixed(0)}%
-                                </span>
-                            </div>
-                        </div>
-                        <div className="mt-5 flex items-center">
-                            <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatCurrency(stats.totalRevenue)}</div>
-                        </div>
-                        <div className="mt-5 flex items-center font-semibold">
-                            <IconCash className="h-5 w-5 text-success ltr:mr-2 rtl:ml-2" />
-                            <p className="text-xs text-success">
-                                + {formatCurrency(stats.monthlyRevenue)} {t('this_month')}
-                            </p>
-                        </div>
-                    </div>
+        //         {/* Summary Cards */}
+        //         <div className="mb-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        //             {/* Total Revenue */}
+        //             <div className="panel">
+        //                 <div className="flex items-center justify-between dark:text-white-light">
+        //                     <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_revenue')}</div>
+        //                     <div className="dropdown">
+        //                         <span className={`badge ${stats.revenueGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+        //                             {stats.revenueGrowth >= 0 ? '+' : ''}
+        //                             {stats.revenueGrowth.toFixed(0)}%
+        //                         </span>
+        //                     </div>
+        //                 </div>
+        //                 <div className="mt-5 flex items-center">
+        //                     <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatCurrency(stats.totalRevenue)}</div>
+        //                 </div>
+        //                 <div className="mt-5 flex items-center font-semibold">
+        //                     <IconCash className="h-5 w-5 text-success ltr:mr-2 rtl:ml-2" />
+        //                     <p className="text-xs text-success">
+        //                         + {formatCurrency(stats.monthlyRevenue)} {t('this_month')}
+        //                     </p>
+        //                 </div>
+        //             </div>
 
-                    {/* Total Cars */}
-                    <div className="panel">
-                        <div className="flex items-center justify-between dark:text-white-light">
-                            <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_cars')}</div>
-                            <div className="dropdown">
-                                <span className={`badge ${stats.carsGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-                                    {stats.carsGrowth >= 0 ? '+' : ''}
-                                    {stats.carsGrowth.toFixed(0)}%
-                                </span>
-                            </div>
-                        </div>
-                        <div className="mt-5 flex items-center">
-                            <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalCars)}</div>
-                        </div>
-                        <div className="mt-2 mb-2">
-                            <div className="text-lg font-semibold text-success">{formatCurrency(stats.totalCarsSalePrice)}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{t('total_sale_value')}</div>
-                        </div>
-                        <div className="mt-5 flex items-center font-semibold">
-                            <IconCar className="h-5 w-5 text-primary ltr:mr-2 rtl:ml-2" />
-                            <p className="text-xs text-primary">{t('total_inventory')}</p>
-                        </div>
-                    </div>
+        //             {/* Total Cars */}
+        //             <div className="panel">
+        //                 <div className="flex items-center justify-between dark:text-white-light">
+        //                     <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_cars')}</div>
+        //                     <div className="dropdown">
+        //                         <span className={`badge ${stats.carsGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+        //                             {stats.carsGrowth >= 0 ? '+' : ''}
+        //                             {stats.carsGrowth.toFixed(0)}%
+        //                         </span>
+        //                     </div>
+        //                 </div>
+        //                 <div className="mt-5 flex items-center">
+        //                     <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalCars)}</div>
+        //                 </div>
+        //                 <div className="mt-2 mb-2">
+        //                     <div className="text-lg font-semibold text-success">{formatCurrency(stats.totalCarsSalePrice)}</div>
+        //                     <div className="text-xs text-gray-500 dark:text-gray-400">{t('total_sale_value')}</div>
+        //                 </div>
+        //                 <div className="mt-5 flex items-center font-semibold">
+        //                     <IconCar className="h-5 w-5 text-primary ltr:mr-2 rtl:ml-2" />
+        //                     <p className="text-xs text-primary">{t('total_inventory')}</p>
+        //                 </div>
+        //             </div>
 
-                    {/* Total Deals */}
-                    <div className="panel">
-                        <div className="flex items-center justify-between dark:text-white-light">
-                            <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_deals')}</div>
-                            <div className="dropdown">
-                                <span className={`badge ${stats.dealsGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-                                    {stats.dealsGrowth >= 0 ? '+' : ''}
-                                    {stats.dealsGrowth.toFixed(0)}%
-                                </span>
-                            </div>
-                        </div>
-                        <div className="mt-5 flex items-center">
-                            <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalDeals)}</div>
-                        </div>
-                        <div className="mt-5 flex items-center font-semibold">
-                            <IconMenuInvoice className="h-5 w-5 text-warning ltr:mr-2 rtl:ml-2" />
-                            <p className="text-xs text-warning">{t('total_transactions')}</p>
-                        </div>
-                    </div>
+        //             {/* Total Deals */}
+        //             <div className="panel">
+        //                 <div className="flex items-center justify-between dark:text-white-light">
+        //                     <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_deals')}</div>
+        //                     <div className="dropdown">
+        //                         <span className={`badge ${stats.dealsGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+        //                             {stats.dealsGrowth >= 0 ? '+' : ''}
+        //                             {stats.dealsGrowth.toFixed(0)}%
+        //                         </span>
+        //                     </div>
+        //                 </div>
+        //                 <div className="mt-5 flex items-center">
+        //                     <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalDeals)}</div>
+        //                 </div>
+        //                 <div className="mt-5 flex items-center font-semibold">
+        //                     <IconMenuInvoice className="h-5 w-5 text-warning ltr:mr-2 rtl:ml-2" />
+        //                     <p className="text-xs text-warning">{t('total_transactions')}</p>
+        //                 </div>
+        //             </div>
 
-                    {/* Total Customers */}
-                    <div className="panel">
-                        <div className="flex items-center justify-between dark:text-white-light">
-                            <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_customers')}</div>
-                            <div className="dropdown">
-                                <span className={`badge ${stats.customersGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-                                    {stats.customersGrowth >= 0 ? '+' : ''}
-                                    {stats.customersGrowth.toFixed(0)}%
-                                </span>
-                            </div>
-                        </div>
-                        <div className="mt-5 flex items-center">
-                            <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalCustomers)}</div>
-                        </div>
-                        <div className="mt-5 flex items-center font-semibold">
-                            <IconUsersGroup className="h-5 w-5 text-danger ltr:mr-2 rtl:ml-2" />
-                            <p className="text-xs text-danger">{t('registered_customers')}</p>
-                        </div>
-                    </div>
-                </div>
+        //             {/* Total Customers */}
+        //             <div className="panel">
+        //                 <div className="flex items-center justify-between dark:text-white-light">
+        //                     <div className="text-md font-semibold ltr:mr-1 rtl:ml-1">{t('total_customers')}</div>
+        //                     <div className="dropdown">
+        //                         <span className={`badge ${stats.customersGrowth >= 0 ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+        //                             {stats.customersGrowth >= 0 ? '+' : ''}
+        //                             {stats.customersGrowth.toFixed(0)}%
+        //                         </span>
+        //                     </div>
+        //                 </div>
+        //                 <div className="mt-5 flex items-center">
+        //                     <div className="text-3xl font-bold ltr:mr-3 rtl:ml-3">{formatNumber(stats.totalCustomers)}</div>
+        //                 </div>
+        //                 <div className="mt-5 flex items-center font-semibold">
+        //                     <IconUsersGroup className="h-5 w-5 text-danger ltr:mr-2 rtl:ml-2" />
+        //                     <p className="text-xs text-danger">{t('registered_customers')}</p>
+        //                 </div>
+        //             </div>
+        //         </div>
 
-                {/* Deals by Type & Quick Actions */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 my-6">
-                    {/* Deals by Type */}
-                    <div className="panel">
-                        <div className="mb-5 flex items-center justify-between">
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('deals_by_type')}</h5>
-                        </div>
-                        <div className="mb-5">
-                            {isMounted && Object.keys(stats.dealsByType).length > 0 && <ReactApexChart options={dealTypeChart.options} series={dealTypeChart.series} type="donut" height={350} />}
-                            {Object.keys(stats.dealsByType).length === 0 && (
-                                <div className="flex h-72 items-center justify-center">
-                                    <div className="text-lg text-gray-500">{t('no_deals_data')}</div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+        //         {/* Deals by Type & Quick Actions */}
+        //         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 my-6">
+        //             {/* Deals by Type */}
+        //             <div className="panel">
+        //                 <div className="mb-5 flex items-center justify-between">
+        //                     <h5 className="text-lg font-semibold dark:text-white-light">{t('deals_by_type')}</h5>
+        //                 </div>
+        //                 <div className="mb-5">
+        //                     {isMounted && Object.keys(stats.dealsByType).length > 0 && <ReactApexChart options={dealTypeChart.options} series={dealTypeChart.series} type="donut" height={350} />}
+        //                     {Object.keys(stats.dealsByType).length === 0 && (
+        //                         <div className="flex h-72 items-center justify-center">
+        //                             <div className="text-lg text-gray-500">{t('no_deals_data')}</div>
+        //                         </div>
+        //                     )}
+        //                 </div>
+        //             </div>
 
-                    {/* Quick Actions */}
-                    <div className="panel lg:col-span-2">
-                        <div className="mb-5 flex items-center justify-between">
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('quick_actions')}</h5>
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                            {/* Add New Car */}
-                            <Link href="/cars/add" className="group">
-                                <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-primary hover:bg-primary/5 dark:border-[#191e3a] dark:hover:border-primary">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary mb-3">
-                                        <IconPlus className="h-6 w-6" />
-                                    </div>
-                                    <div className="text-center">
-                                        <h6 className="font-semibold text-[#515365] group-hover:text-primary dark:text-white-light text-sm">{t('add_new_car')}</h6>
-                                        <p className="text-xs text-white-dark mt-1">{t('create_new_car')}</p>
-                                    </div>
-                                </div>
-                            </Link>
+        //             {/* Quick Actions */}
+        //             <div className="panel lg:col-span-2">
+        //                 <div className="mb-5 flex items-center justify-between">
+        //                     <h5 className="text-lg font-semibold dark:text-white-light">{t('quick_actions')}</h5>
+        //                 </div>
+        //                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        //                     {/* Add New Car */}
+        //                     <Link href="/cars/add" className="group">
+        //                         <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-primary hover:bg-primary/5 dark:border-[#191e3a] dark:hover:border-primary">
+        //                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary mb-3">
+        //                                 <IconPlus className="h-6 w-6" />
+        //                             </div>
+        //                             <div className="text-center">
+        //                                 <h6 className="font-semibold text-[#515365] group-hover:text-primary dark:text-white-light text-sm">{t('add_new_car')}</h6>
+        //                                 <p className="text-xs text-white-dark mt-1">{t('create_new_car')}</p>
+        //                             </div>
+        //                         </div>
+        //                     </Link>
 
-                            {/* Add New Deal */}
-                            <Link href="/deals/add" className="group">
-                                <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-warning hover:bg-warning/5 dark:border-[#191e3a] dark:hover:border-warning">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10 text-warning mb-3">
-                                        <IconPlus className="h-6 w-6" />
-                                    </div>
-                                    <div className="text-center">
-                                        <h6 className="font-semibold text-[#515365] group-hover:text-warning dark:text-white-light text-sm">{t('add_new_deal')}</h6>
-                                        <p className="text-xs text-white-dark mt-1">{t('create_new_deal')}</p>
-                                    </div>
-                                </div>
-                            </Link>
+        //                     {/* Add New Deal */}
+        //                     <Link href="/deals/add" className="group">
+        //                         <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-warning hover:bg-warning/5 dark:border-[#191e3a] dark:hover:border-warning">
+        //                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10 text-warning mb-3">
+        //                                 <IconPlus className="h-6 w-6" />
+        //                             </div>
+        //                             <div className="text-center">
+        //                                 <h6 className="font-semibold text-[#515365] group-hover:text-warning dark:text-white-light text-sm">{t('add_new_deal')}</h6>
+        //                                 <p className="text-xs text-white-dark mt-1">{t('create_new_deal')}</p>
+        //                             </div>
+        //                         </div>
+        //                     </Link>
 
-                            {/* Add New Bill */}
-                            <Link href="/bills/add" className="group">
-                                <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-info hover:bg-info/5 dark:border-[#191e3a] dark:hover:border-info">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-info/10 text-info mb-3">
-                                        <IconPlus className="h-6 w-6" />
-                                    </div>
-                                    <div className="text-center">
-                                        <h6 className="font-semibold text-[#515365] group-hover:text-info dark:text-white-light text-sm">{t('add_new_bill')}</h6>
-                                        <p className="text-xs text-white-dark mt-1">{t('create_new_bill')}</p>
-                                    </div>
-                                </div>
-                            </Link>
+        //                     {/* Add New Bill */}
+        //                     <Link href="/bills/add" className="group">
+        //                         <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-info hover:bg-info/5 dark:border-[#191e3a] dark:hover:border-info">
+        //                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-info/10 text-info mb-3">
+        //                                 <IconPlus className="h-6 w-6" />
+        //                             </div>
+        //                             <div className="text-center">
+        //                                 <h6 className="font-semibold text-[#515365] group-hover:text-info dark:text-white-light text-sm">{t('add_new_bill')}</h6>
+        //                                 <p className="text-xs text-white-dark mt-1">{t('create_new_bill')}</p>
+        //                             </div>
+        //                         </div>
+        //                     </Link>
 
-                            {/* Add New Client */}
-                            <Link href="/customers/add" className="group">
-                                <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-success hover:bg-success/5 dark:border-[#191e3a] dark:hover:border-success">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success mb-3">
-                                        <IconPlus className="h-6 w-6" />
-                                    </div>
-                                    <div className="text-center">
-                                        <h6 className="font-semibold text-[#515365] group-hover:text-success dark:text-white-light text-sm">{t('add_new_client')}</h6>
-                                        <p className="text-xs text-white-dark mt-1">{t('create_new_client')}</p>
-                                    </div>
-                                </div>
-                            </Link>
-                        </div>
+        //                     {/* Add New Client */}
+        //                     <Link href="/customers/add" className="group">
+        //                         <div className="flex flex-col items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-success hover:bg-success/5 dark:border-[#191e3a] dark:hover:border-success">
+        //                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success mb-3">
+        //                                 <IconPlus className="h-6 w-6" />
+        //                             </div>
+        //                             <div className="text-center">
+        //                                 <h6 className="font-semibold text-[#515365] group-hover:text-success dark:text-white-light text-sm">{t('add_new_client')}</h6>
+        //                                 <p className="text-xs text-white-dark mt-1">{t('create_new_client')}</p>
+        //                             </div>
+        //                         </div>
+        //                     </Link>
+        //                 </div>
 
-                        {/* Quick Management Links */}
-                        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <Link href="/cars" className="group">
-                                <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-primary hover:bg-primary/5 dark:border-[#191e3a] dark:hover:border-primary">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                        <IconCar className="h-6 w-6" />
-                                    </div>
-                                    <div className="ltr:ml-4 rtl:mr-4">
-                                        <h6 className="font-semibold text-[#515365] group-hover:text-primary dark:text-white-light">{t('manage_cars')}</h6>
-                                        <p className="text-xs text-white-dark">{t('add_edit_cars')}</p>
-                                    </div>
-                                </div>
-                            </Link>
+        //                 {/* Quick Management Links */}
+        //                 <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        //                     <Link href="/cars" className="group">
+        //                         <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-primary hover:bg-primary/5 dark:border-[#191e3a] dark:hover:border-primary">
+        //                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        //                                 <IconCar className="h-6 w-6" />
+        //                             </div>
+        //                             <div className="ltr:ml-4 rtl:mr-4">
+        //                                 <h6 className="font-semibold text-[#515365] group-hover:text-primary dark:text-white-light">{t('manage_cars')}</h6>
+        //                                 <p className="text-xs text-white-dark">{t('add_edit_cars')}</p>
+        //                             </div>
+        //                         </div>
+        //                     </Link>
 
-                            <Link href="/deals" className="group">
-                                <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-warning hover:bg-warning/5 dark:border-[#191e3a] dark:hover:border-warning">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10 text-warning">
-                                        <IconMenuInvoice className="h-6 w-6" />
-                                    </div>
-                                    <div className="ltr:ml-4 rtl:mr-4">
-                                        <h6 className="font-semibold text-[#515365] group-hover:text-warning dark:text-white-light">{t('manage_deals')}</h6>
-                                        <p className="text-xs text-white-dark">{t('create_track_deals')}</p>
-                                    </div>
-                                </div>
-                            </Link>
+        //                     <Link href="/deals" className="group">
+        //                         <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-warning hover:bg-warning/5 dark:border-[#191e3a] dark:hover:border-warning">
+        //                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-warning/10 text-warning">
+        //                                 <IconMenuInvoice className="h-6 w-6" />
+        //                             </div>
+        //                             <div className="ltr:ml-4 rtl:mr-4">
+        //                                 <h6 className="font-semibold text-[#515365] group-hover:text-warning dark:text-white-light">{t('manage_deals')}</h6>
+        //                                 <p className="text-xs text-white-dark">{t('create_track_deals')}</p>
+        //                             </div>
+        //                         </div>
+        //                     </Link>
 
-                            <Link href="/customers" className="group">
-                                <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-success hover:bg-success/5 dark:border-[#191e3a] dark:hover:border-success">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success">
-                                        <IconUsersGroup className="h-6 w-6" />
-                                    </div>
-                                    <div className="ltr:ml-4 rtl:mr-4">
-                                        <h6 className="font-semibold text-[#515365] group-hover:text-success dark:text-white-light">{t('manage_customers')}</h6>
-                                        <p className="text-xs text-white-dark">{t('view_customer_info')}</p>
-                                    </div>
-                                </div>
-                            </Link>
+        //                     <Link href="/customers" className="group">
+        //                         <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-success hover:bg-success/5 dark:border-[#191e3a] dark:hover:border-success">
+        //                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success">
+        //                                 <IconUsersGroup className="h-6 w-6" />
+        //                             </div>
+        //                             <div className="ltr:ml-4 rtl:mr-4">
+        //                                 <h6 className="font-semibold text-[#515365] group-hover:text-success dark:text-white-light">{t('manage_customers')}</h6>
+        //                                 <p className="text-xs text-white-dark">{t('view_customer_info')}</p>
+        //                             </div>
+        //                         </div>
+        //                     </Link>
 
-                            <Link href="/analytics" className="group">
-                                <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-danger hover:bg-danger/5 dark:border-[#191e3a] dark:hover:border-danger">
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-danger/10 text-danger">
-                                        <IconEye className="h-6 w-6" />
-                                    </div>
-                                    <div className="ltr:ml-4 rtl:mr-4">
-                                        <h6 className="font-semibold text-[#515365] group-hover:text-danger dark:text-white-light">{t('view_analytics')}</h6>
-                                        <p className="text-xs text-white-dark">{t('detailed_reports')}</p>
-                                    </div>
-                                </div>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
+        //                     <Link href="/analytics" className="group">
+        //                         <div className="flex items-center rounded-md border border-gray-200 p-4 transition-all duration-300 hover:border-danger hover:bg-danger/5 dark:border-[#191e3a] dark:hover:border-danger">
+        //                             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-danger/10 text-danger">
+        //                                 <IconEye className="h-6 w-6" />
+        //                             </div>
+        //                             <div className="ltr:ml-4 rtl:mr-4">
+        //                                 <h6 className="font-semibold text-[#515365] group-hover:text-danger dark:text-white-light">{t('view_analytics')}</h6>
+        //                                 <p className="text-xs text-white-dark">{t('detailed_reports')}</p>
+        //                             </div>
+        //                         </div>
+        //                     </Link>
+        //                 </div>
+        //             </div>
+        //         </div>
 
-                {/* Charts Section */}
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    {/* Sales & Deals Chart */}
-                    <div className="panel">
-                        <div className="mb-5 flex items-center justify-between">
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('sales_deals_chart')}</h5>
-                        </div>
-                        <div className="mb-5">{isMounted && <ReactApexChart options={salesChart.options} series={salesChart.series} type="area" height={325} />}</div>
-                    </div>
+        //         {/* Charts Section */}
+        //         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        //             {/* Sales & Deals Chart */}
+        //             <div className="panel">
+        //                 <div className="mb-5 flex items-center justify-between">
+        //                     <h5 className="text-lg font-semibold dark:text-white-light">{t('sales_deals_chart')}</h5>
+        //                 </div>
+        //                 <div className="mb-5">{isMounted && <ReactApexChart options={salesChart.options} series={salesChart.series} type="area" height={325} />}</div>
+        //             </div>
 
-                    {/* Revenue Trend Chart */}
-                    <div className="panel">
-                        <div className="mb-5 flex items-center justify-between">
-                            <h5 className="text-lg font-semibold dark:text-white-light">{t('revenue_trend')}</h5>
-                        </div>
-                        <div className="mb-5">{isMounted && <ReactApexChart options={revenueChart.options} series={revenueChart.series} type="line" height={300} />}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        //             {/* Revenue Trend Chart */}
+        //             <div className="panel">
+        //                 <div className="mb-5 flex items-center justify-between">
+        //                     <h5 className="text-lg font-semibold dark:text-white-light">{t('revenue_trend')}</h5>
+        //                 </div>
+        //                 <div className="mb-5">{isMounted && <ReactApexChart options={revenueChart.options} series={revenueChart.series} type="line" height={300} />}</div>
+        //             </div>
+        //         </div>
+        //     </div>
+        // </div>
     );
 };
 

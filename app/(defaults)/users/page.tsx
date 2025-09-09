@@ -3,6 +3,7 @@ import IconEdit from '@/components/icon/icon-edit';
 import IconEye from '@/components/icon/icon-eye';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
+import IconUser from '@/components/icon/icon-user';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
 import Link from 'next/link';
@@ -10,59 +11,123 @@ import React, { useEffect, useState } from 'react';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
+import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
 import { getTranslation } from '@/i18n';
+import { useRouter } from 'next/navigation';
+
+interface UserRole {
+    id: number;
+    name: string;
+    name_ar: string;
+    description: string;
+}
+
+interface School {
+    id: string;
+    name: string;
+    code: string;
+}
+
+interface User {
+    id: string;
+    created_at: string;
+    updated_at: string;
+    full_name: string;
+    email: string;
+    phone?: string;
+    birth_date?: string;
+    address?: string;
+    role_id: number;
+    school_id?: string;
+    is_active: boolean;
+    user_roles?: UserRole;
+    schools?: School;
+}
 
 const UsersList = () => {
     const { t } = getTranslation();
-    const [items, setItems] = useState<
-        Array<{
-            id: string;
-            full_name: string;
-            email: string;
-            avatar_url: string | null;
-            created_at?: string;
-            status?: string;
-            uid?: string;
-        }>
-    >([]);
+    const router = useRouter();
+    const [items, setItems] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [roles, setRoles] = useState<UserRole[]>([]);
+    const [schools, setSchools] = useState<School[]>([]);
 
     const [page, setPage] = useState(1);
     const PAGE_SIZES = [10, 20, 30, 50, 100];
     const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
-    const [initialRecords, setInitialRecords] = useState(sortBy(items, 'full_name'));
-    const [records, setRecords] = useState(initialRecords);
-    const [selectedRecords, setSelectedRecords] = useState<any>([]);
+    const [initialRecords, setInitialRecords] = useState<User[]>([]);
+    const [records, setRecords] = useState<User[]>([]);
+    const [selectedRecords, setSelectedRecords] = useState<User[]>([]);
 
     const [search, setSearch] = useState('');
-    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
-        columnAccessor: 'id',
-        direction: 'desc',
-    }); // New state for confirm modal and alert.
+    const [roleFilter, setRoleFilter] = useState('');
+    const [statusFilter, setStatusFilter] = useState('');
 
-    // Always default sort by ID in descending order
-    useEffect(() => {
-        if (sortStatus.columnAccessor !== 'id') {
-            setSortStatus({ columnAccessor: 'id', direction: 'desc' });
-        }
-    }, []);
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
+        columnAccessor: 'created_at',
+        direction: 'desc',
+    });
+
+    // Modal and alert states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-    const [userToDelete, setUserToDelete] = useState<any>(null);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
         message: '',
         type: 'success',
     });
 
+    // Fetch roles
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const { data, error } = await supabase.from('user_roles').select('*').order('id');
+
+                if (error) throw error;
+                setRoles(data || []);
+            } catch (error) {
+                console.error('Error fetching roles:', error);
+            }
+        };
+        fetchRoles();
+    }, []);
+
+    // Fetch schools
+    useEffect(() => {
+        const fetchSchools = async () => {
+            try {
+                const { data, error } = await supabase.from('schools').select('id, name, code').eq('status', 'active').order('name');
+
+                if (error) throw error;
+                setSchools(data || []);
+            } catch (error) {
+                console.error('Error fetching schools:', error);
+            }
+        };
+        fetchSchools();
+    }, []);
+
+    // Fetch users
     useEffect(() => {
         const fetchUsers = async () => {
             try {
-                const { data, error } = await supabase.from('users').select('*');
+                const { data, error } = await supabase
+                    .from('users')
+                    .select(
+                        `
+                        *,
+                        user_roles(id, name, name_ar, description),
+                        schools(id, name, code)
+                    `,
+                    )
+                    .order('created_at', { ascending: false });
+
                 if (error) throw error;
-                setItems(data);
+                setItems(data as User[]);
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error fetching users:', error);
+                setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
             } finally {
                 setLoading(false);
             }
@@ -81,311 +146,285 @@ const UsersList = () => {
     }, [page, pageSize, initialRecords]);
 
     useEffect(() => {
-        setInitialRecords(() => {
-            return items.filter((item) => {
-                return (
+        setInitialRecords(
+            items.filter((item) => {
+                const matchesSearch =
+                    !search ||
                     item.full_name?.toLowerCase().includes(search.toLowerCase()) ||
                     item.email?.toLowerCase().includes(search.toLowerCase()) ||
-                    (item.created_at?.toString() || '').includes(search.toLowerCase())
-                );
-            });
-        });
-    }, [items, search]);
+                    item.phone?.toLowerCase().includes(search.toLowerCase()) ||
+                    item.user_roles?.name_ar?.toLowerCase().includes(search.toLowerCase());
+
+                const matchesRole = !roleFilter || item.role_id.toString() === roleFilter;
+                const matchesStatus = !statusFilter || (statusFilter === 'active' ? item.is_active : !item.is_active);
+
+                return matchesSearch && matchesRole && matchesStatus;
+            }),
+        );
+    }, [items, search, roleFilter, statusFilter]);
 
     useEffect(() => {
-        const data2 = sortBy(initialRecords, sortStatus.columnAccessor);
-        setRecords(sortStatus.direction === 'desc' ? data2.reverse() : data2);
+        const sorted = sortBy(initialRecords, sortStatus.columnAccessor);
+        setRecords(sortStatus.direction === 'desc' ? sorted.reverse() : sorted);
         setPage(1);
-    }, [sortStatus]);
+    }, [sortStatus, initialRecords]);
 
-    // Modified deletion function. It sets the user to delete and shows the confirm modal.
-    const deleteRow = (id: string | null = null) => {
-        if (id) {
-            const user = items.find((user) => user.id === id);
-            if (user) {
-                setUserToDelete(user);
-                setShowConfirmModal(true);
-            }
-        }
+    const confirmDelete = (user: User) => {
+        setUserToDelete(user);
+        setShowConfirmModal(true);
     };
 
-    // Confirm deletion callback.
-    const confirmDeletion = async () => {
-        if (!userToDelete || !userToDelete.id) return;
+    const handleDeleteConfirm = async () => {
+        if (!userToDelete) return;
 
         try {
-            // Delete from users table first
-            const { error: profileError } = await supabase.from('users').delete().eq('id', userToDelete.id);
-            if (profileError) {
-                console.error('Profile deletion error:', profileError);
-                throw profileError;
-            }
+            const { error } = await supabase.from('users').delete().eq('id', userToDelete.id);
+            if (error) throw error;
 
-            // Delete account from supabase auth using admin API
-            const { data: sessionData } = await supabase.auth.getSession();
-            const token = sessionData?.session?.access_token;
-
-            if (token) {
-                // Call admin delete endpoint
-                const response = await fetch('/api/users/delete', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ userId: userToDelete.id }),
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    console.warn('Auth deletion failed:', result.error);
-                    // Don't throw error here, just warn as profile is already deleted
-                } else {
-                    console.log('User deleted from auth successfully');
-                }
-            } else {
-                console.warn('No auth token available for deletion');
-            }
-
-            // Remove the user from state arrays.
-            const updatedItems = items.filter((user: any) => user.id !== userToDelete.id);
-            setItems(updatedItems);
-            setInitialRecords(
-                updatedItems.filter((item: any) => {
-                    return (
-                        item.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-                        item.email?.toLowerCase().includes(search.toLowerCase()) ||
-                        (item.created_at?.toString() || '').includes(search.toLowerCase())
-                    );
-                }),
-            );
-            setSelectedRecords([]);
+            setItems(items.filter((u) => u.id !== userToDelete.id));
             setAlert({ visible: true, message: t('user_deleted_successfully'), type: 'success' });
-        } catch (error: any) {
-            console.error('Deletion error:', error);
-            setAlert({
-                visible: true,
-                message: error.message || t('error_deleting_user'),
-                type: 'danger',
-            });
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            setAlert({ visible: true, message: t('error_deleting_user'), type: 'danger' });
         } finally {
             setShowConfirmModal(false);
             setUserToDelete(null);
         }
     };
-    const handleBulkDelete = () => {
-        if (selectedRecords.length === 0) return;
-        setShowBulkDeleteModal(true);
-    };
 
-    const confirmBulkDeletion = async () => {
-        const ids = selectedRecords.map((u: any) => u.id);
+    const handleBulkDeleteConfirm = async () => {
+        const ids = selectedRecords.map((u) => u.id);
         try {
-            // Delete from users table (profiles)
-            const { error: profileError } = await supabase.from('users').delete().in('id', ids);
-            if (profileError) {
-                console.error('Bulk profile deletion error:', profileError);
-                throw profileError;
-            }
+            const { error } = await supabase.from('users').delete().in('id', ids);
+            if (error) throw error;
 
-            // Try to delete from auth (requires individual API calls)
-            const { data: sessionData } = await supabase.auth.getSession();
-            const token = sessionData?.session?.access_token;
-
-            if (token) {
-                // Delete each user from auth individually
-                const authDeletionPromises = ids.map(async (userId: string) => {
-                    try {
-                        const response = await fetch('/api/users/delete', {
-                            method: 'DELETE',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: `Bearer ${token}`,
-                            },
-                            body: JSON.stringify({ userId }),
-                        });
-
-                        if (!response.ok) {
-                            const error = await response.json();
-                            console.warn(`Failed to delete user ${userId} from auth:`, error);
-                        }
-                    } catch (error) {
-                        console.warn(`Error deleting user ${userId} from auth:`, error);
-                    }
-                });
-
-                // Wait for all auth deletions to complete (don't fail if some fail)
-                await Promise.allSettled(authDeletionPromises);
-            }
-
-            // Update state
-            const updatedItems = items.filter((u: any) => !ids.includes(u.id));
-            setItems(updatedItems);
-            setInitialRecords(
-                updatedItems.filter((item: any) => {
-                    return (
-                        item.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-                        item.email?.toLowerCase().includes(search.toLowerCase()) ||
-                        (item.created_at?.toString() || '').includes(search.toLowerCase())
-                    );
-                }),
-            );
+            setItems(items.filter((u) => !ids.includes(u.id)));
             setSelectedRecords([]);
             setAlert({ visible: true, message: t('users_deleted_successfully'), type: 'success' });
         } catch (error) {
             console.error('Error deleting users:', error);
-            setAlert({ visible: true, message: t('error_deleting_user'), type: 'danger' });
+            setAlert({ visible: true, message: t('error_deleting_users'), type: 'danger' });
         } finally {
             setShowBulkDeleteModal(false);
         }
     };
 
+    const toggleUserStatus = async (user: User) => {
+        try {
+            const newStatus = !user.is_active;
+            const { error } = await supabase.from('users').update({ is_active: newStatus }).eq('id', user.id);
+
+            if (error) throw error;
+
+            setItems((prevItems) => prevItems.map((item) => (item.id === user.id ? { ...item, is_active: newStatus } : item)));
+
+            setAlert({
+                visible: true,
+                message: newStatus ? t('user_activated_successfully') : t('user_deactivated_successfully'),
+                type: 'success',
+            });
+        } catch (error) {
+            console.error('Error updating user status:', error);
+            setAlert({
+                visible: true,
+                message: t('error_updating_user_status'),
+                type: 'danger',
+            });
+        }
+    };
+
+    const roleOptions: SelectOption[] = [
+        { value: '', label: t('all_roles') },
+        ...roles.map((role) => ({
+            value: role.id.toString(),
+            label: role.name_ar,
+        })),
+    ];
+
+    const statusOptions: SelectOption[] = [
+        { value: '', label: t('all_statuses') },
+        { value: 'active', label: t('active') },
+        { value: 'inactive', label: t('inactive') },
+    ];
+
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-            {/* Alert */}
+            {/* Header */}
+            <div className="mb-5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
+                <div className="flex items-center gap-2">
+                    <IconUser className="shrink-0" />
+                    <h5 className="text-lg font-semibold dark:text-white-light">{t('users_management')}</h5>
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">{t('user_management_description')}</div>
+            </div>
+
+            {/* Search and Filters */}
+            <div className="mb-4.5 flex flex-col gap-4 px-5 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center">
+                    <div className="flex-1">
+                        <input type="text" className="form-input w-full" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+                    </div>
+                    <div className="flex gap-2">
+                        <div className="w-48">
+                            <CustomSelect value={roleFilter} onChange={(value) => setRoleFilter(value as string)} options={roleOptions} placeholder={t('user_role_filter')} clearable />
+                        </div>
+                        <div className="w-48">
+                            <CustomSelect value={statusFilter} onChange={(value) => setStatusFilter(value as string)} options={statusOptions} placeholder={t('user_status_filter')} clearable />
+                        </div>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    {selectedRecords.length > 0 && (
+                        <button type="button" className="btn btn-danger gap-2" onClick={() => setShowBulkDeleteModal(true)}>
+                            <IconTrashLines />
+                            {t('delete_selected')} ({selectedRecords.length})
+                        </button>
+                    )}
+                    <Link href="/users/add" className="btn btn-primary gap-2">
+                        <IconPlus />
+                        {t('add_user')}
+                    </Link>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="datatables pagination-padding relative">
+                <DataTable
+                    className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
+                    records={records}
+                    columns={[
+                        {
+                            accessor: 'full_name',
+                            title: t('full_name'),
+                            sortable: true,
+                            render: ({ full_name, email }) => (
+                                <div>
+                                    <div className="font-semibold">{full_name || t('not_specified')}</div>
+                                    <div className="text-xs text-gray-500">{email}</div>
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'user_roles.name_ar',
+                            title: t('user_role'),
+                            sortable: true,
+                            render: ({ user_roles }) => <span className="badge badge-outline-info">{user_roles?.name_ar || t('not_specified')}</span>,
+                        },
+                        {
+                            accessor: 'schools.name',
+                            title: t('school_assignment'),
+                            sortable: true,
+                            render: ({ schools }) => schools?.name || t('not_applicable'),
+                        },
+                        {
+                            accessor: 'phone',
+                            title: t('phone'),
+                            sortable: true,
+                            render: ({ phone }) => phone || t('not_specified'),
+                        },
+                        {
+                            accessor: 'created_at',
+                            title: t('created_date'),
+                            sortable: true,
+                            render: ({ created_at }) => (
+                                <span>
+                                    {new Date(created_at).toLocaleDateString('en-GB', {
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                    })}
+                                </span>
+                            ),
+                        },
+                        {
+                            accessor: 'is_active',
+                            title: t('status'),
+                            sortable: true,
+                            textAlignment: 'center' as const,
+                            render: (user: User) => (
+                                <div className="flex justify-center">
+                                    <label className="w-12 h-6 relative">
+                                        <input
+                                            type="checkbox"
+                                            className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
+                                            checked={user.is_active || false}
+                                            onChange={() => toggleUserStatus(user)}
+                                        />
+                                        <span className="bg-[#ebedf2] dark:bg-dark block h-full rounded-full before:absolute before:left-1 before:bg-white dark:before:bg-white-dark dark:peer-checked:before:bg-white before:bottom-1 before:w-4 before:h-4 before:rounded-full peer-checked:before:left-7 peer-checked:bg-primary before:transition-all before:duration-300"></span>
+                                    </label>
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'action',
+                            title: t('actions'),
+                            sortable: false,
+                            textAlignment: 'center' as const,
+                            render: (user: User) => (
+                                <div className="mx-auto flex w-max items-center gap-4">
+                                    <Link href={`/users/preview/${user.id}`} className="hover:text-info">
+                                        <IconEye />
+                                    </Link>
+                                    <Link href={`/users/edit/${user.id}`} className="hover:text-primary">
+                                        <IconEdit />
+                                    </Link>
+                                    <button type="button" className="hover:text-danger" onClick={() => confirmDelete(user)}>
+                                        <IconTrashLines />
+                                    </button>
+                                </div>
+                            ),
+                        },
+                    ]}
+                    highlightOnHover
+                    totalRecords={initialRecords.length}
+                    recordsPerPage={pageSize}
+                    page={page}
+                    onPageChange={(p) => setPage(p)}
+                    recordsPerPageOptions={PAGE_SIZES}
+                    onRecordsPerPageChange={setPageSize}
+                    sortStatus={sortStatus}
+                    onSortStatusChange={setSortStatus}
+                    selectedRecords={selectedRecords}
+                    onSelectedRecordsChange={setSelectedRecords}
+                    minHeight={200}
+                    paginationText={({ from, to, totalRecords }) => `${t('showing')} ${from} ${t('to')} ${to} ${t('of')} ${totalRecords} ${t('entries')}`}
+                    noRecordsText={t('no_users_found')}
+                    loadingText={t('loading')}
+                />
+
+                {loading && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black-dark-light bg-opacity-60 backdrop-blur-sm" />}
+            </div>
+
+            {/* Alerts */}
             {alert.visible && (
-                <div className="mb-4 ml-4 max-w-96">
-                    <Alert
-                        type={alert.type}
-                        title={alert.type === 'success' ? t('success') : t('error')}
-                        message={alert.message}
-                        onClose={() => setAlert({ visible: false, message: '', type: 'success' })}
-                    />
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />
                 </div>
             )}
-            <div className="invoice-table">
-                <div className="mb-4.5 flex flex-col gap-5 px-5 md:flex-row md:items-center">
-                    <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-danger gap-2" disabled={selectedRecords.length === 0} onClick={handleBulkDelete}>
-                            <IconTrashLines />
-                            {t('delete')} {selectedRecords.length > 0 && `(${selectedRecords.length})`}
-                        </button>
-                        <Link href="/users/add" className="btn btn-primary gap-2">
-                            <IconPlus />
-                            {t('add_new')}
-                        </Link>
-                    </div>
-                    <div className="ltr:ml-auto rtl:mr-auto">
-                        <input type="text" className="form-input w-auto" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
-                    </div>
-                </div>
 
-                <div className="datatables pagination-padding relative">
-                    <DataTable
-                        className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'} rtl-table-headers`}
-                        records={records}
-                        columns={[
-                            {
-                                accessor: 'id',
-                                title: t('id'),
-                                sortable: true,
-                                render: ({ id }) => (
-                                    <div className="flex items-center gap-2">
-                                        <strong className="text-info">#{id.toString().slice(0, 8)}</strong>
-                                        <Link href={`/users/preview/${id}`} className="flex hover:text-info" title={t('view')}>
-                                            <IconEye className="h-4 w-4" />
-                                        </Link>
-                                    </div>
-                                ),
-                            },
-                            {
-                                accessor: 'full_name',
-                                title: t('full_name'),
-                                sortable: true,
-                                render: ({ full_name, avatar_url }) => (
-                                    <div className="flex items-center font-semibold">
-                                        <div className="w-max rounded-full ltr:mr-2 rtl:ml-2 flex items-center justify-center">
-                                            <img className="h-8 w-8 rounded-full object-cover" src={avatar_url || `/assets/images/user-placeholder.webp`} alt="" />
-                                        </div>
-                                        <div>{full_name}</div>
-                                    </div>
-                                ),
-                            },
-                            {
-                                accessor: 'email',
-                                title: t('email'),
-                                sortable: true,
-                            },
-                            {
-                                accessor: 'created_at',
-                                title: t('created_at'),
-                                sortable: true,
-                                render: ({ created_at }) => (
-                                    <span>
-                                        {new Date(created_at!).toLocaleDateString('en-GB', {
-                                            year: 'numeric',
-                                            month: '2-digit',
-                                            day: '2-digit',
-                                        })}
-                                    </span>
-                                ),
-                            },
-                            {
-                                accessor: 'status',
-                                title: t('status'),
-                                sortable: true,
-                                render: ({ status }) => <span className={`badge badge-outline-${status === 'Active' ? 'success' : 'danger'} `}>{status}</span>,
-                            },
-                            {
-                                accessor: 'action',
-                                title: t('actions'),
-                                sortable: false,
-                                textAlignment: 'center',
-                                render: ({ id }) => (
-                                    <div className="mx-auto flex w-max items-center gap-4">
-                                        <Link href={`/users/edit/${id}`} className="flex hover:text-info">
-                                            <IconEdit />
-                                        </Link>
-                                        <button type="button" className="flex hover:text-danger" onClick={() => deleteRow(id)}>
-                                            <IconTrashLines />
-                                        </button>
-                                    </div>
-                                ),
-                            },
-                        ]}
-                        highlightOnHover
-                        totalRecords={initialRecords.length}
-                        recordsPerPage={pageSize}
-                        page={page}
-                        onPageChange={(p) => setPage(p)}
-                        recordsPerPageOptions={PAGE_SIZES}
-                        onRecordsPerPageChange={setPageSize}
-                        sortStatus={sortStatus}
-                        onSortStatusChange={setSortStatus}
-                        selectedRecords={selectedRecords}
-                        onSelectedRecordsChange={setSelectedRecords}
-                        paginationText={({ from, to, totalRecords }) => `${t('showing')} ${from} ${t('to')} ${to} ${t('of')} ${totalRecords} ${t('entries')}`}
-                        minHeight={300}
-                    />
-
-                    {loading && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black-dark-light bg-opacity-60 backdrop-blur-sm" />}
-                </div>
-            </div>{' '}
-            {/* Confirm Deletion Modal */}
+            {/* Confirm Delete Modal */}
             <ConfirmModal
                 isOpen={showConfirmModal}
-                title={t('confirm_deletion')}
-                message={t('confirm_delete_user')}
+                title={t('confirm_delete')}
+                message={t('confirm_delete_user_message')}
+                onConfirm={handleDeleteConfirm}
                 onCancel={() => {
                     setShowConfirmModal(false);
                     setUserToDelete(null);
                 }}
-                onConfirm={confirmDeletion}
                 confirmLabel={t('delete')}
                 cancelLabel={t('cancel')}
-                size="sm"
             />
-            {/* Bulk Delete Confirmation Modal */}
+
+            {/* Bulk Delete Modal */}
             <ConfirmModal
                 isOpen={showBulkDeleteModal}
-                title={t('confirm_bulk_deletion')}
-                message={`${t('confirm_delete_selected_users')}`}
+                title={t('confirm_bulk_delete')}
+                message={`${t('confirm_bulk_delete_users_message')} (${selectedRecords.length})`}
+                onConfirm={handleBulkDeleteConfirm}
                 onCancel={() => setShowBulkDeleteModal(false)}
-                onConfirm={confirmBulkDeletion}
-                confirmLabel={t('delete')}
+                confirmLabel={t('delete_all')}
                 cancelLabel={t('cancel')}
-                size="sm"
             />
         </div>
     );
