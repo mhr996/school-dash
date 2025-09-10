@@ -1463,7 +1463,7 @@
     "school_assignment": "تخصيص المدرسة",
     "school_manager": "مدير مدرسة",
     "trip_planner": "مسؤول رحلة",
-    "role_admin": "مدير عام",
+    "role_admin": "مسؤول",
     "role_employee": "موظف",
     "role_school_manager": "مدير مدرسة",
     "role_trip_planner": "مسؤول رحلة",
@@ -1489,7 +1489,6 @@
     "user_deactivated_successfully": "تم إلغاء تفعيل المستخدم بنجاح",
     "error_updating_user_status": "خطأ في تحديث حالة المستخدم",
     "create_your_account": "أنشئ حسابك للبدء",
-    "confirm_password": "تأكيد كلمة المرور",
     "confirm_your_password": "أكد كلمة المرور",
     "select_your_role": "اختر دورك",
     "choose_school": "اختر المدرسة",
@@ -1515,5 +1514,7 @@
     "user_creation_failed": "فشل في إنشاء حساب المستخدم. يرجى المحاولة مرة أخرى.",
     "role_assignment_failed": "تم إنشاء الحساب ولكن فشل تعيين الدور. يرجى الاتصال بالدعم.",
     "school_assignment_failed": "تم إنشاء الحساب ولكن فشل تعيين المدرسة. يرجى الاتصال بالدعم.",
-    "account_created_successfully": "تم إنشاء الحساب بنجاح! يرجى تسجيل الدخول باستخدام بياناتك."
+    "account_created_successfully": "تم إنشاء الحساب بنجاح! يرجى تسجيل الدخول باستخدام بياناتك.",
+    "user_is_active": "المستخدم نشط",
+    "select_role": "اختر الدور"
 }

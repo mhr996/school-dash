@@ -277,7 +277,7 @@ const SchoolsList = () => {
                             accessor: 'created_at',
                             title: t('created_at'),
                             sortable: true,
-                            render: ({ created_at }) => new Date(created_at).toLocaleDateString('ar-SA'),
+                            render: ({ created_at }) => new Date(created_at).toLocaleDateString('tr-TR'),
                         },
                         {
                             accessor: 'actions',

@@ -1052,5 +1052,7 @@
     "user_creation_failed": "יצירת החשבון נכשלה. אנא נסה שוב.",
     "role_assignment_failed": "החשבון נוצר אך הקצאת התפקיד נכשלה. אנא פנה לתמיכה.",
     "school_assignment_failed": "החשבון נוצר אך הקצאת בית הספר נכשלה. אנא פנה לתמיכה.",
-    "account_created_successfully": "החשבון נוצר בהצלחה! אנא התחבר עם הפרטים שלך."
+    "account_created_successfully": "החשבון נוצר בהצלחה! אנא התחבר עם הפרטים שלך.",
+    "user_is_active": "המשתמש פעיל",
+    "select_role": "בחר תפקיד"
 }

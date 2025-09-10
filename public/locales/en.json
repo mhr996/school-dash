@@ -1381,5 +1381,7 @@
     "user_creation_failed": "Failed to create user account. Please try again.",
     "role_assignment_failed": "Account created but role assignment failed. Please contact support.",
     "school_assignment_failed": "Account created but school assignment failed. Please contact support.",
-    "account_created_successfully": "Account created successfully! Please sign in with your credentials."
+    "account_created_successfully": "Account created successfully! Please sign in with your credentials.",
+    "user_is_active": "User is active",
+    "select_role": "Select Role"
 }

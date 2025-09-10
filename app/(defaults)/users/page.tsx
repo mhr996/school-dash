@@ -14,11 +14,11 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
+import { getCurrentUserWithRole } from '@/lib/auth';
 
 interface UserRole {
     id: number;
     name: string;
-    name_ar: string;
     description: string;
 }
 
@@ -49,6 +49,8 @@ const UsersList = () => {
     const router = useRouter();
     const [items, setItems] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [isAdminUser, setIsAdminUser] = useState(false);
 
     const [page, setPage] = useState(1);
     const PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -74,6 +76,18 @@ const UsersList = () => {
         type: 'success',
     });
 
+    // Check current user role
+    useEffect(() => {
+        const checkUserRole = async () => {
+            const { user, error } = await getCurrentUserWithRole();
+            if (!error && user) {
+                setCurrentUser(user);
+                setIsAdminUser(user.user_roles?.name === 'admin');
+            }
+        };
+        checkUserRole();
+    }, []);
+
     // Fetch users
     useEffect(() => {
         const fetchUsers = async () => {
@@ -83,7 +97,7 @@ const UsersList = () => {
                     .select(
                         `
                         *,
-                        user_roles(id, name, name_ar, description),
+                        user_roles(id, name, description),
                         schools(id, name, code)
                     `,
                     )
@@ -119,7 +133,7 @@ const UsersList = () => {
                     item.full_name?.toLowerCase().includes(search.toLowerCase()) ||
                     item.email?.toLowerCase().includes(search.toLowerCase()) ||
                     item.phone?.toLowerCase().includes(search.toLowerCase()) ||
-                    item.user_roles?.name_ar?.toLowerCase().includes(search.toLowerCase());
+                    item.user_roles?.name?.toLowerCase().includes(search.toLowerCase());
 
                 return matchesSearch;
             }),
@@ -141,8 +155,37 @@ const UsersList = () => {
         if (!userToDelete) return;
 
         try {
-            const { error } = await supabase.from('users').delete().eq('id', userToDelete.id);
-            if (error) throw error;
+            // First get the user's auth_user_id for deleting from auth
+            const { data: userData, error: fetchError } = await supabase.from('users').select('auth_user_id').eq('id', userToDelete.id).single();
+
+            if (fetchError) throw fetchError;
+
+            // Delete from database first
+            const { error: dbError } = await supabase.from('users').delete().eq('id', userToDelete.id);
+            if (dbError) throw dbError;
+
+            // If user has auth_user_id, delete from auth system
+            if (userData?.auth_user_id) {
+                const { data: sessionData } = await supabase.auth.getSession();
+                const token = sessionData?.session?.access_token;
+
+                if (token) {
+                    const response = await fetch('/api/users/delete', {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({
+                            userId: userData.auth_user_id,
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        console.warn('Failed to delete from auth system, but user removed from database');
+                    }
+                }
+            }
 
             setItems(items.filter((u) => u.id !== userToDelete.id));
             setAlert({ visible: true, message: t('user_deleted_successfully'), type: 'success' });
@@ -158,8 +201,40 @@ const UsersList = () => {
     const handleBulkDeleteConfirm = async () => {
         const ids = selectedRecords.map((u) => u.id);
         try {
-            const { error } = await supabase.from('users').delete().in('id', ids);
-            if (error) throw error;
+            // Get auth_user_ids for all selected users
+            const { data: usersData, error: fetchError } = await supabase.from('users').select('id, auth_user_id').in('id', ids);
+
+            if (fetchError) throw fetchError;
+
+            // Delete from database first
+            const { error: dbError } = await supabase.from('users').delete().in('id', ids);
+            if (dbError) throw dbError;
+
+            // Delete from auth system for users that have auth_user_id
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData?.session?.access_token;
+
+            if (token && usersData) {
+                const authUserIds = usersData.filter((u) => u.auth_user_id).map((u) => u.auth_user_id);
+
+                // Delete each user from auth (could be optimized with batch delete if API supports it)
+                for (const authUserId of authUserIds) {
+                    try {
+                        await fetch('/api/users/delete', {
+                            method: 'DELETE',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({
+                                userId: authUserId,
+                            }),
+                        });
+                    } catch (error) {
+                        console.warn('Failed to delete user from auth system:', error);
+                    }
+                }
+            }
 
             setItems(items.filter((u) => !ids.includes(u.id)));
             setSelectedRecords([]);
@@ -209,22 +284,24 @@ const UsersList = () => {
             {/* Search and Actions */}
             <div className="mb-4.5 flex flex-col gap-4 px-5 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-1 items-center">
-                    <div className="relative flex-1">
+                    <div className="relative flex-1 max-w-[400px]">
                         <input type="text" className="form-input ltr:pl-9 rtl:pr-9" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
                         <IconSearch className="absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ltr:left-3 rtl:right-3" />
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {selectedRecords.length > 0 && (
+                    {isAdminUser && selectedRecords.length > 0 && (
                         <button type="button" className="btn btn-danger gap-2" onClick={() => setShowBulkDeleteModal(true)}>
                             <IconTrashLines />
                             {t('delete_selected')} ({selectedRecords.length})
                         </button>
                     )}
-                    <Link href="/users/add" className="btn btn-primary gap-2">
-                        <IconPlus />
-                        {t('add_user')}
-                    </Link>
+                    {isAdminUser && (
+                        <Link href="/users/add" className="btn btn-primary gap-2">
+                            <IconPlus />
+                            {t('add_user')}
+                        </Link>
+                    )}
                 </div>
             </div>
 
@@ -246,10 +323,10 @@ const UsersList = () => {
                             ),
                         },
                         {
-                            accessor: 'user_roles.name_ar',
+                            accessor: 'user_roles.name',
                             title: t('user_role'),
                             sortable: true,
-                            render: ({ user_roles }) => <span className="badge badge-outline-info">{user_roles?.name_ar || t('not_specified')}</span>,
+                            render: ({ user_roles }) => <span className="badge badge-outline-info">{user_roles?.name ? t(`role_${user_roles.name}`) : t('not_specified')}</span>,
                         },
                         {
                             accessor: 'schools.name',
@@ -277,25 +354,7 @@ const UsersList = () => {
                                 </span>
                             ),
                         },
-                        {
-                            accessor: 'is_active',
-                            title: t('status'),
-                            sortable: true,
-                            textAlignment: 'center' as const,
-                            render: (user: User) => (
-                                <div className="flex justify-center">
-                                    <label className="w-12 h-6 relative">
-                                        <input
-                                            type="checkbox"
-                                            className="custom_switch absolute w-full h-full opacity-0 z-10 cursor-pointer peer"
-                                            checked={user.is_active || false}
-                                            onChange={() => toggleUserStatus(user)}
-                                        />
-                                        <span className="bg-[#ebedf2] dark:bg-dark block h-full rounded-full before:absolute before:left-1 before:bg-white dark:before:bg-white-dark dark:peer-checked:before:bg-white before:bottom-1 before:w-4 before:h-4 before:rounded-full peer-checked:before:left-7 peer-checked:bg-primary before:transition-all before:duration-300"></span>
-                                    </label>
-                                </div>
-                            ),
-                        },
+                     
                         {
                             accessor: 'action',
                             title: t('actions'),
@@ -306,12 +365,16 @@ const UsersList = () => {
                                     <Link href={`/users/preview/${user.id}`} className="hover:text-info">
                                         <IconEye />
                                     </Link>
-                                    <Link href={`/users/edit/${user.id}`} className="hover:text-primary">
-                                        <IconEdit />
-                                    </Link>
-                                    <button type="button" className="hover:text-danger" onClick={() => confirmDelete(user)}>
-                                        <IconTrashLines />
-                                    </button>
+                                    {isAdminUser && (
+                                        <>
+                                            <Link href={`/users/edit/${user.id}`} className="hover:text-primary">
+                                                <IconEdit />
+                                            </Link>
+                                            <button type="button" className="hover:text-danger" onClick={() => confirmDelete(user)}>
+                                                <IconTrashLines />
+                                            </button>
+                                        </>
+                                    )}
                                 </div>
                             ),
                         },
@@ -325,8 +388,8 @@ const UsersList = () => {
                     onRecordsPerPageChange={setPageSize}
                     sortStatus={sortStatus}
                     onSortStatusChange={setSortStatus}
-                    selectedRecords={selectedRecords}
-                    onSelectedRecordsChange={setSelectedRecords}
+                    selectedRecords={isAdminUser ? selectedRecords : []}
+                    onSelectedRecordsChange={isAdminUser ? setSelectedRecords : () => {}}
                     minHeight={300}
                     paginationText={({ from, to, totalRecords }) => `${t('showing')} ${from} ${t('to')} ${to} ${t('of')} ${totalRecords} ${t('entries')}`}
                     noRecordsText={t('no_users_found')}

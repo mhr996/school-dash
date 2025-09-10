@@ -1,24 +1,30 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
-import CountrySelect from '@/components/country-select/country-select';
 import { getTranslation } from '@/i18n';
 import IconEye from '@/components/icon/icon-eye';
+import CustomSelect from '@/components/elements/custom-select';
+import { getCurrentUserWithRole } from '@/lib/auth';
 
 const AddUserPage = () => {
     const router = useRouter();
     const { t } = getTranslation();
+    const [isAdminUser, setIsAdminUser] = useState(false);
+    const [roles, setRoles] = useState<any[]>([]);
+    const [schools, setSchools] = useState<any[]>([]);
     const [form, setForm] = useState({
         full_name: '',
         email: '',
         password: '',
-        country: '',
-        address: '',
         phone: '',
-        status: 'Active',
+        address: '',
+        birth_date: '',
+        role_id: '',
+        school_id: '',
+        is_active: true,
     });
     const [showPassword, setShowPassword] = useState(false);
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -27,6 +33,44 @@ const AddUserPage = () => {
         type: 'success',
     });
     const [loading, setLoading] = useState(false);
+
+    // Check if user is admin and redirect if not
+    useEffect(() => {
+        const checkAdminAccess = async () => {
+            const { user, error } = await getCurrentUserWithRole();
+            if (error || !user || user.user_roles?.name !== 'admin') {
+                router.push('/users');
+                return;
+            }
+            setIsAdminUser(true);
+        };
+        checkAdminAccess();
+    }, [router]);
+
+    // Fetch roles and schools
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!isAdminUser) return;
+
+            try {
+                // Fetch roles
+                const { data: rolesData, error: rolesError } = await supabase.from('user_roles').select('*').order('name');
+
+                if (rolesError) throw rolesError;
+                setRoles(rolesData || []);
+
+                // Fetch schools
+                const { data: schoolsData, error: schoolsError } = await supabase.from('schools').select('*').order('name');
+
+                if (schoolsError) throw schoolsError;
+                setSchools(schoolsData || []);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
+            }
+        };
+        fetchData();
+    }, [isAdminUser]); // Removed 't' from dependencies to prevent re-fetching
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -53,42 +97,40 @@ const AddUserPage = () => {
             return;
         }
 
+        // Role validation
+        if (!form.role_id) {
+            setAlert({ visible: true, message: t('role_required'), type: 'danger' });
+            setLoading(false);
+            return;
+        }
+
         try {
-            // Get the user's session for authentication
-            const { data: sessionData } = await supabase.auth.getSession();
-            const token = sessionData?.session?.access_token;
-
-            if (!token) {
-                throw new Error(t('not_authenticated'));
-            }
-
-            // Call our secure API endpoint to create the user directly with password
-            const response = await fetch('/api/users/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                    email: form.email,
-                    password: form.password,
-                    userData: {
-                        display_name: form.full_name,
-                    },
-                    profileData: {
-                        full_name: form.full_name,
-                        country: form.country,
-                        address: form.address,
-                        phone: form.phone,
-                        status: form.status,
-                    },
-                }),
+            // Create user with regular signup
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: form.email,
+                password: form.password,
             });
-            const result = await response.json();
 
-            if (!response.ok) {
-                throw new Error(result.error || t('failed_to_create_user'));
+            if (authError) throw authError;
+
+            if (!authData.user) {
+                throw new Error('User creation failed - no user data returned');
             }
+
+            // Create user profile in database
+            const { error: profileError } = await supabase.from('users').insert({
+                email: form.email,
+                full_name: form.full_name,
+                phone: form.phone || null,
+                address: form.address || null,
+                birth_date: form.birth_date || null,
+                role_id: parseInt(form.role_id),
+                school_id: form.school_id || null,
+                is_active: form.is_active,
+                auth_user_id: authData.user.id,
+            });
+
+            if (profileError) throw profileError;
 
             setAlert({
                 visible: true,
@@ -107,6 +149,14 @@ const AddUserPage = () => {
             setLoading(false);
         }
     };
+
+    if (!isAdminUser) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <div>Loading...</div>
+            </div>
+        );
+    }
 
     return (
         <div className="container mx-auto p-6">
@@ -209,33 +259,58 @@ const AddUserPage = () => {
                         <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">{t('password_min_6_chars')}</p>
                     </div>
                     <div>
-                        <label htmlFor="country" className="block text-sm font-bold text-gray-700 dark:text-white">
-                            {t('country')}
+                        <label htmlFor="phone" className="block text-sm font-bold text-gray-700 dark:text-white">
+                            {t('phone')}
                         </label>
-                        <CountrySelect
-                            id="country"
-                            name="country"
-                            defaultValue={form.country}
-                            className="form-select text-white-dark"
-                            onChange={(e) => {
-                                setForm((prev) => ({
-                                    ...prev,
-                                    country: e.target.value,
-                                }));
-                            }}
+                        <input type="text" id="phone" name="phone" value={form.phone} onChange={handleInputChange} className="form-input" placeholder={t('enter_phone')} />
+                    </div>
+                    <div>
+                        <label htmlFor="birth_date" className="block text-sm font-bold text-gray-700 dark:text-white">
+                            {t('birth_date')}
+                        </label>
+                        <input type="date" id="birth_date" name="birth_date" value={form.birth_date} onChange={handleInputChange} className="form-input" />
+                    </div>
+                    <div>
+                        <label htmlFor="role_id" className="block text-sm font-bold text-gray-700 dark:text-white">
+                            {t('user_role')} *
+                        </label>
+                        <CustomSelect
+                            value={form.role_id}
+                            onChange={(value: string | string[]) => setForm((prev) => ({ ...prev, role_id: Array.isArray(value) ? value[0] : value }))}
+                            options={roles.map((role) => ({
+                                value: role.id.toString(),
+                                label: t(`role_${role.name}`),
+                            }))}
+                            placeholder={t('select_role')}
+                            className="form-input"
                         />
                     </div>
                     <div>
+                        <label htmlFor="school_id" className="block text-sm font-bold text-gray-700 dark:text-white">
+                            {t('school_assignment')}
+                        </label>
+                        <CustomSelect
+                            value={form.school_id}
+                            onChange={(value: string | string[]) => setForm((prev) => ({ ...prev, school_id: Array.isArray(value) ? value[0] : value }))}
+                            options={schools.map((school) => ({
+                                value: school.id,
+                                label: school.name,
+                            }))}
+                            placeholder={t('select_school')}
+                            className="form-input"
+                        />
+                    </div>
+                    <div className="sm:col-span-2">
                         <label htmlFor="address" className="block text-sm font-bold text-gray-700 dark:text-white">
                             {t('address')}
                         </label>
                         <input type="text" id="address" name="address" value={form.address} onChange={handleInputChange} className="form-input" placeholder={t('enter_address')} />
                     </div>
                     <div className="sm:col-span-2">
-                        <label htmlFor="phone" className="block text-sm font-bold text-gray-700 dark:text-white">
-                            {t('phone')}
+                        <label className="flex items-center cursor-pointer">
+                            <input type="checkbox" checked={form.is_active} onChange={(e) => setForm((prev) => ({ ...prev, is_active: e.target.checked }))} className="form-checkbox" />
+                            <span className="text-white-dark ml-2">{t('user_is_active')}</span>
                         </label>
-                        <input type="text" id="phone" name="phone" value={form.phone} onChange={handleInputChange} className="form-input lg:max-w-[49%]" placeholder={t('enter_phone')} />
                     </div>
                     <div className="sm:col-span-2">
                         <button type="submit" disabled={loading} className="btn btn-primary">
