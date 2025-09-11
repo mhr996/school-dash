@@ -308,7 +308,7 @@ const UsersList = () => {
             {/* Table */}
             <div className="datatables pagination-padding relative">
                 <DataTable
-                    className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'}`}
+                    className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'} rtl-table-headers`}
                     records={records}
                     columns={[
                         {
@@ -354,7 +354,7 @@ const UsersList = () => {
                                 </span>
                             ),
                         },
-                     
+
                         {
                             accessor: 'action',
                             title: t('actions'),

@@ -1,0 +1,321 @@
+'use client';
+import IconEdit from '@/components/icon/icon-edit';
+import IconEye from '@/components/icon/icon-eye';
+import IconPlus from '@/components/icon/icon-plus';
+import IconTrashLines from '@/components/icon/icon-trash-lines';
+import IconBuilding from '@/components/icon/icon-building';
+import IconSearch from '@/components/icon/icon-search';
+import { sortBy } from 'lodash';
+import { DataTableSortStatus, DataTable } from 'mantine-datatable';
+import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
+import supabase from '@/lib/supabase';
+import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import ConfirmModal from '@/components/modals/confirm-modal';
+import { getTranslation } from '@/i18n';
+import { useRouter } from 'next/navigation';
+
+interface TravelCompany {
+    id: string;
+    created_at: string;
+    updated_at: string;
+    name: string;
+    code: string;
+    services_offered?: string;
+    vehicle_types: string[]; // ['باص', 'مينيباص']
+    vehicle_count: number;
+    vehicle_availability?: string;
+    accounting_methods?: string;
+    address?: string;
+    email?: string;
+    phone?: string;
+    pricing_structure?: string;
+    status: string;
+    notes?: string;
+}
+
+const TravelCompaniesList = () => {
+    const { t } = getTranslation();
+    const router = useRouter();
+    const [items, setItems] = useState<TravelCompany[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const [page, setPage] = useState(1);
+    const PAGE_SIZES = [10, 20, 30, 50, 100];
+    const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
+    const [initialRecords, setInitialRecords] = useState<TravelCompany[]>([]);
+    const [records, setRecords] = useState<TravelCompany[]>([]);
+    const [selectedRecords, setSelectedRecords] = useState<TravelCompany[]>([]);
+
+    const [search, setSearch] = useState('');
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus>({
+        columnAccessor: 'name',
+        direction: 'asc',
+    });
+
+    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [companyToDelete, setCompanyToDelete] = useState<string | null>(null);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Fetch travel companies from database
+    const fetchTravelCompanies = async () => {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase.from('travel_companies').select('*').order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            setItems(data || []);
+            setInitialRecords(data || []);
+        } catch (error) {
+            console.error('Error fetching travel companies:', error);
+            setAlert({
+                message: t('error_loading_travel_companies') || 'Error loading travel companies',
+                type: 'danger',
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTravelCompanies();
+    }, []);
+
+    useEffect(() => {
+        setPage(1);
+    }, [pageSize]);
+
+    useEffect(() => {
+        const from = (page - 1) * pageSize;
+        const to = from + pageSize;
+        setRecords([...initialRecords.slice(from, to)]);
+    }, [page, pageSize, initialRecords]);
+
+    useEffect(() => {
+        setInitialRecords(() => {
+            return items.filter((item) => {
+                return (
+                    item.name.toLowerCase().includes(search.toLowerCase()) ||
+                    item.code?.toLowerCase().includes(search.toLowerCase()) ||
+                    item.email?.toLowerCase().includes(search.toLowerCase()) ||
+                    item.phone?.toLowerCase().includes(search.toLowerCase())
+                );
+            });
+        });
+    }, [search, items]);
+
+    useEffect(() => {
+        const data = sortBy(initialRecords, sortStatus.columnAccessor);
+        setInitialRecords(sortStatus.direction === 'desc' ? data.reverse() : data);
+        setPage(1);
+    }, [sortStatus]);
+
+    // Delete single travel company
+    const handleDelete = async (id: string) => {
+        try {
+            setIsDeleting(true);
+            const { error } = await supabase.from('travel_companies').delete().eq('id', id);
+
+            if (error) throw error;
+
+            setAlert({
+                message: t('travel_company_deleted_successfully') || 'Travel company deleted successfully',
+                type: 'success',
+            });
+
+            // Refresh the list
+            await fetchTravelCompanies();
+        } catch (error) {
+            console.error('Error deleting travel company:', error);
+            setAlert({
+                message: t('error_deleting_travel_company') || 'Error deleting travel company',
+                type: 'danger',
+            });
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteModal(false);
+            setCompanyToDelete(null);
+        }
+    };
+
+    // Bulk delete travel companies
+    const handleBulkDelete = async () => {
+        try {
+            setIsDeleting(true);
+            const idsToDelete = selectedRecords.map((record) => record.id);
+
+            const { error } = await supabase.from('travel_companies').delete().in('id', idsToDelete);
+
+            if (error) throw error;
+
+            setAlert({
+                message: t('travel_companies_deleted_successfully') || 'Travel companies deleted successfully',
+                type: 'success',
+            });
+
+            // Clear selection and refresh the list
+            setSelectedRecords([]);
+            await fetchTravelCompanies();
+        } catch (error) {
+            console.error('Error deleting travel companies:', error);
+            setAlert({
+                message: t('error_deleting_travel_companies') || 'Error deleting travel companies',
+                type: 'danger',
+            });
+        } finally {
+            setIsDeleting(false);
+            setShowBulkDeleteModal(false);
+        }
+    };
+
+    return (
+        <div>
+            <div className="panel mt-6">
+                <div className="mb-5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <IconBuilding className="h-6 w-6 text-primary" />
+                        <h5 className="text-lg font-semibold dark:text-white-light">{t('travel_companies_management')}</h5>
+                    </div>
+                    <Link href="/travel-companies/add" className="btn btn-primary gap-2">
+                        <IconPlus />
+                        {t('add_travel_company')}
+                    </Link>
+                </div>
+
+                {alert && (
+                    <div className="mb-4">
+                        <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
+                    </div>
+                )}
+
+                <div className="mb-4.5 flex flex-col justify-between gap-5 md:flex-row md:items-center">
+                    <div className="flex items-center gap-2 flex-1 max-w-[400px]">
+                        <div className="relative w-full">
+                            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                            <input type="text" className="form-input pl-10 pr-4" placeholder={t('search_travel_companies')} value={search} onChange={(e) => setSearch(e.target.value)} />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {selectedRecords.length > 0 && (
+                            <button type="button" className="btn btn-danger gap-2" onClick={() => setShowBulkDeleteModal(true)}>
+                                <IconTrashLines />
+                                {t('delete')} ({selectedRecords.length})
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                <div className="datatables relative">
+                    <DataTable
+                        highlightOnHover
+                        className="table-hover whitespace-nowrap rtl-table-headers"
+                        records={records}
+                        columns={[
+                            {
+                                accessor: 'name',
+                                title: t('travel_company_name'),
+                                sortable: true,
+                                render: ({ name, code }) => (
+                                    <div>
+                                        <div className="font-semibold">{name}</div>
+                                        {code && <div className="text-xs text-gray-500">{code}</div>}
+                                    </div>
+                                ),
+                            },
+                            {
+                                accessor: 'vehicle_count',
+                                title: t('vehicle_count'),
+                                sortable: true,
+                                render: ({ vehicle_count }) => <span className="font-semibold">{vehicle_count}</span>,
+                            },
+                            {
+                                accessor: 'phone',
+                                title: t('phone'),
+                                render: ({ phone }) => <span dir="ltr">{phone || '-'}</span>,
+                            },
+                            {
+                                accessor: 'email',
+                                title: t('email'),
+                                render: ({ email }) => <span dir="ltr">{email || '-'}</span>,
+                            },
+                            {
+                                accessor: 'status',
+                                title: t('status'),
+                                sortable: true,
+                                render: ({ status }) => (
+                                    <span className={`rounded px-2 py-1 text-xs font-semibold ${status === 'active' ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>{t(status)}</span>
+                                ),
+                            },
+                            {
+                                accessor: 'actions',
+                                title: t('actions'),
+                                render: ({ id }) => (
+                                    <div className="flex items-center gap-2">
+                                        <Link href={`/travel-companies/preview/${id}`} title={t('preview')}>
+                                            <IconEye />
+                                        </Link>
+                                        <Link href={`/travel-companies/edit/${id}`} title={t('edit')}>
+                                            <IconEdit />
+                                        </Link>
+                                        <button
+                                            type="button"
+                                            title={t('delete')}
+                                            onClick={() => {
+                                                setCompanyToDelete(id);
+                                                setShowDeleteModal(true);
+                                            }}
+                                        >
+                                            <IconTrashLines />
+                                        </button>
+                                    </div>
+                                ),
+                            },
+                        ]}
+                        totalRecords={initialRecords.length}
+                        recordsPerPage={pageSize}
+                        page={page}
+                        onPageChange={(p) => setPage(p)}
+                        recordsPerPageOptions={PAGE_SIZES}
+                        onRecordsPerPageChange={setPageSize}
+                        sortStatus={sortStatus}
+                        onSortStatusChange={setSortStatus}
+                        selectedRecords={selectedRecords}
+                        onSelectedRecordsChange={setSelectedRecords}
+                        minHeight={300}
+                        paginationText={({ from, to, totalRecords }) => `${t('showing')} ${from} ${t('to')} ${to} ${t('of')} ${totalRecords} ${t('entries')}`}
+                        noRecordsText={loading ? t('loading_travel_companies') : t('no_travel_companies_found')}
+                    />
+
+                    {loading && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black-dark-light bg-opacity-60 backdrop-blur-sm" />}
+                </div>
+            </div>
+
+            {/* Delete confirmation modal */}
+            <ConfirmModal
+                isOpen={showDeleteModal}
+                onCancel={() => setShowDeleteModal(false)}
+                onConfirm={() => companyToDelete && handleDelete(companyToDelete)}
+                title={t('confirm_delete')}
+                message={t('confirm_delete_travel_company')}
+                confirmLabel={t('delete')}
+                cancelLabel={t('cancel')}
+            />
+
+            {/* Bulk delete confirmation modal */}
+            <ConfirmModal
+                isOpen={showBulkDeleteModal}
+                onCancel={() => setShowBulkDeleteModal(false)}
+                onConfirm={handleBulkDelete}
+                title={t('confirm_delete')}
+                message={t('confirm_bulk_delete_travel_companies_message')}
+                confirmLabel={t('delete')}
+                cancelLabel={t('cancel')}
+            />
+        </div>
+    );
+};
+
+export default TravelCompaniesList;
