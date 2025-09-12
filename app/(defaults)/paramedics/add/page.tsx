@@ -174,7 +174,7 @@ const AddParamedic = () => {
                             {/* Paramedic Name */}
                             <div className="space-y-2">
                                 <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconUser className="w-4 h-4 text-primary" />
+                                    <IconUser className="w-5 h-5 text-primary" />
                                     {t('paramedic_name')} <span className="text-red-500">*</span>
                                 </label>
                                 <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_paramedic_name')} required />
@@ -183,7 +183,7 @@ const AddParamedic = () => {
                             {/* ID Number */}
                             <div className="space-y-2">
                                 <label htmlFor="identity_number" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconCreditCard className="w-4 h-4 text-primary" />
+                                    <IconCreditCard className="w-5 h-5 text-primary" />
                                     {t('identity_number')} <span className="text-red-500">*</span>
                                 </label>
                                 <input
@@ -223,7 +223,7 @@ const AddParamedic = () => {
                             {/* Phone */}
                             <div className="space-y-2">
                                 <label htmlFor="phone" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconPhone className="w-4 h-4 text-primary" />
+                                    <IconPhone className="w-5 h-5 text-primary" />
                                     {t('phone')} <span className="text-red-500">*</span>
                                 </label>
                                 <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} className="form-input" placeholder={t('enter_phone')} required />
@@ -232,7 +232,7 @@ const AddParamedic = () => {
                             {/* Email */}
                             <div className="space-y-2">
                                 <label htmlFor="email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconMail className="w-4 h-4 text-primary" />
+                                    <IconMail className="w-5 h-5 text-primary" />
                                     {t('email')}
                                 </label>
                                 <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} className="form-input" placeholder={t('enter_email')} />

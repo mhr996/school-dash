@@ -1,19 +1,21 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import supabase from '@/lib/supabase';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 // Components
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
-import IconLock from '@/components/icon/icon-lock';
 import IconEdit from '@/components/icon/icon-edit';
-import IconUser from '@/components/icon/icon-user';
+import IconLock from '@/components/icon/icon-lock';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
+import IconBuilding from '@/components/icon/icon-building';
+import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconCalendar from '@/components/icon/icon-calendar';
-import IconClock from '@/components/icon/icon-clock';
+import IconClipboardText from '@/components/icon/icon-clipboard-text';
+import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 
 import { getTranslation } from '@/i18n';
 
@@ -35,208 +37,259 @@ interface SecurityCompany {
 const SecurityCompanyPreview = () => {
     const { t } = getTranslation();
     const params = useParams();
-    const router = useRouter();
-    const [company, setCompany] = useState<SecurityCompany | null>(null);
+    const companyId = params?.id as string;
+
     const [loading, setLoading] = useState(true);
+    const [company, setCompany] = useState<SecurityCompany | null>(null);
+    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+
+    const supabase = createClientComponentClient();
 
     useEffect(() => {
         const fetchSecurityCompany = async () => {
             try {
-                if (!params?.id) return;
+                setLoading(true);
 
-                const { data, error } = await supabase.from('security_companies').select('*').eq('id', params.id).single();
+                const { data, error } = await supabase.from('security_companies').select('*').eq('id', companyId).single();
 
                 if (error) {
                     console.error('Error fetching security company:', error);
+                    setAlert({ message: t('error_loading_security_company'), type: 'danger' });
                     return;
                 }
 
-                setCompany(data as SecurityCompany);
+                setCompany(data);
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error fetching security company:', error);
+                setAlert({ message: t('error_loading_security_company'), type: 'danger' });
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchSecurityCompany();
-    }, [params?.id]);
+        if (companyId) {
+            fetchSecurityCompany();
+        }
+    }, [companyId]);
 
     if (loading) {
         return (
-            <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-                <div className="flex min-h-[400px] items-center justify-center">
-                    <div className="animate-spin border-4 border-primary border-l-transparent rounded-full w-10 h-10"></div>
-                </div>
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
             </div>
         );
     }
 
     if (!company) {
         return (
-            <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-                <div className="flex min-h-[400px] flex-col items-center justify-center">
-                    <IconLock className="h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-500 mb-2">{t('security_company_not_found')}</h3>
-                    <p className="text-sm text-gray-400 mb-6">{t('security_company_not_found_description')}</p>
-                    <Link href="/security-companies" className="btn btn-primary">
-                        {t('back_to_security_companies')}
-                    </Link>
+            <div className="container mx-auto p-6">
+                <div className="panel">
+                    <div className="text-center py-12">
+                        <IconLock className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                        <h2 className="text-xl font-semibold text-gray-600 mb-2">{t('security_company_not_found')}</h2>
+                        <p className="text-gray-500 mb-6">{t('security_company_not_found_description')}</p>
+                        <Link href="/security-companies" className="btn btn-primary">
+                            {t('back_to_security_companies')}
+                        </Link>
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
+        <div className="container mx-auto p-6">
             {/* Header */}
-            <div className="mb-5 flex flex-col gap-5 px-5 md:items-start">
-                <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-2">
-                        <Link href="/security-companies" className="text-primary hover:text-primary/80">
-                            <IconArrowLeft className="h-6 w-6" />
+            <div className="flex items-center gap-5 mb-6">
+                <Link href="/security-companies" className="text-primary hover:text-primary/80">
+                    <IconArrowLeft className="h-7 w-7" />
+                </Link>
+
+                {/* Breadcrumb Navigation */}
+                <ul className="flex space-x-2 rtl:space-x-reverse">
+                    <li>
+                        <Link href="/" className="text-primary hover:underline">
+                            {t('home')}
                         </Link>
-                        <IconLock className="h-6 w-6 text-primary" />
-                        <h2 className="text-xl font-bold dark:text-white">{t('security_company_details')}</h2>
-                    </div>
-
-                    <Link href={`/security-companies/edit/${company.id}`} className="btn btn-primary gap-2">
-                        <IconEdit />
-                        {t('edit_security_company')}
-                    </Link>
-                </div>
-
-                {/* Breadcrumb */}
-                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                    <Link href="/security-companies" className="text-primary hover:underline">
-                        {t('security_companies')}
-                    </Link>
-                    <span className="mx-2">/</span>
-                    <span>{company.name}</span>
-                </div>
+                    </li>
+                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
+                        <Link href="/security-companies" className="text-primary hover:underline">
+                            {t('security_companies')}
+                        </Link>
+                    </li>
+                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
+                        <span>{company.name}</span>
+                    </li>
+                </ul>
             </div>
 
-            {/* Content */}
-            <div className="px-5 pb-5">
-                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    {/* Basic Information Card */}
+            {/* Title and Action */}
+            <div className="flex items-center justify-between mb-6">
+                <div>
+                    <h1 className="text-3xl font-bold flex items-center gap-3">
+                        <IconLock className="w-8 h-8 text-primary" />
+                        {company.name}
+                    </h1>
+                    <p className="text-gray-500 mt-2">{t('security_company_details')}</p>
+                </div>
+                <Link href={`/security-companies/edit/${company.id}`} className="btn btn-primary flex items-center gap-2">
+                    <IconEdit className="w-4 h-4" />
+                    {t('edit_security_company')}
+                </Link>
+            </div>
+
+            {alert && (
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert(null)} />
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Information */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Basic Information */}
                     <div className="panel">
-                        <h5 className="text-lg font-semibold mb-4">{t('basic_information')}</h5>
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-3">
-                                <IconUser className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('security_company_name')}</p>
-                                    <p className="font-semibold">{company.name}</p>
-                                </div>
-                            </div>
-
-                            {company.tax_number && (
-                                <div className="flex items-start gap-3">
-                                    <IconClock className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('security_tax_number')}</p>
-                                        <p className="font-semibold">{company.tax_number}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="flex items-start gap-3">
-                                <div className={`h-3 w-3 rounded-full mt-2 ${company.status === 'active' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('status')}</p>
-                                    <p className={`font-semibold ${company.status === 'active' ? 'text-green-600' : 'text-red-600'}`}>{company.status === 'active' ? t('active') : t('inactive')}</p>
-                                </div>
-                            </div>
+                        <div className="mb-5">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <IconBuilding className="w-5 h-5 text-primary" />
+                                {t('basic_information')}
+                            </h3>
                         </div>
-                    </div>
 
-                    {/* Contact Information Card */}
-                    <div className="panel">
-                        <h5 className="text-lg font-semibold mb-4">{t('contact_information')}</h5>
-                        <div className="space-y-4">
-                            {company.phone && (
-                                <div className="flex items-start gap-3">
-                                    <IconPhone className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('phone')}</p>
-                                        <p className="font-semibold">{company.phone}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {company.email && (
-                                <div className="flex items-start gap-3">
-                                    <IconMail className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('email')}</p>
-                                        <p className="font-semibold">{company.email}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {company.address && (
-                                <div className="flex items-start gap-3">
-                                    <IconMapPin className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                                    <div>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('address')}</p>
-                                        <p className="font-semibold">{company.address}</p>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Security Information Card */}
-                    <div className="panel lg:col-span-2">
-                        <h5 className="text-lg font-semibold mb-4">{t('security_information')}</h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {company.license_types && (
+                            <div className="space-y-4">
                                 <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{t('license_types')}</p>
-                                    <p className="font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-2 rounded-lg">{company.license_types}</p>
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('security_company_name')}</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.name}</div>
                                 </div>
-                            )}
 
-                            {company.weapon_types && (
+                                {company.tax_number && (
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('security_tax_number')}</label>
+                                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.tax_number}</div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-4">
                                 <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{t('weapon_types')}</p>
-                                    <p className="font-semibold bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 px-3 py-2 rounded-lg">{company.weapon_types}</p>
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('status')}</label>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                        <span className={`badge ${company.status === 'active' ? 'badge-outline-success' : 'badge-outline-danger'}`}>
+                                            {company.status === 'active' ? t('active') : t('inactive')}
+                                        </span>
+                                    </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Notes Card */}
+                    {/* Contact Information */}
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <IconPhone className="w-5 h-5 text-primary" />
+                                {t('contact_information')}
+                            </h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-bold text-gray-700 dark:text-white mb-2 flex items-center gap-2">
+                                        <IconPhone className="w-4 h-4 text-primary" />
+                                        {t('phone')}
+                                    </label>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.phone || t('not_specified')}</div>
+                                </div>
+
+                                {company.address && (
+                                    <div>
+                                        <label className="text-sm font-bold text-gray-700 dark:text-white mb-2 flex items-center gap-2">
+                                            <IconMapPin className="w-4 h-4 text-primary" />
+                                            {t('address')}
+                                        </label>
+                                        <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.address}</div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-sm font-bold text-gray-700 dark:text-white mb-2 flex items-center gap-2">
+                                        <IconMail className="w-4 h-4 text-primary" />
+                                        {t('email')}
+                                    </label>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.email || t('not_specified')}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Security Information */}
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <IconLock className="w-5 h-5 text-primary" />
+                                {t('security_information')}
+                            </h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('license_types')}</label>
+                                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                                        <span className="text-blue-600 dark:text-blue-300 font-semibold">{company.license_types || t('not_specified')}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('weapon_types')}</label>
+                                    <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                                        <span className="text-orange-600 dark:text-orange-300 font-semibold">{company.weapon_types || t('not_specified')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Notes */}
                     {company.notes && (
-                        <div className="panel lg:col-span-2">
-                            <h5 className="text-lg font-semibold mb-4">{t('notes')}</h5>
-                            <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{company.notes}</p>
+                        <div className="panel">
+                            <div className="mb-5">
+                                <h3 className="text-lg font-semibold flex items-center gap-2">
+                                    <IconClipboardText className="w-5 h-5 text-primary" />
+                                    {t('notes')}
+                                </h3>
+                            </div>
+                            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.notes}</div>
                         </div>
                     )}
+                </div>
 
-                    {/* Timestamps Card */}
-                    <div className="panel lg:col-span-2">
-                        <h5 className="text-lg font-semibold mb-4">{t('timestamps')}</h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="flex items-start gap-3">
-                                <IconCalendar className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('created_at')}</p>
-                                    <p className="font-semibold">
-                                        {new Date(company.created_at).toLocaleDateString('tr-TR')} {new Date(company.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                </div>
+                {/* Sidebar */}
+                <div className="space-y-6">
+                    {/* Metadata */}
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                                <IconCalendar className="w-5 h-5 text-primary" />
+                                {t('record_information')}
+                            </h3>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t('created_at')}</label>
+                                <div className="text-sm font-semibold">{new Date(company.created_at).toLocaleDateString('tr-TR')}</div>
                             </div>
 
-                            <div className="flex items-start gap-3">
-                                <IconClock className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
-                                <div>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('updated_at')}</p>
-                                    <p className="font-semibold">
-                                        {new Date(company.updated_at).toLocaleDateString('tr-TR')} {new Date(company.updated_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
-                                </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t('last_updated')}</label>
+                                <div className="text-sm font-semibold">{new Date(company.updated_at).toLocaleDateString('tr-TR')}</div>
                             </div>
                         </div>
                     </div>

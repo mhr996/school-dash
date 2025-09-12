@@ -245,7 +245,7 @@ const EditSchool = () => {
                             {/* School Name */}
                             <div className="space-y-2">
                                 <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconBuilding className="w-4 h-4 text-primary" />
+                                    <IconBuilding className="w-5 h-5 text-primary" />
                                     {t('institution_name')} <span className="text-red-500">*</span>
                                 </label>
                                 <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_institution_name')} required />
@@ -300,7 +300,7 @@ const EditSchool = () => {
                             {/* Director Name */}
                             <div className="space-y-2">
                                 <label htmlFor="director_name" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconUser className="w-4 h-4 text-primary" />
+                                    <IconUser className="w-5 h-5 text-primary" />
                                     {t('director_name')}
                                 </label>
                                 <input
@@ -317,7 +317,7 @@ const EditSchool = () => {
                             {/* Phone */}
                             <div className="space-y-2">
                                 <label htmlFor="phone" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconPhone className="w-4 h-4 text-primary" />
+                                    <IconPhone className="w-5 h-5 text-primary" />
                                     {t('phone_number')}
                                 </label>
                                 <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} className="form-input" placeholder={t('enter_phone_number')} />
@@ -326,7 +326,7 @@ const EditSchool = () => {
                             {/* Email */}
                             <div className="space-y-2">
                                 <label htmlFor="email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconMail className="w-4 h-4 text-primary" />
+                                    <IconMail className="w-5 h-5 text-primary" />
                                     {t('email')}
                                 </label>
                                 <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} className="form-input" placeholder={t('enter_email')} />
@@ -335,7 +335,7 @@ const EditSchool = () => {
                             {/* Address */}
                             <div className="space-y-2">
                                 <label htmlFor="address" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconMapPin className="w-4 h-4 text-primary" />
+                                    <IconMapPin className="w-5 h-5 text-primary" />
                                     {t('address')}
                                 </label>
                                 <textarea id="address" name="address" value={formData.address} onChange={handleInputChange} className="form-textarea" placeholder={t('enter_address')} rows={3} />
@@ -351,7 +351,7 @@ const EditSchool = () => {
                             {/* Staff Count */}
                             <div className="space-y-2">
                                 <label htmlFor="staff_count" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconUsers className="w-4 h-4 text-primary" />
+                                    <IconUsers className="w-5 h-5 text-primary" />
                                     {t('staff_count')}
                                 </label>
                                 <input type="number" id="staff_count" name="staff_count" value={formData.staff_count} onChange={handleInputChange} className="form-input" min="0" placeholder="0" />
@@ -360,7 +360,7 @@ const EditSchool = () => {
                             {/* Student Count */}
                             <div className="space-y-2">
                                 <label htmlFor="student_count" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconUsersGroup className="w-4 h-4 text-primary" />
+                                    <IconUsersGroup className="w-5 h-5 text-primary" />
                                     {t('student_count')}
                                 </label>
                                 <input
