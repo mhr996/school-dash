@@ -254,13 +254,13 @@ const SchoolsList = () => {
                             render: ({ staff_count, student_count, class_count }) => (
                                 <div className="text-sm">
                                     <div>
-                                        {t('staff')}: {staff_count}
+                                        {t('staff')}: {<span className='text-blue-500 font-semibold'>{staff_count}</span>}
                                     </div>
                                     <div>
-                                        {t('students')}: {student_count}
+                                        {t('students')}: {<span className='text-blue-500 font-semibold'>{student_count}</span>}
                                     </div>
                                     <div>
-                                        {t('classes')}: {class_count}
+                                        {t('classes')}: {<span className='text-blue-500 font-semibold'>{class_count}</span>}
                                     </div>
                                 </div>
                             ),

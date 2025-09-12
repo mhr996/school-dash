@@ -231,16 +231,16 @@ const ParamedicsList = () => {
                             render: ({ hourly_rate, daily_rate, regional_rate, overnight_rate }) => (
                                 <div className="text-sm">
                                     <div>
-                                        {t('hourly_rate')}: {hourly_rate ? <span className='text-green-500'>{hourly_rate}</span> : t('not_specified')}
+                                        {t('hourly_rate')}: {hourly_rate ? <span className='text-green-500 font-semibold'>{hourly_rate}</span> : t('not_specified')}
                                     </div>
                                     <div>
-                                        {t('daily_rate')}: {daily_rate ? <span className='text-green-500'>{daily_rate}</span> : t('not_specified')}
+                                        {t('daily_rate')}: {daily_rate ? <span className='text-green-500 font-semibold'>{daily_rate}</span> : t('not_specified')}
                                     </div>
                                     <div>
-                                        {t('regional_rate')}: {regional_rate ? <span className='text-green-500'>{regional_rate}</span> : t('not_specified')}
+                                        {t('regional_rate')}: {regional_rate ? <span className='text-green-500 font-semibold'>{regional_rate}</span> : t('not_specified')}
                                     </div>
                                     <div>
-                                        {t('overnight_rate')}: {overnight_rate ? <span className='text-green-500'>{overnight_rate}</span> : t('not_specified')}
+                                        {t('overnight_rate')}: {overnight_rate ? <span className='text-green-500 font-semibold'>{overnight_rate}</span> : t('not_specified')}
                                     </div>
                                 </div>
                             ),
