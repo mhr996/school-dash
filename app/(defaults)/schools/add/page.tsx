@@ -38,7 +38,7 @@ const AddSchool = () => {
     const [formData, setFormData] = useState<SchoolForm>({
         name: '',
         code: '',
-        type: 'مدرسة',
+        type: 'school', // Changed from 'مدرسة' to 'school'
         director_name: '',
         address: '',
         email: '',
@@ -53,20 +53,20 @@ const AddSchool = () => {
 
     const schoolTypeOptions: SelectOption[] = [
         {
-            value: 'مجلس',
-            label: 'مجلس',
+            value: 'council',
+            label: t('institution_type_council'),
         },
         {
-            value: 'كلية',
-            label: 'كلية',
+            value: 'college',
+            label: t('institution_type_college'),
         },
         {
-            value: 'مدرسة',
-            label: 'مدرسة',
+            value: 'school',
+            label: t('institution_type_school'),
         },
         {
-            value: 'روضه',
-            label: 'روضه',
+            value: 'kindergarten',
+            label: t('institution_type_kindergarten'),
         },
     ];
 

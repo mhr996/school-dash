@@ -218,7 +218,7 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
                 <div className="panel">
                     <div className="flex items-center gap-3 mb-5">
                         <IconCar className="h-5 w-5 text-primary" />
-                        <h5 className="text-lg font-semibold dark:text-white-light">{t('vehicle_information')}</h5>
+                        <h5 className="text-lg font-semibold dark:text-white-light">{t('vehicles_information')}</h5>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -260,7 +260,7 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
                                 </thead>
                                 <tbody>
                                     {['خاصة', 'فان', 'باص 40', 'باص 50', 'مينيبوس 18', 'مينيبوس 24'].map((vehicleType) => (
-                                        <tr key={vehicleType} className="hover:bg-gray-50 dark:hover:bg-gray-600">
+                                        <tr key={vehicleType} className="">
                                             <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-medium text-right">
                                                 {vehicleType === 'خاصة'
                                                     ? t('vehicle_type_private')

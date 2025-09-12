@@ -3,7 +3,7 @@ import IconEdit from '@/components/icon/icon-edit';
 import IconEye from '@/components/icon/icon-eye';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
-import IconBuilding from '@/components/icon/icon-building';
+import IconLock from '@/components/icon/icon-lock';
 import IconSearch from '@/components/icon/icon-search';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
@@ -15,36 +15,33 @@ import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
 
-interface School {
+interface SecurityCompany {
     id: string;
     created_at: string;
     updated_at: string;
     name: string;
-    code: string;
-    type: string; // مجلس / كلية / مدرسة / روضه
-    director_name?: string;
-    address?: string;
-    email?: string;
+    tax_number?: string;
     phone?: string;
-    staff_count: number;
-    student_count: number;
-    class_count: number;
-    status: string;
+    email?: string;
+    address?: string;
+    license_types?: string;
+    weapon_types?: string;
+    status?: string;
     notes?: string;
 }
 
-const SchoolsList = () => {
+const SecurityCompaniesList = () => {
     const { t } = getTranslation();
     const router = useRouter();
-    const [items, setItems] = useState<School[]>([]);
+    const [items, setItems] = useState<SecurityCompany[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [page, setPage] = useState(1);
     const PAGE_SIZES = [10, 20, 30, 50, 100];
     const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
-    const [initialRecords, setInitialRecords] = useState<School[]>([]);
-    const [records, setRecords] = useState<School[]>([]);
-    const [selectedRecords, setSelectedRecords] = useState<School[]>([]);
+    const [initialRecords, setInitialRecords] = useState<SecurityCompany[]>([]);
+    const [records, setRecords] = useState<SecurityCompany[]>([]);
+    const [selectedRecords, setSelectedRecords] = useState<SecurityCompany[]>([]);
 
     const [search, setSearch] = useState('');
 
@@ -56,54 +53,29 @@ const SchoolsList = () => {
     // Modal and alert states
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
-    const [schoolToDelete, setSchoolToDelete] = useState<School | null>(null);
+    const [companyToDelete, setCompanyToDelete] = useState<SecurityCompany | null>(null);
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
         message: '',
         type: 'success',
     });
 
-    // Helper function to get localized institution type
-    const getLocalizedType = (type: string) => {
-        switch (type) {
-            case 'council':
-                return t('institution_type_council');
-            case 'college':
-                return t('institution_type_college');
-            case 'school':
-                return t('institution_type_school');
-            case 'kindergarten':
-                return t('institution_type_kindergarten');
-            // Handle legacy Arabic values that might still be in the database
-            case 'مجلس':
-                return t('institution_type_council');
-            case 'كلية':
-                return t('institution_type_college');
-            case 'مدرسة':
-                return t('institution_type_school');
-            case 'روضه':
-                return t('institution_type_kindergarten');
-            default:
-                return type;
-        }
-    };
-
     useEffect(() => {
-        const fetchSchools = async () => {
+        const fetchSecurityCompanies = async () => {
             try {
-                const { data, error } = await supabase.from('schools').select('*').order('created_at', { ascending: false });
+                const { data, error } = await supabase.from('security_companies').select('*').order('created_at', { ascending: false });
 
                 if (error) throw error;
 
-                setItems(data as School[]);
+                setItems(data as SecurityCompany[]);
             } catch (error) {
-                console.error('Error fetching schools:', error);
-                setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
+                console.error('Error fetching security companies:', error);
+                setAlert({ visible: true, message: t('error_loading_security_companies'), type: 'danger' });
             } finally {
                 setLoading(false);
             }
         };
-        fetchSchools();
+        fetchSecurityCompanies();
     }, []);
 
     useEffect(() => {
@@ -124,12 +96,13 @@ const SchoolsList = () => {
                 const matchesSearch =
                     !searchTerm ||
                     item.name.toLowerCase().includes(searchTerm) ||
-                    item.code?.toLowerCase().includes(searchTerm) ||
-                    item.type.toLowerCase().includes(searchTerm) ||
-                    item.director_name?.toLowerCase().includes(searchTerm) ||
-                    item.address?.toLowerCase().includes(searchTerm) ||
+                    item.tax_number?.toLowerCase().includes(searchTerm) ||
+                    item.phone?.toLowerCase().includes(searchTerm) ||
                     item.email?.toLowerCase().includes(searchTerm) ||
-                    item.phone?.toLowerCase().includes(searchTerm);
+                    item.address?.toLowerCase().includes(searchTerm) ||
+                    item.license_types?.toLowerCase().includes(searchTerm) ||
+                    item.weapon_types?.toLowerCase().includes(searchTerm) ||
+                    item.notes?.toLowerCase().includes(searchTerm);
 
                 return matchesSearch;
             }),
@@ -142,38 +115,38 @@ const SchoolsList = () => {
         setPage(1);
     }, [sortStatus]);
 
-    const deleteSchool = async (school: School) => {
+    const deleteSecurityCompany = async (company: SecurityCompany) => {
         try {
-            const { error } = await supabase.from('schools').delete().eq('id', school.id);
+            const { error } = await supabase.from('security_companies').delete().eq('id', company.id);
 
             if (error) throw error;
 
-            setItems((prevItems) => prevItems.filter((item) => item.id !== school.id));
-            setAlert({ visible: true, message: t('school_deleted_successfully'), type: 'success' });
+            setItems((prevItems) => prevItems.filter((item) => item.id !== company.id));
+            setAlert({ visible: true, message: t('security_company_deleted_successfully'), type: 'success' });
         } catch (error) {
-            console.error('Error deleting school:', error);
-            setAlert({ visible: true, message: t('error_deleting_school'), type: 'danger' });
+            console.error('Error deleting security company:', error);
+            setAlert({ visible: true, message: t('error_deleting_security_company'), type: 'danger' });
         }
     };
 
     const bulkDelete = async () => {
         try {
             const ids = selectedRecords.map((record) => record.id);
-            const { error } = await supabase.from('schools').delete().in('id', ids);
+            const { error } = await supabase.from('security_companies').delete().in('id', ids);
 
             if (error) throw error;
 
             setItems((prevItems) => prevItems.filter((item) => !ids.includes(item.id)));
             setSelectedRecords([]);
-            setAlert({ visible: true, message: t('schools_deleted_successfully'), type: 'success' });
+            setAlert({ visible: true, message: t('security_companies_deleted_successfully'), type: 'success' });
         } catch (error) {
-            console.error('Error bulk deleting schools:', error);
-            setAlert({ visible: true, message: t('error_deleting_schools'), type: 'danger' });
+            console.error('Error bulk deleting security companies:', error);
+            setAlert({ visible: true, message: t('error_deleting_security_companies'), type: 'danger' });
         }
     };
 
-    const confirmDelete = (school: School) => {
-        setSchoolToDelete(school);
+    const confirmDelete = (company: SecurityCompany) => {
+        setCompanyToDelete(company);
         setShowConfirmModal(true);
     };
 
@@ -182,9 +155,9 @@ const SchoolsList = () => {
     };
 
     const handleDeleteConfirm = async () => {
-        if (schoolToDelete) {
-            await deleteSchool(schoolToDelete);
-            setSchoolToDelete(null);
+        if (companyToDelete) {
+            await deleteSecurityCompany(companyToDelete);
+            setCompanyToDelete(null);
         }
         setShowConfirmModal(false);
     };
@@ -199,8 +172,8 @@ const SchoolsList = () => {
             {/* Header */}
             <div className="mb-5 flex flex-col gap-5 px-5 md:items-start">
                 <div className="flex items-center gap-2">
-                    <IconBuilding className="h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold dark:text-white">{t('schools_management')}</h2>
+                    <IconLock className="h-6 w-6 text-primary" />
+                    <h2 className="text-xl font-bold dark:text-white">{t('security_companies_management')}</h2>
                 </div>
             </div>
 
@@ -208,7 +181,7 @@ const SchoolsList = () => {
             <div className="mb-4.5 flex flex-col gap-4 px-5 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-1 items-center">
                     <div className="relative flex-1 max-w-[400px]">
-                        <input type="text" className="form-input ltr:pl-9 rtl:pr-9" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
+                        <input type="text" className="form-input ltr:pl-9 rtl:pr-9" placeholder={t('search_security_companies')} value={search} onChange={(e) => setSearch(e.target.value)} />
                         <IconSearch className="absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ltr:left-3 rtl:right-3" />
                     </div>
                 </div>
@@ -219,9 +192,9 @@ const SchoolsList = () => {
                             {t('delete_selected')} ({selectedRecords.length})
                         </button>
                     )}
-                    <Link href="/schools/add" className="btn btn-primary gap-2">
+                    <Link href="/security-companies/add" className="btn btn-primary gap-2">
                         <IconPlus />
-                        {t('add_school')}
+                        {t('add_security_company')}
                     </Link>
                 </div>
             </div>
@@ -233,66 +206,46 @@ const SchoolsList = () => {
                     records={records}
                     columns={[
                         {
-                            accessor: 'code',
-                            title: t('code'),
+                            accessor: 'name',
+                            title: t('security_company_name'),
                             sortable: true,
-                            render: ({ code, name }) => (
+                            render: ({ name, tax_number }) => (
                                 <div>
-                                    <div className="font-semibold">{code || t('no_code')}</div>
-                                    <div className="text-xs text-gray-500">{name}</div>
+                                    <div className="font-semibold">{name}</div>
+                                    {tax_number && (
+                                        <div className="text-sm text-gray-500">
+                                            {t('security_tax_number')}: {tax_number}
+                                        </div>
+                                    )}
                                 </div>
                             ),
-                        },
-                        {
-                            accessor: 'type',
-                            title: t('institution_type'),
-                            sortable: true,
-                            render: ({ type }) => (
-                                <span
-                                    className={`badge ${
-                                        type === 'council' || type === 'مجلس'
-                                            ? 'badge-outline-primary'
-                                            : type === 'college' || type === 'كلية'
-                                              ? 'badge-outline-success'
-                                              : type === 'school' || type === 'مدرسة'
-                                                ? 'badge-outline-info'
-                                                : 'badge-outline-warning'
-                                    }`}
-                                >
-                                    {getLocalizedType(type)}
-                                </span>
-                            ),
-                        },
-                        {
-                            accessor: 'director_name',
-                            title: t('director'),
-                            sortable: true,
-                            render: ({ director_name }) => director_name || t('not_specified'),
                         },
                         {
                             accessor: 'contact',
                             title: t('contact'),
-                            render: ({ phone, email }) => (
+                            render: ({ phone, email, address }) => (
                                 <div>
                                     {phone && <div className="text-sm">{phone}</div>}
-                                    {email && <div className="text-xs text-gray-500">{email}</div>}
+                                    {email && <div className="text-sm text-gray-500">{email}</div>}
+                                    {address && <div className="text-sm text-gray-400">{address}</div>}
                                 </div>
                             ),
                         },
                         {
-                            accessor: 'stats',
-                            title: t('statistics'),
-                            render: ({ staff_count, student_count, class_count }) => (
+                            accessor: 'license_types',
+                            title: t('license_types'),
+                            render: ({ license_types }) => (
                                 <div className="text-sm">
-                                    <div>
-                                        {t('staff')}: {<span className="text-blue-500 font-semibold">{staff_count}</span>}
-                                    </div>
-                                    <div>
-                                        {t('students')}: {<span className="text-blue-500 font-semibold">{student_count}</span>}
-                                    </div>
-                                    <div>
-                                        {t('classes')}: {<span className="text-blue-500 font-semibold">{class_count}</span>}
-                                    </div>
+                                    {license_types ? <span className="badge badge-outline-info">{license_types}</span> : <span className="text-gray-400">{t('not_specified')}</span>}
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'weapon_types',
+                            title: t('weapon_types'),
+                            render: ({ weapon_types }) => (
+                                <div className="text-sm">
+                                    {weapon_types ? <span className="badge badge-outline-warning">{weapon_types}</span> : <span className="text-gray-400">{t('not_specified')}</span>}
                                 </div>
                             ),
                         },
@@ -314,15 +267,15 @@ const SchoolsList = () => {
                             accessor: 'actions',
                             title: t('actions'),
                             titleClassName: '!text-center',
-                            render: (school) => (
+                            render: (company) => (
                                 <div className="flex items-center justify-center gap-2">
-                                    <Link href={`/schools/preview/${school.id}`} className="hover:text-info">
+                                    <Link href={`/security-companies/preview/${company.id}`} className="hover:text-info">
                                         <IconEye />
                                     </Link>
-                                    <Link href={`/schools/edit/${school.id}`} className="hover:text-primary">
+                                    <Link href={`/security-companies/edit/${company.id}`} className="hover:text-primary">
                                         <IconEdit />
                                     </Link>
-                                    <button type="button" className="hover:text-danger" onClick={() => confirmDelete(school)}>
+                                    <button type="button" className="hover:text-danger" onClick={() => confirmDelete(company)}>
                                         <IconTrashLines />
                                     </button>
                                 </div>
@@ -341,7 +294,7 @@ const SchoolsList = () => {
                     selectedRecords={selectedRecords}
                     onSelectedRecordsChange={setSelectedRecords}
                     paginationText={({ from, to, totalRecords }) => `${t('showing')} ${from} ${t('to')} ${to} ${t('of')} ${totalRecords} ${t('entries')}`}
-                    noRecordsText={t('no_schools_found')}
+                    noRecordsText={t('no_security_companies_found')}
                     loadingText={t('loading')}
                     minHeight={300}
                 />
@@ -360,11 +313,11 @@ const SchoolsList = () => {
             <ConfirmModal
                 isOpen={showConfirmModal}
                 title={t('confirm_delete')}
-                message={t('confirm_delete_school_message')}
+                message={t('confirm_delete_security_company_message')}
                 onConfirm={handleDeleteConfirm}
                 onCancel={() => {
                     setShowConfirmModal(false);
-                    setSchoolToDelete(null);
+                    setCompanyToDelete(null);
                 }}
                 confirmLabel={t('delete')}
                 cancelLabel={t('cancel')}
@@ -374,7 +327,7 @@ const SchoolsList = () => {
             <ConfirmModal
                 isOpen={showBulkDeleteModal}
                 title={t('confirm_bulk_delete')}
-                message={`${t('confirm_bulk_delete_schools_message')} (${selectedRecords.length})`}
+                message={`${t('confirm_bulk_delete_security_companies_message')} (${selectedRecords.length})`}
                 onConfirm={handleBulkDeleteConfirm}
                 onCancel={() => setShowBulkDeleteModal(false)}
                 confirmLabel={t('delete_all')}
@@ -384,4 +337,4 @@ const SchoolsList = () => {
     );
 };
 
-export default SchoolsList;
+export default SecurityCompaniesList;

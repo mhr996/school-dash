@@ -35,6 +35,7 @@ import IconSettings from '@/components/icon/icon-settings';
 import IconBuilding from '@/components/icon/icon-building';
 import IconListCheck from '@/components/icon/icon-list-check';
 import IconCar from '@/components/icon/icon-car';
+import IconLock from '@/components/icon/icon-lock';
 
 import { usePathname } from 'next/navigation';
 import { getTranslation } from '@/i18n';
@@ -166,6 +167,15 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+
+                                    {/* <li className="nav-item">
+                                        <Link href="/security-companies" className="group">
+                                            <div className="flex items-center">
+                                                <IconLock className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('security_companies')}</span>
+                                            </div>
+                                        </Link>
+                                    </li> */}
 
                                     <li className="nav-item">
                                         <Link href="/travel-companies" className="group">

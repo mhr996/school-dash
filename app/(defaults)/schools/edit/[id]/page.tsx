@@ -42,7 +42,7 @@ const EditSchool = () => {
     const [formData, setFormData] = useState<SchoolForm>({
         name: '',
         code: '',
-        type: 'مدرسة',
+        type: 'school', // Changed from 'مدرسة' to 'school'
         director_name: '',
         address: '',
         email: '',
@@ -57,20 +57,20 @@ const EditSchool = () => {
 
     const schoolTypeOptions: SelectOption[] = [
         {
-            value: 'مجلس',
-            label: 'مجلس',
+            value: 'council',
+            label: t('institution_type_council'),
         },
         {
-            value: 'كلية',
-            label: 'كلية',
+            value: 'college',
+            label: t('institution_type_college'),
         },
         {
-            value: 'مدرسة',
-            label: 'مدرسة',
+            value: 'school',
+            label: t('institution_type_school'),
         },
         {
-            value: 'روضه',
-            label: 'روضه',
+            value: 'kindergarten',
+            label: t('institution_type_kindergarten'),
         },
     ];
 
@@ -96,7 +96,7 @@ const EditSchool = () => {
                     setFormData({
                         name: data.name || '',
                         code: data.code || '',
-                        type: data.type || 'مدرسة',
+                        type: data.type || 'school', // Changed from 'مدرسة' to 'school'
                         director_name: data.director_name || '',
                         address: data.address || '',
                         email: data.email || '',

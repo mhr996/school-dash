@@ -45,6 +45,31 @@ const SchoolPreview = () => {
     const [school, setSchool] = useState<School | null>(null);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
+    // Helper function to get localized institution type
+    const getLocalizedType = (type: string) => {
+        switch (type) {
+            case 'council':
+                return t('institution_type_council');
+            case 'college':
+                return t('institution_type_college');
+            case 'school':
+                return t('institution_type_school');
+            case 'kindergarten':
+                return t('institution_type_kindergarten');
+            // Handle legacy Arabic values that might still be in the database
+            case 'مجلس':
+                return t('institution_type_council');
+            case 'كلية':
+                return t('institution_type_college');
+            case 'مدرسة':
+                return t('institution_type_school');
+            case 'روضه':
+                return t('institution_type_kindergarten');
+            default:
+                return type;
+        }
+    };
+
     useEffect(() => {
         const fetchSchool = async () => {
             try {
@@ -169,16 +194,16 @@ const SchoolPreview = () => {
                                     <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                         <span
                                             className={`badge ${
-                                                school.type === 'مجلس'
+                                                school.type === 'council' || school.type === 'مجلس'
                                                     ? 'badge-outline-primary'
-                                                    : school.type === 'كلية'
+                                                    : school.type === 'college' || school.type === 'كلية'
                                                       ? 'badge-outline-success'
-                                                      : school.type === 'مدرسة'
+                                                      : school.type === 'school' || school.type === 'مدرسة'
                                                         ? 'badge-outline-info'
                                                         : 'badge-outline-warning'
                                             }`}
                                         >
-                                            {school.type}
+                                            {getLocalizedType(school.type)}
                                         </span>
                                     </div>
                                 </div>
@@ -304,14 +329,12 @@ const SchoolPreview = () => {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t('created_at')}</label>
-                                <div className="text-sm font-semibold">{new Date(school.created_at).toLocaleDateString('ar-SA')}</div>
-                                <div className="text-xs text-gray-500">{new Date(school.created_at).toLocaleTimeString('ar-SA')}</div>
+                                <div className="text-sm font-semibold">{new Date(school.created_at).toLocaleDateString('tr-TR')}</div>
                             </div>
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t('last_updated')}</label>
-                                <div className="text-sm font-semibold">{new Date(school.updated_at).toLocaleDateString('ar-SA')}</div>
-                                <div className="text-xs text-gray-500">{new Date(school.updated_at).toLocaleTimeString('ar-SA')}</div>
+                                <div className="text-sm font-semibold">{new Date(school.updated_at).toLocaleDateString('tr-TR')}</div>
                             </div>
                         </div>
                     </div>
