@@ -100,6 +100,22 @@ export interface DealAttachments {
     carTransferDocument: FileItem | null;
 }
 
+export interface Paramedic {
+    id: string;
+    name: string;
+    identity_number: string;
+    phone?: string;
+    email?: string;
+    hourly_rate?: number;
+    daily_rate?: number;
+    regional_rate?: number;
+    overnight_rate?: number;
+    status?: string;
+    notes?: string;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface Log {
     id: string;
     created_at: string;
@@ -119,10 +135,14 @@ export interface Log {
         | 'customer_deleted'
         | 'provider_added'
         | 'provider_updated'
-        | 'provider_deleted';
+        | 'provider_deleted'
+        | 'paramedic_added'
+        | 'paramedic_updated'
+        | 'paramedic_deleted';
 
     // JSONB data columns storing the actual data at time of log
     deal?: any; // The actual deal data as JSONB
     car?: any; // The actual car data as JSONB
     bill?: any; // The actual bill data as JSONB
+    paramedic?: any; // The actual paramedic data as JSONB
 }
