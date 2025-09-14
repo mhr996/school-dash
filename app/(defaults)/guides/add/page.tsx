@@ -1,12 +1,12 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 // Components
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
-import IconSave from '@/components/icon/icon-save';
+import IconPlus from '@/components/icon/icon-plus';
 import IconUser from '@/components/icon/icon-user';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
@@ -21,7 +21,7 @@ interface SelectOption {
     label: string;
 }
 
-interface ParamedicForm {
+interface GuideForm {
     name: string;
     identity_number: string;
     phone: string;
@@ -34,15 +34,11 @@ interface ParamedicForm {
     notes: string;
 }
 
-const EditParamedic = () => {
+const AddGuide = () => {
     const { t } = getTranslation();
     const router = useRouter();
-    const params = useParams();
-    const paramedicId = params?.id as string;
-
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [formData, setFormData] = useState<ParamedicForm>({
+    const [loading, setLoading] = useState(false);
+    const [formData, setFormData] = useState<GuideForm>({
         name: '',
         identity_number: '',
         phone: '',
@@ -69,46 +65,6 @@ const EditParamedic = () => {
 
     const supabase = createClientComponentClient();
 
-    useEffect(() => {
-        const fetchParamedic = async () => {
-            try {
-                setLoading(true);
-
-                const { data, error } = await supabase.from('paramedics').select('*').eq('id', paramedicId).single();
-
-                if (error) {
-                    console.error('Error fetching paramedic:', error);
-                    setAlert({ message: t('error_loading_paramedic'), type: 'danger' });
-                    return;
-                }
-
-                if (data) {
-                    setFormData({
-                        name: data.name || '',
-                        identity_number: data.identity_number || '',
-                        phone: data.phone || '',
-                        email: data.email || '',
-                        hourly_rate: data.hourly_rate || 0,
-                        daily_rate: data.daily_rate || 0,
-                        regional_rate: data.regional_rate || 0,
-                        overnight_rate: data.overnight_rate || 0,
-                        status: data.status || 'active',
-                        notes: data.notes || '',
-                    });
-                }
-            } catch (error) {
-                console.error('Error fetching paramedic:', error);
-                setAlert({ message: t('error_loading_paramedic'), type: 'danger' });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (paramedicId) {
-            fetchParamedic();
-        }
-    }, [paramedicId]);
-
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         setFormData((prev) => ({
@@ -121,11 +77,11 @@ const EditParamedic = () => {
         e.preventDefault();
 
         try {
-            setSaving(true);
+            setLoading(true);
 
             // Validate required fields
             if (!formData.name.trim()) {
-                setAlert({ message: t('paramedic_name_required'), type: 'danger' });
+                setAlert({ message: t('guide_name_required'), type: 'danger' });
                 return;
             }
 
@@ -139,46 +95,39 @@ const EditParamedic = () => {
                 return;
             }
 
-            const { error } = await supabase.from('paramedics').update(formData).eq('id', paramedicId).select().single();
+            const { error } = await supabase.from('guides').insert([formData]);
 
             if (error) {
                 if (error.code === '23505') {
                     // Unique constraint violation
-                    throw new Error(t('identity_number_already_exists'));
+                    setAlert({ message: t('identity_number_already_exists'), type: 'danger' });
+                    return;
                 }
                 throw error;
             }
 
-            setAlert({ message: t('paramedic_updated_successfully'), type: 'success' });
+            setAlert({ message: t('guide_added_successfully'), type: 'success' });
 
-            // Redirect to paramedics list after a short delay
+            // Redirect to guides list after a short delay
             setTimeout(() => {
-                router.push('/paramedics');
-            }, 1500);
+                router.push('/guides');
+            }, 500);
         } catch (error) {
-            console.error('Error updating paramedic:', error);
+            console.error('Error adding guide:', error);
             setAlert({
-                message: error instanceof Error ? error.message : t('error_updating_paramedic'),
+                message: error instanceof Error ? error.message : t('error_adding_guide'),
                 type: 'danger',
             });
         } finally {
-            setSaving(false);
+            setLoading(false);
         }
     };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-            </div>
-        );
-    }
 
     return (
         <div className="container mx-auto p-6">
             {/* Header */}
             <div className="flex items-center gap-5 mb-6">
-                <Link href="/paramedics" className="text-primary hover:text-primary/80">
+                <Link href="/guides" className="text-primary hover:text-primary/80">
                     <IconArrowLeft className="h-7 w-7" />
                 </Link>
 
@@ -190,12 +139,12 @@ const EditParamedic = () => {
                         </Link>
                     </li>
                     <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href="/paramedics" className="text-primary hover:underline">
-                            {t('paramedics')}
+                        <Link href="/guides" className="text-primary hover:underline">
+                            {t('guides')}
                         </Link>
                     </li>
                     <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <span>{t('edit_paramedic')}</span>
+                        <span>{t('add_guide')}</span>
                     </li>
                 </ul>
             </div>
@@ -203,9 +152,9 @@ const EditParamedic = () => {
             <div className="mb-6">
                 <h1 className="text-3xl font-bold flex items-center gap-3">
                     <IconUser className="w-8 h-8 text-primary" />
-                    {t('edit_paramedic')}
+                    {t('add_new_guide')}
                 </h1>
-                <p className="text-gray-500 mt-2">{t('edit_paramedic_description')}</p>
+                <p className="text-gray-500 mt-2">{t('add_guide_description')}</p>
             </div>
 
             {alert && (
@@ -222,13 +171,13 @@ const EditParamedic = () => {
                         <h3 className="text-lg font-semibold mb-4">{t('basic_information')}</h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Paramedic Name */}
+                            {/* Guide Name */}
                             <div className="space-y-2">
                                 <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
                                     <IconUser className="w-5 h-5 text-primary" />
-                                    {t('paramedic_name')} <span className="text-red-500">*</span>
+                                    {t('guide_name')} <span className="text-red-500">*</span>
                                 </label>
-                                <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_paramedic_name')} required />
+                                <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_guide_name')} required />
                             </div>
 
                             {/* ID Number */}
@@ -380,16 +329,16 @@ const EditParamedic = () => {
 
                     {/* Submit Button */}
                     <div className="flex justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <button type="submit" disabled={saving} className="btn btn-primary flex items-center gap-2 px-8 py-3">
-                            {saving ? (
+                        <button type="submit" disabled={loading} className="btn btn-primary flex items-center gap-2 px-8 py-3">
+                            {loading ? (
                                 <>
                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                                     {t('saving')}...
                                 </>
                             ) : (
                                 <>
-                                    <IconSave className="w-5 h-5" />
-                                    {t('update_paramedic')}
+                                    <IconPlus className="w-5 h-5" />
+                                    {t('add_guide')}
                                 </>
                             )}
                         </button>
@@ -400,4 +349,4 @@ const EditParamedic = () => {
     );
 };
 
-export default EditParamedic;
+export default AddGuide;

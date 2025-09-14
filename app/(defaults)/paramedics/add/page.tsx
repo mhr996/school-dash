@@ -248,7 +248,7 @@ const AddParamedic = () => {
                             {/* Hourly Rate */}
                             <div className="space-y-2">
                                 <label htmlFor="hourly_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('hourly_rate')} ({t('sar')})
+                                    {t('hourly_rate')}
                                 </label>
                                 <input
                                     type="number"
@@ -266,7 +266,7 @@ const AddParamedic = () => {
                             {/* Daily Rate */}
                             <div className="space-y-2">
                                 <label htmlFor="daily_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('daily_rate')} ({t('sar')})
+                                    {t('daily_rate')}
                                 </label>
                                 <input
                                     type="number"
@@ -284,7 +284,7 @@ const AddParamedic = () => {
                             {/* Regional Rate */}
                             <div className="space-y-2">
                                 <label htmlFor="regional_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('regional_rate')} ({t('sar')})
+                                    {t('regional_rate')}
                                 </label>
                                 <input
                                     type="number"
@@ -302,7 +302,7 @@ const AddParamedic = () => {
                             {/* Overnight Rate */}
                             <div className="space-y-2">
                                 <label htmlFor="overnight_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('overnight_rate')} ({t('sar')})
+                                    {t('overnight_rate')}
                                 </label>
                                 <input
                                     type="number"

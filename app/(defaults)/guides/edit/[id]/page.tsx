@@ -21,7 +21,7 @@ interface SelectOption {
     label: string;
 }
 
-interface ParamedicForm {
+interface GuideForm {
     name: string;
     identity_number: string;
     phone: string;
@@ -34,15 +34,15 @@ interface ParamedicForm {
     notes: string;
 }
 
-const EditParamedic = () => {
+const EditGuide = () => {
     const { t } = getTranslation();
     const router = useRouter();
     const params = useParams();
-    const paramedicId = params?.id as string;
+    const guideId = params?.id as string;
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [formData, setFormData] = useState<ParamedicForm>({
+    const [formData, setFormData] = useState<GuideForm>({
         name: '',
         identity_number: '',
         phone: '',
@@ -70,15 +70,15 @@ const EditParamedic = () => {
     const supabase = createClientComponentClient();
 
     useEffect(() => {
-        const fetchParamedic = async () => {
+        const fetchGuide = async () => {
             try {
                 setLoading(true);
 
-                const { data, error } = await supabase.from('paramedics').select('*').eq('id', paramedicId).single();
+                const { data, error } = await supabase.from('guides').select('*').eq('id', guideId).single();
 
                 if (error) {
-                    console.error('Error fetching paramedic:', error);
-                    setAlert({ message: t('error_loading_paramedic'), type: 'danger' });
+                    console.error('Error fetching guide:', error);
+                    setAlert({ message: t('error_loading_guide'), type: 'danger' });
                     return;
                 }
 
@@ -97,17 +97,17 @@ const EditParamedic = () => {
                     });
                 }
             } catch (error) {
-                console.error('Error fetching paramedic:', error);
-                setAlert({ message: t('error_loading_paramedic'), type: 'danger' });
+                console.error('Error fetching guide:', error);
+                setAlert({ message: t('error_loading_guide'), type: 'danger' });
             } finally {
                 setLoading(false);
             }
         };
 
-        if (paramedicId) {
-            fetchParamedic();
+        if (guideId) {
+            fetchGuide();
         }
-    }, [paramedicId]);
+    }, [guideId]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -125,7 +125,7 @@ const EditParamedic = () => {
 
             // Validate required fields
             if (!formData.name.trim()) {
-                setAlert({ message: t('paramedic_name_required'), type: 'danger' });
+                setAlert({ message: t('guide_name_required'), type: 'danger' });
                 return;
             }
 
@@ -139,7 +139,7 @@ const EditParamedic = () => {
                 return;
             }
 
-            const { error } = await supabase.from('paramedics').update(formData).eq('id', paramedicId).select().single();
+            const { error } = await supabase.from('guides').update(formData).eq('id', guideId).select().single();
 
             if (error) {
                 if (error.code === '23505') {
@@ -149,16 +149,16 @@ const EditParamedic = () => {
                 throw error;
             }
 
-            setAlert({ message: t('paramedic_updated_successfully'), type: 'success' });
+            setAlert({ message: t('guide_updated_successfully'), type: 'success' });
 
-            // Redirect to paramedics list after a short delay
+            // Redirect to guides list after a short delay
             setTimeout(() => {
-                router.push('/paramedics');
+                router.push('/guides');
             }, 1500);
         } catch (error) {
-            console.error('Error updating paramedic:', error);
+            console.error('Error updating guide:', error);
             setAlert({
-                message: error instanceof Error ? error.message : t('error_updating_paramedic'),
+                message: error instanceof Error ? error.message : t('error_updating_guide'),
                 type: 'danger',
             });
         } finally {
@@ -178,7 +178,7 @@ const EditParamedic = () => {
         <div className="container mx-auto p-6">
             {/* Header */}
             <div className="flex items-center gap-5 mb-6">
-                <Link href="/paramedics" className="text-primary hover:text-primary/80">
+                <Link href="/guides" className="text-primary hover:text-primary/80">
                     <IconArrowLeft className="h-7 w-7" />
                 </Link>
 
@@ -190,12 +190,12 @@ const EditParamedic = () => {
                         </Link>
                     </li>
                     <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href="/paramedics" className="text-primary hover:underline">
-                            {t('paramedics')}
+                        <Link href="/guides" className="text-primary hover:underline">
+                            {t('guides')}
                         </Link>
                     </li>
                     <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <span>{t('edit_paramedic')}</span>
+                        <span>{t('edit_guide')}</span>
                     </li>
                 </ul>
             </div>
@@ -203,9 +203,9 @@ const EditParamedic = () => {
             <div className="mb-6">
                 <h1 className="text-3xl font-bold flex items-center gap-3">
                     <IconUser className="w-8 h-8 text-primary" />
-                    {t('edit_paramedic')}
+                    {t('edit_guide')}
                 </h1>
-                <p className="text-gray-500 mt-2">{t('edit_paramedic_description')}</p>
+                <p className="text-gray-500 mt-2">{t('edit_guide_description')}</p>
             </div>
 
             {alert && (
@@ -226,9 +226,9 @@ const EditParamedic = () => {
                             <div className="space-y-2">
                                 <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
                                     <IconUser className="w-5 h-5 text-primary" />
-                                    {t('paramedic_name')} <span className="text-red-500">*</span>
+                                    {t('guide_name')} <span className="text-red-500">*</span>
                                 </label>
-                                <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_paramedic_name')} required />
+                                <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_guide_name')} required />
                             </div>
 
                             {/* ID Number */}
@@ -389,7 +389,7 @@ const EditParamedic = () => {
                             ) : (
                                 <>
                                     <IconSave className="w-5 h-5" />
-                                    {t('update_paramedic')}
+                                    {t('update_guide')}
                                 </>
                             )}
                         </button>
@@ -400,4 +400,4 @@ const EditParamedic = () => {
     );
 };
 
-export default EditParamedic;
+export default EditGuide;
