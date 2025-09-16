@@ -3,7 +3,7 @@ import IconEdit from '@/components/icon/icon-edit';
 import IconEye from '@/components/icon/icon-eye';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
-import IconLock from '@/components/icon/icon-lock';
+import IconStar from '@/components/icon/icon-star';
 import IconSearch from '@/components/icon/icon-search';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
@@ -160,7 +160,7 @@ const EntertainmentCompaniesList = () => {
             {/* Header */}
             <div className="mb-5 flex flex-col gap-5 px-5 md:items-start">
                 <div className="flex items-center gap-2">
-                    <IconLock className="h-6 w-6 text-primary" />
+                    <IconStar className="h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold dark:text-white">{t('external_entertainment_companies_management')}</h2>
                 </div>
             </div>

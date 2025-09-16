@@ -201,10 +201,7 @@ const EditGuide = () => {
             </div>
 
             <div className="mb-6">
-                <h1 className="text-3xl font-bold flex items-center gap-3">
-                    <IconUser className="w-8 h-8 text-primary" />
-                    {t('edit_guide')}
-                </h1>
+                <h1 className="text-3xl font-bold">{t('edit_guide')}</h1>
                 <p className="text-gray-500 mt-2">{t('edit_guide_description')}</p>
             </div>
 

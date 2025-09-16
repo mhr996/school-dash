@@ -7,7 +7,6 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 // Components
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconEdit from '@/components/icon/icon-edit';
-import IconBuilding from '@/components/icon/icon-building';
 import IconCalendar from '@/components/icon/icon-calendar';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 
@@ -114,10 +113,7 @@ const EntertainmentCompanyPreview = () => {
             {/* Title and Action */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-3">
-                        <IconBuilding className="w-8 h-8 text-primary" />
-                        {company.name}
-                    </h1>
+                    <h1 className="text-3xl font-bold">{company.name}</h1>
                 </div>
                 <Link href={`/external-entertainment-companies/edit/${company.id}`} className="btn btn-primary flex items-center gap-2">
                     <IconEdit className="w-4 h-4" />
@@ -137,10 +133,7 @@ const EntertainmentCompanyPreview = () => {
                     {/* Basic Information */}
                     <div className="panel">
                         <div className="mb-5">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                                <IconBuilding className="w-5 h-5 text-primary" />
-                                {t('basic_information')}
-                            </h3>
+                            <h3 className="text-lg font-semibold">{t('basic_information')}</h3>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

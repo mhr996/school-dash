@@ -7,7 +7,6 @@ import supabase from '@/lib/supabase';
 import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
-import IconBuilding from '@/components/icon/icon-building';
 import ImageUpload from '@/components/image-upload/image-upload';
 import { getTranslation } from '@/i18n';
 
@@ -110,10 +109,7 @@ export default function AddEntertainmentCompany() {
 
             {/* Title */}
             <div className="mb-6">
-                <h1 className="text-3xl font-bold flex items-center gap-3">
-                    <IconBuilding className="w-8 h-8 text-primary" />
-                    {t('add_entertainment_company')}
-                </h1>
+                <h1 className="text-3xl font-bold">{t('add_entertainment_company')}</h1>
                 <p className="text-gray-500 mt-2">{t('add_entertainment_company_description')}</p>
             </div>
 

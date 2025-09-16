@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 // Components
-import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconPlus from '@/components/icon/icon-plus';
-import IconUser from '@/components/icon/icon-user';
+// import IconHeart from '@/components/icon/icon-heart';
+import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
 import IconCreditCard from '@/components/icon/icon-credit-card';
@@ -150,10 +150,7 @@ const AddParamedic = () => {
             </div>
 
             <div className="mb-6">
-                <h1 className="text-3xl font-bold flex items-center gap-3">
-                    <IconUser className="w-8 h-8 text-primary" />
-                    {t('add_new_paramedic')}
-                </h1>
+                <h1 className="text-3xl font-bold">{t('add_new_paramedic')}</h1>
                 <p className="text-gray-500 mt-2">{t('add_paramedic_description')}</p>
             </div>
 
@@ -173,8 +170,7 @@ const AddParamedic = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* Paramedic Name */}
                             <div className="space-y-2">
-                                <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconUser className="w-5 h-5 text-primary" />
+                                <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white">
                                     {t('paramedic_name')} <span className="text-red-500">*</span>
                                 </label>
                                 <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_paramedic_name')} required />

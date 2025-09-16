@@ -36,6 +36,10 @@ import IconBuilding from '@/components/icon/icon-building';
 import IconListCheck from '@/components/icon/icon-list-check';
 import IconCar from '@/components/icon/icon-car';
 import IconLock from '@/components/icon/icon-lock';
+import IconStar from '@/components/icon/icon-star';
+import IconHeart from '@/components/icon/icon-heart';
+import IconOpenBook from '@/components/icon/icon-open-book';
+import IconMapPin from '@/components/icon/icon-map-pin';
 
 import { usePathname } from 'next/navigation';
 import { getTranslation } from '@/i18n';
@@ -162,7 +166,7 @@ const Sidebar = () => {
                                     <li className="nav-item">
                                         <Link href="/paramedics" className="group">
                                             <div className="flex items-center">
-                                                <IconUser className="shrink-0 group-hover:!text-primary" />
+                                                <IconHeart className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('paramedics')}</span>
                                             </div>
                                         </Link>
@@ -171,7 +175,7 @@ const Sidebar = () => {
                                     <li className="nav-item">
                                         <Link href="/guides" className="group">
                                             <div className="flex items-center">
-                                                <IconUser className="shrink-0 group-hover:!text-primary" />
+                                                <IconOpenBook className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('guides')}</span>
                                             </div>
                                         </Link>
@@ -189,7 +193,7 @@ const Sidebar = () => {
                                     <li className="nav-item">
                                         <Link href="/external-entertainment-companies" className="group">
                                             <div className="flex items-center">
-                                                <IconLock className="shrink-0 group-hover:!text-primary" />
+                                                <IconStar className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('external_entertainment_companies')}</span>
                                             </div>
                                         </Link>
@@ -200,6 +204,15 @@ const Sidebar = () => {
                                             <div className="flex items-center">
                                                 <IconCar className="shrink-0 group-hover:!text-primary" />
                                                 <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('travel_companies')}</span>
+                                            </div>
+                                        </Link>
+                                    </li>
+
+                                    <li className="nav-item">
+                                        <Link href="/trip-plans" className="group">
+                                            <div className="flex items-center">
+                                                <IconMapPin className="shrink-0 group-hover:!text-primary" />
+                                                <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('trip_plans')}</span>
                                             </div>
                                         </Link>
                                     </li>

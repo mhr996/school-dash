@@ -7,7 +7,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 // Components
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconEdit from '@/components/icon/icon-edit';
-import IconUser from '@/components/icon/icon-user';
+import IconHeart from '@/components/icon/icon-heart';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
 import IconCreditCard from '@/components/icon/icon-credit-card';
@@ -85,7 +85,7 @@ const ParamedicPreview = () => {
             <div className="container mx-auto p-6">
                 <div className="panel">
                     <div className="text-center py-12">
-                        <IconUser className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                        <IconHeart className="w-16 h-16 mx-auto text-gray-400 mb-4" />
                         <h2 className="text-xl font-semibold text-gray-600 mb-2">{t('paramedic_not_found')}</h2>
                         <p className="text-gray-500 mb-6">{t('paramedic_not_found_description')}</p>
                         <Link href="/paramedics" className="btn btn-primary">
@@ -126,10 +126,7 @@ const ParamedicPreview = () => {
             {/* Title and Action */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-3">
-                        <IconUser className="w-8 h-8 text-primary" />
-                        {paramedic.name}
-                    </h1>
+                    <h1 className="text-3xl font-bold">{paramedic.name}</h1>
                     <p className="text-gray-500 mt-2">{t('paramedic_details')}</p>
                 </div>
                 <Link href={`/paramedics/edit/${paramedic.id}`} className="btn btn-primary flex items-center gap-2">
@@ -150,10 +147,7 @@ const ParamedicPreview = () => {
                     {/* Basic Information */}
                     <div className="panel">
                         <div className="mb-5">
-                            <h3 className="text-lg font-semibold flex items-center gap-2">
-                                <IconUser className="w-5 h-5 text-primary" />
-                                {t('basic_information')}
-                            </h3>
+                            <h3 className="text-lg font-semibold">{t('basic_information')}</h3>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

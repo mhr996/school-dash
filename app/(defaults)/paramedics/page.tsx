@@ -3,7 +3,7 @@ import IconEdit from '@/components/icon/icon-edit';
 import IconEye from '@/components/icon/icon-eye';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
-import IconUser from '@/components/icon/icon-user';
+import IconHeart from '@/components/icon/icon-heart';
 import IconSearch from '@/components/icon/icon-search';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
@@ -165,13 +165,12 @@ const ParamedicsList = () => {
         setShowBulkDeleteModal(false);
     };
 
-
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
             {/* Header */}
             <div className="mb-5 flex flex-col gap-5 px-5 md:items-start">
                 <div className="flex items-center gap-2">
-                    <IconUser className="h-6 w-6 text-primary" />
+                    <IconHeart className="h-6 w-6 text-primary" />
                     <h2 className="text-xl font-bold dark:text-white">{t('paramedics_management')}</h2>
                 </div>
             </div>
@@ -231,16 +230,16 @@ const ParamedicsList = () => {
                             render: ({ hourly_rate, daily_rate, regional_rate, overnight_rate }) => (
                                 <div className="text-sm">
                                     <div>
-                                        {t('hourly_rate')}: {hourly_rate ? <span className='text-green-500 font-semibold'>{hourly_rate}</span> : t('not_specified')}
+                                        {t('hourly_rate')}: {hourly_rate ? <span className="text-green-500 font-semibold">{hourly_rate}</span> : t('not_specified')}
                                     </div>
                                     <div>
-                                        {t('daily_rate')}: {daily_rate ? <span className='text-green-500 font-semibold'>{daily_rate}</span> : t('not_specified')}
+                                        {t('daily_rate')}: {daily_rate ? <span className="text-green-500 font-semibold">{daily_rate}</span> : t('not_specified')}
                                     </div>
                                     <div>
-                                        {t('regional_rate')}: {regional_rate ? <span className='text-green-500 font-semibold'>{regional_rate}</span> : t('not_specified')}
+                                        {t('regional_rate')}: {regional_rate ? <span className="text-green-500 font-semibold">{regional_rate}</span> : t('not_specified')}
                                     </div>
                                     <div>
-                                        {t('overnight_rate')}: {overnight_rate ? <span className='text-green-500 font-semibold'>{overnight_rate}</span> : t('not_specified')}
+                                        {t('overnight_rate')}: {overnight_rate ? <span className="text-green-500 font-semibold">{overnight_rate}</span> : t('not_specified')}
                                     </div>
                                 </div>
                             ),
