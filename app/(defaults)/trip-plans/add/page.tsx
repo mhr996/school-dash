@@ -9,7 +9,8 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconCheck from '@/components/icon/icon-checks';
 import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
-import MapSelector from '@/components/map/map-selector';
+import dynamic from 'next/dynamic';
+const MapSelector = dynamic(() => import('@/components/map/map-selector'), { ssr: false });
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 
 interface School {
@@ -280,7 +281,11 @@ const AddTripPlan = () => {
                         {/* Background track aligned to circle centers (left/right padding = circle radius 20px) */}
                         <div className="absolute left-5 right-5 top-5 h-0.5 bg-gray-200 dark:bg-gray-700" aria-hidden="true"></div>
                         {/* Animated progress bar */}
-                        <div className="absolute ltr:left-5 rtl:right-5 top-5 h-0.5 bg-primary transition-all duration-500 ease-in-out" style={{ width: `${progressPercent}%` }} aria-hidden="true"></div>
+                        <div
+                            className="absolute ltr:left-5 rtl:right-5 top-5 h-0.5 bg-primary transition-all duration-500 ease-in-out"
+                            style={{ width: `${progressPercent}%` }}
+                            aria-hidden="true"
+                        ></div>
                         {/* Step markers */}
                         <div className="relative z-10 flex items-center justify-between">
                             {steps.map((s, i) => (

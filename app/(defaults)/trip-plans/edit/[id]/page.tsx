@@ -7,7 +7,8 @@ import { getTranslation } from '@/i18n';
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconSave from '@/components/icon/icon-save';
 import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
-import MapSelector from '@/components/map/map-selector';
+import dynamic from 'next/dynamic';
+const MapSelector = dynamic(() => import('@/components/map/map-selector'), { ssr: false });
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 
 type RateType = 'hourly' | 'daily' | 'regional' | 'overnight';
