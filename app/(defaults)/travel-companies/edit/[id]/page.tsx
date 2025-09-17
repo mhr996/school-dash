@@ -8,7 +8,7 @@ import IconMapPin from '@/components/icon/icon-map-pin';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
 import IconCar from '@/components/icon/icon-car';
-import supabase from '@/lib/supabase';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
@@ -16,7 +16,7 @@ import CustomSelect, { SelectOption } from '@/components/elements/custom-select'
 
 interface PricingData {
     [vehicleType: string]: {
-        [area: string]: number;
+        [zoneName: string]: number;
     };
 }
 import IconSave from '@/components/icon/icon-save';
@@ -38,6 +38,7 @@ interface TravelCompanyForm {
 const EditTravelCompany = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
     const router = useRouter();
+    const supabase = createClientComponentClient();
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [activeTab, setActiveTab] = useState(0);
@@ -84,19 +85,23 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
     ];
 
     const vehicleTypes = ['خاصة', 'فان', 'باص 40', 'باص 50', 'مينيبوس 18', 'مينيبوس 24'];
-    const areas = ['الجولان وضواحيها', 'حيفا وضواحيها', 'الناصره وضواحيها', 'المثلث', 'المركز', 'الجنوب', 'العربة', 'البحر الميت', 'ايلات'];
+    type Zone = { id: string; name: string; is_active: boolean };
+    const [zones, setZones] = useState<Zone[]>([]);
+    const [zonesLoading, setZonesLoading] = useState(true);
 
-    const areaLabels: Record<string, string> = {
-        'الجولان وضواحيها': t('area_golan'),
-        'حيفا وضواحيها': t('area_haifa'),
-        'الناصره وضواحيها': t('area_nazareth'),
-        المثلث: t('area_triangle'),
-        المركز: t('area_center'),
-        الجنوب: t('area_south'),
-        العربة: t('area_arava'),
-        'البحر الميت': t('area_dead_sea'),
-        ايلات: t('area_eilat'),
-    };
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data, error } = await supabase.from('zones').select('id, name, is_active').eq('is_active', true).order('name', { ascending: true });
+                if (error) throw error;
+                setZones((data || []) as Zone[]);
+            } catch (e) {
+                console.error('Error fetching zones', e);
+            } finally {
+                setZonesLoading(false);
+            }
+        })();
+    }, []);
 
     // Fetch travel company data
     useEffect(() => {
@@ -158,13 +163,13 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
         }));
     };
 
-    const handlePricingChange = (vehicleType: string, area: string, price: string) => {
+    const handlePricingChange = (vehicleType: string, zoneName: string, price: string) => {
         const numericPrice = parseFloat(price) || 0;
         setPricingData((prev) => ({
             ...prev,
             [vehicleType]: {
                 ...prev[vehicleType],
-                [area]: numericPrice,
+                [zoneName]: numericPrice,
             },
         }));
     };
@@ -240,6 +245,7 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
                 phone: formData.phone.trim(),
                 status: formData.status,
                 notes: formData.notes.trim() || null,
+                pricing_data: pricingData,
                 updated_at: new Date().toISOString(),
             };
 
@@ -468,18 +474,9 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
                         <table className="table-auto w-full border-collapse border border-gray-300 dark:border-gray-600">
                             <thead>
                                 <tr className="bg-gray-100 dark:bg-gray-700">
-                                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right font-medium min-w-[120px]">{t('vehicle_type')}</th>
-                                    {areas.map((area) => (
-                                        <th key={area} className="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center font-medium min-w-[100px] text-xs">
-                                            {areaLabels[area]}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {vehicleTypes.map((vehicleType) => (
-                                    <tr key={vehicleType} className="">
-                                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-medium text-right bg-gray-50 dark:bg-gray-800">
+                                    <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right font-semibold min-w-[140px]">{t('zones')}</th>
+                                    {vehicleTypes.map((vehicleType) => (
+                                        <th key={vehicleType} className="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center font-semibold min-w-[110px] text-sm">
                                             {vehicleType === 'خاصة'
                                                 ? t('vehicle_type_private')
                                                 : vehicleType === 'فان'
@@ -493,15 +490,36 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
                                                         : vehicleType === 'مينيبوس 24'
                                                           ? t('vehicle_type_minibus_24')
                                                           : vehicleType}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {zonesLoading && (
+                                    <tr>
+                                        <td colSpan={1 + vehicleTypes.length} className="text-center py-4">
+                                            {t('loading')}
                                         </td>
-                                        {areas.map((area) => (
-                                            <td key={area} className="border border-gray-300 dark:border-gray-600 p-1 hover:bg-primary/30 dark:hover:bg-primary/60">
+                                    </tr>
+                                )}
+                                {!zonesLoading && zones.length === 0 && (
+                                    <tr>
+                                        <td colSpan={1 + vehicleTypes.length} className="text-center py-4">
+                                            {t('no_zones_found')}
+                                        </td>
+                                    </tr>
+                                )}
+                                {zones.map((zone) => (
+                                    <tr key={zone.id}>
+                                        <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-semibold text-right bg-gray-50 dark:bg-gray-800">{zone.name}</td>
+                                        {vehicleTypes.map((vehicleType) => (
+                                            <td key={vehicleType} className="border border-gray-300 dark:border-gray-600 p-1 hover:bg-primary/30 dark:hover:bg-primary/60">
                                                 <input
                                                     type="number"
                                                     className="w-full px-2 py-1 text-center border-0 bg-transparent focus:ring-1 focus:ring-primary rounded text-sm"
                                                     placeholder="0"
-                                                    value={pricingData[vehicleType]?.[area] || ''}
-                                                    onChange={(e) => handlePricingChange(vehicleType, area, e.target.value)}
+                                                    value={pricingData[vehicleType]?.[zone.name] ?? ''}
+                                                    onChange={(e) => handlePricingChange(vehicleType, zone.name, e.target.value)}
                                                     min="0"
                                                     step="0.01"
                                                 />

@@ -9,7 +9,7 @@ import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
 import IconCar from '@/components/icon/icon-car';
 import IconEdit from '@/components/icon/icon-edit';
-import supabase from '@/lib/supabase';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
@@ -35,9 +35,13 @@ interface TravelCompany {
 const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
     const router = useRouter();
+    const supabase = createClientComponentClient();
     const [loading, setLoading] = useState(true);
     const [travelCompany, setTravelCompany] = useState<TravelCompany | null>(null);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+    type Zone = { id: string; name: string; is_active: boolean };
+    const [zones, setZones] = useState<Zone[]>([]);
+    const [zonesLoading, setZonesLoading] = useState(true);
 
     // Fetch travel company data
     useEffect(() => {
@@ -74,6 +78,21 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
             fetchTravelCompany();
         }
     }, [params.id]); // Removed 't' from dependencies to prevent infinite loop
+
+    // Fetch active zones for pricing matrix rows
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data, error } = await supabase.from('zones').select('id, name, is_active').eq('is_active', true).order('name', { ascending: true });
+                if (error) throw error;
+                setZones((data || []) as Zone[]);
+            } catch (e) {
+                console.error('Error fetching zones', e);
+            } finally {
+                setZonesLoading(false);
+            }
+        })();
+    }, []);
 
     const getStatusBadge = (status: string) => {
         if (status === 'active') {
@@ -234,7 +253,7 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
                     </div>
                 </div>
 
-                {/* Pricing Matrix */}
+                {/* Pricing Matrix (Vehicles as columns, Zones as rows) */}
                 {travelCompany.pricing_data && Object.keys(travelCompany.pricing_data).length > 0 && (
                     <div className="panel">
                         <div className="flex items-center gap-3 mb-5">
@@ -246,22 +265,9 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
                             <table className="table-auto w-full border-collapse border border-gray-300 dark:border-gray-600">
                                 <thead>
                                     <tr className="bg-gray-100 dark:bg-gray-700">
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right font-medium">{t('vehicle_type')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_golan')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_haifa')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_nazareth')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_triangle')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_center')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_south')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_arava')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_dead_sea')}</th>
-                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center font-medium">{t('area_eilat')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {['خاصة', 'فان', 'باص 40', 'باص 50', 'مينيبوس 18', 'مينيبوس 24'].map((vehicleType) => (
-                                        <tr key={vehicleType} className="">
-                                            <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-medium text-right">
+                                        <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-right font-semibold min-w-[140px]">{t('zones')}</th>
+                                        {['خاصة', 'فان', 'باص 40', 'باص 50', 'مينيبوس 18', 'مينيبوس 24'].map((vehicleType) => (
+                                            <th key={vehicleType} className="border border-gray-300 dark:border-gray-600 px-2 py-2 text-center font-semibold min-w-[110px] text-sm">
                                                 {vehicleType === 'خاصة'
                                                     ? t('vehicle_type_private')
                                                     : vehicleType === 'فان'
@@ -275,14 +281,63 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
                                                             : vehicleType === 'مينيبوس 24'
                                                               ? t('vehicle_type_minibus_24')
                                                               : vehicleType}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {/* Loading / Empty states for zones */}
+                                    {zonesLoading && (
+                                        <tr>
+                                            <td colSpan={1 + 6} className="text-center py-4">
+                                                {t('loading')}
                                             </td>
-                                            {['الجولان وضواحيها', 'حيفا وضواحيها', 'الناصره وضواحيها', 'المثلث', 'المركز', 'الجنوب', 'العربة', 'البحر الميت', 'ايلات'].map((area) => (
-                                                <td key={area} className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">
-                                                    {travelCompany.pricing_data[vehicleType]?.[area] || '-'}
-                                                </td>
-                                            ))}
                                         </tr>
-                                    ))}
+                                    )}
+                                    {!zonesLoading &&
+                                        zones.length === 0 &&
+                                        // Fallback: derive zone names from pricing_data keys if zones are not available
+                                        (() => {
+                                            const vehicleTypes = ['خاصة', 'فان', 'باص 40', 'باص 50', 'مينيبوس 18', 'مينيبوس 24'];
+                                            const derivedZones = Array.from(new Set(vehicleTypes.flatMap((v) => Object.keys((travelCompany.pricing_data as any)?.[v] || {}))));
+                                            if (derivedZones.length === 0) {
+                                                return (
+                                                    <tr>
+                                                        <td colSpan={1 + 6} className="text-center py-4">
+                                                            {t('no_zones_found')}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            }
+                                            return (
+                                                <>
+                                                    {derivedZones.map((zoneName) => (
+                                                        <tr key={zoneName}>
+                                                            <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-semibold text-right bg-gray-50 dark:bg-gray-800">{zoneName}</td>
+                                                            {vehicleTypes.map((vehicleType) => (
+                                                                <td key={vehicleType} className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">
+                                                                    {(travelCompany.pricing_data as any)?.[vehicleType]?.[zoneName] ?? '-'}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    ))}
+                                                </>
+                                            );
+                                        })()}
+                                    {!zonesLoading && zones.length > 0 && (
+                                        <>
+                                            {zones.map((zone) => (
+                                                <tr key={zone.id}>
+                                                    <td className="border border-gray-300 dark:border-gray-600 px-4 py-2 font-semibold text-right bg-gray-50 dark:bg-gray-800">{zone.name}</td>
+                                                    {['خاصة', 'فان', 'باص 40', 'باص 50', 'مينيبوس 18', 'مينيبوس 24'].map((vehicleType) => (
+                                                        <td key={vehicleType} className="border border-gray-300 dark:border-gray-600 px-4 py-2 text-center">
+                                                            {travelCompany.pricing_data?.[vehicleType]?.[zone.name] ?? '-'}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

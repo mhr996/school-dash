@@ -21,6 +21,8 @@
 
 sql
 
+supabase
+
 # debug
 npm-debug.log*
 yarn-debug.log*
