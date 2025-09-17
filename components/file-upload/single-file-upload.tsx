@@ -150,7 +150,7 @@ const SingleFileUpload = ({ file, onFileChange, accept = 'image/*,.pdf,.doc,.doc
             {file && (
                 <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center gap-3">
                             {file.preview ? (
                                 <img src={file.preview} alt="Preview" className="w-12 h-12 object-cover rounded" />
                             ) : (

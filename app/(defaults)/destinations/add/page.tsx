@@ -1,0 +1,380 @@
+'use client';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import supabase from '@/lib/supabase';
+import { getTranslation } from '@/i18n';
+import IconArrowLeft from '@/components/icon/icon-arrow-left';
+import IconPlus from '@/components/icon/icon-plus';
+import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import SingleFileUpload from '@/components/file-upload/single-file-upload';
+import FileUpload from '@/components/file-upload/file-upload';
+
+type Zone = { id: string; name: string; is_active: boolean };
+
+type KV = { label: string; value: string };
+
+type Pricing = { child?: number; teen?: number; adult?: number; guide?: number };
+
+const SUITABLE_OPTIONS = ['kindergarten', 'elementary', 'high_school', 'college', 'families', 'teachers'];
+
+export default function AddDestinationPage() {
+    const { t } = getTranslation();
+    const router = useRouter();
+
+    const [activeTab, setActiveTab] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+
+    const [zones, setZones] = useState<Zone[]>([]);
+    const [zonesLoading, setZonesLoading] = useState(true);
+
+    const [name, setName] = useState('');
+    const [address, setAddress] = useState('');
+    const [phone, setPhone] = useState('');
+    const [zoneId, setZoneId] = useState<string>('');
+    const [description, setDescription] = useState('');
+    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+    const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+    // Local UI states to enable previews using our upload components
+    const [thumbnailUI, setThumbnailUI] = useState<{ file: File; preview?: string; id: string } | null>(null);
+    const [galleryUI, setGalleryUI] = useState<Array<{ file: File; preview?: string; id: string }>>([]);
+
+    const [properties, setProperties] = useState<KV[]>([]);
+    const [requirements, setRequirements] = useState<KV[]>([]);
+    const [suitable, setSuitable] = useState<string[]>([]);
+    const [pricing, setPricing] = useState<Pricing>({});
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const { data, error } = await supabase.from('zones').select('id, name, is_active').eq('is_active', true).order('name', { ascending: true });
+                if (error) throw error;
+                setZones((data || []) as Zone[]);
+            } catch (e) {
+                console.error('Error fetching zones', e);
+            } finally {
+                setZonesLoading(false);
+            }
+        })();
+    }, []);
+
+    const isValid = useMemo(() => {
+        return name.trim().length > 0;
+    }, [name]);
+
+    const handleAddKV = (setFn: Dispatch<SetStateAction<KV[]>>) => setFn((prev) => [...prev, { label: '', value: '' }]);
+    const handleRemoveKV = (setFn: Dispatch<SetStateAction<KV[]>>, idx: number) => setFn((prev) => prev.filter((_, i) => i !== idx));
+    const handleChangeKV = (setFn: Dispatch<SetStateAction<KV[]>>, idx: number, key: 'label' | 'value', value: string) =>
+        setFn((prev) => prev.map((item, i) => (i === idx ? { ...item, [key]: value } : item)));
+
+    const toggleSuitable = (key: string) => {
+        setSuitable((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setAlert(null);
+        if (!isValid) {
+            setActiveTab(0);
+            setAlert({ message: t('destination_name_required'), type: 'danger' });
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            // 1) Create base record to get id
+            const basePayload: any = {
+                name: name.trim(),
+                address: address.trim() || null,
+                phone: phone.trim() || null,
+                zone_id: zoneId || null,
+                description: description.trim() || null,
+                properties: properties.filter((x) => x.label || x.value),
+                requirements: requirements.filter((x) => x.label || x.value),
+                suitable_for: suitable,
+                pricing: {
+                    child: pricing.child || 0,
+                    teen: pricing.teen || 0,
+                    adult: pricing.adult || 0,
+                    guide: pricing.guide || 0,
+                },
+            };
+
+            const { data: created, error: insertError } = await supabase.from('destinations').insert([basePayload]).select().single();
+            if (insertError) throw insertError;
+            const id = created.id as string;
+
+            // 2) Upload images if any, then update
+            let thumbnail_path: string | null = null;
+            const gallery_paths: string[] = [];
+
+            if (thumbnailFile) {
+                const ext = thumbnailFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+                const path = `${id}/thumbnail_${Date.now()}.${ext}`;
+                const { error: upErr } = await supabase.storage.from('destinations').upload(path, thumbnailFile, { cacheControl: '3600', upsert: true });
+                if (upErr) throw upErr;
+                thumbnail_path = `/destinations/${path}`;
+            }
+
+            for (const file of galleryFiles) {
+                const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+                const path = `${id}/gallery/${Date.now()}_${file.name}`;
+                const { error: upErr } = await supabase.storage.from('destinations').upload(path, file, { cacheControl: '3600', upsert: true });
+                if (upErr) throw upErr;
+                gallery_paths.push(`/destinations/${path}`);
+            }
+
+            if (thumbnail_path || gallery_paths.length > 0) {
+                const { error: updErr } = await supabase.from('destinations').update({ thumbnail_path, gallery_paths }).eq('id', id);
+                if (updErr) throw updErr;
+            }
+
+            setAlert({ message: t('destination_created_successfully'), type: 'success' });
+            setTimeout(() => router.push(`/destinations/preview/${id}`), 1200);
+        } catch (error) {
+            console.error('Error creating destination:', error);
+            // Log more details about the error
+            if (error && typeof error === 'object') {
+                console.error('Error details:', JSON.stringify(error, null, 2));
+            }
+            setAlert({ message: t('error_creating_destination'), type: 'danger' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const tabs = [
+        { id: 'basic', title: t('basic_info') },
+        { id: 'properties', title: t('destination_properties') },
+        { id: 'requirements', title: t('destination_requirements') },
+        { id: 'suitable_for', title: t('suitable_for') },
+        { id: 'pricing', title: t('pricing') },
+    ];
+
+    const renderBasic = () => (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label className="block text-sm font-medium mb-2">
+                        {t('destination_name')} <span className="text-red-500">*</span>
+                    </label>
+                    <input className="form-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('enter_destination_name')} />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-2">{t('phone')}</label>
+                    <input className="form-input" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('phone_number')} />
+                </div>
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">{t('destination_address')}</label>
+                    <input className="form-input" value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('enter_destination_address')} />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-2">{t('zone')}</label>
+                    <select className="form-select" value={zoneId} onChange={(e) => setZoneId(e.target.value)}>
+                        <option value="">{zonesLoading ? t('loading') : t('select_zone')}</option>
+                        {zones.map((z) => (
+                            <option key={z.id} value={z.id}>
+                                {z.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">{t('description')}</label>
+                    <textarea className="form-textarea" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('description')} />
+                </div>
+                <div className="md:col-span-2">
+                    <SingleFileUpload
+                        title={t('upload_thumbnail')}
+                        description={t('upload_thumbnail_desc') || ''}
+                        accept="image/*"
+                        file={thumbnailUI}
+                        onFileChange={(fi) => {
+                            setThumbnailUI(fi);
+                            setThumbnailFile(fi?.file || null);
+                        }}
+                    />
+                </div>
+                <div className="md:col-span-2">
+                    <FileUpload
+                        title={t('upload_gallery_images')}
+                        description={t('upload_gallery_desc') || ''}
+                        accept="image/*"
+                        maxFiles={10}
+                        files={galleryUI}
+                        onFilesChange={(fis) => {
+                            setGalleryUI(fis);
+                            setGalleryFiles(fis.map((x) => x.file));
+                        }}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderKVRows = (items: KV[], setFn: Dispatch<SetStateAction<KV[]>>, addLabelKey: string) => (
+        <div className="space-y-3">
+            {items.length === 0 && <div className="text-gray-500 text-sm">{t('no_items_added')}</div>}
+            {items.map((item, idx) => (
+                <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                    <div className="relative md:col-span-3 flex items-center gap-3">
+                        <input className="form-input md:flex-1" placeholder={t('label')} value={item.label} onChange={(e) => handleChangeKV(setFn, idx, 'label', e.target.value)} />
+                        <input className="form-input md:flex-[2]" placeholder={t('value')} value={item.value} onChange={(e) => handleChangeKV(setFn, idx, 'value', e.target.value)} />
+                        <button type="button" className="hover:text-danger" title={t('delete')} onClick={() => handleRemoveKV(setFn, idx)}>
+                            {/* using existing trash icon from list pages */}
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M20.5001 6H3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"></path>
+                                <path
+                                    d="M18.8334 8.5L18.3735 15.3991C18.1965 18.054 18.108 19.3815 17.243 20.1907C16.378 21 15.0476 21 12.3868 21H11.6134C8.9526 21 7.6222 21 6.75719 20.1907C5.89218 19.3815 5.80368 18.054 5.62669 15.3991L5.16675 8.5"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                ></path>
+                                <path opacity="0.5" d="M9.5 11L10 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"></path>
+                                <path opacity="0.5" d="M14.5 11L14 16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"></path>
+                                <path
+                                    opacity="0.5"
+                                    d="M6.5 6C6.55588 6 6.58382 6 6.60915 5.99936C7.43259 5.97849 8.15902 5.45491 8.43922 4.68032C8.44784 4.65649 8.45667 4.62999 8.47434 4.57697L8.57143 4.28571C8.65431 4.03708 8.69575 3.91276 8.75071 3.8072C8.97001 3.38607 9.37574 3.09364 9.84461 3.01877C9.96213 3 10.0932 3 10.3553 3H13.6447C13.9068 3 14.0379 3 14.1554 3.01877C14.6243 3.09364 15.03 3.38607 15.2493 3.8072C15.3043 3.91276 15.3457 4.03708 15.4286 4.28571L15.5257 4.57697C15.5433 4.62992 15.5522 4.65651 15.5608 4.68032C15.841 5.45491 16.5674 5.97849 17.3909 5.99936C17.4162 6 17.4441 6 17.5 6"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            ))}
+            <button type="button" className="btn btn-outline-primary" onClick={() => handleAddKV(setFn)}>
+                {t(addLabelKey)}
+            </button>
+        </div>
+    );
+
+    const renderSuitable = () => (
+        <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
+                {SUITABLE_OPTIONS.map((key) => {
+                    const active = suitable.includes(key);
+                    return (
+                        <button
+                            key={key}
+                            type="button"
+                            onClick={() => toggleSuitable(key)}
+                            className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                                active
+                                    ? 'bg-primary text-white border-primary'
+                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:border-primary'
+                            }`}
+                            aria-pressed={active}
+                        >
+                            {t(`suitable_${key}`)}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+
+    const renderPricing = () => (
+        <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label className="block text-sm font-medium mb-2">{t('pricing_child')}</label>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="form-input"
+                        value={pricing.child ?? ''}
+                        onChange={(e) => setPricing((p) => ({ ...p, child: parseFloat(e.target.value) || 0 }))}
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-2">{t('pricing_teen')}</label>
+                    <input type="number" min="0" step="0.01" className="form-input" value={pricing.teen ?? ''} onChange={(e) => setPricing((p) => ({ ...p, teen: parseFloat(e.target.value) || 0 }))} />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-2">{t('pricing_adult')}</label>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="form-input"
+                        value={pricing.adult ?? ''}
+                        onChange={(e) => setPricing((p) => ({ ...p, adult: parseFloat(e.target.value) || 0 }))}
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-2">{t('pricing_guide')}</label>
+                    <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="form-input"
+                        value={pricing.guide ?? ''}
+                        onChange={(e) => setPricing((p) => ({ ...p, guide: parseFloat(e.target.value) || 0 }))}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderTabContent = () => {
+        if (activeTab === 0) return renderBasic();
+        if (activeTab === 1) return renderKVRows(properties, setProperties, 'add_property');
+        if (activeTab === 2) return renderKVRows(requirements, setRequirements, 'add_requirement');
+        if (activeTab === 3) return renderSuitable();
+        if (activeTab === 4) return renderPricing();
+        return null;
+    };
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-xl font-semibold dark:text-white-light">{t('add_destination')}</h1>
+                </div>
+                <Link href="/destinations" className="btn btn-outline-primary gap-2">
+                    <IconArrowLeft />
+                    {t('back')}
+                </Link>
+            </div>
+
+            {alert && (
+                <div className="mb-4">
+                    <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="panel">
+                    <div className="flex border-b border-gray-200 dark:border-gray-600 mb-6">
+                        {tabs.map((tab, idx) => (
+                            <button
+                                type="button"
+                                key={tab.id}
+                                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === idx ? 'border-primary text-primary bg-primary/10' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                onClick={() => setActiveTab(idx)}
+                            >
+                                {tab.title}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="min-h-[400px]">{renderTabContent()}</div>
+                </div>
+
+                <div className="flex justify-end gap-3">
+                    <Link className="btn btn-outline-secondary" href="/destinations">
+                        {t('cancel')}
+                    </Link>
+                    <button type="submit" className="btn btn-primary gap-2" disabled={loading || !isValid}>
+                        {loading ? <span className="animate-spin border-2 border-white border-l-transparent rounded-full w-5 h-5"></span> : <IconPlus />}
+                        {loading ? t('creating') : t('create_destination')}
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+}

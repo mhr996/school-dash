@@ -270,7 +270,7 @@ const CompanySettings = () => {
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Company Name */}
                             <div className="space-y-2">
-                                <label htmlFor="name" className="block text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
                                     <IconUser className="w-4 h-4 text-primary" />
                                     {t('company_name')} <span className="text-red-500">*</span>
                                 </label>
@@ -289,7 +289,7 @@ const CompanySettings = () => {
 
                             {/* Address */}
                             <div className="space-y-2">
-                                <label htmlFor="address" className="block text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                <label htmlFor="address" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
                                     <IconMapPin className="w-4 h-4 text-primary" />
                                     {t('company_address')}
                                 </label>
@@ -305,7 +305,7 @@ const CompanySettings = () => {
 
                             {/* Phone Number */}
                             <div className="space-y-2">
-                                <label htmlFor="phone" className="block text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                <label htmlFor="phone" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
                                     <IconPhone className="w-4 h-4 text-primary" />
                                     {t('phone_number')}
                                 </label>
@@ -322,7 +322,7 @@ const CompanySettings = () => {
 
                             {/* Tax Number */}
                             <div className="space-y-2">
-                                <label htmlFor="tax_number" className="block text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                <label htmlFor="tax_number" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
                                     <IconCreditCard className="w-4 h-4 text-primary" />
                                     {t('tax_number')}
                                 </label>
