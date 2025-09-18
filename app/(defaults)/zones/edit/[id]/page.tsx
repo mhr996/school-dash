@@ -1,12 +1,12 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { getTranslation } from '@/i18n';
-import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconSave from '@/components/icon/icon-save';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 const EditZone = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
@@ -19,6 +19,17 @@ const EditZone = ({ params }: { params: { id: string } }) => {
     const [isActive, setIsActive] = useState(true);
     const [loading, setLoading] = useState(false);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+
+    const statusOptions: SelectOption[] = [
+        {
+            value: 'active',
+            label: t('active'),
+        },
+        {
+            value: 'inactive',
+            label: t('inactive'),
+        },
+    ];
 
     useEffect(() => {
         (async () => {
@@ -47,6 +58,11 @@ const EditZone = ({ params }: { params: { id: string } }) => {
                 .eq('id', params.id);
             if (error) throw error;
             setAlert({ message: t('zone_updated_successfully'), type: 'success' });
+
+            // Redirect to zones list after a short delay
+            setTimeout(() => {
+                router.push('/zones');
+            }, 700);
         } catch (e) {
             console.error(e);
             setAlert({ message: t('error_updating_zone'), type: 'danger' });
@@ -57,26 +73,7 @@ const EditZone = ({ params }: { params: { id: string } }) => {
 
     return (
         <div className="container mx-auto p-6">
-            <div className="flex items-center gap-5 mb-6">
-                <Link href="/zones" className="text-primary hover:text-primary/80">
-                    <IconArrowLeft className="h-7 w-7" />
-                </Link>
-                <ul className="flex space-x-2 rtl:space-x-reverse">
-                    <li>
-                        <Link href="/" className="text-primary hover:underline">
-                            {t('home')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href="/zones" className="text-primary hover:underline">
-                            {t('zones')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <span>{t('edit_zone')}</span>
-                    </li>
-                </ul>
-            </div>
+            <PageBreadcrumb section="zones" backUrl="/zones" items={[{ label: t('home'), href: '/' }, { label: t('zones'), href: '/zones' }, { label: t('edit_zone') }]} />
 
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">{t('edit_zone')}</h1>
@@ -98,10 +95,14 @@ const EditZone = ({ params }: { params: { id: string } }) => {
                         </div>
                         <div>
                             <label className="block text-sm font-bold mb-2">{t('status')}</label>
-                            <select className="form-select" value={isActive ? 'active' : 'inactive'} onChange={(e) => setIsActive(e.target.value === 'active')}>
-                                <option value="active">{t('active')}</option>
-                                <option value="inactive">{t('inactive')}</option>
-                            </select>
+                            <CustomSelect
+                                options={statusOptions}
+                                value={isActive ? 'active' : 'inactive'}
+                                onChange={(value) => setIsActive(value === 'active')}
+                                placeholder={t('select_status')}
+                                clearable={false}
+                                searchable={false}
+                            />
                         </div>
                         <div className="md:col-span-2">
                             <label className="block text-sm font-bold mb-2">{t('address')}</label>

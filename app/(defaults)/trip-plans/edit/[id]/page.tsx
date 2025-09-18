@@ -131,6 +131,11 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
             const { error } = await supabase.from('trip_plans').update(payload).eq('id', params.id);
             if (error) throw error;
             setAlert({ message: t('trip_plan_updated_successfully'), type: 'success' });
+
+            // Redirect to trip plans list after a short delay
+            setTimeout(() => {
+                router.push('/trip-plans');
+            }, 700);
         } catch (e) {
             console.error(e);
             setAlert({ message: t('error_updating_trip_plan'), type: 'danger' });

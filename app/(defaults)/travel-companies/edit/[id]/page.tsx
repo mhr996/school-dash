@@ -261,7 +261,7 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
             // Redirect to travel companies list after a delay
             setTimeout(() => {
                 router.push('/travel-companies');
-            }, 1500);
+            }, 700);
         } catch (error) {
             console.error('Error updating travel company:', error);
             setAlert({

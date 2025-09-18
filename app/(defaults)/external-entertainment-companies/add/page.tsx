@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation';
 import supabase from '@/lib/supabase';
 import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
-import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import ImageUpload from '@/components/image-upload/image-upload';
 import { getTranslation } from '@/i18n';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 interface EntertainmentCompanyForm {
     name: string;
@@ -84,28 +84,11 @@ export default function AddEntertainmentCompany() {
     return (
         <div className="container mx-auto p-6">
             {/* Header */}
-            <div className="flex items-center gap-5 mb-6">
-                <Link href="/external-entertainment-companies" className="text-primary hover:text-primary/80">
-                    <IconArrowLeft className="h-7 w-7" />
-                </Link>
-
-                {/* Breadcrumb Navigation */}
-                <ul className="flex space-x-2 rtl:space-x-reverse">
-                    <li>
-                        <Link href="/" className="text-primary hover:underline">
-                            {t('home')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href="/external-entertainment-companies" className="text-primary hover:underline">
-                            {t('external_entertainment_companies')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <span>{t('add_entertainment_company')}</span>
-                    </li>
-                </ul>
-            </div>
+            <PageBreadcrumb
+                section="external-entertainment-companies"
+                backUrl="/external-entertainment-companies"
+                items={[{ label: t('home'), href: '/' }, { label: t('external_entertainment_companies'), href: '/external-entertainment-companies' }, { label: t('add_entertainment_company') }]}
+            />
 
             {/* Title */}
             <div className="mb-6">

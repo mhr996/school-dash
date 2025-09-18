@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import IconBuilding from '@/components/icon/icon-building';
 import IconSave from '@/components/icon/icon-save';
-import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconUser from '@/components/icon/icon-user';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconPhone from '@/components/icon/icon-phone';
@@ -12,9 +11,9 @@ import IconUsers from '@/components/icon/icon-users';
 import IconUsersGroup from '@/components/icon/icon-users-group';
 import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
-import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 interface SchoolForm {
     name: string;
@@ -119,7 +118,7 @@ const EditSchool = () => {
         if (schoolId) {
             fetchSchool();
         }
-    }, [schoolId, t]);
+    }, [schoolId]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -198,28 +197,7 @@ const EditSchool = () => {
     return (
         <div className="container mx-auto p-6">
             {/* Header */}
-            <div className="flex items-center gap-5 mb-6">
-                <Link href="/schools" className="text-primary hover:text-primary/80">
-                    <IconArrowLeft className="h-7 w-7" />
-                </Link>
-
-                {/* Breadcrumb Navigation */}
-                <ul className="flex space-x-2 rtl:space-x-reverse">
-                    <li>
-                        <Link href="/" className="text-primary hover:underline">
-                            {t('home')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href="/schools" className="text-primary hover:underline">
-                            {t('schools')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <span>{t('edit_school')}</span>
-                    </li>
-                </ul>
-            </div>
+            <PageBreadcrumb section="schools" backUrl="/schools" items={[{ label: t('home'), href: '/' }, { label: t('schools'), href: '/schools' }, { label: t('edit_school') }]} />
 
             <div className="mb-6">
                 <h1 className="text-3xl font-bold flex items-center gap-3">

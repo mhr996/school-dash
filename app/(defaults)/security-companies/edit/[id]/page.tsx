@@ -141,10 +141,10 @@ const EditSecurityCompany = () => {
 
             setAlert({ message: t('security_company_updated_successfully'), type: 'success' });
 
-            // Redirect to security company preview after a short delay
+            // Redirect to security companies list after a short delay
             setTimeout(() => {
-                router.push(`/security-companies/preview/${companyId}`);
-            }, 500);
+                router.push('/security-companies');
+            }, 700);
         } catch (error: any) {
             console.error('Error updating security company:', error);
             setAlert({ message: error.message || t('error_updating_security_company'), type: 'danger' });

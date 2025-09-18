@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import IconBuilding from '@/components/icon/icon-building';
 import IconEdit from '@/components/icon/icon-edit';
-import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconUser from '@/components/icon/icon-user';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconPhone from '@/components/icon/icon-phone';
@@ -16,6 +15,7 @@ import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 interface School {
     id: string;
@@ -89,7 +89,7 @@ const SchoolPreview = () => {
         if (schoolId) {
             fetchSchool();
         }
-    }, [schoolId, t]);
+    }, [schoolId]);
 
     if (loading) {
         return (
@@ -119,28 +119,7 @@ const SchoolPreview = () => {
     return (
         <div className="container mx-auto p-6">
             {/* Header */}
-            <div className="flex items-center gap-5 mb-6">
-                <Link href="/schools" className="text-primary hover:text-primary/80">
-                    <IconArrowLeft className="h-7 w-7" />
-                </Link>
-
-                {/* Breadcrumb Navigation */}
-                <ul className="flex space-x-2 rtl:space-x-reverse">
-                    <li>
-                        <Link href="/" className="text-primary hover:underline">
-                            {t('home')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href="/schools" className="text-primary hover:underline">
-                            {t('schools')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <span>{school.name}</span>
-                    </li>
-                </ul>
-            </div>
+            <PageBreadcrumb section="schools" backUrl="/schools" items={[{ label: t('home'), href: '/' }, { label: t('schools'), href: '/schools' }, { label: school.name }]} />
 
             {/* Title and Action */}
             <div className="flex items-center justify-between mb-6">

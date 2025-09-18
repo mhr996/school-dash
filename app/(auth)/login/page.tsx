@@ -24,7 +24,7 @@ const CoverLogin = () => {
                 setTimeout(() => setSuccessMessage(null), 10000);
             }
         }
-    }, [searchParams, t]);
+    }, [searchParams]);
     return (
         <div>
             <div className="absolute inset-0">

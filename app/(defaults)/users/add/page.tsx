@@ -1,13 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import IconEye from '@/components/icon/icon-eye';
 import CustomSelect from '@/components/elements/custom-select';
 import { getCurrentUserWithRole } from '@/lib/auth';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 const AddUserPage = () => {
     const router = useRouter();
@@ -160,29 +160,7 @@ const AddUserPage = () => {
 
     return (
         <div className="container mx-auto p-6">
-            <div className="flex items-center gap-5 mb-6">
-                <div onClick={() => router.back()}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 mb-4 cursor-pointer text-primary rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
-                </div>
-                {/* Breadcrumb Navigation */}
-                <ul className="flex space-x-2 rtl:space-x-reverse mb-4">
-                    <li>
-                        <Link href="/" className="text-primary hover:underline">
-                            {t('home')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href="/users" className="text-primary hover:underline">
-                            {t('users')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <span>{t('add_new_user')}</span>
-                    </li>
-                </ul>
-            </div>
+            <PageBreadcrumb section="users" backUrl="/users" items={[{ label: t('home'), href: '/' }, { label: t('users'), href: '/users' }, { label: t('add_new_user') }]} />
             {alert.visible && (
                 <div className="mb-4">
                     <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />

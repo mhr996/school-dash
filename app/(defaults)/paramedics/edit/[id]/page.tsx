@@ -154,7 +154,7 @@ const EditParamedic = () => {
             // Redirect to paramedics list after a short delay
             setTimeout(() => {
                 router.push('/paramedics');
-            }, 1500);
+            }, 700);
         } catch (error) {
             console.error('Error updating paramedic:', error);
             setAlert({

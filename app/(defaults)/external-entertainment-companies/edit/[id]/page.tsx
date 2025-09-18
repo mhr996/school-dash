@@ -77,7 +77,7 @@ export default function EditEntertainmentCompany() {
         if (companyId) {
             fetchEntertainmentCompany();
         }
-    }, [companyId, t]);
+    }, [companyId]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -107,7 +107,7 @@ export default function EditEntertainmentCompany() {
             // Redirect after a brief delay
             setTimeout(() => {
                 router.push('/external-entertainment-companies');
-            }, 1500);
+            }, 700);
         } catch (error) {
             console.error('Error updating entertainment company:', error);
             setAlert({ visible: true, message: t('error_updating_entertainment_company'), type: 'danger' });

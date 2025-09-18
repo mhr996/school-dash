@@ -137,7 +137,7 @@ export default function DestinationsPage() {
                     records={records}
                     columns={[
                         { accessor: 'name', title: t('name'), sortable: true },
-                        { accessor: 'phone', title: t('phone'), sortable: true, render: ({ phone }) => phone || '-' },
+                        { accessor: 'phone', title: t('phone'), sortable: true, render: ({ phone }) => <span dir="ltr">{phone || '-'}</span> },
                         { accessor: 'address', title: t('address'), sortable: true, render: ({ address }) => address || '-' },
                         { accessor: 'zone_id', title: t('zone'), sortable: true, render: ({ zone_id }) => zoneName(zone_id) },
                         {

@@ -4,11 +4,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
-import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconPlus from '@/components/icon/icon-plus';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import SingleFileUpload from '@/components/file-upload/single-file-upload';
 import FileUpload from '@/components/file-upload/file-upload';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 type Zone = { id: string; name: string; is_active: boolean };
 
@@ -330,16 +330,12 @@ export default function AddDestinationPage() {
     };
 
     return (
-        <div>
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-xl font-semibold dark:text-white-light">{t('add_destination')}</h1>
-                </div>
-                <Link href="/destinations" className="btn btn-outline-primary gap-2">
-                    <IconArrowLeft />
-                    {t('back')}
-                </Link>
-            </div>
+        <div className="container mx-auto p-6">
+            <PageBreadcrumb
+                section="destinations"
+                backUrl="/destinations"
+                items={[{ label: t('home'), href: '/' }, { label: t('destinations'), href: '/destinations' }, { label: t('add_destination') }]}
+            />
 
             {alert && (
                 <div className="mb-4">

@@ -7,12 +7,12 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 // Components
 import IconPlus from '@/components/icon/icon-plus';
 // import IconHeart from '@/components/icon/icon-heart';
-import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect from '@/components/elements/custom-select';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 import { getTranslation } from '@/i18n';
 
@@ -126,28 +126,7 @@ const AddParamedic = () => {
     return (
         <div className="container mx-auto p-6">
             {/* Header */}
-            <div className="flex items-center gap-5 mb-6">
-                <Link href="/paramedics" className="text-primary hover:text-primary/80">
-                    <IconArrowLeft className="h-7 w-7" />
-                </Link>
-
-                {/* Breadcrumb Navigation */}
-                <ul className="flex space-x-2 rtl:space-x-reverse">
-                    <li>
-                        <Link href="/" className="text-primary hover:underline">
-                            {t('home')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href="/paramedics" className="text-primary hover:underline">
-                            {t('paramedics')}
-                        </Link>
-                    </li>
-                    <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <span>{t('add_paramedic')}</span>
-                    </li>
-                </ul>
-            </div>
+            <PageBreadcrumb section="paramedics" backUrl="/paramedics" items={[{ label: t('home'), href: '/' }, { label: t('paramedics'), href: '/paramedics' }, { label: t('add_paramedic') }]} />
 
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">{t('add_new_paramedic')}</h1>

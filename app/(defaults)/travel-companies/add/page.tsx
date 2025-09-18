@@ -2,7 +2,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import IconBuilding from '@/components/icon/icon-building';
-import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconPlus from '@/components/icon/icon-plus';
 import IconUser from '@/components/icon/icon-user';
 import IconCar from '@/components/icon/icon-car';
@@ -11,6 +10,7 @@ import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 interface FormData {
     name: string;
@@ -445,17 +445,12 @@ const AddTravelCompany = () => {
     };
 
     return (
-        <div>
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <IconBuilding className="h-6 w-6 text-primary" />
-                    <h1 className="text-xl font-semibold dark:text-white-light">{t('add_travel_company')}</h1>
-                </div>
-                <Link href="/travel-companies" className="btn btn-outline-primary gap-2">
-                    <IconArrowLeft />
-                    {t('back_to_travel_companies')}
-                </Link>
-            </div>
+        <div className="container mx-auto p-6">
+            <PageBreadcrumb
+                section="travel-companies"
+                backUrl="/travel-companies"
+                items={[{ label: t('home'), href: '/' }, { label: t('travel_companies'), href: '/travel-companies' }, { label: t('add_travel_company') }]}
+            />
 
             {alert && (
                 <div className="mb-4">
