@@ -1240,6 +1240,33 @@
     "no_items_added": "No items added",
     "add_property": "Add Property",
     "add_requirement": "Add Requirement",
+
+    "select_property_features": "Select the features available at this destination:",
+    "property_indoor_activities": "Indoor Activities",
+    "property_outdoor_activities": "Outdoor Activities",
+    "property_educational_value": "Educational Value",
+    "property_entertainment_value": "Entertainment Value",
+    "property_historical_significance": "Historical Significance",
+    "property_natural_beauty": "Natural Beauty",
+    "property_accessibility": "Accessible for Disabilities",
+    "property_parking_available": "Parking Available",
+    "property_restroom_facilities": "Restroom Facilities",
+    "property_food_services": "Food Services",
+    "property_gift_shop": "Gift Shop",
+    "property_guided_tours": "Guided Tours Available",
+    "property_audio_guides": "Audio Guides Available",
+    "property_wheelchair_accessible": "Wheelchair Accessible",
+    "property_group_discounts": "Group Discounts Available",
+
+    "select_required_services": "Select the services required for this destination:",
+    "service_paramedics": "Paramedics",
+    "service_guides": "Guides",
+    "service_travel_companies": "Travel Companies",
+    "service_security_companies": "Security Companies",
+    "service_external_entertainment_companies": "External Entertainment Companies",
+
+    "select_suitable_audiences": "Select the audiences this destination is suitable for:",
+
     "upload_thumbnail_desc": "Upload a thumbnail image for the destination.",
     "upload_gallery_desc": "Upload multiple images to showcase the destination.",
     "replace_file": "Replace File",
@@ -1253,5 +1280,6 @@
     "no_zone_assigned": "No zone assigned",
     "gallery": "Gallery",
     "view_all": "View All",
-    "images": "images"
+    "images": "images",
+    "edit_destination_description": "Update the destination information in the form below"
 }

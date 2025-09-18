@@ -1286,6 +1286,33 @@
     "current": "נוכחי",
     "add_property": "הוסף מאפיין",
     "add_requirement": "הוסף דרישה",
+
+    "select_property_features": "בחר את התכונות הזמינות ביעד זה:",
+    "property_indoor_activities": "פעילויות פנימיות",
+    "property_outdoor_activities": "פעילויות חיצוניות",
+    "property_educational_value": "ערך חינוכי",
+    "property_entertainment_value": "ערך בידורי",
+    "property_historical_significance": "משמעות היסטורית",
+    "property_natural_beauty": "יופי טבעי",
+    "property_accessibility": "נגיש לבעלי מוגבלויות",
+    "property_parking_available": "חנייה זמינה",
+    "property_restroom_facilities": "מתקני שירותים",
+    "property_food_services": "שירותי מזון",
+    "property_gift_shop": "חנות מזכרות",
+    "property_guided_tours": "סיורים מודרכים זמינים",
+    "property_audio_guides": "מדריכי שמע זמינים",
+    "property_wheelchair_accessible": "נגיש לכיסאות גלגלים",
+    "property_group_discounts": "הנחות קבוצתיות זמינות",
+
+    "select_required_services": "בחר את השירותים הנדרשים ליעד זה:",
+    "service_paramedics": "פרמדיקים",
+    "service_guides": "מדריכים",
+    "service_travel_companies": "חברות נסיעות",
+    "service_security_companies": "חברות אבטחה",
+    "service_external_entertainment_companies": "חברות בידור חיצוניות",
+
+    "select_suitable_audiences": "בחר את הקהלים שמתאימים ליעד זה:",
+
     "upload_thumbnail_desc": "העלה תמונה ממוזערת ליעד.",
     "upload_gallery_desc": "העלה תמונות מרובות כדי להציג את היעד.",
     "drag_drop_or_click": "גרור ושחרר או לחץ כדי להעלות",
@@ -1295,5 +1322,6 @@
     "search_destinations": "חפש יעדים...",
     "confirm_bulk_delete_destinations_message": "האם אתה בטוח שברצונך למחוק את היעדים שנבחרו? לא ניתן לבטל פעולה זו.",
     "destinations_deleted_successfully": "היעדים נמחקו בהצלחה",
-    "no_zone_assigned": "לא הוקצתה אזור"
+    "no_zone_assigned": "לא הוקצתה אזור",
+    "edit_destination_description": "עדכן את פרטי היעד בטופס למטה"
 }

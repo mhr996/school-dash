@@ -1643,10 +1643,39 @@
     "current": "الحالي",
     "add_property": "إضافة خاصية",
     "add_requirement": "إضافة متطلب",
+
+    "select_property_features": "اختر الميزات المتاحة في هذه الوجهة:",
+    "property_indoor_activities": "أنشطة داخلية",
+    "property_outdoor_activities": "أنشطة خارجية",
+    "property_educational_value": "قيمة تعليمية",
+    "property_entertainment_value": "قيمة ترفيهية",
+    "property_historical_significance": "أهمية تاريخية",
+    "property_natural_beauty": "جمال طبيعي",
+    "property_accessibility": "متاح لذوي الإعاقة",
+    "property_parking_available": "موقف سيارات متاح",
+    "property_restroom_facilities": "مرافق دورات مياه",
+    "property_food_services": "خدمات طعام",
+    "property_gift_shop": "متجر هدايا",
+    "property_guided_tours": "جولات مع مرشد متاحة",
+    "property_audio_guides": "أدلة صوتية متاحة",
+    "property_wheelchair_accessible": "متاح للكراسي المتحركة",
+    "property_group_discounts": "خصومات جماعية متاحة",
+
+    "select_required_services": "اختر الخدمات المطلوبة لهذه الوجهة:",
+    "service_paramedics": "المسعفون",
+    "service_guides": "المرشدون",
+    "service_travel_companies": "شركات السفر",
+    "service_security_companies": "شركات الأمن",
+    "service_external_entertainment_companies": "شركات الترفيه الخارجية",
+
+    "select_suitable_audiences": "اختر الجماهير التي تناسبها هذه الوجهة:",
+
     "upload_thumbnail_desc": "قم بتحميل صورة مصغرة للوجهة.",
     "upload_gallery_desc": "قم بتحميل صور متعددة لعرض الوجهة.",
     "search_destinations": "ابحث في الوجهات...",
     "confirm_bulk_delete_destinations_message": "هل أنت متأكد أنك تريد حذف الوجهات المحددة؟",
     "destinations_deleted_successfully": "تم حذف الوجهات بنجاح",
-    "no_zone_assigned": "لا توجد منطقة مخصصة"
+    "no_zone_assigned": "لا توجد منطقة مخصصة",
+    "pricing": "التسعير",
+    "edit_destination_description": "قم بتحديث معلومات الوجهة في النموذج أدناه"
 }

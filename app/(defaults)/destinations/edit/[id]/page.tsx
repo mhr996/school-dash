@@ -10,10 +10,33 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import SingleFileUpload from '@/components/file-upload/single-file-upload';
 import FileUpload from '@/components/file-upload/file-upload';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
+import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 type Zone = { id: string; name: string; is_active: boolean };
 type KV = { label: string; value: string };
 type Pricing = { child?: number; teen?: number; adult?: number; guide?: number };
+
+// Predefined property labels for destinations
+const PROPERTY_OPTIONS = [
+    'indoor_activities',
+    'outdoor_activities',
+    'educational_value',
+    'entertainment_value',
+    'historical_significance',
+    'natural_beauty',
+    'accessibility',
+    'parking_available',
+    'restroom_facilities',
+    'food_services',
+    'gift_shop',
+    'guided_tours',
+    'audio_guides',
+    'wheelchair_accessible',
+    'group_discounts',
+];
+
+// Service requirements based on existing services in the app
+const SERVICE_REQUIREMENTS = ['paramedics', 'guides', 'travel_companies', 'security_companies', 'external_entertainment_companies'];
 
 export default function EditDestinationPage({ params }: { params: { id: string } }) {
     const { t } = getTranslation();
@@ -39,8 +62,8 @@ export default function EditDestinationPage({ params }: { params: { id: string }
     const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
     const [newGalleryUI, setNewGalleryUI] = useState<Array<{ file: File; preview?: string; id: string }>>([]);
 
-    const [properties, setProperties] = useState<KV[]>([]);
-    const [requirements, setRequirements] = useState<KV[]>([]);
+    const [properties, setProperties] = useState<string[]>([]);
+    const [requirements, setRequirements] = useState<string[]>([]);
     const [suitable, setSuitable] = useState<string[]>([]);
     const [pricing, setPricing] = useState<Pricing>({});
 
@@ -71,8 +94,26 @@ export default function EditDestinationPage({ params }: { params: { id: string }
                 setDescription(data.description || '');
                 setThumbnailPath(data.thumbnail_path || null);
                 setGalleryPaths(data.gallery_paths || []);
-                setProperties(data.properties || []);
-                setRequirements(data.requirements || []);
+
+                // Handle backward compatibility: convert old KV format to new string array format
+                const propertiesData = data.properties || [];
+                if (propertiesData.length > 0 && typeof propertiesData[0] === 'object' && 'label' in propertiesData[0]) {
+                    // Old format: array of {label, value} - convert to array of labels only
+                    setProperties(propertiesData.map((p: any) => p.label).filter(Boolean));
+                } else {
+                    // New format: array of strings
+                    setProperties(propertiesData);
+                }
+
+                const requirementsData = data.requirements || [];
+                if (requirementsData.length > 0 && typeof requirementsData[0] === 'object' && 'label' in requirementsData[0]) {
+                    // Old format: array of {label, value} - convert to array of labels only
+                    setRequirements(requirementsData.map((r: any) => r.label).filter(Boolean));
+                } else {
+                    // New format: array of strings
+                    setRequirements(requirementsData);
+                }
+
                 setSuitable(data.suitable_for || []);
                 setPricing(data.pricing || {});
             } catch (e) {
@@ -86,10 +127,14 @@ export default function EditDestinationPage({ params }: { params: { id: string }
 
     const isValid = useMemo(() => name.trim().length > 0, [name]);
 
-    const handleAddKV = (setFn: Dispatch<SetStateAction<KV[]>>) => setFn((prev) => [...prev, { label: '', value: '' }]);
-    const handleRemoveKV = (setFn: Dispatch<SetStateAction<KV[]>>, idx: number) => setFn((prev) => prev.filter((_, i) => i !== idx));
-    const handleChangeKV = (setFn: Dispatch<SetStateAction<KV[]>>, idx: number, key: 'label' | 'value', value: string) =>
-        setFn((prev) => prev.map((it, i) => (i === idx ? { ...it, [key]: value } : it)));
+    const toggleProperty = (property: string) => {
+        setProperties((prev) => (prev.includes(property) ? prev.filter((p) => p !== property) : [...prev, property]));
+    };
+
+    const toggleRequirement = (requirement: string) => {
+        setRequirements((prev) => (prev.includes(requirement) ? prev.filter((r) => r !== requirement) : [...prev, requirement]));
+    };
+
     const toggleSuitable = (key: string) => setSuitable((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
 
     const handleRemoveGallery = async (path: string) => {
@@ -119,8 +164,8 @@ export default function EditDestinationPage({ params }: { params: { id: string }
                 phone: phone.trim() || null,
                 zone_id: zoneId || null,
                 description: description.trim() || null,
-                properties: properties.filter((x) => x.label || x.value),
-                requirements: requirements.filter((x) => x.label || x.value),
+                properties: properties,
+                requirements: requirements,
                 suitable_for: suitable,
                 pricing: {
                     child: pricing.child || 0,
@@ -248,47 +293,68 @@ export default function EditDestinationPage({ params }: { params: { id: string }
         </div>
     );
 
-    const renderKVRows = (items: KV[], setFn: Dispatch<SetStateAction<KV[]>>, addLabelKey: string) => (
+    const renderProperties = () => (
         <div className="space-y-3">
-            {items.length === 0 && <div className="text-gray-500 text-sm">{t('no_items_added')}</div>}
-            {items.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-                    <div className="relative md:col-span-3 flex items-center gap-3">
-                        <input className="form-input md:flex-1" placeholder={t('label')} value={item.label} onChange={(e) => handleChangeKV(setFn, idx, 'label', e.target.value)} />
-                        <input className="form-input md:flex-[2]" placeholder={t('value')} value={item.value} onChange={(e) => handleChangeKV(setFn, idx, 'value', e.target.value)} />
-                        <button type="button" className="hover:text-danger" title={t('delete')} onClick={() => handleRemoveKV(setFn, idx)}>
-                            <IconTrashLines />
-                        </button>
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t('select_property_features')}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {PROPERTY_OPTIONS.map((property) => (
+                    <div key={property} className="flex items-center gap-3 mb-2">
+                        <input
+                            type="checkbox"
+                            id={`property-${property}`}
+                            checked={properties.includes(property)}
+                            onChange={() => toggleProperty(property)}
+                            className="form-checkbox rounded h-5 w-5 text-primary flex-shrink-0"
+                        />
+                        <label htmlFor={`property-${property}`} className="cursor-pointer text-sm text-gray-700 dark:text-gray-300 leading-5 mb-0">
+                            {t(`property_${property}`)}
+                        </label>
                     </div>
-                </div>
-            ))}
-            <button type="button" className="btn btn-outline-primary" onClick={() => handleAddKV(setFn)}>
-                {t(addLabelKey)}
-            </button>
+                ))}
+            </div>
+        </div>
+    );
+
+    const renderRequirements = () => (
+        <div className="space-y-3">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t('select_required_services')}</div>
+            <div className="grid grid-cols-1 gap-3">
+                {SERVICE_REQUIREMENTS.map((service) => (
+                    <div key={service} className="flex items-center gap-3 mb-2">
+                        <input
+                            type="checkbox"
+                            id={`requirement-${service}`}
+                            checked={requirements.includes(service)}
+                            onChange={() => toggleRequirement(service)}
+                            className="form-checkbox rounded h-5 w-5 text-primary flex-shrink-0"
+                        />
+                        <label htmlFor={`requirement-${service}`} className="cursor-pointer text-sm text-gray-700 dark:text-gray-300 leading-5 mb-0">
+                            {t(`service_${service}`)}
+                        </label>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 
     const renderSuitable = () => (
-        <div className="space-y-2">
-            <div className="flex flex-wrap gap-2">
-                {['kindergarten', 'elementary', 'high_school', 'college', 'families', 'teachers'].map((key) => {
-                    const active = suitable.includes(key);
-                    return (
-                        <button
-                            key={key}
-                            type="button"
-                            onClick={() => toggleSuitable(key)}
-                            className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                                active
-                                    ? 'bg-primary text-white border-primary'
-                                    : 'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:border-primary'
-                            }`}
-                            aria-pressed={active}
-                        >
+        <div className="space-y-3">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t('select_suitable_audiences')}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {['kindergarten', 'elementary', 'high_school', 'college', 'families', 'teachers'].map((key) => (
+                    <div key={key} className="flex items-center gap-3 mb-2">
+                        <input
+                            type="checkbox"
+                            id={`suitable-${key}`}
+                            checked={suitable.includes(key)}
+                            onChange={() => toggleSuitable(key)}
+                            className="form-checkbox rounded h-5 w-5 text-primary flex-shrink-0"
+                        />
+                        <label htmlFor={`suitable-${key}`} className="cursor-pointer text-sm text-gray-700 dark:text-gray-300 leading-5 mb-0">
                             {t(`suitable_${key}`)}
-                        </button>
-                    );
-                })}
+                        </label>
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -339,8 +405,8 @@ export default function EditDestinationPage({ params }: { params: { id: string }
 
     const renderTabContent = () => {
         if (activeTab === 0) return renderBasic();
-        if (activeTab === 1) return renderKVRows(properties, setProperties, 'add_property');
-        if (activeTab === 2) return renderKVRows(requirements, setRequirements, 'add_requirement');
+        if (activeTab === 1) return renderProperties();
+        if (activeTab === 2) return renderRequirements();
         if (activeTab === 3) return renderSuitable();
         if (activeTab === 4) return renderPricing();
         return null;
@@ -355,20 +421,21 @@ export default function EditDestinationPage({ params }: { params: { id: string }
     }
 
     return (
-        <div>
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-xl font-semibold dark:text-white-light">{t('edit_destination')}</h1>
-                </div>
-                <Link href="/destinations" className="btn btn-outline-primary gap-2">
-                    <IconArrowLeft />
-                    {t('back')}
-                </Link>
+        <div className="container mx-auto p-6">
+            <PageBreadcrumb
+                section="destinations"
+                backUrl="/destinations"
+                items={[{ label: t('home'), href: '/' }, { label: t('destinations'), href: '/destinations' }, { label: t('edit_destination') }]}
+            />
+
+            <div className="mb-6">
+                <h1 className="text-3xl font-bold">{t('edit_destination')}</h1>
+                <p className="text-gray-500 mt-2">{t('edit_destination_description')}</p>
             </div>
 
             {alert && (
-                <div className="mb-4">
-                    <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert(null)} />
                 </div>
             )}
 
