@@ -5,11 +5,30 @@ import { useRouter } from 'next/navigation';
 import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
+import IconMapPin from '@/components/icon/icon-map-pin';
+import IconEye from '@/components/icon/icon-eye';
+import { getPublicUrlFromPath } from '@/utils/file-upload';
+
+interface Destination {
+    id: string;
+    name: string;
+    address: string | null;
+    phone: string | null;
+    description: string | null;
+    zone_id: string | null;
+    thumbnail_path: string | null;
+    gallery_paths: string[] | null;
+    properties: string[] | null;
+    requirements: string[] | null;
+    suitable_for: string[] | null;
+    pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
+}
 
 interface TripPlan {
     id: string;
     created_at: string;
     school_name: string;
+    destination_id?: string;
     destination_name?: string;
     destination_address?: string;
     trip_date?: string;
@@ -30,6 +49,7 @@ const TripPlanPreview = ({ params }: { params: { id: string } }) => {
     const { t } = getTranslation();
     const router = useRouter();
     const [item, setItem] = useState<TripPlan | null>(null);
+    const [destination, setDestination] = useState<Destination | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -38,6 +58,15 @@ const TripPlanPreview = ({ params }: { params: { id: string } }) => {
                 const { data, error } = await supabase.from('trip_plans').select('*').eq('id', params.id).single();
                 if (error) throw error;
                 setItem(data as TripPlan);
+
+                // Fetch destination details if destination_id exists
+                if (data.destination_id) {
+                    const { data: destinationData, error: destinationError } = await supabase.from('destinations').select('*').eq('id', data.destination_id).single();
+
+                    if (!destinationError && destinationData) {
+                        setDestination(destinationData as Destination);
+                    }
+                }
             } catch (e) {
                 console.error('Error loading trip plan', e);
             } finally {
@@ -104,17 +133,170 @@ const TripPlanPreview = ({ params }: { params: { id: string } }) => {
                                 <div className="font-semibold">{item.trip_date ? new Date(item.trip_date).toLocaleDateString('tr-TR') : '-'}</div>
                             </div>
                             <div>
-                                <div className="text-gray-500">{t('destination')}</div>
-                                <div className="font-semibold">{item.destination_name || '-'}</div>
-                                <div className="text-gray-500 text-xs">{item.destination_address || ''}</div>
-                            </div>
-                            <div>
                                 <div className="text-gray-500">{t('travel_company')}</div>
                                 <div className="font-semibold">{item.travel_company_name || '-'}</div>
                                 <div className="text-gray-500 text-xs">{[item.travel_vehicle_type, item.travel_area].filter(Boolean).join(' • ')}</div>
                             </div>
                         </div>
                     </div>
+
+                    {/* Destination Details Panel */}
+                    {destination ? (
+                        <div className="panel">
+                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                <IconMapPin className="h-5 w-5 text-primary" />
+                                {t('destination_details')}
+                            </h2>
+
+                            {/* Destination Header */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{destination.name}</h3>
+                                {destination.address && (
+                                    <p className="text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
+                                        <IconMapPin className="h-4 w-4" />
+                                        {destination.address}
+                                    </p>
+                                )}
+                                {destination.phone && (
+                                    <p className="text-gray-600 dark:text-gray-400 mt-1">
+                                        {t('phone')}: {destination.phone}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Destination Image */}
+                            {destination.thumbnail_path && (
+                                <div className="mb-6">
+                                    <img src={getPublicUrlFromPath(destination.thumbnail_path)} alt={destination.name} className="w-full h-48 object-cover rounded-lg" />
+                                </div>
+                            )}
+
+                            {/* Description */}
+                            {destination.description && (
+                                <div className="mb-6">
+                                    <h4 className="font-semibold mb-2">{t('description')}</h4>
+                                    <p className="text-gray-600 dark:text-gray-400">{destination.description}</p>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Properties */}
+                                {destination.properties && destination.properties.length > 0 && (
+                                    <div>
+                                        <h4 className="font-semibold mb-3">{t('properties')}</h4>
+                                        <div className="space-y-2">
+                                            {destination.properties.map((property, index) => (
+                                                <div key={index} className="flex items-center gap-2 text-sm">
+                                                    <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
+                                                    <span>{t(`property_${property}`)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Requirements */}
+                                {destination.requirements && destination.requirements.length > 0 && (
+                                    <div>
+                                        <h4 className="font-semibold mb-3">{t('requirements')}</h4>
+                                        <div className="space-y-2">
+                                            {destination.requirements.map((requirement, index) => (
+                                                <div key={index} className="flex items-center gap-2 text-sm">
+                                                    <div className="w-2 h-2 bg-warning rounded-full flex-shrink-0"></div>
+                                                    <span>{t(`service_${requirement}`)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Suitable For */}
+                                {destination.suitable_for && destination.suitable_for.length > 0 && (
+                                    <div>
+                                        <h4 className="font-semibold mb-3">{t('suitable_for')}</h4>
+                                        <div className="space-y-2">
+                                            {destination.suitable_for.map((suitable, index) => (
+                                                <div key={index} className="flex items-center gap-2 text-sm">
+                                                    <div className="w-2 h-2 bg-success rounded-full flex-shrink-0"></div>
+                                                    <span>{t(suitable)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Pricing */}
+                            {destination.pricing && Object.keys(destination.pricing).length > 0 && (
+                                <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                    <h4 className="font-semibold mb-3">{t('destination_pricing')}</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        {destination.pricing.child && (
+                                            <div>
+                                                <span className="text-gray-500">{t('child')}: </span>
+                                                <span className="font-semibold">{destination.pricing.child.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {destination.pricing.teen && (
+                                            <div>
+                                                <span className="text-gray-500">{t('teen')}: </span>
+                                                <span className="font-semibold">{destination.pricing.teen.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {destination.pricing.adult && (
+                                            <div>
+                                                <span className="text-gray-500">{t('adult')}: </span>
+                                                <span className="font-semibold">{destination.pricing.adult.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {destination.pricing.guide && (
+                                            <div>
+                                                <span className="text-gray-500">{t('guide')}: </span>
+                                                <span className="font-semibold">{destination.pricing.guide.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Gallery */}
+                            {destination.gallery_paths && destination.gallery_paths.length > 0 && (
+                                <div className="mt-6">
+                                    <h4 className="font-semibold mb-3">{t('gallery')}</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        {destination.gallery_paths.map((imagePath, index) => (
+                                            <div key={index} className="aspect-square">
+                                                <img
+                                                    src={getPublicUrlFromPath(imagePath)}
+                                                    alt={`${destination.name} ${index + 1}`}
+                                                    className="w-full h-full object-cover rounded-lg hover:opacity-75 transition-opacity cursor-pointer"
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        // Fallback for trip plans without linked destinations (backward compatibility)
+                        item.destination_name && (
+                            <div className="panel">
+                                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                    <IconMapPin className="h-5 w-5 text-primary" />
+                                    {t('destination')}
+                                </h2>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{item.destination_name}</h3>
+                                    {item.destination_address && (
+                                        <p className="text-gray-600 dark:text-gray-400 mt-1 flex items-center gap-1">
+                                            <IconMapPin className="h-4 w-4" />
+                                            {item.destination_address}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    )}
 
                     <div className="panel">
                         <h2 className="text-xl font-bold mb-4">{t('services_and_staff')}</h2>

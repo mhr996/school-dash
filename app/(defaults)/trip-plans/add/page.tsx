@@ -8,14 +8,18 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconCheck from '@/components/icon/icon-checks';
 import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
-import dynamic from 'next/dynamic';
-const MapSelector = dynamic(() => import('@/components/map/map-selector'), { ssr: false });
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
 interface School {
     id: string;
     name: string;
+}
+interface Destination {
+    id: string;
+    name: string;
+    address: string | null;
+    description: string | null;
 }
 interface TravelCompany {
     id: string;
@@ -48,6 +52,7 @@ const AddTripPlan = () => {
 
     // Data sources
     const [schools, setSchools] = useState<School[]>([]);
+    const [destinations, setDestinations] = useState<Destination[]>([]);
     const [travelCompanies, setTravelCompanies] = useState<TravelCompany[]>([]);
     const [paramedics, setParamedics] = useState<PersonRate[]>([]);
     const [guides, setGuides] = useState<PersonRate[]>([]);
@@ -58,9 +63,7 @@ const AddTripPlan = () => {
     const [schoolId, setSchoolId] = useState<string>('');
     const [schoolName, setSchoolName] = useState<string>('');
     const [tripDate, setTripDate] = useState<string>('');
-    const [destinationName, setDestinationName] = useState('');
-    const [destinationAddress, setDestinationAddress] = useState('');
-    const [latLng, setLatLng] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+    const [destinationId, setDestinationId] = useState<string>('');
 
     const [travelCompanyId, setTravelCompanyId] = useState('');
     const [travelVehicleType, setTravelVehicleType] = useState('');
@@ -77,8 +80,9 @@ const AddTripPlan = () => {
     useEffect(() => {
         (async () => {
             try {
-                const [schoolsRes, travelRes, paramedicsRes, guidesRes, securityRes, entertainmentRes] = await Promise.all([
+                const [schoolsRes, destinationsRes, travelRes, paramedicsRes, guidesRes, securityRes, entertainmentRes] = await Promise.all([
                     supabase.from('schools').select('id, name').order('name'),
+                    supabase.from('destinations').select('id, name, address, description').order('name'),
                     supabase.from('travel_companies').select('id, name, pricing_data').order('name'),
                     supabase.from('paramedics').select('id, name, hourly_rate, daily_rate, regional_rate, overnight_rate').order('name'),
                     supabase.from('guides').select('id, name, hourly_rate, daily_rate, regional_rate, overnight_rate').order('name'),
@@ -87,6 +91,7 @@ const AddTripPlan = () => {
                 ]);
 
                 setSchools((schoolsRes.data || []) as School[]);
+                setDestinations((destinationsRes.data || []) as Destination[]);
                 setTravelCompanies((travelRes.data || []) as TravelCompany[]);
                 setParamedics((paramedicsRes.data || []) as PersonRate[]);
                 setGuides((guidesRes.data || []) as PersonRate[]);
@@ -101,6 +106,16 @@ const AddTripPlan = () => {
 
     // Options builders
     const schoolOptions: SelectOption[] = useMemo(() => schools.map((s) => ({ value: s.id, label: s.name })), [schools]);
+    const destinationOptions: SelectOption[] = useMemo(
+        () =>
+            destinations.map((d) => ({
+                value: d.id,
+                label: d.name,
+                // Include address in the display if available
+                description: d.address || undefined,
+            })),
+        [destinations],
+    );
     const travelOptions: SelectOption[] = useMemo(() => travelCompanies.map((c) => ({ value: c.id, label: c.name })), [travelCompanies]);
     const personRateOptions = (list: PersonRate[]): SelectOption[] => list.map((p) => ({ value: p.id, label: p.name }));
     const securityOptions: SelectOption[] = useMemo(() => securityCompanies.map((c) => ({ value: c.id, label: c.name })), [securityCompanies]);
@@ -154,16 +169,17 @@ const AddTripPlan = () => {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!schoolId) return setAlert({ message: t('school_required'), type: 'danger' });
+        if (!destinationId) return setAlert({ message: t('destination_required'), type: 'danger' });
         try {
             setLoading(true);
+            const selectedDestination = destinations.find((d) => d.id === destinationId);
             const payload = {
                 school_id: schoolId,
                 school_name: schoolName,
                 trip_date: tripDate || null,
-                destination_name: destinationName || null,
-                destination_address: destinationAddress || null,
-                destination_lat: latLng.lat,
-                destination_lng: latLng.lng,
+                destination_id: destinationId,
+                destination_name: selectedDestination?.name || null,
+                destination_address: selectedDestination?.address || null,
                 travel_company_id: travelCompanyId || null,
                 travel_company_name: travelCompanies.find((c) => c.id === travelCompanyId)?.name || null,
                 travel_vehicle_type: travelVehicleType || null,
@@ -305,22 +321,36 @@ const AddTripPlan = () => {
                     {/* Step 2: Destination */}
                     {step === 1 && (
                         <div className="animate-fade-in space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">{t('destination_name')}</label>
-                                    <input className="form-input" value={destinationName} onChange={(e) => setDestinationName(e.target.value)} placeholder={t('enter_destination_name')} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">{t('destination_address')}</label>
-                                    <input className="form-input" value={destinationAddress} onChange={(e) => setDestinationAddress(e.target.value)} placeholder={t('enter_destination_address')} />
-                                </div>
+                            <div>
+                                <label className="block text-sm font-bold mb-2">{t('destination')}</label>
+                                <CustomSelect
+                                    options={destinationOptions}
+                                    value={destinationId}
+                                    onChange={(v) => setDestinationId(v as string)}
+                                    placeholder={t('select_destination')}
+                                    searchable
+                                    clearable
+                                />
+                                {destinationId && (
+                                    <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                        {(() => {
+                                            const selectedDestination = destinations.find((d) => d.id === destinationId);
+                                            return selectedDestination ? (
+                                                <div>
+                                                    <p className="font-semibold text-gray-900 dark:text-white">{selectedDestination.name}</p>
+                                                    {selectedDestination.address && (
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                            <IconMapPin className="inline h-4 w-4 mr-1" />
+                                                            {selectedDestination.address}
+                                                        </p>
+                                                    )}
+                                                    {selectedDestination.description && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{selectedDestination.description}</p>}
+                                                </div>
+                                            ) : null;
+                                        })()}
+                                    </div>
+                                )}
                             </div>
-                            <MapSelector onChange={(lat, lng) => setLatLng({ lat, lng })} height="350px" showSearch useCurrentLocationByDefault />
-                            {latLng.lat && latLng.lng && (
-                                <p className="text-xs text-gray-500">
-                                    {t('selected_coordinates')}: {latLng.lat.toFixed(5)}, {latLng.lng.toFixed(5)}
-                                </p>
-                            )}
                         </div>
                     )}
 
@@ -508,7 +538,7 @@ const AddTripPlan = () => {
                                             <strong>{t('trip_date')}:</strong> {tripDate || '-'}
                                         </li>
                                         <li>
-                                            <strong>{t('destination')}:</strong> {destinationName || '-'}
+                                            <strong>{t('destination')}:</strong> {destinations.find((d) => d.id === destinationId)?.name || '-'}
                                         </li>
                                         <li>
                                             <strong>{t('travel_company')}:</strong> {travelCompanies.find((c) => c.id === travelCompanyId)?.name || '-'} ({travelVehicleType || '-'},{' '}

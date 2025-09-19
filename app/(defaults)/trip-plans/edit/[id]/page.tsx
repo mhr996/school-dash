@@ -6,10 +6,16 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { getTranslation } from '@/i18n';
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconSave from '@/components/icon/icon-save';
+import IconMapPin from '@/components/icon/icon-map-pin';
 import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
-import dynamic from 'next/dynamic';
-const MapSelector = dynamic(() => import('@/components/map/map-selector'), { ssr: false });
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+
+interface Destination {
+    id: string;
+    name: string;
+    address: string | null;
+    description: string | null;
+}
 
 type RateType = 'hourly' | 'daily' | 'regional' | 'overnight';
 
@@ -23,6 +29,7 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
 
     // Sources
     const [schools, setSchools] = useState<any[]>([]);
+    const [destinations, setDestinations] = useState<Destination[]>([]);
     const [travelCompanies, setTravelCompanies] = useState<any[]>([]);
     const [paramedics, setParamedics] = useState<any[]>([]);
     const [guides, setGuides] = useState<any[]>([]);
@@ -33,9 +40,7 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
     const [schoolId, setSchoolId] = useState('');
     const [schoolName, setSchoolName] = useState('');
     const [tripDate, setTripDate] = useState('');
-    const [destinationName, setDestinationName] = useState('');
-    const [destinationAddress, setDestinationAddress] = useState('');
-    const [latLng, setLatLng] = useState<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+    const [destinationId, setDestinationId] = useState<string>('');
 
     const [travelCompanyId, setTravelCompanyId] = useState('');
     const [travelVehicleType, setTravelVehicleType] = useState('');
@@ -52,8 +57,9 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
     useEffect(() => {
         (async () => {
             try {
-                const [schoolsRes, travelRes, paramedicsRes, guidesRes, securityRes, entertainmentRes, tripRes] = await Promise.all([
+                const [schoolsRes, destinationsRes, travelRes, paramedicsRes, guidesRes, securityRes, entertainmentRes, tripRes] = await Promise.all([
                     supabase.from('schools').select('id, name').order('name'),
+                    supabase.from('destinations').select('id, name, address, description').order('name'),
                     supabase.from('travel_companies').select('id, name, pricing_data').order('name'),
                     supabase.from('paramedics').select('id, name, hourly_rate, daily_rate, regional_rate, overnight_rate').order('name'),
                     supabase.from('guides').select('id, name, hourly_rate, daily_rate, regional_rate, overnight_rate').order('name'),
@@ -63,6 +69,7 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                 ]);
 
                 setSchools(schoolsRes.data || []);
+                setDestinations((destinationsRes.data || []) as Destination[]);
                 setTravelCompanies(travelRes.data || []);
                 setParamedics(paramedicsRes.data || []);
                 setGuides(guidesRes.data || []);
@@ -74,9 +81,21 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                     setSchoolId(trip.school_id || '');
                     setSchoolName(trip.school_name || '');
                     setTripDate(trip.trip_date || '');
-                    setDestinationName(trip.destination_name || '');
-                    setDestinationAddress(trip.destination_address || '');
-                    setLatLng({ lat: trip.destination_lat || null, lng: trip.destination_lng || null });
+
+                    // Handle destination: prefer destination_id, fallback to old format
+                    if (trip.destination_id) {
+                        setDestinationId(trip.destination_id);
+                    } else {
+                        // For backward compatibility, if no destination_id but has destination_name,
+                        // try to find matching destination
+                        if (trip.destination_name && destinationsRes.data) {
+                            const matchingDestination = destinationsRes.data.find((d: any) => d.name.toLowerCase() === trip.destination_name.toLowerCase());
+                            if (matchingDestination) {
+                                setDestinationId(matchingDestination.id);
+                            }
+                        }
+                    }
+
                     setTravelCompanyId(trip.travel_company_id || '');
                     setTravelVehicleType(trip.travel_vehicle_type || '');
                     setTravelArea(trip.travel_area || '');
@@ -94,6 +113,19 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
         })();
     }, [params.id]);
 
+    // Options builders
+    const schoolOptions: SelectOption[] = useMemo(() => schools.map((s: any) => ({ value: s.id, label: s.name })), [schools]);
+    const destinationOptions: SelectOption[] = useMemo(
+        () =>
+            destinations.map((d) => ({
+                value: d.id,
+                label: d.name,
+                description: d.address || undefined,
+            })),
+        [destinations],
+    );
+    const travelOptions: SelectOption[] = useMemo(() => travelCompanies.map((c: any) => ({ value: c.id, label: c.name })), [travelCompanies]);
+
     useEffect(() => {
         const s = schools.find((x) => x.id === schoolId);
         setSchoolName(s?.name || '');
@@ -103,16 +135,20 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
 
     const handleUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!destinationId) {
+            setAlert({ message: t('destination_required'), type: 'danger' });
+            return;
+        }
         try {
             setLoading(true);
+            const selectedDestination = destinations.find((d) => d.id === destinationId);
             const payload: any = {
                 school_id: schoolId,
                 school_name: schoolName,
                 trip_date: tripDate || null,
-                destination_name: destinationName || null,
-                destination_address: destinationAddress || null,
-                destination_lat: latLng.lat,
-                destination_lng: latLng.lng,
+                destination_id: destinationId,
+                destination_name: selectedDestination?.name || null,
+                destination_address: selectedDestination?.address || null,
                 travel_company_id: travelCompanyId || null,
                 travel_company_name: travelCompanies.find((c: any) => c.id === travelCompanyId)?.name || null,
                 travel_vehicle_type: travelVehicleType || null,
@@ -197,22 +233,37 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                             <label className="block text-sm font-bold mb-2">{t('trip_date')}</label>
                             <input type="date" className="form-input" value={tripDate || ''} onChange={(e) => setTripDate(e.target.value)} />
                         </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-2">{t('destination_name')}</label>
-                            <input className="form-input" value={destinationName} onChange={(e) => setDestinationName(e.target.value)} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-2">{t('destination_address')}</label>
-                            <input className="form-input" value={destinationAddress} onChange={(e) => setDestinationAddress(e.target.value)} />
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-bold mb-2">{t('destination')}</label>
+                            <CustomSelect
+                                options={destinationOptions}
+                                value={destinationId}
+                                onChange={(v) => setDestinationId(v as string)}
+                                placeholder={t('select_destination')}
+                                searchable
+                                clearable
+                            />
+                            {destinationId && (
+                                <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                    {(() => {
+                                        const selectedDestination = destinations.find((d) => d.id === destinationId);
+                                        return selectedDestination ? (
+                                            <div>
+                                                <p className="font-semibold text-gray-900 dark:text-white">{selectedDestination.name}</p>
+                                                {selectedDestination.address && (
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                        <IconMapPin className="inline h-4 w-4 mr-1" />
+                                                        {selectedDestination.address}
+                                                    </p>
+                                                )}
+                                                {selectedDestination.description && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{selectedDestination.description}</p>}
+                                            </div>
+                                        ) : null;
+                                    })()}
+                                </div>
+                            )}
                         </div>
                     </div>
-
-                    <MapSelector
-                        initialPosition={latLng.lat && latLng.lng ? [latLng.lat, latLng.lng] : (undefined as any)}
-                        onChange={(lat, lng) => setLatLng({ lat, lng })}
-                        height="300px"
-                        showSearch
-                    />
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
