@@ -105,40 +105,32 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                     </div>
                 </div>
 
-                {/* Hero Section with Images */}
-                {allImages.length > 0 && (
-                    <div className="panel p-0 overflow-hidden">
-                        <div className="relative">
-                            <div className="aspect-video bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
-                                <img src={getPublicUrlFromPath(allImages[0])} alt={item.name} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/20"></div>
-                                <div className="absolute bottom-4 left-4 text-white">
-                                    <h2 className="text-xl font-semibold">{item.name}</h2>
-                                    {item.address && (
-                                        <p className="text-white/90 flex items-center gap-2 mt-1">
-                                            <IconMapPin className="h-4 w-4" />
-                                            {item.address}
-                                        </p>
-                                    )}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    {/* Main Content */}
+                    <div className="lg:col-span-3 space-y-6">
+
+
+                        {/* Hero Section with Images */}
+                        {allImages.length > 0 && (
+                            <div className="panel p-0 overflow-hidden">
+                                <div className="relative">
+                                    <div className="aspect-square max-w-[400px] bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700">
+                                        <img src={getPublicUrlFromPath(allImages[0])} alt={item.name} className="w-full h-full object-cover rounded-lg" />
+                                        <div className="absolute inset-0 bg-black/20"></div>
+                                        <div className="absolute bottom-4 left-4 text-white">
+                                            <h2 className="text-xl font-semibold">{item.name}</h2>
+                                            {item.address && (
+                                                <p className="text-white/90 flex items-center gap-2 mt-1">
+                                                    <IconMapPin className="h-4 w-4" />
+                                                    {item.address}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            {allImages.length > 1 && (
-                                <div className="absolute bottom-4 right-4">
-                                    <button
-                                        onClick={() => setSelectedImage(allImages[0])}
-                                        className="bg-black/50 text-white px-3 py-1 rounded-full text-sm hover:bg-black/70 transition-colors flex items-center gap-2"
-                                    >
-                                        <IconEye className="h-4 w-4" />+{allImages.length - 1} {t('more')}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
+                        )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-6">
                         {/* Basic Information */}
                         <div className="panel">
                             <div className="flex items-center gap-3 mb-6">
@@ -257,6 +249,45 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                                 </div>
                             </div>
                         )}
+
+                        {/* Gallery Section */}
+                        {allImages.length > 1 && (
+                            <div className="panel">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                                        <svg className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('gallery')}</h3>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                    {allImages.slice(1).map((imagePath, index) => (
+                                        <div
+                                            key={index}
+                                            className="relative group cursor-pointer aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800"
+                                            onClick={() => setSelectedImage(imagePath)}
+                                        >
+                                            <img
+                                                src={getPublicUrlFromPath(imagePath)}
+                                                alt={`Gallery ${index + 2}`}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                            />
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 flex items-center justify-center">
+                                                <div className="bg-white/90 dark:bg-gray-800/90 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                    <IconEye className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Sidebar */}
@@ -294,29 +325,30 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                             </div>
                         </div>
 
-                        {/* Gallery Thumbnails */}
-                        {allImages.length > 1 && (
-                            <div className="panel">
-                                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">{t('gallery')}</h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {allImages.slice(1, 5).map((imagePath, index) => (
-                                        <div key={index} className="relative group cursor-pointer" onClick={() => setSelectedImage(imagePath)}>
-                                            <img
-                                                src={getPublicUrlFromPath(imagePath)}
-                                                alt={`Gallery ${index + 1}`}
-                                                className="w-full h-20 object-cover rounded-lg group-hover:opacity-80 transition-opacity"
+                        {/* Suitable For Quick Info */}
+                        {(item.suitable_for?.length || 0) > 0 && (
+                            <div className="panel bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                                        <svg className="h-5 w-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
                                             />
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg flex items-center justify-center">
-                                                <IconEye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            </div>
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('suitable_for')}</h3>
+                                </div>
+                                <div className="space-y-2">
+                                    {item.suitable_for!.map((suitable, index) => (
+                                        <div key={index} className="flex items-center gap-2">
+                                            <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0"></div>
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t(suitable)}</span>
                                         </div>
                                     ))}
                                 </div>
-                                {allImages.length > 5 && (
-                                    <button onClick={() => setSelectedImage(allImages[4])} className="w-full mt-3 py-2 text-sm text-primary hover:text-primary/80 font-medium transition-colors">
-                                        {t('view_all')} ({allImages.length} {t('images')})
-                                    </button>
-                                )}
                             </div>
                         )}
                     </div>

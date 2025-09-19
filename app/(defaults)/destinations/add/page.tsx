@@ -367,8 +367,8 @@ export default function AddDestinationPage() {
             />
 
             {alert && (
-                <div className="mb-4">
-                    <Alert type={alert.type} message={alert.message} onClose={() => setAlert(null)} />
+                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                    <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert(null)} />
                 </div>
             )}
 

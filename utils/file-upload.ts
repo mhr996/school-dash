@@ -118,6 +118,102 @@ export const deleteFolder = async (bucket: string, folderPath: string): Promise<
 };
 
 /**
+ * Recursively delete an entire folder and all its contents from Supabase storage
+ * @param bucket - The storage bucket name
+ * @param folderPath - The folder path to delete
+ * @returns Promise with deletion result
+ */
+export const deleteFolderRecursively = async (bucket: string, folderPath: string): Promise<boolean> => {
+    try {
+        // List all items in the folder (both files and subdirectories)
+        const { data: items, error: listError } = await supabase.storage.from(bucket).list(folderPath, {
+            limit: 1000, // Supabase has a limit, we may need to paginate for very large folders
+            sortBy: { column: 'name', order: 'asc' }
+        });
+
+        if (listError) {
+            console.error('List error:', listError);
+            return false;
+        }
+
+        if (!items || items.length === 0) {
+            return true; // Folder is empty or doesn't exist
+        }
+
+        const allFilePaths: string[] = [];
+
+        // Process each item: In Supabase Storage, folders have metadata === null; files have metadata !== null
+        for (const item of items) {
+            const itemPath = folderPath ? `${folderPath}/${item.name}` : item.name;
+
+            const isFile = !!item.metadata; // files have metadata; folders have null metadata
+            if (isFile) {
+                allFilePaths.push(itemPath);
+            } else {
+                // It's a subfolder: recursively collect files under it
+                const subItems = await getAllFilesInDirectory(bucket, itemPath);
+                allFilePaths.push(...subItems);
+            }
+        }
+
+        // Delete all collected files
+        if (allFilePaths.length > 0) {
+            // Supabase storage remove() has a limit, so we batch the deletions
+            const batchSize = 100;
+            for (let i = 0; i < allFilePaths.length; i += batchSize) {
+                const batch = allFilePaths.slice(i, i + batchSize);
+                const { error: deleteError } = await supabase.storage.from(bucket).remove(batch);
+                
+                if (deleteError) {
+                    console.error('Delete batch error:', deleteError);
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Recursive folder deletion error:', error);
+        return false;
+    }
+};
+
+/**
+ * Helper function to recursively get all file paths in a directory
+ */
+const getAllFilesInDirectory = async (bucket: string, dirPath: string): Promise<string[]> => {
+    const allFiles: string[] = [];
+    
+    try {
+        const { data: items, error } = await supabase.storage.from(bucket).list(dirPath, {
+            limit: 1000,
+            sortBy: { column: 'name', order: 'asc' }
+        });
+
+        if (error || !items) {
+            return allFiles;
+        }
+
+        for (const item of items) {
+            const itemPath = `${dirPath}/${item.name}`;
+
+            const isFile = !!item.metadata; // files have metadata; folders have null metadata
+            if (isFile) {
+                allFiles.push(itemPath);
+            } else {
+                // It's a directory; recurse
+                const subFiles = await getAllFilesInDirectory(bucket, itemPath);
+                allFiles.push(...subFiles);
+            }
+        }
+    } catch (error) {
+        console.error('Error getting files in directory:', error);
+    }
+
+    return allFiles;
+};
+
+/**
  * Extract file path from a Supabase storage URL
  * @param url - The full storage URL
  * @param bucket - The storage bucket name

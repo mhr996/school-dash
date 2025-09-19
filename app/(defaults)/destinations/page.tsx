@@ -5,6 +5,7 @@ import supabase from '@/lib/supabase';
 import { DataTable, DataTableSortStatus } from 'mantine-datatable';
 import { sortBy } from 'lodash';
 import { getTranslation } from '@/i18n';
+import { deleteFolder, deleteFolderRecursively, getPublicUrlFromPath } from '@/utils/file-upload';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconPlus from '@/components/icon/icon-plus';
 import IconEye from '@/components/icon/icon-eye';
@@ -21,6 +22,7 @@ type Destination = {
     phone: string | null;
     address: string | null;
     zone_id: string | null;
+    thumbnail_path: string | null;
 };
 
 export default function DestinationsPage() {
@@ -49,7 +51,7 @@ export default function DestinationsPage() {
             try {
                 setLoading(true);
                 const [{ data: dests, error: e1 }, { data: zones, error: e2 }] = await Promise.all([
-                    supabase.from('destinations').select('id, created_at, name, phone, address, zone_id').order('created_at', { ascending: false }),
+                    supabase.from('destinations').select('id, created_at, name, phone, address, zone_id, thumbnail_path').order('created_at', { ascending: false }),
                     supabase.from('zones').select('id, name').eq('is_active', true),
                 ]);
                 if (e1) throw e1;
@@ -90,13 +92,30 @@ export default function DestinationsPage() {
     }, [sortStatus]);
 
     const deleteOne = async (id: string) => {
+        // Delete the database record
         const { error } = await supabase.from('destinations').delete().eq('id', id);
         if (error) throw error;
+
+        // Delete the storage folder and all its contents recursively
+        await deleteFolderRecursively('destinations', id);
+
         setItems((prev) => prev.filter((x) => x.id !== id));
     };
     const bulkDelete = async (ids: string[]) => {
+        // Delete the database records first
         const { error } = await supabase.from('destinations').delete().in('id', ids);
         if (error) throw error;
+
+        // Then attempt to delete storage folders for each destination recursively
+        const results = await Promise.allSettled(ids.map((id) => deleteFolderRecursively('destinations', id)));
+        const failed = results
+            .map((r, i) => ({ r, id: ids[i] }))
+            .filter((x) => x.r.status === 'rejected' || (x.r.status === 'fulfilled' && x.r.value === false))
+            .map((x) => x.id);
+        if (failed.length > 0) {
+            console.warn('Failed to delete some storage folders:', failed);
+        }
+
         setItems((prev) => prev.filter((x) => !ids.includes(x.id)));
     };
 
@@ -136,7 +155,25 @@ export default function DestinationsPage() {
                     className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'} rtl-table-headers`}
                     records={records}
                     columns={[
-                        { accessor: 'name', title: t('name'), sortable: true },
+                        {
+                            accessor: 'name',
+                            title: t('name'),
+                            sortable: true,
+                            render: ({ name, thumbnail_path }) => (
+                                <div className="flex items-center gap-3">
+                                    <img
+                                        src={thumbnail_path ? getPublicUrlFromPath(thumbnail_path) : '/assets/images/img-placeholder-fallback.webp'}
+                                        alt={name}
+                                        className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                                        onError={(e) => {
+                                            const img = e.target as HTMLImageElement;
+                                            img.src = '/assets/images/img-placeholder-fallback.webp';
+                                        }}
+                                    />
+                                    <span className="font-medium">{name}</span>
+                                </div>
+                            ),
+                        },
                         { accessor: 'phone', title: t('phone'), sortable: true, render: ({ phone }) => <span dir="ltr">{phone || '-'}</span> },
                         { accessor: 'address', title: t('address'), sortable: true, render: ({ address }) => address || '-' },
                         { accessor: 'zone_id', title: t('zone'), sortable: true, render: ({ zone_id }) => zoneName(zone_id) },
