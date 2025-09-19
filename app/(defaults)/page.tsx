@@ -6,6 +6,7 @@ import supabase from '@/lib/supabase';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getTranslation } from '@/i18n';
+import TripPlannerDashboard from '@/components/dashboards/trip-planner-dashboard';
 
 // Dynamically import ReactApexChart with SSR disabled
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
@@ -713,7 +714,10 @@ const HomePage = () => {
     //     );
     // }
 
-    return ( <></>
+    return (
+        <>
+        <TripPlannerDashboard />
+        </>
         // <div>
         //     <div className="pt-5 max-w-[1500px]">
         //         {/* Time Filter Buttons */}
