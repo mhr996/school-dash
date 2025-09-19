@@ -66,14 +66,10 @@ const AddTripPlan = () => {
     const [destinationId, setDestinationId] = useState<string>('');
 
     const [travelCompanyId, setTravelCompanyId] = useState('');
-    const [travelVehicleType, setTravelVehicleType] = useState('');
-    const [travelArea, setTravelArea] = useState('');
-    const [travelPrice, setTravelPrice] = useState(0);
 
-    const [selectedParamedics, setSelectedParamedics] = useState<Array<{ id: string; rateType: RateType; quantity: number }>>([]);
-    const [selectedGuides, setSelectedGuides] = useState<Array<{ id: string; rateType: RateType; quantity: number }>>([]);
+    const [selectedParamedics, setSelectedParamedics] = useState<string[]>([]);
+    const [selectedGuides, setSelectedGuides] = useState<string[]>([]);
     const [securityCompanyId, setSecurityCompanyId] = useState('');
-    const [securityPrice, setSecurityPrice] = useState(0);
     const [selectedEntertainmentIds, setSelectedEntertainmentIds] = useState<string[]>([]);
 
     // Fetch data
@@ -121,25 +117,7 @@ const AddTripPlan = () => {
     const securityOptions: SelectOption[] = useMemo(() => securityCompanies.map((c) => ({ value: c.id, label: c.name })), [securityCompanies]);
     const entertainmentOptions: SelectOption[] = useMemo(() => entertainments.map((e) => ({ value: e.id, label: `${e.name} — ${Number(e.price || 0).toFixed(2)}` })), [entertainments]);
 
-    // Compute pricing
-    const paramedicsTotal = useMemo(() => {
-        return selectedParamedics.reduce((sum, sel) => {
-            const p = paramedics.find((x) => x.id === sel.id);
-            if (!p) return sum;
-            const unit = sel.rateType === 'hourly' ? p.hourly_rate : sel.rateType === 'daily' ? p.daily_rate : sel.rateType === 'regional' ? p.regional_rate : p.overnight_rate;
-            return sum + Number(unit || 0) * sel.quantity;
-        }, 0);
-    }, [selectedParamedics, paramedics]);
-
-    const guidesTotal = useMemo(() => {
-        return selectedGuides.reduce((sum, sel) => {
-            const g = guides.find((x) => x.id === sel.id);
-            if (!g) return sum;
-            const unit = sel.rateType === 'hourly' ? g.hourly_rate : sel.rateType === 'daily' ? g.daily_rate : sel.rateType === 'regional' ? g.regional_rate : g.overnight_rate;
-            return sum + Number(unit || 0) * sel.quantity;
-        }, 0);
-    }, [selectedGuides, guides]);
-
+    // Compute entertainment pricing (simplified)
     const entertainmentTotal = useMemo(() => {
         return selectedEntertainmentIds.reduce((sum, id) => {
             const e = entertainments.find((x) => x.id === id);
@@ -148,8 +126,8 @@ const AddTripPlan = () => {
     }, [selectedEntertainmentIds, entertainments]);
 
     const totalPrice = useMemo(
-        () => Number(travelPrice || 0) + Number(securityPrice || 0) + paramedicsTotal + guidesTotal + entertainmentTotal,
-        [travelPrice, securityPrice, paramedicsTotal, guidesTotal, entertainmentTotal],
+        () => entertainmentTotal, // Simplified to only entertainment pricing for now
+        [entertainmentTotal],
     );
 
     // Update derived school name when chosen
@@ -157,14 +135,6 @@ const AddTripPlan = () => {
         const school = schools.find((s) => s.id === schoolId);
         setSchoolName(school?.name || '');
     }, [schoolId, schools]);
-
-    // Derive travel price from pricing matrix if possible
-    useEffect(() => {
-        if (!travelCompanyId || !travelVehicleType || !travelArea) return;
-        const comp = travelCompanies.find((c) => c.id === travelCompanyId);
-        const price = comp?.pricing_data?.[travelVehicleType]?.[travelArea];
-        if (price !== undefined) setTravelPrice(price);
-    }, [travelCompanyId, travelVehicleType, travelArea, travelCompanies]);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -182,46 +152,22 @@ const AddTripPlan = () => {
                 destination_address: selectedDestination?.address || null,
                 travel_company_id: travelCompanyId || null,
                 travel_company_name: travelCompanies.find((c) => c.id === travelCompanyId)?.name || null,
-                travel_vehicle_type: travelVehicleType || null,
-                travel_area: travelArea || null,
-                travel_price: Number(travelPrice || 0),
-                paramedic_ids: selectedParamedics.map((p) => p.id),
-                paramedics_selection: selectedParamedics.map((s) => ({
-                    id: s.id,
-                    name: paramedics.find((p) => p.id === s.id)?.name,
-                    rate_type: s.rateType,
-                    quantity: s.quantity,
-                    unit_price: (() => {
-                        const p = paramedics.find((x) => x.id === s.id);
-                        return s.rateType === 'hourly' ? p?.hourly_rate : s.rateType === 'daily' ? p?.daily_rate : s.rateType === 'regional' ? p?.regional_rate : p?.overnight_rate;
-                    })(),
-                    total: (() => {
-                        const p = paramedics.find((x) => x.id === s.id);
-                        const unit = s.rateType === 'hourly' ? p?.hourly_rate : s.rateType === 'daily' ? p?.daily_rate : s.rateType === 'regional' ? p?.regional_rate : p?.overnight_rate;
-                        return Number(unit || 0) * s.quantity;
-                    })(),
-                })),
-                paramedics_total: paramedicsTotal,
-                guide_ids: selectedGuides.map((g) => g.id),
-                guides_selection: selectedGuides.map((s) => ({
-                    id: s.id,
-                    name: guides.find((g) => g.id === s.id)?.name,
-                    rate_type: s.rateType,
-                    quantity: s.quantity,
-                    unit_price: (() => {
-                        const g = guides.find((x) => x.id === s.id);
-                        return s.rateType === 'hourly' ? g?.hourly_rate : s.rateType === 'daily' ? g?.daily_rate : s.rateType === 'regional' ? g?.regional_rate : g?.overnight_rate;
-                    })(),
-                    total: (() => {
-                        const g = guides.find((x) => x.id === s.id);
-                        const unit = s.rateType === 'hourly' ? g?.hourly_rate : s.rateType === 'daily' ? g?.daily_rate : s.rateType === 'regional' ? g?.regional_rate : g?.overnight_rate;
-                        return Number(unit || 0) * s.quantity;
-                    })(),
-                })),
-                guides_total: guidesTotal,
+                paramedic_ids: selectedParamedics.filter((id) => id),
+                paramedics_selection: selectedParamedics
+                    .filter((id) => id)
+                    .map((id) => ({
+                        id,
+                        name: paramedics.find((p) => p.id === id)?.name,
+                    })),
+                guide_ids: selectedGuides.filter((id) => id),
+                guides_selection: selectedGuides
+                    .filter((id) => id)
+                    .map((id) => ({
+                        id,
+                        name: guides.find((g) => g.id === id)?.name,
+                    })),
                 security_company_id: securityCompanyId || null,
                 security_company_name: securityCompanies.find((s) => s.id === securityCompanyId)?.name || null,
-                security_price: Number(securityPrice || 0),
                 entertainment_ids: selectedEntertainmentIds,
                 entertainment_selection: selectedEntertainmentIds.map((id) => ({
                     id,
@@ -231,10 +177,6 @@ const AddTripPlan = () => {
                 entertainment_total: entertainmentTotal,
                 total_price: totalPrice,
                 pricing_breakdown: {
-                    travel: Number(travelPrice || 0),
-                    paramedics: paramedicsTotal,
-                    guides: guidesTotal,
-                    security: Number(securityPrice || 0),
                     entertainment: entertainmentTotal,
                 },
             };
@@ -305,7 +247,7 @@ const AddTripPlan = () => {
                     {/* Step 1: School & Date */}
                     {step === 0 && (
                         <div className="animate-fade-in">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
                                 <div>
                                     <label className="block text-sm font-bold mb-2">{t('school')}</label>
                                     <CustomSelect options={schoolOptions} value={schoolId} onChange={(v) => setSchoolId(v as string)} placeholder={t('select_school')} searchable clearable />
@@ -321,7 +263,7 @@ const AddTripPlan = () => {
                     {/* Step 2: Destination */}
                     {step === 1 && (
                         <div className="animate-fade-in space-y-4">
-                            <div>
+                            <div className="max-w-2xl">
                                 <label className="block text-sm font-bold mb-2">{t('destination')}</label>
                                 <CustomSelect
                                     options={destinationOptions}
@@ -357,7 +299,7 @@ const AddTripPlan = () => {
                     {/* Step 3: Travel */}
                     {step === 2 && (
                         <div className="animate-fade-in space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-1 gap-6 max-w-2xl">
                                 <div>
                                     <label className="block text-sm font-bold mb-2">{t('travel_company')}</label>
                                     <CustomSelect
@@ -369,20 +311,6 @@ const AddTripPlan = () => {
                                         clearable
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">{t('vehicle_type')}</label>
-                                    <input className="form-input" value={travelVehicleType} onChange={(e) => setTravelVehicleType(e.target.value)} placeholder={t('vehicle_type')} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">{t('area')}</label>
-                                    <input className="form-input" value={travelArea} onChange={(e) => setTravelArea(e.target.value)} placeholder={t('area')} />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">{t('travel_price')}</label>
-                                    <input type="number" min={0} className="form-input" value={travelPrice} onChange={(e) => setTravelPrice(parseFloat(e.target.value) || 0)} />
-                                </div>
                             </div>
                         </div>
                     )}
@@ -391,45 +319,25 @@ const AddTripPlan = () => {
                     {step === 3 && (
                         <div className="animate-fade-in space-y-4">
                             <div className="space-y-3">
-                                <button type="button" className="btn btn-outline-primary" onClick={() => setSelectedParamedics([...selectedParamedics, { id: '', rateType: 'daily', quantity: 1 }])}>
+                                <button type="button" className="btn btn-outline-primary" onClick={() => setSelectedParamedics([...selectedParamedics, ''])}>
                                     {t('add_paramedic')}
                                 </button>
-                                <div className="space-y-3">
-                                    {selectedParamedics.map((row, idx) => (
-                                        <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                <div className="space-y-3 max-w-2xl">
+                                    {selectedParamedics.map((paramedic, idx) => (
+                                        <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
                                             <CustomSelect
-                                                options={personRateOptions(paramedics)}
-                                                value={row.id}
-                                                onChange={(v) => setSelectedParamedics(selectedParamedics.map((r, i) => (i === idx ? { ...r, id: v as string } : r)))}
+                                                options={paramedics.map((p) => ({ value: p.id, label: p.name }))}
+                                                value={paramedic}
+                                                onChange={(v) => setSelectedParamedics(selectedParamedics.map((p, i) => (i === idx ? (v as string) : p)))}
                                                 placeholder={t('select_paramedic')}
                                                 searchable
                                                 clearable
                                             />
-                                            <CustomSelect
-                                                options={[
-                                                    { value: 'hourly', label: t('hourly_rate') },
-                                                    { value: 'daily', label: t('daily_rate') },
-                                                    { value: 'regional', label: t('regional_rate') },
-                                                    { value: 'overnight', label: t('overnight_rate') },
-                                                ]}
-                                                value={row.rateType}
-                                                onChange={(v) => setSelectedParamedics(selectedParamedics.map((r, i) => (i === idx ? { ...r, rateType: v as RateType } : r)))}
-                                            />
-                                            <input
-                                                type="number"
-                                                min={1}
-                                                className="form-input"
-                                                value={row.quantity}
-                                                onChange={(e) => setSelectedParamedics(selectedParamedics.map((r, i) => (i === idx ? { ...r, quantity: parseInt(e.target.value) || 1 } : r)))}
-                                            />
-                                            <button type="button" className="btn btn-secondary" onClick={() => setSelectedParamedics(selectedParamedics.filter((_, i) => i !== idx))}>
+                                            <button type="button" className="btn btn-secondary w-24" onClick={() => setSelectedParamedics(selectedParamedics.filter((_, i) => i !== idx))}>
                                                 {t('delete')}
                                             </button>
                                         </div>
                                     ))}
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                    {t('section_total')}: <span className="font-semibold text-green-600">{paramedicsTotal.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
@@ -439,45 +347,25 @@ const AddTripPlan = () => {
                     {step === 4 && (
                         <div className="animate-fade-in space-y-4">
                             <div className="space-y-3">
-                                <button type="button" className="btn btn-outline-primary" onClick={() => setSelectedGuides([...selectedGuides, { id: '', rateType: 'daily', quantity: 1 }])}>
+                                <button type="button" className="btn btn-outline-primary" onClick={() => setSelectedGuides([...selectedGuides, ''])}>
                                     {t('add_guide')}
                                 </button>
-                                <div className="space-y-3">
-                                    {selectedGuides.map((row, idx) => (
-                                        <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                                <div className="space-y-3 max-w-2xl">
+                                    {selectedGuides.map((guide, idx) => (
+                                        <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
                                             <CustomSelect
-                                                options={personRateOptions(guides)}
-                                                value={row.id}
-                                                onChange={(v) => setSelectedGuides(selectedGuides.map((r, i) => (i === idx ? { ...r, id: v as string } : r)))}
+                                                options={guides.map((g) => ({ value: g.id, label: g.name }))}
+                                                value={guide}
+                                                onChange={(v) => setSelectedGuides(selectedGuides.map((g, i) => (i === idx ? (v as string) : g)))}
                                                 placeholder={t('select_guide')}
                                                 searchable
                                                 clearable
                                             />
-                                            <CustomSelect
-                                                options={[
-                                                    { value: 'hourly', label: t('hourly_rate') },
-                                                    { value: 'daily', label: t('daily_rate') },
-                                                    { value: 'regional', label: t('regional_rate') },
-                                                    { value: 'overnight', label: t('overnight_rate') },
-                                                ]}
-                                                value={row.rateType}
-                                                onChange={(v) => setSelectedGuides(selectedGuides.map((r, i) => (i === idx ? { ...r, rateType: v as RateType } : r)))}
-                                            />
-                                            <input
-                                                type="number"
-                                                min={1}
-                                                className="form-input"
-                                                value={row.quantity}
-                                                onChange={(e) => setSelectedGuides(selectedGuides.map((r, i) => (i === idx ? { ...r, quantity: parseInt(e.target.value) || 1 } : r)))}
-                                            />
-                                            <button type="button" className="btn btn-secondary" onClick={() => setSelectedGuides(selectedGuides.filter((_, i) => i !== idx))}>
+                                            <button type="button" className="btn btn-secondary w-24" onClick={() => setSelectedGuides(selectedGuides.filter((_, i) => i !== idx))}>
                                                 {t('delete')}
                                             </button>
                                         </div>
                                     ))}
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                    {t('section_total')}: <span className="font-semibold text-green-600">{guidesTotal.toFixed(2)}</span>
                                 </div>
                             </div>
                         </div>
@@ -486,7 +374,7 @@ const AddTripPlan = () => {
                     {/* Step 6: Security */}
                     {step === 5 && (
                         <div className="animate-fade-in space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-1 gap-6 max-w-2xl">
                                 <div>
                                     <label className="block text-sm font-bold mb-2">{t('security_company')}</label>
                                     <CustomSelect
@@ -498,10 +386,6 @@ const AddTripPlan = () => {
                                         clearable
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold mb-2">{t('security_price')}</label>
-                                    <input type="number" min={0} className="form-input" value={securityPrice} onChange={(e) => setSecurityPrice(parseFloat(e.target.value) || 0)} />
-                                </div>
                             </div>
                         </div>
                     )}
@@ -509,15 +393,17 @@ const AddTripPlan = () => {
                     {/* Step 7: Entertainment */}
                     {step === 6 && (
                         <div className="animate-fade-in space-y-4">
-                            <CustomSelect
-                                options={entertainmentOptions}
-                                value={selectedEntertainmentIds as any}
-                                onChange={(v) => setSelectedEntertainmentIds(v as string[])}
-                                placeholder={t('select_entertainment')}
-                                searchable
-                                clearable
-                                multiple
-                            />
+                            <div className="max-w-2xl">
+                                <CustomSelect
+                                    options={entertainmentOptions}
+                                    value={selectedEntertainmentIds as any}
+                                    onChange={(v) => setSelectedEntertainmentIds(v as string[])}
+                                    placeholder={t('select_entertainment')}
+                                    searchable
+                                    clearable
+                                    multiple
+                                />
+                            </div>
                             <div className="text-sm text-gray-600">
                                 {t('section_total')}: <span className="font-semibold text-green-600">{entertainmentTotal.toFixed(2)}</span>
                             </div>
@@ -541,33 +427,39 @@ const AddTripPlan = () => {
                                             <strong>{t('destination')}:</strong> {destinations.find((d) => d.id === destinationId)?.name || '-'}
                                         </li>
                                         <li>
-                                            <strong>{t('travel_company')}:</strong> {travelCompanies.find((c) => c.id === travelCompanyId)?.name || '-'} ({travelVehicleType || '-'},{' '}
-                                            {travelArea || '-'})
+                                            <strong>{t('travel_company')}:</strong> {travelCompanies.find((c) => c.id === travelCompanyId)?.name || '-'}
                                         </li>
                                     </ul>
                                 </div>
                                 <div className="p-4 rounded border border-gray-200 dark:border-gray-700">
-                                    <h4 className="font-semibold mb-2">{t('pricing_summary')}</h4>
+                                    <h4 className="font-semibold mb-2">{t('selected_services')}</h4>
                                     <ul className="space-y-1 text-sm">
-                                        <li>
-                                            {t('travel')}: <span className="font-semibold">{Number(travelPrice || 0).toFixed(2)}</span>
-                                        </li>
-                                        <li>
-                                            {t('paramedics')}: <span className="font-semibold">{paramedicsTotal.toFixed(2)}</span>
-                                        </li>
-                                        <li>
-                                            {t('guides')}: <span className="font-semibold">{guidesTotal.toFixed(2)}</span>
-                                        </li>
-                                        <li>
-                                            {t('security')}: <span className="font-semibold">{Number(securityPrice || 0).toFixed(2)}</span>
-                                        </li>
-                                        <li>
-                                            {t('entertainment')}: <span className="font-semibold">{entertainmentTotal.toFixed(2)}</span>
-                                        </li>
+                                        {selectedParamedics.filter((id) => id).length > 0 && (
+                                            <li>
+                                                {t('paramedics')}:{' '}
+                                                {selectedParamedics
+                                                    .filter((id) => id)
+                                                    .map((id) => paramedics.find((p) => p.id === id)?.name)
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </li>
+                                        )}
+                                        {selectedGuides.filter((id) => id).length > 0 && (
+                                            <li>
+                                                {t('guides')}:{' '}
+                                                {selectedGuides
+                                                    .filter((id) => id)
+                                                    .map((id) => guides.find((g) => g.id === id)?.name)
+                                                    .filter(Boolean)
+                                                    .join(', ')}
+                                            </li>
+                                        )}
+                                        {securityCompanyId && (
+                                            <li>
+                                                {t('security')}: {securityCompanies.find((s) => s.id === securityCompanyId)?.name || '-'}
+                                            </li>
+                                        )}
                                     </ul>
-                                    <div className="mt-3 text-lg">
-                                        {t('total_price')}: <span className="font-bold text-green-600">{totalPrice.toFixed(2)}</span>
-                                    </div>
                                 </div>
                             </div>
                         </div>

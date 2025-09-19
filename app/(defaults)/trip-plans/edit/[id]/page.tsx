@@ -43,14 +43,10 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
     const [destinationId, setDestinationId] = useState<string>('');
 
     const [travelCompanyId, setTravelCompanyId] = useState('');
-    const [travelVehicleType, setTravelVehicleType] = useState('');
-    const [travelArea, setTravelArea] = useState('');
-    const [travelPrice, setTravelPrice] = useState(0);
 
-    const [selectedParamedics, setSelectedParamedics] = useState<Array<{ id: string; rateType: RateType; quantity: number }>>([]);
-    const [selectedGuides, setSelectedGuides] = useState<Array<{ id: string; rateType: RateType; quantity: number }>>([]);
+    const [selectedParamedics, setSelectedParamedics] = useState<string[]>([]);
+    const [selectedGuides, setSelectedGuides] = useState<string[]>([]);
     const [securityCompanyId, setSecurityCompanyId] = useState('');
-    const [securityPrice, setSecurityPrice] = useState(0);
     const [selectedEntertainmentIds, setSelectedEntertainmentIds] = useState<string[]>([]);
 
     // Load data & existing record
@@ -97,13 +93,11 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                     }
 
                     setTravelCompanyId(trip.travel_company_id || '');
-                    setTravelVehicleType(trip.travel_vehicle_type || '');
-                    setTravelArea(trip.travel_area || '');
-                    setTravelPrice(Number(trip.travel_price || 0));
-                    setSelectedParamedics((trip.paramedics_selection || []).map((p: any) => ({ id: p.id, rateType: p.rate_type, quantity: p.quantity })));
-                    setSelectedGuides((trip.guides_selection || []).map((g: any) => ({ id: g.id, rateType: g.rate_type, quantity: g.quantity })));
+
+                    // Convert old complex structure to simple string arrays
+                    setSelectedParamedics((trip.paramedics_selection || []).map((p: any) => p.id).filter(Boolean));
+                    setSelectedGuides((trip.guides_selection || []).map((g: any) => g.id).filter(Boolean));
                     setSecurityCompanyId(trip.security_company_id || '');
-                    setSecurityPrice(Number(trip.security_price || 0));
                     setSelectedEntertainmentIds(trip.entertainment_ids || []);
                 }
             } catch (e) {
@@ -151,16 +145,12 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                 destination_address: selectedDestination?.address || null,
                 travel_company_id: travelCompanyId || null,
                 travel_company_name: travelCompanies.find((c: any) => c.id === travelCompanyId)?.name || null,
-                travel_vehicle_type: travelVehicleType || null,
-                travel_area: travelArea || null,
-                travel_price: Number(travelPrice || 0),
-                paramedic_ids: selectedParamedics.map((p) => p.id),
-                paramedics_selection: selectedParamedics.map((s) => ({ id: s.id, rate_type: s.rateType, quantity: s.quantity })),
-                guide_ids: selectedGuides.map((g) => g.id),
-                guides_selection: selectedGuides.map((s) => ({ id: s.id, rate_type: s.rateType, quantity: s.quantity })),
+                paramedic_ids: selectedParamedics.filter(Boolean),
+                paramedics_selection: selectedParamedics.filter(Boolean).map((id) => ({ id, rate_type: 'daily', quantity: 1 })),
+                guide_ids: selectedGuides.filter(Boolean),
+                guides_selection: selectedGuides.filter(Boolean).map((id) => ({ id, rate_type: 'daily', quantity: 1 })),
                 security_company_id: securityCompanyId || null,
                 security_company_name: securityCompanies.find((s: any) => s.id === securityCompanyId)?.name || null,
-                security_price: Number(securityPrice || 0),
                 entertainment_ids: selectedEntertainmentIds,
             };
 
@@ -217,7 +207,7 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
 
             <div className="panel">
                 <form onSubmit={handleUpdate} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
                         <div>
                             <label className="block text-sm font-bold mb-2">{t('school')}</label>
                             <CustomSelect
@@ -234,15 +224,17 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                             <input type="date" className="form-input" value={tripDate || ''} onChange={(e) => setTripDate(e.target.value)} />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-bold mb-2">{t('destination')}</label>
-                            <CustomSelect
-                                options={destinationOptions}
-                                value={destinationId}
-                                onChange={(v) => setDestinationId(v as string)}
-                                placeholder={t('select_destination')}
-                                searchable
-                                clearable
-                            />
+                            <div className="max-w-2xl">
+                                <label className="block text-sm font-bold mb-2">{t('destination')}</label>
+                                <CustomSelect
+                                    options={destinationOptions}
+                                    value={destinationId}
+                                    onChange={(v) => setDestinationId(v as string)}
+                                    placeholder={t('select_destination')}
+                                    searchable
+                                    clearable
+                                />
+                            </div>
                             {destinationId && (
                                 <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                     {(() => {
@@ -265,7 +257,7 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-6 max-w-2xl">
                         <div>
                             <label className="block text-sm font-bold mb-2">{t('travel_company')}</label>
                             <CustomSelect
@@ -277,21 +269,9 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                                 clearable
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-2">{t('vehicle_type')}</label>
-                            <input className="form-input" value={travelVehicleType} onChange={(e) => setTravelVehicleType(e.target.value)} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-2">{t('area')}</label>
-                            <input className="form-input" value={travelArea} onChange={(e) => setTravelArea(e.target.value)} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-2">{t('travel_price')}</label>
-                            <input type="number" min={0} className="form-input" value={travelPrice} onChange={(e) => setTravelPrice(parseFloat(e.target.value) || 0)} />
-                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-1 gap-6 max-w-2xl">
                         <div>
                             <label className="block text-sm font-bold mb-2">{t('security_company')}</label>
                             <CustomSelect
@@ -303,9 +283,72 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
                                 clearable
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-bold mb-2">{t('security_price')}</label>
-                            <input type="number" min={0} className="form-input" value={securityPrice} onChange={(e) => setSecurityPrice(parseFloat(e.target.value) || 0)} />
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">{t('paramedics')}</h3>
+                        <div className="space-y-3">
+                            <button type="button" className="btn btn-outline-primary" onClick={() => setSelectedParamedics([...selectedParamedics, ''])}>
+                                {t('add_paramedic')}
+                            </button>
+                            <div className="space-y-3 max-w-2xl">
+                                {selectedParamedics.map((paramedic, idx) => (
+                                    <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                                        <CustomSelect
+                                            options={paramedics.map((p) => ({ value: p.id, label: p.name }))}
+                                            value={paramedic}
+                                            onChange={(v) => setSelectedParamedics(selectedParamedics.map((p, i) => (i === idx ? (v as string) : p)))}
+                                            placeholder={t('select_paramedic')}
+                                            searchable
+                                            clearable
+                                        />
+                                        <button type="button" className="btn btn-secondary w-24" onClick={() => setSelectedParamedics(selectedParamedics.filter((_, i) => i !== idx))}>
+                                            {t('delete')}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">{t('guides')}</h3>
+                        <div className="space-y-3">
+                            <button type="button" className="btn btn-outline-primary" onClick={() => setSelectedGuides([...selectedGuides, ''])}>
+                                {t('add_guide')}
+                            </button>
+                            <div className="space-y-3 max-w-2xl">
+                                {selectedGuides.map((guide, idx) => (
+                                    <div key={idx} className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                                        <CustomSelect
+                                            options={guides.map((g) => ({ value: g.id, label: g.name }))}
+                                            value={guide}
+                                            onChange={(v) => setSelectedGuides(selectedGuides.map((g, i) => (i === idx ? (v as string) : g)))}
+                                            placeholder={t('select_guide')}
+                                            searchable
+                                            clearable
+                                        />
+                                        <button type="button" className="btn btn-secondary w-24" onClick={() => setSelectedGuides(selectedGuides.filter((_, i) => i !== idx))}>
+                                            {t('delete')}
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold">{t('entertainment')}</h3>
+                        <div className="max-w-2xl">
+                            <CustomSelect
+                                options={entertainments.map((e) => ({ value: e.id, label: e.name }))}
+                                value={selectedEntertainmentIds as any}
+                                onChange={(v) => setSelectedEntertainmentIds(v as string[])}
+                                placeholder={t('select_entertainment')}
+                                searchable
+                                clearable
+                                multiple
+                            />
                         </div>
                     </div>
 

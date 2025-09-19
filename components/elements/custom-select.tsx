@@ -14,7 +14,7 @@ export interface SelectOption {
 interface CustomSelectProps {
     id?: string;
     name?: string;
-    value?: string;
+    value?: string | string[];
     defaultValue?: string;
     placeholder?: string;
     options: SelectOption[];
