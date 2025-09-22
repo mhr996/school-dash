@@ -162,6 +162,7 @@ export default function TripPlannerDashboard() {
     const [showCheckoutModal, setShowCheckoutModal] = useState(false);
     const [paymentStep, setPaymentStep] = useState<'payment' | 'confirmation' | 'success'>('payment');
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [bookingReference, setBookingReference] = useState<string>('');
 
     // Filtered destinations
     const [filteredDestinations, setFilteredDestinations] = useState<Destination[]>([]);
@@ -461,11 +462,68 @@ export default function TripPlannerDashboard() {
 
     const handlePaymentSubmit = async () => {
         setIsProcessingPayment(true);
-        // Simulate payment processing
-        setTimeout(() => {
+
+        try {
+            // Create booking record
+            const bookingData = {
+                destination_id: selectedForPlanning?.id,
+                trip_date: selectedDate?.toISOString().split('T')[0],
+                total_amount: totalPrice,
+                currency: 'USD',
+                payment_status: 'paid',
+                payment_method: 'bank_transfer',
+                status: 'confirmed',
+                customer_name: 'Customer Name', // TODO: Get from user profile
+                customer_email: 'customer@example.com', // TODO: Get from user profile
+                customer_phone: '+1234567890', // TODO: Get from user profile
+            };
+
+            const { data: booking, error: bookingError } = await supabase.from('bookings').insert([bookingData]).select().single();
+
+            if (bookingError) {
+                console.error('Error creating booking:', bookingError);
+                throw bookingError;
+            }
+
+            // Create booking services records
+            if (selectedRequirements.length > 0) {
+                const bookingServices = selectedRequirements.map((req) => ({
+                    booking_id: booking.id,
+                    service_type: req.type,
+                    service_id: req.id,
+                    service_name: req.name,
+                    quantity: req.quantity,
+                    days: req.days || 1,
+                    hours: req.hours,
+                    rate_type: req.rate_type,
+                    unit_cost: req.cost,
+                    total_cost: req.cost * req.quantity * (req.days || 1),
+                    service_details: {
+                        original_data: req,
+                    },
+                }));
+
+                const { error: servicesError } = await supabase.from('booking_services').insert(bookingServices);
+
+                if (servicesError) {
+                    console.error('Error creating booking services:', servicesError);
+                    throw servicesError;
+                }
+            }
+
+            // Store booking reference for success display
+            setBookingReference(booking.booking_reference);
+
+            // Simulate processing delay
+            setTimeout(() => {
+                setIsProcessingPayment(false);
+                setPaymentStep('success');
+            }, 2000);
+        } catch (error) {
+            console.error('Error processing booking:', error);
             setIsProcessingPayment(false);
-            setPaymentStep('success');
-        }, 2000);
+            alert('Error processing booking. Please try again.');
+        }
     };
 
     const handleBookingComplete = () => {
@@ -475,6 +533,7 @@ export default function TripPlannerDashboard() {
         setSelectedForPlanning(null);
         setSelectedDate(null);
         setShowRequirementsSection(false);
+        setBookingReference('');
         closeCheckout();
     };
 
@@ -1593,7 +1652,7 @@ export default function TripPlannerDashboard() {
                                             <div className="space-y-2 text-sm">
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600 dark:text-gray-400">{t('booking_id')}:</span>
-                                                    <span className="font-mono text-gray-900 dark:text-white">#BK{Date.now().toString().slice(-6)}</span>
+                                                    <span className="font-mono text-gray-900 dark:text-white">{bookingReference}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600 dark:text-gray-400">{t('destination')}:</span>
