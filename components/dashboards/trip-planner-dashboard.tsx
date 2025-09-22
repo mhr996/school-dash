@@ -158,6 +158,11 @@ export default function TripPlannerDashboard() {
     const [selectedRequirements, setSelectedRequirements] = useState<RequirementSelection[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
 
+    // Checkout modal states
+    const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+    const [paymentStep, setPaymentStep] = useState<'payment' | 'confirmation' | 'success'>('payment');
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
     // Filtered destinations
     const [filteredDestinations, setFilteredDestinations] = useState<Destination[]>([]);
 
@@ -387,6 +392,90 @@ export default function TripPlannerDashboard() {
 
     const isSelected = (type: string, id: string) => {
         return selectedRequirements.some((req) => req.type === type && req.id === id);
+    };
+
+    // Validation function to check if all required services and trip date are selected
+    const validateRequiredServices = () => {
+        const missingServices: string[] = [];
+
+        // Check if trip date is selected
+        if (!selectedDate) {
+            missingServices.push(t('trip_date'));
+        }
+
+        // Check required services only if destination has requirements
+        if (selectedForPlanning?.requirements && selectedForPlanning.requirements.length > 0) {
+            const requiredServices = selectedForPlanning.requirements;
+
+            requiredServices.forEach((requirement) => {
+                const hasSelectedService = selectedRequirements.some((selected) => selected.type === requirement);
+                if (!hasSelectedService) {
+                    // Convert requirement type to human readable name
+                    let serviceName = '';
+                    switch (requirement) {
+                        case 'paramedics':
+                            serviceName = t('paramedics');
+                            break;
+                        case 'guides':
+                            serviceName = t('guides');
+                            break;
+                        case 'security_companies':
+                            serviceName = t('security');
+                            break;
+                        case 'external_entertainment_companies':
+                            serviceName = t('entertainment');
+                            break;
+                        default:
+                            serviceName = requirement;
+                    }
+                    missingServices.push(serviceName);
+                }
+            });
+        }
+
+        return {
+            isValid: missingServices.length === 0,
+            missingServices,
+        };
+    };
+
+    // Checkout functions
+    const openCheckout = () => {
+        const validation = validateRequiredServices();
+
+        if (!validation.isValid) {
+            // Show error message for missing required services
+            alert(`${t('must_select_required_services')}: ${validation.missingServices.join(', ')}`);
+            return;
+        }
+
+        setShowCheckoutModal(true);
+        setPaymentStep('payment');
+    };
+
+    const closeCheckout = () => {
+        setShowCheckoutModal(false);
+        setPaymentStep('payment');
+        setIsProcessingPayment(false);
+    };
+
+    const handlePaymentSubmit = async () => {
+        setIsProcessingPayment(true);
+        // Simulate payment processing
+        setTimeout(() => {
+            setIsProcessingPayment(false);
+            setPaymentStep('success');
+        }, 2000);
+    };
+
+    const handleBookingComplete = () => {
+        // Reset all selections
+        setSelectedRequirements([]);
+        setTotalPrice(0);
+        setSelectedForPlanning(null);
+        setSelectedDate(null);
+        setShowRequirementsSection(false);
+        closeCheckout();
     };
 
     useEffect(() => {
@@ -645,7 +734,11 @@ export default function TripPlannerDashboard() {
                                                     }
                                                 }}
                                                 min={new Date().toISOString().split('T')[0]}
-                                                className="px-4 py-3 bg-white dark:bg-slate-800 border-2 border-blue-200 dark:border-blue-600 rounded-xl text-gray-900 dark:text-white font-medium focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer min-w-[180px] [&::-webkit-calendar-picker-indicator]:dark:invert [&::-webkit-calendar-picker-indicator]:dark:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-60"
+                                                className={`px-4 py-3 bg-white dark:bg-slate-800 border-2 rounded-xl text-gray-900 dark:text-white font-medium focus:outline-none focus:ring-2 transition-all duration-300 shadow-sm hover:shadow-md cursor-pointer min-w-[180px] [&::-webkit-calendar-picker-indicator]:dark:invert [&::-webkit-calendar-picker-indicator]:dark:opacity-80 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:hover:opacity-60 ${
+                                                    !selectedDate && !validateRequiredServices().isValid
+                                                        ? 'border-red-300 dark:border-red-600 focus:border-red-500 dark:focus:border-red-400 focus:ring-red-500/20'
+                                                        : 'border-blue-200 dark:border-blue-600 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-blue-500/20'
+                                                }`}
                                             />
                                         </motion.div>
 
@@ -1064,7 +1157,6 @@ export default function TripPlannerDashboard() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* Left Column - Services Selection */}
                                 <div className="space-y-6">
-                                    
                                     {/* Show message if no requirements */}
                                     {(!selectedForPlanning.requirements || selectedForPlanning.requirements.length === 0) && (
                                         <div className="text-center py-8">
@@ -1292,12 +1384,27 @@ export default function TripPlannerDashboard() {
                                             </div>
                                         )}
 
+                                        {/* Validation Message */}
+                                        {!validateRequiredServices().isValid && (
+                                            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700/50 rounded-lg">
+                                                <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">{t('must_select_required_services')}:</p>
+                                                <ul className="text-sm text-red-700 dark:text-red-400 list-disc list-inside">
+                                                    {validateRequiredServices().missingServices.map((service, idx) => (
+                                                        <li key={idx}>{service}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
-                                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-3 rounded-xl transition-colors duration-300"
+                                            onClick={openCheckout}
+                                            className={`w-full font-semibold py-3 rounded-xl transition-colors duration-300 ${
+                                                validateRequiredServices().isValid ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+                                            }`}
                                         >
-                                            {t('proceed_to_booking')}
+                                            {validateRequiredServices().isValid ? t('proceed_to_booking') : t('select_required_services_first')}
                                         </motion.button>
                                     </motion.div>
                                 </div>
@@ -1309,6 +1416,224 @@ export default function TripPlannerDashboard() {
 
             {/* Destination Details Modal */}
             <DestinationDetailsModal destination={selectedDestination} zones={zones} isOpen={isModalOpen} onClose={closeDestinationModal} />
+
+            {/* Checkout Modal */}
+            <AnimatePresence>
+                {showCheckoutModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+                        onClick={(e) => {
+                            if (e.target === e.currentTarget && paymentStep !== 'success') {
+                                closeCheckout();
+                            }
+                        }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 dark:border-slate-700/30 w-full max-w-md overflow-hidden"
+                        >
+                            {/* Payment Step */}
+                            {paymentStep === 'payment' && (
+                                <div className="p-8">
+                                    {/* Header */}
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t('checkout')}</h2>
+                                        <button
+                                            onClick={closeCheckout}
+                                            className="w-8 h-8 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors duration-200"
+                                        >
+                                            <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+
+                                    {/* Order Summary */}
+                                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-6">
+                                        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">{t('checkout_order_summary')}</h3>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600 dark:text-gray-400">{t('destination')}</span>
+                                                <span className="text-gray-900 dark:text-white font-medium">{selectedForPlanning?.name}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600 dark:text-gray-400">{t('trip_date')}</span>
+                                                <span className="text-gray-900 dark:text-white font-medium">
+                                                    {selectedDate?.toLocaleDateString(t('locale'), {
+                                                        weekday: 'short',
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                    })}
+                                                </span>
+                                            </div>
+                                            {selectedRequirements.map((req, idx) => (
+                                                <div key={idx} className="flex justify-between text-sm">
+                                                    <span className="text-gray-600 dark:text-gray-400">{req.name}</span>
+                                                    <span className="text-gray-900 dark:text-white">${(req.cost * req.quantity * (req.days || 1)).toFixed(2)}</span>
+                                                </div>
+                                            ))}
+                                            <div className="border-t dark:border-slate-700 pt-2 mt-3">
+                                                <div className="flex justify-between font-semibold text-lg">
+                                                    <span className="text-gray-900 dark:text-white">{t('checkout_total')}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-400">${totalPrice.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Payment Method */}
+                                    <div className="mb-6">
+                                        <h3 className="font-semibold text-gray-900 dark:text-white mb-3">{t('checkout_payment_method')}</h3>
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200/50 dark:border-blue-700/40">
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                                                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-semibold text-blue-900 dark:text-blue-100">{t('checkout_bank_transfer') || t('bank_transfer')}</h4>
+                                                    <p className="text-sm text-blue-700 dark:text-blue-300">{t('bank_transfer_only')}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Bank Details */}
+                                            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-lg p-3 space-y-2">
+                                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('checkout_bank_name') || t('bank_name')}:</span>
+                                                    <span className="col-span-2 font-mono text-gray-900 dark:text-white">National Bank Ltd.</span>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('checkout_account_number') || t('account_number')}:</span>
+                                                    <span className="col-span-2 font-mono text-gray-900 dark:text-white">123-456-7890123</span>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('account_name')}:</span>
+                                                    <span className="col-span-2 font-mono text-gray-900 dark:text-white">Travel Company Ltd.</span>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2 text-sm">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('swift_code')}:</span>
+                                                    <span className="col-span-2 font-mono text-gray-900 dark:text-white">NBANKXXX</span>
+                                                </div>
+                                            </div>
+
+                                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-3">{t('bank_transfer_instruction')}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Submit Button */}
+                                    <motion.button
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={handlePaymentSubmit}
+                                        disabled={isProcessingPayment}
+                                        className="w-full bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white font-semibold py-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    >
+                                        {isProcessingPayment ? (
+                                            <>
+                                                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path
+                                                        className="opacity-75"
+                                                        fill="currentColor"
+                                                        d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                    ></path>
+                                                </svg>
+                                                {t('processing_payment')}
+                                            </>
+                                        ) : (
+                                            <>{t('confirm_payment_sent')}</>
+                                        )}
+                                    </motion.button>
+                                </div>
+                            )}
+
+                            {/* Success Step */}
+                            {paymentStep === 'success' && (
+                                <div className="p-8 text-center">
+                                    {/* Success Animation */}
+                                    <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        transition={{ type: 'spring', duration: 0.5 }}
+                                        className="w-20 h-20 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg"
+                                    >
+                                        <motion.svg
+                                            initial={{ pathLength: 0 }}
+                                            animate={{ pathLength: 1 }}
+                                            transition={{ delay: 0.3, duration: 0.6 }}
+                                            className="w-10 h-10 text-white"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </motion.svg>
+                                    </motion.div>
+
+                                    {/* Success Message */}
+                                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t('booking_successful')}</h2>
+                                        <p className="text-gray-600 dark:text-gray-400 mb-6">{t('booking_confirmation_message')}</p>
+
+                                        {/* Booking Details */}
+                                        <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 mb-6 text-left">
+                                            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">{t('booking_details')}</h3>
+                                            <div className="space-y-2 text-sm">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('booking_id')}:</span>
+                                                    <span className="font-mono text-gray-900 dark:text-white">#BK{Date.now().toString().slice(-6)}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('destination')}:</span>
+                                                    <span className="text-gray-900 dark:text-white">{selectedForPlanning?.name}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('trip_date')}:</span>
+                                                    <span className="text-gray-900 dark:text-white">
+                                                        {selectedDate?.toLocaleDateString(t('locale'), {
+                                                            year: 'numeric',
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                        })}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('total_paid')}:</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">${totalPrice.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="flex gap-3">
+                                            <motion.button
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={handleBookingComplete}
+                                                className="flex-1 bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white font-semibold py-3 rounded-xl transition-all duration-300"
+                                            >
+                                                {t('done')}
+                                            </motion.button>
+                                        </div>
+                                    </motion.div>
+                                </div>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
