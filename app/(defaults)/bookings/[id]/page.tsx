@@ -32,7 +32,6 @@ interface BookingDetails {
     };
     trip_date: string;
     total_amount: number;
-    currency: string;
     payment_status: string;
     payment_method: string;
     status: string;
@@ -40,17 +39,14 @@ interface BookingDetails {
     special_requests: string | null;
     created_at: string;
     updated_at: string;
-    booking_services: Array<{
+    services: Array<{
+        type: string;
         id: string;
-        service_type: string;
-        service_name: string;
+        name: string;
         quantity: number;
         days: number;
-        hours: number | null;
+        cost: number;
         rate_type: string;
-        unit_cost: number;
-        total_cost: number;
-        service_details: any;
     }>;
 }
 
@@ -77,8 +73,7 @@ export default function BookingDetailsPage() {
                 .select(
                     `
                     *,
-                    destination:destinations(name, address, thumbnail_path, gallery_paths),
-                    booking_services(*)
+                    destination:destinations(name, address, thumbnail_path, gallery_paths)
                 `,
                 )
                 .eq('id', bookingId)
@@ -134,6 +129,10 @@ export default function BookingDetailsPage() {
         }
     };
 
+    const calculateTotalCost = (service: any) => {
+        return service.cost * service.quantity * service.days;
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900/20 dark:to-indigo-900/20 p-6">
@@ -181,7 +180,7 @@ export default function BookingDetailsPage() {
                             href="/bookings"
                             className="p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-lg border border-white/30 dark:border-slate-700/40 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300"
                         >
-                            <IconArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                            <IconArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 ltr:rotate-180" />
                         </Link>
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('booking_details')}</h1>
@@ -239,15 +238,15 @@ export default function BookingDetailsPage() {
                         >
                             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('selected_services')}</h2>
                             <div className="space-y-4">
-                                {booking.booking_services.map((service) => (
+                                {booking.services?.map((service, index) => (
                                     <div
-                                        key={service.id}
+                                        key={`${service.type}-${service.id}-${index}`}
                                         className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200/50 dark:border-slate-700/40"
                                     >
                                         <div className="flex items-center gap-3">
-                                            {getServiceIcon(service.service_type)}
+                                            {getServiceIcon(service.type)}
                                             <div>
-                                                <h3 className="font-semibold text-gray-900 dark:text-white">{service.service_name}</h3>
+                                                <h3 className="font-semibold text-gray-900 dark:text-white">{service.name}</h3>
                                                 <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                                     <span>
                                                         {t('quantity')}: {service.quantity}
@@ -257,25 +256,18 @@ export default function BookingDetailsPage() {
                                                             {t('days')}: {service.days}
                                                         </span>
                                                     )}
-                                                    {service.hours && (
-                                                        <span>
-                                                            {t('hours')}: {service.hours}
-                                                        </span>
-                                                    )}
                                                     <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs">{t(service.rate_type)}</span>
                                                 </div>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                                                {service.total_cost.toFixed(2)} {booking.currency}
-                                            </p>
+                                            <p className="text-lg font-semibold text-gray-900 dark:text-white">{calculateTotalCost(service).toFixed(2)} ₪</p>
                                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                {service.unit_cost.toFixed(2)} {booking.currency} / {t(service.rate_type.replace('ly', ''))}
+                                                {service.cost.toFixed(2)} ₪ / {t(service.rate_type.replace('ly', ''))}
                                             </p>
                                         </div>
                                     </div>
-                                ))}
+                                )) || <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t('no_services_selected')}</div>}
                             </div>
                         </motion.div>
 
@@ -358,9 +350,7 @@ export default function BookingDetailsPage() {
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('total_amount')}</label>
                                     <div className="flex items-center gap-2">
                                         <IconDollarSign className="w-5 h-5 text-green-500" />
-                                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                            {booking.total_amount.toFixed(2)} {booking.currency}
-                                        </p>
+                                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{booking.total_amount.toFixed(2)} ₪</p>
                                     </div>
                                 </div>
                                 <div>

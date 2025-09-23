@@ -1,5 +1,4 @@
 'use client';
-
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
@@ -191,7 +190,7 @@ export default function EditEntertainmentCompany() {
                             </label>
                             <div className="flex items-center gap-4">
                                 <ImageUpload
-                                    bucket="products"
+                                    bucket="entertainment-companies"
                                     userId={companyId || 'entertainment-temp'}
                                     url={formData.image || null}
                                     onUploadComplete={(url) => setFormData((prev) => ({ ...prev, image: url }))}

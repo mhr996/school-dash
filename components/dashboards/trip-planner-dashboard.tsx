@@ -464,18 +464,19 @@ export default function TripPlannerDashboard() {
         setIsProcessingPayment(true);
 
         try {
-            // Create booking record
+            // Create booking record with services stored as JSON
             const bookingData = {
                 destination_id: selectedForPlanning?.id,
                 trip_date: selectedDate?.toISOString().split('T')[0],
                 total_amount: totalPrice,
-                currency: 'USD',
                 payment_status: 'paid',
                 payment_method: 'bank_transfer',
                 status: 'confirmed',
                 customer_name: 'Customer Name', // TODO: Get from user profile
                 customer_email: 'customer@example.com', // TODO: Get from user profile
                 customer_phone: '+1234567890', // TODO: Get from user profile
+                services: selectedRequirements, // Store all selected services as JSON
+                notes: 'Booking created via trip planner',
             };
 
             const { data: booking, error: bookingError } = await supabase.from('bookings').insert([bookingData]).select().single();
@@ -483,32 +484,6 @@ export default function TripPlannerDashboard() {
             if (bookingError) {
                 console.error('Error creating booking:', bookingError);
                 throw bookingError;
-            }
-
-            // Create booking services records
-            if (selectedRequirements.length > 0) {
-                const bookingServices = selectedRequirements.map((req) => ({
-                    booking_id: booking.id,
-                    service_type: req.type,
-                    service_id: req.id,
-                    service_name: req.name,
-                    quantity: req.quantity,
-                    days: req.days || 1,
-                    hours: req.hours,
-                    rate_type: req.rate_type,
-                    unit_cost: req.cost,
-                    total_cost: req.cost * req.quantity * (req.days || 1),
-                    service_details: {
-                        original_data: req,
-                    },
-                }));
-
-                const { error: servicesError } = await supabase.from('booking_services').insert(bookingServices);
-
-                if (servicesError) {
-                    console.error('Error creating booking services:', servicesError);
-                    throw servicesError;
-                }
             }
 
             // Store booking reference for success display
@@ -1081,7 +1056,7 @@ export default function TripPlannerDashboard() {
                                                                             <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
                                                                             <span className="text-sm font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('child_price')}</span>
                                                                         </div>
-                                                                        <span className="text-sm font-bold text-green-600 dark:text-green-400 drop-shadow-sm">${destination.pricing.child}</span>
+                                                                        <span className="text-sm font-bold text-green-600 dark:text-green-400 drop-shadow-sm">{destination.pricing.child}₪</span>
                                                                     </div>
                                                                 )}
                                                                 {destination.pricing.teen && (
@@ -1090,7 +1065,7 @@ export default function TripPlannerDashboard() {
                                                                             <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm"></div>
                                                                             <span className="text-sm font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('teen_price')}</span>
                                                                         </div>
-                                                                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400 drop-shadow-sm">${destination.pricing.teen}</span>
+                                                                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400 drop-shadow-sm">{destination.pricing.teen}₪</span>
                                                                     </div>
                                                                 )}
                                                                 {destination.pricing.adult && (
@@ -1099,7 +1074,7 @@ export default function TripPlannerDashboard() {
                                                                             <div className="w-3 h-3 bg-purple-500 rounded-full shadow-sm"></div>
                                                                             <span className="text-sm font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('adult_price')}</span>
                                                                         </div>
-                                                                        <span className="text-sm font-bold text-purple-600 dark:text-purple-400 drop-shadow-sm">${destination.pricing.adult}</span>
+                                                                        <span className="text-sm font-bold text-purple-600 dark:text-purple-400 drop-shadow-sm">{destination.pricing.adult}₪</span>
                                                                     </div>
                                                                 )}
                                                                 {destination.pricing.guide && (
@@ -1108,7 +1083,7 @@ export default function TripPlannerDashboard() {
                                                                             <div className="w-3 h-3 bg-orange-500 rounded-full shadow-sm"></div>
                                                                             <span className="text-sm font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('guide_price')}</span>
                                                                         </div>
-                                                                        <span className="text-sm font-bold text-orange-600 dark:text-orange-400 drop-shadow-sm">${destination.pricing.guide}</span>
+                                                                        <span className="text-sm font-bold text-orange-600 dark:text-orange-400 drop-shadow-sm">{destination.pricing.guide}₪</span>
                                                                     </div>
                                                                 )}
                                                             </div>
@@ -1253,7 +1228,7 @@ export default function TripPlannerDashboard() {
                                                         <div>
                                                             <p className="font-medium text-gray-900 dark:text-white">{paramedic.name}</p>
                                                             <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                ${paramedic.hourly_rate}/hr • ${paramedic.daily_rate}/day
+                                                                {paramedic.hourly_rate}₪/hr • {paramedic.daily_rate}₪/day
                                                             </p>
                                                         </div>
                                                         <button
@@ -1411,7 +1386,7 @@ export default function TripPlannerDashboard() {
                                         </div>
 
                                         <div className="text-center mb-4">
-                                            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">${totalPrice.toFixed(2)}</p>
+                                            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{totalPrice.toFixed(2)}₪</p>
                                             <p className="text-sm text-gray-600 dark:text-gray-300">{t('plus_destination_fees')}</p>
                                         </div>
 
@@ -1540,7 +1515,7 @@ export default function TripPlannerDashboard() {
                                             <div className="border-t dark:border-slate-700 pt-2 mt-3">
                                                 <div className="flex justify-between font-semibold text-lg">
                                                     <span className="text-gray-900 dark:text-white">{t('checkout_total')}</span>
-                                                    <span className="text-emerald-600 dark:text-emerald-400">${totalPrice.toFixed(2)}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-400">{totalPrice.toFixed(2)}₪</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -1670,7 +1645,7 @@ export default function TripPlannerDashboard() {
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600 dark:text-gray-400">{t('total_paid')}:</span>
-                                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">${totalPrice.toFixed(2)}</span>
+                                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{totalPrice.toFixed(2)}₪</span>
                                                 </div>
                                             </div>
                                         </div>

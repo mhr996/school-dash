@@ -14,6 +14,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
+import { deleteFolderRecursively } from '@/utils/file-upload';
 
 interface EntertainmentCompany {
     id: string;
@@ -25,6 +26,29 @@ interface EntertainmentCompany {
     price?: number;
     status?: string;
 }
+
+// Helper function to get proper image URL
+const getImageUrl = (image: string | undefined): string => {
+    if (!image) return '/assets/images/img-placeholder-fallback.webp';
+
+    // If it's already a full URL (starts with http), return as is
+    if (image.startsWith('http')) return image;
+
+    // If it starts with /entertainment-companies/, it's an old relative path
+    if (image.startsWith('/entertainment-companies/')) {
+        const path = image.replace('/entertainment-companies/', '');
+        const {
+            data: { publicUrl },
+        } = supabase.storage.from('entertainment-companies').getPublicUrl(path);
+        return publicUrl;
+    }
+
+    // Otherwise assume it's a direct path in the bucket
+    const {
+        data: { publicUrl },
+    } = supabase.storage.from('entertainment-companies').getPublicUrl(image);
+    return publicUrl;
+};
 
 const EntertainmentCompaniesList = () => {
     const { t } = getTranslation();
@@ -105,9 +129,14 @@ const EntertainmentCompaniesList = () => {
 
     const deleteEntertainmentCompany = async (company: EntertainmentCompany) => {
         try {
+            // First delete the entertainment company record from database
             const { error } = await supabase.from('external_entertainment_companies').delete().eq('id', company.id);
 
             if (error) throw error;
+
+            // Then delete the associated folder from storage if it exists
+            // The folder name is just the company ID (same as destinations pattern)
+            await deleteFolderRecursively('entertainment-companies', company.id);
 
             setItems((prevItems) => prevItems.filter((item) => item.id !== company.id));
             setAlert({ visible: true, message: t('entertainment_company_deleted_successfully'), type: 'success' });
@@ -120,9 +149,21 @@ const EntertainmentCompaniesList = () => {
     const bulkDelete = async () => {
         try {
             const ids = selectedRecords.map((record) => record.id);
+
+            // First delete the entertainment company records from database
             const { error } = await supabase.from('external_entertainment_companies').delete().in('id', ids);
 
             if (error) throw error;
+
+            // Then attempt to delete storage folders for each entertainment company recursively
+            const results = await Promise.allSettled(ids.map((id) => deleteFolderRecursively('entertainment-companies', id)));
+            const failed = results
+                .map((r, i) => ({ r, id: ids[i] }))
+                .filter((x) => x.r.status === 'rejected' || (x.r.status === 'fulfilled' && x.r.value === false))
+                .map((x) => x.id);
+            if (failed.length > 0) {
+                console.warn('Failed to delete some storage folders:', failed);
+            }
 
             setItems((prevItems) => prevItems.filter((item) => !ids.includes(item.id)));
             setSelectedRecords([]);
@@ -200,11 +241,11 @@ const EntertainmentCompaniesList = () => {
                                 <div className="w-12 h-12">
                                     {image ? (
                                         <img
-                                            src={image}
+                                            src={getImageUrl(image)}
                                             alt={name}
                                             className="w-12 h-12 object-cover rounded-lg"
                                             onError={(e) => {
-                                                e.currentTarget.src = '/assets/images/placeholder.jpg';
+                                                e.currentTarget.src = '/assets/images/img-placeholder-fallback.webp';
                                             }}
                                         />
                                     ) : (
@@ -236,13 +277,7 @@ const EntertainmentCompaniesList = () => {
                             sortable: true,
                             render: ({ price }) => (
                                 <div className="text-sm">
-                                    {price ? (
-                                        <span className="badge badge-outline-success">
-                                            {price.toLocaleString()} {t('currency')}
-                                        </span>
-                                    ) : (
-                                        <span className="text-gray-400">{t('not_specified')}</span>
-                                    )}
+                                    {price ? <span className="badge badge-outline-success">{price.toLocaleString()} ₪</span> : <span className="text-gray-400">{t('not_specified')}</span>}
                                 </div>
                             ),
                         },

@@ -23,16 +23,17 @@ interface Booking {
     };
     trip_date: string;
     total_amount: number;
-    currency: string;
     payment_status: string;
     payment_method: string;
     status: string;
     created_at: string;
-    booking_services: Array<{
-        service_type: string;
-        service_name: string;
+    services: Array<{
+        type: string;
+        name: string;
         quantity: number;
-        total_cost: number;
+        cost: number;
+        days?: number;
+        hours?: number;
     }>;
 }
 
@@ -70,13 +71,7 @@ const BookingsList = () => {
                     .select(
                         `
                         *,
-                        destination:destinations(name, address),
-                        booking_services(
-                            service_type,
-                            service_name,
-                            quantity,
-                            total_cost
-                        )
+                        destination:destinations(name, address)
                     `,
                     )
                     .order('created_at', { ascending: false });
@@ -153,11 +148,8 @@ const BookingsList = () => {
         }
     };
 
-    const formatCurrency = (amount: number, currency: string) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency || 'USD',
-        }).format(amount);
+    const formatCurrency = (amount: number) => {
+        return `${amount.toFixed(2)} ₪`;
     };
 
     return (
@@ -218,7 +210,7 @@ const BookingsList = () => {
                             accessor: 'total_amount',
                             title: t('total_amount'),
                             sortable: true,
-                            render: ({ total_amount, currency }) => <span className="font-semibold text-success">{formatCurrency(total_amount, currency)}</span>,
+                            render: ({ total_amount }) => <span className="font-semibold text-success">{formatCurrency(total_amount)}</span>,
                         },
                         {
                             accessor: 'status',
@@ -230,7 +222,7 @@ const BookingsList = () => {
                                 </span>
                             ),
                         },
-                   
+
                         {
                             accessor: 'created_at',
                             title: t('created_at'),

@@ -23,6 +23,29 @@ interface EntertainmentCompany {
     status?: string;
 }
 
+// Helper function to get proper image URL
+const getImageUrl = (image: string | undefined, supabase: any): string => {
+    if (!image) return '/assets/images/img-placeholder-fallback.webp';
+
+    // If it's already a full URL (starts with http), return as is
+    if (image.startsWith('http')) return image;
+
+    // If it starts with /entertainment-companies/, it's an old relative path
+    if (image.startsWith('/entertainment-companies/')) {
+        const path = image.replace('/entertainment-companies/', '');
+        const {
+            data: { publicUrl },
+        } = supabase.storage.from('entertainment-companies').getPublicUrl(path);
+        return publicUrl;
+    }
+
+    // Otherwise assume it's a direct path in the bucket
+    const {
+        data: { publicUrl },
+    } = supabase.storage.from('entertainment-companies').getPublicUrl(image);
+    return publicUrl;
+};
+
 const EntertainmentCompanyPreview = () => {
     const { t } = getTranslation();
     const params = useParams();
@@ -130,6 +153,26 @@ const EntertainmentCompanyPreview = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Information */}
                 <div className="lg:col-span-2 space-y-6">
+                    {/* Company Image */}
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h3 className="text-lg font-semibold">{t('image')}</h3>
+                        </div>
+                        <div className="flex justify-center">
+                            <div className="w-full max-w-md">
+                                <img
+                                    src={getImageUrl(company.image, supabase)}
+                                    alt={company.name}
+                                    className="w-full h-64 object-cover rounded-lg shadow-md"
+                                    onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = '/assets/images/img-placeholder-fallback.webp';
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Basic Information */}
                     <div className="panel">
                         <div className="mb-5">
@@ -144,9 +187,7 @@ const EntertainmentCompanyPreview = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('price')}</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                        {company.price != null ? `${company.price.toLocaleString()} ${t('currency')}` : t('not_specified')}
-                                    </div>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.price != null ? `${company.price.toLocaleString()} ₪` : t('not_specified')}</div>
                                 </div>
                             </div>
 

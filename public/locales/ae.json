@@ -1776,5 +1776,7 @@
     "booking_created": "تم إنشاء الحجز",
     "locale": "ar-SY",
     "bookings_management": "إدارة الحجوزات",
-    "booking_reference": "معرف الحجز"
+    "booking_reference": "معرف الحجز",
+    "payment_status": "حالة الدفع",
+    "selected_file": "الملف المحدد"
 }

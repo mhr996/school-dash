@@ -1425,5 +1425,7 @@
     "booking_created": "הזמנה נוצרה",
     "locale": "he-IL",
     "bookings_management": "ניהול הזמנות",
-    "booking_reference": "מס' הזמנה"
+    "booking_reference": "מס' הזמנה",
+    "payment_status": "סטטוס תשלום",
+    "selected_file": "קובץ נבחר"
 }

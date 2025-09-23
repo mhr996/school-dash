@@ -1391,5 +1391,7 @@
     "checkout_bank_transfer": "Bank Transfer",
     "bookings_management": "Bookings Management",
     "booking_reference": "Booking Reference",
-    "total_amount": "Total Amount"
+    "total_amount": "Total Amount",
+    "payment_status": "Payment Status",
+    "selected_file": "Selected File"
 }

@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import supabase from '@/lib/supabase';
 import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
-import ImageUpload from '@/components/image-upload/image-upload';
 import { getTranslation } from '@/i18n';
 import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 
@@ -36,8 +35,11 @@ export default function AddEntertainmentCompany() {
         type: 'success',
     });
 
-    // Unique temporary folder for this creation session to avoid deleting other images
-    const [uploadFolder] = useState(() => `entertainment-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
+    // Store the image file to upload after database creation
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    // Store the created company ID for image upload
+    const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
 
     const statusOptions = [
         { value: 'active', label: t('active') },
@@ -63,9 +65,47 @@ export default function AddEntertainmentCompany() {
         setIsLoading(true);
 
         try {
-            const { error } = await supabase.from('external_entertainment_companies').insert([formData]);
+            // 1) Create base record to get ID
+            const basePayload = {
+                name: formData.name.trim(),
+                description: formData.description.trim() || null,
+                price: formData.price,
+                status: formData.status,
+            };
 
-            if (error) throw error;
+            const { data: created, error: insertError } = await supabase.from('external_entertainment_companies').insert([basePayload]).select().single();
+
+            if (insertError) throw insertError;
+
+            const companyId = created.id as string;
+            setCreatedCompanyId(companyId);
+
+            // 2) Upload image if any, then update the record
+            let imagePath: string | null = null;
+
+            if (imageFile) {
+                const ext = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
+                const path = `${companyId}/avatar_${Date.now()}.${ext}`;
+
+                const { error: uploadError } = await supabase.storage.from('entertainment-companies').upload(path, imageFile, {
+                    cacheControl: '3600',
+                    upsert: true,
+                });
+
+                if (uploadError) throw uploadError;
+
+                // Get the public URL from Supabase storage
+                const {
+                    data: { publicUrl },
+                } = supabase.storage.from('entertainment-companies').getPublicUrl(path);
+
+                imagePath = publicUrl;
+
+                // Update the record with the image path
+                const { error: updateError } = await supabase.from('external_entertainment_companies').update({ image: imagePath }).eq('id', companyId);
+
+                if (updateError) throw updateError;
+            }
 
             setAlert({ visible: true, message: t('entertainment_company_added_successfully'), type: 'success' });
 
@@ -124,17 +164,82 @@ export default function AddEntertainmentCompany() {
 
                         <div>
                             <label htmlFor="image" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('image_url')}
+                                {t('image')}
                             </label>
-                            <div className="flex items-center gap-4">
-                                <ImageUpload
-                                    bucket="products"
-                                    userId={uploadFolder}
-                                    url={formData.image || null}
-                                    onUploadComplete={(url) => setFormData((prev) => ({ ...prev, image: url }))}
-                                    onError={(error) => setAlert({ visible: true, message: error, type: 'danger' })}
-                                />
+
+                            <div className="mb-1 flex gap-4 w-full">
+                                {/* File Input */}
+                                <div className="relative w-[250px]">
+                                    <input
+                                        type="file"
+                                        id="image"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                setImageFile(file);
+
+                                                // Create preview
+                                                const reader = new FileReader();
+                                                reader.onloadend = () => {
+                                                    setImagePreview(reader.result as string);
+                                                };
+                                                reader.readAsDataURL(file);
+                                            }
+                                        }}
+                                        className="sr-only"
+                                    />
+                                    <label
+                                        htmlFor="image"
+                                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-800"
+                                    >
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                                <path
+                                                    stroke="currentColor"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                    d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                                                />
+                                            </svg>
+                                            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                                <span className="font-semibold">{t('click_to_upload')}</span>
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB</p>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                {/* Image Preview */}
+                                {imagePreview && (
+                                    <div className="mb-4">
+                                        <div className="relative inline-block">
+                                            <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg border border-gray-300 shadow-sm" />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setImageFile(null);
+                                                    setImagePreview(null);
+                                                    // Reset the file input
+                                                    const input = document.getElementById('image') as HTMLInputElement;
+                                                    if (input) input.value = '';
+                                                }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+                            {imageFile && (
+                                <div className="mt-2">
+                                    <p className="text-sm text-green-600">
+                                        ✓ {t('selected_file')}: {imageFile.name}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
