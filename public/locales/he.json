@@ -1427,5 +1427,14 @@
     "bookings_management": "ניהול הזמנות",
     "booking_reference": "מס' הזמנה",
     "payment_status": "סטטוס תשלום",
-    "selected_file": "קובץ נבחר"
+    "selected_file": "קובץ נבחר",
+    "edit_booking": "עריכת הזמנה",
+    "booking_updated_successfully": "ההזמנה עודכנה בהצלחה",
+    "error_updating_booking": "שגיאה בעדכון הזמנה",
+    "error_loading_booking": "שגיאה בטעינת הזמנה",
+    "service_total": "סה\"כ שירות",
+    "service_type": "סוג שירות",
+    "select_service": "בחר שירות",
+    "remove_service": "הסר שירות",
+    "trip_details": "פרטי הטיול"
 }

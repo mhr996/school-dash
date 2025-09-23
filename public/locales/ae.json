@@ -1778,5 +1778,14 @@
     "bookings_management": "إدارة الحجوزات",
     "booking_reference": "معرف الحجز",
     "payment_status": "حالة الدفع",
-    "selected_file": "الملف المحدد"
+    "selected_file": "الملف المحدد",
+    "edit_booking": "تعديل الحجز",
+    "booking_updated_successfully": "تم تحديث الحجز بنجاح",
+    "error_updating_booking": "خطأ في تحديث الحجز",
+    "error_loading_booking": "خطأ في تحميل الحجز",
+    "service_total": "إجمالي الخدمة",
+    "service_type": "نوع الخدمة",
+    "select_service": "اختر الخدمة",
+    "remove_service": "إزالة الخدمة",
+    "trip_details": "تفاصيل الرحلة"
 }

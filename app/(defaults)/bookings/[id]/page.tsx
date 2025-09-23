@@ -16,6 +16,7 @@ import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconHeart from '@/components/icon/icon-heart';
 import IconLock from '@/components/icon/icon-lock';
 import IconStar from '@/components/icon/icon-star';
+import IconEdit from '@/components/icon/icon-edit';
 
 interface BookingDetails {
     id: string;
@@ -175,17 +176,23 @@ export default function BookingDetailsPage() {
             <div className="container mx-auto">
                 {/* Header */}
                 <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-                    <div className="flex items-center gap-4 mb-4">
-                        <Link
-                            href="/bookings"
-                            className="p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-lg border border-white/30 dark:border-slate-700/40 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300"
-                        >
-                            <IconArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 ltr:rotate-180" />
-                        </Link>
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('booking_details')}</h1>
-                            <p className="text-gray-600 dark:text-gray-400 font-mono">{booking.booking_reference}</p>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                            <Link
+                                href="/bookings"
+                                className="p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-lg border border-white/30 dark:border-slate-700/40 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300"
+                            >
+                                <IconArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 ltr:rotate-180" />
+                            </Link>
+                            <div>
+                                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('booking_details')}</h1>
+                                <p className="text-gray-600 dark:text-gray-400 font-mono">{booking.booking_reference}</p>
+                            </div>
                         </div>
+                        <Link href={`/bookings/edit/${booking.id}`} className="btn btn-primary flex items-center gap-2">
+                            <IconEdit className="w-4 h-4" />
+                            {t('edit_booking')}
+                        </Link>
                     </div>
                     <div className="flex items-center gap-3">
                         {getStatusBadge(booking.status)}

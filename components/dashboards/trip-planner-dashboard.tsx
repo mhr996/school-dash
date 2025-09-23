@@ -67,6 +67,8 @@ type SecurityCompany = {
     name: string;
     phone?: string | null;
     email?: string | null;
+    hourly_rate: number;
+    daily_rate: number;
     status: string;
 };
 
@@ -220,8 +222,8 @@ export default function TripPlannerDashboard() {
                 supabase.from('paramedics').select('id, name, phone, email, hourly_rate, daily_rate, status').eq('status', 'active'),
                 // Guides: id, name, phone, email, hourly_rate, daily_rate, status
                 supabase.from('guides').select('id, name, phone, email, hourly_rate, daily_rate, status').eq('status', 'active'),
-                // Security companies: id, name, phone, email, status (no hourly/daily rates in schema)
-                supabase.from('security_companies').select('id, name, phone, email, status').eq('status', 'active'),
+                // Security companies: id, name, phone, email, hourly_rate, daily_rate, status
+                supabase.from('security_companies').select('id, name, phone, email, hourly_rate, daily_rate, status').eq('status', 'active'),
                 // Entertainment companies: id, name, price, description, status
                 supabase.from('external_entertainment_companies').select('id, name, price, description, status').eq('status', 'active'),
             ]);
@@ -284,9 +286,11 @@ export default function TripPlannerDashboard() {
                 case 'security_companies':
                     const security = securityCompanies.find((s) => s.id === req.id);
                     if (security) {
-                        // Security companies don't have hourly/daily rates in the schema
-                        // Use a fixed rate for now
-                        itemPrice = 100 * (req.days || 1) * req.quantity; // Fixed daily rate of $100
+                        if (req.rate_type === 'hourly') {
+                            itemPrice = security.hourly_rate * (req.hours || 1) * req.quantity;
+                        } else {
+                            itemPrice = security.daily_rate * (req.days || 1) * req.quantity;
+                        }
                     }
                     break;
                 case 'external_entertainment_companies':
@@ -351,7 +355,7 @@ export default function TripPlannerDashboard() {
             // Remove if already selected
             setSelectedRequirements((prev) => prev.filter((req) => !(req.type === 'security_companies' && req.id === security.id)));
         } else {
-            // Add new selection with fixed daily rate
+            // Add new selection with actual daily rate
             setSelectedRequirements((prev) => [
                 ...prev,
                 {
@@ -360,7 +364,7 @@ export default function TripPlannerDashboard() {
                     name: security.name,
                     quantity: 1,
                     rate_type: 'daily',
-                    cost: 100, // Fixed daily rate since not in schema
+                    cost: security.daily_rate,
                     days: 1,
                 },
             ]);
@@ -461,29 +465,70 @@ export default function TripPlannerDashboard() {
     };
 
     const handlePaymentSubmit = async () => {
+        // Prevent multiple submissions
+        if (isProcessingPayment) {
+            console.log('Payment already in progress, ignoring duplicate submission');
+            return;
+        }
+
         setIsProcessingPayment(true);
 
         try {
-            // Create booking record with services stored as JSON
+            console.log('Starting booking creation process...');
+            // Generate unique booking reference to prevent collisions (max 10 characters)
+            const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+            const random = Math.floor(Math.random() * 100)
+                .toString()
+                .padStart(2, '0');
+            const uniqueBookingRef = `BK${timestamp}${random}`; // BK + 6 digits + 2 digits = 10 characters
+            console.log('Generated booking reference:', uniqueBookingRef);
+
+            // Create booking record without services (using normalized approach)
             const bookingData = {
+                booking_reference: uniqueBookingRef,
                 destination_id: selectedForPlanning?.id,
                 trip_date: selectedDate?.toISOString().split('T')[0],
                 total_amount: totalPrice,
                 payment_status: 'paid',
                 payment_method: 'bank_transfer',
-                status: 'confirmed',
+                status: 'pending',
                 customer_name: 'Customer Name', // TODO: Get from user profile
                 customer_email: 'customer@example.com', // TODO: Get from user profile
                 customer_phone: '+1234567890', // TODO: Get from user profile
-                services: selectedRequirements, // Store all selected services as JSON
                 notes: 'Booking created via trip planner',
             };
 
+            console.log('Creating booking with data:', bookingData);
             const { data: booking, error: bookingError } = await supabase.from('bookings').insert([bookingData]).select().single();
 
             if (bookingError) {
                 console.error('Error creating booking:', bookingError);
+                setIsProcessingPayment(false); // Reset processing state on error
                 throw bookingError;
+            }
+
+            console.log('Booking created successfully:', booking);
+
+            // Create individual service records in booking_services table
+            if (selectedRequirements.length > 0) {
+                const serviceRecords = selectedRequirements.map((requirement) => ({
+                    booking_id: booking.id,
+                    service_type: requirement.type,
+                    service_id: requirement.id,
+                    quantity: requirement.quantity,
+                    days: requirement.days || 1,
+                    booked_price: requirement.cost,
+                    rate_type: requirement.rate_type || 'fixed',
+                }));
+
+                const { error: servicesError } = await supabase.from('booking_services').insert(serviceRecords);
+
+                if (servicesError) {
+                    console.error('Error creating service records:', servicesError);
+                    throw servicesError;
+                }
+
+                console.log('Successfully created booking services:', serviceRecords);
             }
 
             // Store booking reference for success display
@@ -1568,9 +1613,14 @@ export default function TripPlannerDashboard() {
 
                                     {/* Submit Button */}
                                     <motion.button
+                                        type="button"
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={handlePaymentSubmit}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handlePaymentSubmit();
+                                        }}
                                         disabled={isProcessingPayment}
                                         className="w-full bg-gradient-to-r from-emerald-500 to-blue-500 hover:from-emerald-600 hover:to-blue-600 text-white font-semibold py-4 rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >

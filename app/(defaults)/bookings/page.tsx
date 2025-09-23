@@ -5,6 +5,7 @@ import supabase from '@/lib/supabase';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
 import { sortBy } from 'lodash';
 import IconEye from '@/components/icon/icon-eye';
+import IconEdit from '@/components/icon/icon-edit';
 import IconSearch from '@/components/icon/icon-search';
 import IconCalendar from '@/components/icon/icon-calendar';
 import Link from 'next/link';
@@ -237,6 +238,9 @@ const BookingsList = () => {
                                 <div className="flex items-center justify-center gap-2">
                                     <Link href={`/bookings/${booking.id}`} className="hover:text-info">
                                         <IconEye />
+                                    </Link>
+                                    <Link href={`/bookings/edit/${booking.id}`} className="hover:text-success">
+                                        <IconEdit />
                                     </Link>
                                 </div>
                             ),

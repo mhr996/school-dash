@@ -1393,5 +1393,13 @@
     "booking_reference": "Booking Reference",
     "total_amount": "Total Amount",
     "payment_status": "Payment Status",
-    "selected_file": "Selected File"
+    "selected_file": "Selected File",
+    "edit_booking": "Edit Booking",
+    "booking_updated_successfully": "Booking updated successfully",
+    "error_updating_booking": "Error updating booking",
+    "error_loading_booking": "Error loading booking",
+    "service_total": "Service Total",
+    "service_type": "Service Type",
+    "select_service": "Select Service",
+    "remove_service": "Remove Service"
 }
