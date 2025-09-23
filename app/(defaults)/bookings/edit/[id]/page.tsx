@@ -89,7 +89,6 @@ export default function EditBooking() {
         { value: 'pending', label: t('pending') },
         { value: 'confirmed', label: t('confirmed') },
         { value: 'cancelled', label: t('cancelled') },
-        { value: 'completed', label: t('completed') },
     ];
 
     // Payment status options
@@ -648,84 +647,43 @@ export default function EditBooking() {
                                         </div>
                                     )}
 
-                                    {/* Paramedics Section */}
-                                    {booking.services?.some((s) => s.type === 'paramedics') && (
-                                        <div>
-                                            <h4 className="text-md font-medium mb-3 flex items-center gap-2">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                                    {t('paramedics')}
-                                                </span>
-                                            </h4>
-                                            <div className="space-y-3">
-                                                {booking.services
-                                                    ?.filter((service) => service.type === 'paramedics')
-                                                    .map((service, index) => {
-                                                        const originalIndex = booking.services?.findIndex((s) => s === service) ?? -1;
-                                                        return (
-                                                            <div key={originalIndex} className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium mb-1">{t('select_paramedic')}</label>
-                                                                        {serviceData.paramedics.length > 0 ? (
-                                                                            <CustomSelect
-                                                                                options={serviceData.paramedics.map((paramedic) => ({
-                                                                                    value: String(paramedic.id),
-                                                                                    label: paramedic.name,
-                                                                                }))}
-                                                                                value={String(service.id)}
-                                                                                onChange={(value) => handleServiceSelectionChange(originalIndex, Array.isArray(value) ? value[0] : value)}
-                                                                                placeholder={t('select_paramedic')}
-                                                                            />
-                                                                        ) : (
-                                                                            <input
-                                                                                type="text"
-                                                                                value={service.name}
-                                                                                onChange={(e) => handleServiceChange(originalIndex, 'name', e.target.value)}
-                                                                                className="form-input"
-                                                                                placeholder={t('enter_paramedic_name')}
-                                                                            />
-                                                                        )}
-                                                                    </div>
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium mb-1">{t('cost')} (₪)</label>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="0"
-                                                                            step="0.01"
-                                                                            value={service.cost}
-                                                                            onChange={(e) => handleServiceChange(originalIndex, 'cost', e.target.value)}
-                                                                            className="form-input"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                                                    {t('service_total')}: {service.cost.toLocaleString()} ₪
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                            </div>
-                                        </div>
-                                    )}
+                                 
 
                                     {/* Security Companies Section */}
                                     {booking.services?.some((s) => s.type === 'security_companies') && (
                                         <div>
-                                            <h4 className="text-md font-medium mb-3 flex items-center gap-2">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                                    {t('security_companies')}
+                                            <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                                                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-900/50 dark:to-yellow-900/50 border border-amber-200 dark:border-amber-700/50">
+                                                    <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-gray-900 dark:text-white">{t('security_companies')}</span>
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
+                                                    {booking.services?.filter((s) => s.type === 'security_companies').length} {t('selected')}
                                                 </span>
                                             </h4>
-                                            <div className="space-y-3">
+                                            <div className="space-y-4">
                                                 {booking.services
                                                     ?.filter((service) => service.type === 'security_companies')
                                                     .map((service, index) => {
                                                         const originalIndex = booking.services?.findIndex((s) => s === service) ?? -1;
                                                         return (
-                                                            <div key={originalIndex} className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium mb-1">{t('select_security_company')}</label>
+                                                            <div
+                                                                key={originalIndex}
+                                                                className="relative group bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-200 dark:border-amber-700/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-amber-300 dark:hover:border-amber-600 hover:scale-[1.02]"
+                                                            >
+                                                              
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                                    <div className="space-y-4">
+                                                                        <label className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-4">
+                
+                                                                            {t('select_security_company')}
+                                                                        </label>
                                                                         {serviceData.security_companies.length > 0 ? (
                                                                             <CustomSelect
                                                                                 options={serviceData.security_companies.map((security) => ({
@@ -746,20 +704,36 @@ export default function EditBooking() {
                                                                             />
                                                                         )}
                                                                     </div>
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium mb-1">{t('cost')} (₪)</label>
+                                                                    <div className="space-y-[9px]">
+                                                                        <label className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
+                                                                          
+                                                                            {t('cost')} (₪)
+                                                                        </label>
                                                                         <input
                                                                             type="number"
                                                                             min="0"
                                                                             step="0.01"
                                                                             value={service.cost}
                                                                             onChange={(e) => handleServiceChange(originalIndex, 'cost', e.target.value)}
-                                                                            className="form-input"
+                                                                            className="form-input rounded-lg border-amber-200 dark:border-amber-700 focus:border-amber-500 focus:ring-amber-200 dark:focus:ring-amber-800"
+                                                                            placeholder="0.00"
                                                                         />
                                                                     </div>
                                                                 </div>
-                                                                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                                                    {t('service_total')}: {service.cost.toLocaleString()} ₪
+                                                                <div className="mt-4 p-4 bg-gradient-to-r from-amber-100/50 to-yellow-100/50 dark:from-amber-900/30 dark:to-yellow-900/30 rounded-lg border border-amber-200/50 dark:border-amber-700/50">
+                                                                    <div className="flex items-center justify-between text-sm">
+                                                                        <span className="font-medium text-amber-800 dark:text-amber-300 flex items-center gap-2">
+                                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path
+                                                                                    fillRule="evenodd"
+                                                                                    d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                                                                    clipRule="evenodd"
+                                                                                />
+                                                                            </svg>
+                                                                            {t('service_total')}
+                                                                        </span>
+                                                                        <span className="font-bold text-amber-900 dark:text-amber-100">{service.cost.toLocaleString()} ₪</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         );
@@ -771,21 +745,38 @@ export default function EditBooking() {
                                     {/* Entertainment Companies Section */}
                                     {booking.services?.some((s) => s.type === 'external_entertainment_companies') && (
                                         <div>
-                                            <h4 className="text-md font-medium mb-3 flex items-center gap-2">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                                    {t('external_entertainment_companies')}
+                                            <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                                                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/50 dark:to-pink-900/50 border border-purple-200 dark:border-purple-700/50">
+                                                    <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-gray-900 dark:text-white">{t('external_entertainment_companies')}</span>
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300 border border-purple-200 dark:border-purple-700">
+                                                    {booking.services?.filter((s) => s.type === 'external_entertainment_companies').length} {t('selected')}
                                                 </span>
                                             </h4>
-                                            <div className="space-y-3">
+                                            <div className="space-y-4">
                                                 {booking.services
                                                     ?.filter((service) => service.type === 'external_entertainment_companies')
                                                     .map((service, index) => {
                                                         const originalIndex = booking.services?.findIndex((s) => s === service) ?? -1;
                                                         return (
-                                                            <div key={originalIndex} className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium mb-1">{t('select_entertainment_company')}</label>
+                                                            <div
+                                                                key={originalIndex}
+                                                                className="relative group bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-700/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-purple-300 dark:hover:border-purple-600 hover:scale-[1.02]"
+                                                            >
+                                                               
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                                    <div className="space-y-3">
+                                                                        <label className="text-sm font-semibold text-purple-800 dark:text-purple-300 mb-2 flex items-center gap-2">
+                                                                           
+                                                                            {t('select_entertainment_company')}
+                                                                        </label>
                                                                         {serviceData.external_entertainment_companies.length > 0 ? (
                                                                             <CustomSelect
                                                                                 options={serviceData.external_entertainment_companies.map((entertainment) => ({
@@ -806,20 +797,129 @@ export default function EditBooking() {
                                                                             />
                                                                         )}
                                                                     </div>
-                                                                    <div>
-                                                                        <label className="block text-sm font-medium mb-1">{t('cost')} (₪)</label>
+                                                                    <div className="space-y-[5px]">
+                                                                        <label className="text-sm font-semibold text-purple-800 dark:text-purple-300 mb-2 flex items-center gap-2">
+                                                                          
+                                                                            {t('cost')} (₪)
+                                                                        </label>
                                                                         <input
                                                                             type="number"
                                                                             min="0"
                                                                             step="0.01"
                                                                             value={service.cost}
                                                                             onChange={(e) => handleServiceChange(originalIndex, 'cost', e.target.value)}
-                                                                            className="form-input"
+                                                                            className="form-input rounded-lg border-purple-200 dark:border-purple-700 focus:border-purple-500 focus:ring-purple-200 dark:focus:ring-purple-800"
+                                                                            placeholder="0.00"
                                                                         />
                                                                     </div>
                                                                 </div>
-                                                                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                                                    {t('service_total')}: {service.cost.toLocaleString()} ₪
+                                                                <div className="mt-4 p-4 bg-gradient-to-r from-purple-100/50 to-pink-100/50 dark:from-purple-900/30 dark:to-pink-900/30 rounded-lg border border-purple-200/50 dark:border-purple-700/50">
+                                                                    <div className="flex items-center justify-between text-sm">
+                                                                        <span className="font-medium text-purple-800 dark:text-purple-300 flex items-center gap-2">
+                                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path
+                                                                                    fillRule="evenodd"
+                                                                                    d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                                                                    clipRule="evenodd"
+                                                                                />
+                                                                            </svg>
+                                                                            {t('service_total')}
+                                                                        </span>
+                                                                        <span className="font-bold text-purple-900 dark:text-purple-100">{service.cost.toLocaleString()} ₪</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Paramedics Section */}
+                                    {booking.services?.some((s) => s.type === 'paramedics') && (
+                                        <div>
+                                            <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3">
+                                                <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-red-100 to-rose-100 dark:from-red-900/50 dark:to-rose-900/50 border border-red-200 dark:border-red-700/50">
+                                                    <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm8 0a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1V8z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-gray-900 dark:text-white">{t('paramedics')}</span>
+                                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 border border-red-200 dark:border-red-700">
+                                                    {booking.services?.filter((s) => s.type === 'paramedics').length} {t('selected')}
+                                                </span>
+                                            </h4>
+                                            <div className="space-y-4">
+                                                {booking.services
+                                                    ?.filter((service) => service.type === 'paramedics')
+                                                    .map((service, index) => {
+                                                        const originalIndex = booking.services?.findIndex((s) => s === service) ?? -1;
+                                                        return (
+                                                            <div
+                                                                key={originalIndex}
+                                                                className="relative group bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-2 border-red-200 dark:border-red-700/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-red-300 dark:hover:border-red-600 hover:scale-[1.02]"
+                                                            >
+                                                            
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                                    <div className="space-y-3">
+                                                                        <label className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2 flex items-center gap-2">
+                                                                          
+                                                                            {t('select_paramedic')}
+                                                                        </label>
+                                                                        {serviceData.paramedics.length > 0 ? (
+                                                                            <CustomSelect
+                                                                                options={serviceData.paramedics.map((paramedic) => ({
+                                                                                    value: String(paramedic.id),
+                                                                                    label: paramedic.name,
+                                                                                }))}
+                                                                                value={String(service.id)}
+                                                                                onChange={(value) => handleServiceSelectionChange(originalIndex, Array.isArray(value) ? value[0] : value)}
+                                                                                placeholder={t('select_paramedic')}
+                                                                            />
+                                                                        ) : (
+                                                                            <input
+                                                                                type="text"
+                                                                                value={service.name}
+                                                                                onChange={(e) => handleServiceChange(originalIndex, 'name', e.target.value)}
+                                                                                className="form-input"
+                                                                                placeholder={t('enter_paramedic_name')}
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="space-y-[5px]">
+                                                                        <label className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2 flex items-center gap-2">
+                                                                           
+                                                                            {t('cost')} (₪)
+                                                                        </label>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            step="0.01"
+                                                                            value={service.cost}
+                                                                            onChange={(e) => handleServiceChange(originalIndex, 'cost', e.target.value)}
+                                                                            className="form-input rounded-lg border-red-200 dark:border-red-700 focus:border-red-500 focus:ring-red-200 dark:focus:ring-red-800"
+                                                                            placeholder="0.00"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                                <div className="mt-4 p-4 bg-gradient-to-r from-red-100/50 to-rose-100/50 dark:from-red-900/30 dark:to-rose-900/30 rounded-lg border border-red-200/50 dark:border-red-700/50">
+                                                                    <div className="flex items-center justify-between text-sm">
+                                                                        <span className="font-medium text-red-800 dark:text-red-300 flex items-center gap-2">
+                                                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                                                <path
+                                                                                    fillRule="evenodd"
+                                                                                    d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"
+                                                                                    clipRule="evenodd"
+                                                                                />
+                                                                            </svg>
+                                                                            {t('service_total')}
+                                                                        </span>
+                                                                        <span className="font-bold text-red-900 dark:text-red-100">{service.cost.toLocaleString()} ₪</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         );
@@ -833,7 +933,7 @@ export default function EditBooking() {
                             )}
                         </div>
                         <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                            <div className="text-lg font-semibold text-right">
+                            <div className="text-lg font-semibold text-right text-green-500">
                                 {t('total_amount')}: {calculateTotalAmount().toLocaleString()} ₪
                             </div>
                         </div>
