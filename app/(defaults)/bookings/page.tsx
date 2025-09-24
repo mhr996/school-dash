@@ -1,15 +1,18 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { getTranslation } from '@/i18n';
-import supabase from '@/lib/supabase';
-import { DataTableSortStatus, DataTable } from 'mantine-datatable';
-import { sortBy } from 'lodash';
-import IconEye from '@/components/icon/icon-eye';
 import IconEdit from '@/components/icon/icon-edit';
-import IconSearch from '@/components/icon/icon-search';
+import IconEye from '@/components/icon/icon-eye';
+import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconCalendar from '@/components/icon/icon-calendar';
+import IconSearch from '@/components/icon/icon-search';
+import { sortBy } from 'lodash';
+import { DataTableSortStatus, DataTable } from 'mantine-datatable';
 import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
+import supabase from '@/lib/supabase';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import ConfirmModal from '@/components/modals/confirm-modal';
+import { getTranslation } from '@/i18n';
+import { useRouter } from 'next/navigation';
 
 interface Booking {
     id: string;
@@ -40,6 +43,7 @@ interface Booking {
 
 const BookingsList = () => {
     const { t } = getTranslation();
+    const router = useRouter();
     const [items, setItems] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -57,7 +61,10 @@ const BookingsList = () => {
         direction: 'desc',
     });
 
-    // Alert states
+    // Modal and alert states
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null);
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
         message: '',
@@ -153,15 +160,74 @@ const BookingsList = () => {
         return `${amount.toFixed(2)} ₪`;
     };
 
+    const deleteBooking = async (booking: Booking) => {
+        try {
+            // Delete related booking services first (if any)
+            const { error: servicesError } = await supabase.from('booking_services').delete().eq('booking_id', booking.id);
+
+            if (servicesError) throw servicesError;
+
+            // Delete booking
+            const { error } = await supabase.from('bookings').delete().eq('id', booking.id);
+
+            if (error) throw error;
+
+            setItems((prevItems) => prevItems.filter((item) => item.id !== booking.id));
+            setAlert({ visible: true, message: t('booking_deleted_successfully'), type: 'success' });
+        } catch (error) {
+            console.error('Error deleting booking:', error);
+            setAlert({ visible: true, message: t('error_deleting_booking'), type: 'danger' });
+        }
+    };
+
+    const bulkDelete = async () => {
+        try {
+            const ids = selectedRecords.map((record) => record.id);
+
+            // Delete related booking services first (if any)
+            const { error: servicesError } = await supabase.from('booking_services').delete().in('booking_id', ids);
+
+            if (servicesError) throw servicesError;
+
+            // Delete bookings
+            const { error } = await supabase.from('bookings').delete().in('id', ids);
+
+            if (error) throw error;
+
+            setItems((prevItems) => prevItems.filter((item) => !ids.includes(item.id)));
+            setSelectedRecords([]);
+            setAlert({ visible: true, message: t('bookings_deleted_successfully'), type: 'success' });
+        } catch (error) {
+            console.error('Error bulk deleting bookings:', error);
+            setAlert({ visible: true, message: t('error_deleting_bookings'), type: 'danger' });
+        }
+    };
+
+    const confirmDelete = (booking: Booking) => {
+        setBookingToDelete(booking);
+        setShowConfirmModal(true);
+    };
+
+    const confirmBulkDelete = () => {
+        setShowBulkDeleteModal(true);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (bookingToDelete) {
+            await deleteBooking(bookingToDelete);
+            setBookingToDelete(null);
+        }
+        setShowConfirmModal(false);
+    };
+
+    const handleBulkDeleteConfirm = async () => {
+        await bulkDelete();
+        setShowBulkDeleteModal(false);
+    };
+
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
-            {/* Header */}
-            <div className="mb-5 flex flex-col gap-5 px-5 md:items-start">
-                <div className="flex items-center gap-2">
-                    <IconCalendar className="h-6 w-6 text-primary" />
-                    <h2 className="text-xl font-bold dark:text-white">{t('bookings_management')}</h2>
-                </div>
-            </div>
+            <h5 className="mb-5 px-5 text-lg font-semibold dark:text-white-light">{t('bookings')}</h5>
 
             {/* Search and Actions */}
             <div className="mb-4.5 flex flex-col gap-4 px-5 md:flex-row md:items-center md:justify-between">
@@ -170,6 +236,14 @@ const BookingsList = () => {
                         <input type="text" className="form-input ltr:pl-9 rtl:pr-9" placeholder={t('search')} value={search} onChange={(e) => setSearch(e.target.value)} />
                         <IconSearch className="absolute top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 ltr:left-3 rtl:right-3" />
                     </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    {selectedRecords.length > 0 && (
+                        <button type="button" className="btn btn-danger gap-2" onClick={confirmBulkDelete}>
+                            <IconTrashLines />
+                            {t('delete_selected')} ({selectedRecords.length})
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -265,6 +339,30 @@ const BookingsList = () => {
 
                 {loading && <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-black-dark-light bg-opacity-60 backdrop-blur-sm" />}
             </div>
+
+            <ConfirmModal
+                isOpen={showConfirmModal}
+                title={t('confirm_delete')}
+                message={t('confirm_delete_booking_message')}
+                onConfirm={handleDeleteConfirm}
+                onCancel={() => {
+                    setShowConfirmModal(false);
+                    setBookingToDelete(null);
+                }}
+                confirmLabel={t('delete')}
+                cancelLabel={t('cancel')}
+            />
+
+            {/* Bulk Delete Modal */}
+            <ConfirmModal
+                isOpen={showBulkDeleteModal}
+                title={t('confirm_bulk_delete')}
+                message={`${t('confirm_bulk_delete_bookings_message')} (${selectedRecords.length})`}
+                onConfirm={handleBulkDeleteConfirm}
+                onCancel={() => setShowBulkDeleteModal(false)}
+                confirmLabel={t('delete_all')}
+                cancelLabel={t('cancel')}
+            />
 
             {/* Alerts */}
             {alert.visible && (

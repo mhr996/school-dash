@@ -12,6 +12,7 @@ import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
+import { generateTaxInvoiceForBooking, checkExistingTaxInvoice } from '@/utils/bill-generator';
 
 interface BookingEditData {
     id: string;
@@ -67,6 +68,7 @@ export default function EditBooking() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [booking, setBooking] = useState<BookingEditData | null>(null);
+    const [originalBookingStatus, setOriginalBookingStatus] = useState<string>(''); // Track original status from DB
     const [serviceData, setServiceData] = useState<ServiceData>({
         paramedics: [],
         guides: [],
@@ -228,6 +230,9 @@ export default function EditBooking() {
                     }),
                 );
 
+                // Store original booking status to track changes
+                setOriginalBookingStatus(bookingData.status);
+
                 // Update booking data with enriched services
                 setBooking({
                     ...bookingData,
@@ -347,6 +352,9 @@ export default function EditBooking() {
             // Calculate new total
             const calculatedTotal = calculateTotalAmount();
 
+            // Check if status is changing to confirmed (using component state, not DB state)
+            const isConfirming = originalBookingStatus !== 'confirmed' && booking.status === 'confirmed';
+
             const updateData = {
                 customer_name: booking.customer_name,
                 customer_email: booking.customer_email,
@@ -374,11 +382,82 @@ export default function EditBooking() {
                 return;
             }
 
-            setAlert({
-                visible: true,
-                message: t('booking_updated_successfully'),
-                type: 'success',
+            // Auto-generate tax invoice when booking is confirmed
+            console.log('Debug info:', {
+                isConfirming,
+                calculatedTotal,
+                originalStatus: originalBookingStatus,
+                currentStatus: booking.status,
+                services: booking.services,
             });
+
+            // Generate tax invoice if booking is confirmed and has positive total
+            const shouldGenerateInvoice = booking.status === 'confirmed' && calculatedTotal > 0;
+
+            if (shouldGenerateInvoice) {
+                console.log('✅ Booking is being confirmed, checking for existing tax invoice...');
+                console.log('Booking data for tax invoice:', {
+                    id: bookingId,
+                    booking_reference: booking.booking_reference,
+                    customer_name: booking.customer_name,
+                    total_amount: calculatedTotal,
+                    services: booking.services,
+                });
+
+                const { exists } = await checkExistingTaxInvoice(bookingId);
+                console.log('Existing tax invoice check result:', exists);
+
+                if (!exists) {
+                    console.log('🚀 No existing tax invoice found, generating new one...');
+
+                    const taxInvoiceResult = await generateTaxInvoiceForBooking({
+                        id: bookingId,
+                        booking_reference: booking.booking_reference,
+                        customer_name: booking.customer_name || 'Customer',
+                        customer_email: booking.customer_email || undefined,
+                        customer_phone: booking.customer_phone || undefined,
+                        total_amount: calculatedTotal,
+                        services: booking.services,
+                    });
+
+                    console.log('Tax invoice generation result:', taxInvoiceResult);
+
+                    if (taxInvoiceResult.success) {
+                        console.log('✅ Tax invoice generated successfully:', taxInvoiceResult.bill?.bill_number);
+                        setAlert({
+                            visible: true,
+                            message: `${t('booking_updated_successfully')} ${t('tax_invoice_generated')}: ${taxInvoiceResult.bill?.bill_number}`,
+                            type: 'success',
+                        });
+                    } else {
+                        console.error('❌ Failed to generate tax invoice:', taxInvoiceResult.error);
+                        setAlert({
+                            visible: true,
+                            message: `${t('booking_updated_successfully')} ${t('tax_invoice_generation_failed')}: ${taxInvoiceResult.error}`,
+                            type: 'success', // Still success for the booking update
+                        });
+                    }
+                } else {
+                    console.log('ℹ️ Tax invoice already exists for this booking');
+                    setAlert({
+                        visible: true,
+                        message: t('booking_updated_successfully'),
+                        type: 'success',
+                    });
+                }
+            } else {
+                console.log('❌ Tax invoice generation skipped:', {
+                    bookingStatus: booking.status,
+                    calculatedTotal,
+                    shouldGenerateInvoice,
+                    reason: booking.status !== 'confirmed' ? 'Booking not confirmed' : 'Total amount is 0 or negative',
+                });
+                setAlert({
+                    visible: true,
+                    message: t('booking_updated_successfully'),
+                    type: 'success',
+                });
+            }
 
             // Redirect back to booking details after short delay
             setTimeout(() => {
@@ -647,8 +726,6 @@ export default function EditBooking() {
                                         </div>
                                     )}
 
-                                 
-
                                     {/* Security Companies Section */}
                                     {booking.services?.some((s) => s.type === 'security_companies') && (
                                         <div>
@@ -677,11 +754,9 @@ export default function EditBooking() {
                                                                 key={originalIndex}
                                                                 className="relative group bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-200 dark:border-amber-700/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-amber-300 dark:hover:border-amber-600 hover:scale-[1.02]"
                                                             >
-                                                              
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                                     <div className="space-y-4">
                                                                         <label className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-4">
-                
                                                                             {t('select_security_company')}
                                                                         </label>
                                                                         {serviceData.security_companies.length > 0 ? (
@@ -705,10 +780,7 @@ export default function EditBooking() {
                                                                         )}
                                                                     </div>
                                                                     <div className="space-y-[9px]">
-                                                                        <label className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">
-                                                                          
-                                                                            {t('cost')} (₪)
-                                                                        </label>
+                                                                        <label className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-2 flex items-center gap-2">{t('cost')} (₪)</label>
                                                                         <input
                                                                             type="number"
                                                                             min="0"
@@ -770,11 +842,9 @@ export default function EditBooking() {
                                                                 key={originalIndex}
                                                                 className="relative group bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-700/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-purple-300 dark:hover:border-purple-600 hover:scale-[1.02]"
                                                             >
-                                                               
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                                     <div className="space-y-3">
                                                                         <label className="text-sm font-semibold text-purple-800 dark:text-purple-300 mb-2 flex items-center gap-2">
-                                                                           
                                                                             {t('select_entertainment_company')}
                                                                         </label>
                                                                         {serviceData.external_entertainment_companies.length > 0 ? (
@@ -799,7 +869,6 @@ export default function EditBooking() {
                                                                     </div>
                                                                     <div className="space-y-[5px]">
                                                                         <label className="text-sm font-semibold text-purple-800 dark:text-purple-300 mb-2 flex items-center gap-2">
-                                                                          
                                                                             {t('cost')} (₪)
                                                                         </label>
                                                                         <input
@@ -863,11 +932,9 @@ export default function EditBooking() {
                                                                 key={originalIndex}
                                                                 className="relative group bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-2 border-red-200 dark:border-red-700/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-red-300 dark:hover:border-red-600 hover:scale-[1.02]"
                                                             >
-                                                            
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                                     <div className="space-y-3">
                                                                         <label className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2 flex items-center gap-2">
-                                                                          
                                                                             {t('select_paramedic')}
                                                                         </label>
                                                                         {serviceData.paramedics.length > 0 ? (
@@ -891,10 +958,7 @@ export default function EditBooking() {
                                                                         )}
                                                                     </div>
                                                                     <div className="space-y-[5px]">
-                                                                        <label className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2 flex items-center gap-2">
-                                                                           
-                                                                            {t('cost')} (₪)
-                                                                        </label>
+                                                                        <label className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2 flex items-center gap-2">{t('cost')} (₪)</label>
                                                                         <input
                                                                             type="number"
                                                                             min="0"
