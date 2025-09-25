@@ -8,6 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconPrinter from '@/components/icon/icon-printer';
 import IconDownload from '@/components/icon/icon-download';
+import IconEdit from '@/components/icon/icon-edit';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconDocument from '@/components/icon/icon-document';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
@@ -47,14 +48,24 @@ interface BillDetails {
         };
         trip_date: string;
     };
-    bill_items: Array<{
+    payments?: Array<{
         id: string;
-        service_type: string;
-        service_name: string;
-        quantity: number;
-        days: number;
-        unit_price: number;
-        line_total: number;
+        amount: number;
+        payment_type: 'cash' | 'bank_transfer' | 'credit_card' | 'check';
+        payment_date: string;
+        notes?: string;
+        // Bank transfer details
+        account_number?: string;
+        account_holder_name?: string;
+        bank_name?: string;
+        transaction_number?: string;
+        // Credit card details
+        card_number?: string; // Last 4 digits
+        card_holder_name?: string;
+        // Check details
+        check_number?: string;
+        check_bank_name?: string;
+        payer_name?: string;
     }>;
 }
 
@@ -83,14 +94,21 @@ export default function BillDetailsPage() {
                             total_amount,
                             destination:destinations(name, address)
                         ),
-                        bill_items(
+                        payments (
                             id,
-                            service_type,
-                            service_name,
-                            quantity,
-                            days,
-                            unit_price,
-                            line_total
+                            amount,
+                            payment_type,
+                            payment_date,
+                            notes,
+                            account_number,
+                            account_holder_name,
+                            bank_name,
+                            transaction_number,
+                            card_number,
+                            card_holder_name,
+                            check_number,
+                            check_bank_name,
+                            payer_name
                         )
                     `,
                     )
@@ -172,6 +190,94 @@ export default function BillDetailsPage() {
         return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
     };
 
+    const renderPaymentDetails = (payment: NonNullable<BillDetails['payments']>[number]) => {
+        if (!payment) return null;
+
+        return (
+            <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-xs">
+                <div className="font-medium text-gray-700 dark:text-gray-300 mb-2">{t('payment_details')}:</div>
+                <div className="space-y-1">
+                    <div>
+                        <span className="text-gray-600 dark:text-gray-400">{t('payment_type')}:</span> <span className="text-gray-900 dark:text-white">{t(payment.payment_type)}</span>
+                    </div>
+                    <div>
+                        <span className="text-gray-600 dark:text-gray-400">{t('amount')}:</span> <span className="text-gray-900 dark:text-white">{formatCurrency(payment.amount)}</span>
+                    </div>
+                    <div>
+                        <span className="text-gray-600 dark:text-gray-400">{t('payment_date')}:</span>{' '}
+                        <span className="text-gray-900 dark:text-white">{new Date(payment.payment_date).toLocaleDateString('tr-TR')}</span>
+                    </div>
+
+                    {payment.payment_type === 'bank_transfer' && (
+                        <>
+                            {payment.account_number && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('account_number')}:</span> <span className="text-gray-900 dark:text-white">{payment.account_number}</span>
+                                </div>
+                            )}
+                            {payment.account_holder_name && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('account_holder_name')}:</span>{' '}
+                                    <span className="text-gray-900 dark:text-white">{payment.account_holder_name}</span>
+                                </div>
+                            )}
+                            {payment.bank_name && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('bank_name')}:</span> <span className="text-gray-900 dark:text-white">{payment.bank_name}</span>
+                                </div>
+                            )}
+                            {payment.transaction_number && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('transaction_number')}:</span>{' '}
+                                    <span className="text-gray-900 dark:text-white">{payment.transaction_number}</span>
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {payment.payment_type === 'credit_card' && (
+                        <>
+                            {payment.card_number && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('card_number_last_4')}:</span>{' '}
+                                    <span className="text-gray-900 dark:text-white">****{payment.card_number}</span>
+                                </div>
+                            )}
+                            {payment.card_holder_name && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('card_holder_name')}:</span> <span className="text-gray-900 dark:text-white">{payment.card_holder_name}</span>
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {payment.payment_type === 'check' && (
+                        <>
+                            {payment.check_number && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('check_number')}:</span> <span className="text-gray-900 dark:text-white">{payment.check_number}</span>
+                                </div>
+                            )}
+                            {payment.check_bank_name && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('check_bank_name')}:</span> <span className="text-gray-900 dark:text-white">{payment.check_bank_name}</span>
+                                </div>
+                            )}
+                            {payment.payer_name && (
+                                <div>
+                                    <span className="text-gray-600 dark:text-gray-400">{t('payer_name')}:</span> <span className="text-gray-900 dark:text-white">{payment.payer_name}</span>
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {payment.notes && (
+                        <div>
+                            <span className="text-gray-600 dark:text-gray-400">{t('notes')}:</span> <span className="text-gray-900 dark:text-white">{payment.notes}</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
@@ -215,6 +321,13 @@ export default function BillDetailsPage() {
                         </div>
 
                         <div className="flex items-center gap-3">
+                            {/* Edit button - only for receipts */}
+                            {bill.bill_type === 'receipt' && (
+                                <Link href={`/bills/${bill.id}/edit`} className="btn btn-outline-primary gap-2">
+                                    <IconEdit className="w-4 h-4" />
+                                    {t('add_payments')}
+                                </Link>
+                            )}
                             <button
                                 onClick={() => {
                                     // TODO: Implement download functionality
@@ -250,39 +363,25 @@ export default function BillDetailsPage() {
                             {t('bill_information')}
                         </h2>
 
-                        {/* Bill Items */}
-                        <div className="mb-6">
-                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('services')}</h3>
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-gray-200 dark:border-gray-700">
-                                            <th className="text-left py-2 text-gray-700 dark:text-gray-300">{t('service')}</th>
-                                            <th className="text-center py-2 text-gray-700 dark:text-gray-300">{t('quantity')}</th>
-                                            <th className="text-center py-2 text-gray-700 dark:text-gray-300">{t('days')}</th>
-                                            <th className="text-right py-2 text-gray-700 dark:text-gray-300">{t('unit_price')}</th>
-                                            <th className="text-right py-2 text-gray-700 dark:text-gray-300">{t('total')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {bill.bill_items.map((item) => (
-                                            <tr key={item.id} className="border-b border-gray-100 dark:border-gray-800">
-                                                <td className="py-2">
-                                                    <div>
-                                                        <div className="font-medium text-gray-900 dark:text-white">{item.service_name}</div>
-                                                        <div className="text-xs text-gray-500">{t(item.service_type)}</div>
-                                                    </div>
-                                                </td>
-                                                <td className="text-center py-2 text-gray-900 dark:text-white">{item.quantity}</td>
-                                                <td className="text-center py-2 text-gray-900 dark:text-white">{item.days}</td>
-                                                <td className="text-right py-2 text-gray-900 dark:text-white">{formatCurrency(item.unit_price)}</td>
-                                                <td className="text-right py-2 font-medium text-gray-900 dark:text-white">{formatCurrency(item.line_total)}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                        {/* Payments (for receipts) */}
+                        {bill.bill_type === 'receipt' && bill.payments && bill.payments.length > 0 && (
+                            <div className="mb-6">
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('payments')}</h3>
+                                <div className="space-y-3">
+                                    {bill.payments.map((payment) => (
+                                        <div key={payment.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="font-medium text-gray-900 dark:text-white">
+                                                    {t(payment.payment_type)} - {formatCurrency(payment.amount)}
+                                                </span>
+                                                <span className="text-sm text-gray-600 dark:text-gray-400">{new Date(payment.payment_date).toLocaleDateString('tr-TR')}</span>
+                                            </div>
+                                            {renderPaymentDetails(payment)}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Financial Summary */}
                         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">

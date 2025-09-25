@@ -14,12 +14,12 @@ const Alert: React.FC<AlertProps> = ({ type, message, title, onClose }) => {
     const [isLeaving, setIsLeaving] = useState(false);
 
     const alertClasses = {
-        primary: 'bg-primary-light text-primary dark:bg-primary-dark-light border-l-4 border-primary',
-        secondary: 'bg-secondary-light text-secondary dark:bg-secondary-dark-light border-l-4 border-secondary',
-        success: 'bg-success-light text-success dark:bg-success-dark-light border-l-4 border-success',
-        warning: 'bg-warning-light text-warning dark:bg-warning-dark-light border-l-4 border-warning',
-        danger: 'bg-danger-light text-danger dark:bg-danger-dark-light border-l-4 border-danger',
-        info: 'bg-info-light text-info dark:bg-info-dark-light border-l-4 border-info',
+        primary: 'bg-blue-50 text-blue-800 dark:bg-blue-900/90 dark:text-blue-100 border-l-4 border-blue-500',
+        secondary: 'bg-gray-50 text-gray-800 dark:bg-gray-900/90 dark:text-gray-100 border-l-4 border-gray-500',
+        success: 'bg-green-50 text-green-800 dark:bg-green-900/90 dark:text-green-100 border-l-4 border-green-500',
+        warning: 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/90 dark:text-yellow-100 border-l-4 border-yellow-500',
+        danger: 'bg-red-50 text-red-800 dark:bg-red-900/90 dark:text-red-100 border-l-4 border-red-500',
+        info: 'bg-cyan-50 text-cyan-800 dark:bg-cyan-900/90 dark:text-cyan-100 border-l-4 border-cyan-500',
     };
 
     useEffect(() => {
@@ -49,7 +49,7 @@ const Alert: React.FC<AlertProps> = ({ type, message, title, onClose }) => {
     return (
         <div
             className={`
-                flex items-center rounded-lg p-4 mb-4 shadow-lg backdrop-blur-sm
+                flex items-center rounded-lg p-4 mb-4 shadow-lg
                 transition-all duration-300 transform
                 ${isLeaving ? 'animate-slide-out-right' : 'animate-slide-in-right'}
                 ${alertClasses[type]}

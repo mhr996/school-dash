@@ -25,9 +25,20 @@ interface BookingOption {
 
 interface PaymentMethod {
     id: string;
-    type: string;
-    details: string;
+    type: 'cash' | 'bank_transfer' | 'credit_card' | 'check';
     amount: number;
+    // Bank transfer details
+    accountNumber?: string;
+    accountHolderName?: string;
+    bankName?: string;
+    transactionNumber?: string;
+    // Credit card details
+    cardNumber?: string; // Last 4 digits only
+    cardHolderName?: string;
+    // Check details
+    checkNumber?: string;
+    checkBankName?: string;
+    payerName?: string;
 }
 
 interface TaxInvoice {
@@ -47,7 +58,7 @@ export default function AddBill() {
     const [selectedBooking, setSelectedBooking] = useState<string>('');
     const [selectedBookingDetails, setSelectedBookingDetails] = useState<BookingOption | null>(null);
     const [taxInvoice, setTaxInvoice] = useState<TaxInvoice | null>(null);
-    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([{ id: '1', type: 'cash', details: '', amount: 0 }]);
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([{ id: '1', type: 'cash', amount: 0 }]);
     const [notes, setNotes] = useState('');
     const [alert, setAlert] = useState<{
         visible: boolean;
@@ -65,7 +76,6 @@ export default function AddBill() {
         { value: 'bank_transfer', label: t('bank_transfer') },
         { value: 'credit_card', label: t('credit_card') },
         { value: 'check', label: t('check') },
-        { value: 'other', label: t('other') },
     ];
 
     useEffect(() => {
@@ -152,7 +162,7 @@ export default function AddBill() {
 
     const addPaymentMethod = () => {
         const newId = (Math.max(...paymentMethods.map((p) => parseInt(p.id))) + 1).toString();
-        setPaymentMethods([...paymentMethods, { id: newId, type: 'cash', details: '', amount: 0 }]);
+        setPaymentMethods([...paymentMethods, { id: newId, type: 'cash', amount: 0 }]);
     };
 
     const removePaymentMethod = (id: string) => {
@@ -169,6 +179,49 @@ export default function AddBill() {
         return paymentMethods.reduce((total, payment) => total + payment.amount, 0);
     };
 
+    const validatePaymentDetails = () => {
+        for (const payment of paymentMethods) {
+            // Always validate amount
+            if (!payment.amount || payment.amount <= 0) {
+                return { valid: false, message: t('please_enter_valid_amount') };
+            }
+
+            // Validate based on payment type
+            if (payment.type === 'bank_transfer') {
+                if (!payment.accountNumber?.trim()) {
+                    return { valid: false, message: t('account_number_required') };
+                }
+                if (!payment.accountHolderName?.trim()) {
+                    return { valid: false, message: t('account_holder_name_required') };
+                }
+                if (!payment.bankName?.trim()) {
+                    return { valid: false, message: t('bank_name_required') };
+                }
+                if (!payment.transactionNumber?.trim()) {
+                    return { valid: false, message: t('transaction_number_required') };
+                }
+            } else if (payment.type === 'credit_card') {
+                if (!payment.cardNumber?.trim()) {
+                    return { valid: false, message: t('card_number_required') };
+                }
+                if (!payment.cardHolderName?.trim()) {
+                    return { valid: false, message: t('card_holder_name_required') };
+                }
+            } else if (payment.type === 'check') {
+                if (!payment.checkNumber?.trim()) {
+                    return { valid: false, message: t('check_number_required') };
+                }
+                if (!payment.checkBankName?.trim()) {
+                    return { valid: false, message: t('check_bank_name_required') };
+                }
+                if (!payment.payerName?.trim()) {
+                    return { valid: false, message: t('payer_name_required') };
+                }
+            }
+        }
+        return { valid: true };
+    };
+
     const handleSave = async () => {
         if (!selectedBooking || !selectedBookingDetails) {
             setAlert({
@@ -179,10 +232,21 @@ export default function AddBill() {
             return;
         }
 
-        if (paymentMethods.length === 0 || paymentMethods.every((p) => p.amount === 0)) {
+        if (paymentMethods.length === 0) {
             setAlert({
                 visible: true,
-                message: t('please_add_payment_amounts'),
+                message: t('please_add_payment_methods'),
+                type: 'danger',
+            });
+            return;
+        }
+
+        // Validate payment details
+        const validation = validatePaymentDetails();
+        if (!validation.valid) {
+            setAlert({
+                visible: true,
+                message: validation.message || t('please_fill_required_fields'),
                 type: 'danger',
             });
             return;
@@ -230,23 +294,39 @@ export default function AddBill() {
                 throw new Error('Failed to create receipt');
             }
 
-            // Create bill items for each payment method
-            const billItems = paymentMethods.map((payment) => ({
-                bill_id: receipt.id,
-                service_type: 'payment',
-                service_name: `${t(payment.type)} ${payment.details ? `- ${payment.details}` : ''}`,
-                quantity: 1,
-                days: 1,
-                unit_price: payment.amount,
-                line_total: payment.amount,
-            }));
+            // Create payments for each payment method
+            const paymentsData = paymentMethods.map((payment) => {
+                const paymentData: any = {
+                    bill_id: receipt.id,
+                    amount: payment.amount,
+                    payment_type: payment.type,
+                    payment_date: new Date().toISOString().split('T')[0],
+                };
 
-            const { error: itemsError } = await supabase.from('bill_items').insert(billItems);
+                // Add type-specific fields
+                if (payment.type === 'bank_transfer') {
+                    paymentData.account_number = payment.accountNumber || null;
+                    paymentData.account_holder_name = payment.accountHolderName || null;
+                    paymentData.bank_name = payment.bankName || null;
+                    paymentData.transaction_number = payment.transactionNumber || null;
+                } else if (payment.type === 'credit_card') {
+                    paymentData.card_number = payment.cardNumber || null;
+                    paymentData.card_holder_name = payment.cardHolderName || null;
+                } else if (payment.type === 'check') {
+                    paymentData.check_number = payment.checkNumber || null;
+                    paymentData.check_bank_name = payment.checkBankName || null;
+                    paymentData.payer_name = payment.payerName || null;
+                }
 
-            if (itemsError) {
-                // Clean up receipt if items failed
+                return paymentData;
+            });
+
+            const { error: paymentsError } = await supabase.from('payments').insert(paymentsData);
+
+            if (paymentsError) {
+                // Clean up receipt if payments failed
                 await supabase.from('bills').delete().eq('id', receipt.id);
-                throw new Error('Failed to create payment items');
+                throw new Error('Failed to create payments');
             }
 
             // Update tax invoice status if receipt total covers the booking amount
@@ -438,38 +518,176 @@ export default function AddBill() {
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('payment_method')}</label>
-                                            <CustomSelect
-                                                options={paymentMethodOptions}
-                                                value={payment.type}
-                                                onChange={(value) => updatePaymentMethod(payment.id, 'type', Array.isArray(value) ? value[0] : value)}
-                                                placeholder={t('select_payment_method')}
-                                            />
+                                    <div className="space-y-4">
+                                        {/* Payment Type Selection */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                    {t('payment_method')} <span className="text-red-500">*</span>
+                                                </label>
+                                                <CustomSelect
+                                                    options={paymentMethodOptions}
+                                                    value={payment.type}
+                                                    onChange={(value) => updatePaymentMethod(payment.id, 'type', Array.isArray(value) ? value[0] : value)}
+                                                    placeholder={t('select_payment_method')}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                    {t('amount')} (₪) <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={payment.amount}
+                                                    onChange={(e) => updatePaymentMethod(payment.id, 'amount', e.target.value)}
+                                                    className="form-input"
+                                                    placeholder="0.00"
+                                                    required
+                                                />
+                                            </div>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('payment_details')}</label>
-                                            <input
-                                                type="text"
-                                                value={payment.details}
-                                                onChange={(e) => updatePaymentMethod(payment.id, 'details', e.target.value)}
-                                                className="form-input"
-                                                placeholder={t('payment_details_placeholder')}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('amount')} (₪)</label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                step="0.01"
-                                                value={payment.amount}
-                                                onChange={(e) => updatePaymentMethod(payment.id, 'amount', e.target.value)}
-                                                className="form-input"
-                                                placeholder="0.00"
-                                            />
-                                        </div>
+
+                                        {/* Conditional Payment Details */}
+                                        {payment.type === 'bank_transfer' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('account_number')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.accountNumber || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'accountNumber', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('account_number')}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('account_holder_name')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.accountHolderName || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'accountHolderName', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('account_holder_name')}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('bank_name')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.bankName || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'bankName', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('bank_name')}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('transaction_number')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.transactionNumber || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'transactionNumber', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('transaction_number')}
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {payment.type === 'credit_card' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('card_number_last_4')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.cardNumber || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'cardNumber', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder="****"
+                                                        maxLength={4}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('card_holder_name')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.cardHolderName || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'cardHolderName', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('card_holder_name')}
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {payment.type === 'check' && (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('check_number')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.checkNumber || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'checkNumber', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('check_number')}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('check_bank_name')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.checkBankName || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'checkBankName', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('check_bank_name')}
+                                                        required
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
+                                                        {t('payer_name')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={payment.payerName || ''}
+                                                        onChange={(e) => updatePaymentMethod(payment.id, 'payerName', e.target.value)}
+                                                        className="form-input"
+                                                        placeholder={t('payer_name')}
+                                                        required
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {payment.type === 'cash' && (
+                                            <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 italic">{t('cash_no_details_required')}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}

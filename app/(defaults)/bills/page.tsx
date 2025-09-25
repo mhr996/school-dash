@@ -2,6 +2,7 @@
 import IconEye from '@/components/icon/icon-eye';
 import IconPrinter from '@/components/icon/icon-printer';
 import IconDownload from '@/components/icon/icon-download';
+import IconEdit from '@/components/icon/icon-edit';
 import IconSearch from '@/components/icon/icon-search';
 import IconPlus from '@/components/icon/icon-plus';
 import { sortBy } from 'lodash';
@@ -43,14 +44,6 @@ interface Bill {
             name: string;
         };
     };
-    bill_items: Array<{
-        service_type: string;
-        service_name: string;
-        quantity: number;
-        days: number;
-        unit_price: number;
-        line_total: number;
-    }>;
 }
 
 const BillsList = () => {
@@ -94,14 +87,6 @@ const BillsList = () => {
                             booking_reference,
                             total_amount,
                             destination:destinations(name)
-                        ),
-                        bill_items(
-                            service_type,
-                            service_name,
-                            quantity,
-                            days,
-                            unit_price,
-                            line_total
                         )
                     `,
                     )
@@ -338,12 +323,20 @@ const BillsList = () => {
                                 accessor: 'actions',
                                 title: t('actions'),
                                 titleClassName: '!text-center',
-                                render: ({ id }) => (
+                                render: ({ id, bill_type }) => (
                                     <div className="flex items-center justify-center gap-2">
                                         <Link href={`/bills/${id}`} className="btn btn-outline-primary btn-sm gap-1">
                                             <IconEye className="h-4 w-4" />
                                             {t('view')}
                                         </Link>
+
+                                        {/* Edit button - only for receipts */}
+                                        {bill_type === 'receipt' && (
+                                            <Link href={`/bills/${id}/edit`} className="btn btn-outline-warning btn-sm gap-1">
+                                                <IconEdit className="h-4 w-4" />
+                                                {t('edit')}
+                                            </Link>
+                                        )}
 
                                         <button
                                             type="button"

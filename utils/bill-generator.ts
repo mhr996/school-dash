@@ -76,32 +76,7 @@ export const generateTaxInvoiceForBooking = async (bookingData: BookingData): Pr
 
         console.log('✅ Bill created successfully:', bill);
 
-        // Create bill items for each service
-        const billItems = bookingData.services.map(service => ({
-            bill_id: bill.id,
-            service_type: service.type,
-            service_name: service.name,
-            quantity: service.quantity,
-            days: service.days,
-            unit_price: service.cost / (service.quantity * service.days),
-            line_total: service.cost
-        }));
-
-        console.log('📝 Bill items to insert:', billItems);
-
-        const { error: itemsError } = await supabase
-            .from('bill_items')
-            .insert(billItems);
-
-        console.log('📝 Bill items creation result:', { itemsError });
-
-        if (itemsError) {
-            console.error('❌ Error creating bill items:', itemsError);
-            // Try to clean up the bill if items failed
-            await supabase.from('bills').delete().eq('id', bill.id);
-            return { success: false, error: 'Failed to create bill items' };
-        }
-
+        // Tax invoice is complete - services are referenced from the booking, no need to duplicate data
         console.log('🎉 Tax invoice generation completed successfully!');
         return { success: true, bill };
 
