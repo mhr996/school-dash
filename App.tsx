@@ -1,18 +1,14 @@
 'use client';
 import { PropsWithChildren, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useRouter, usePathname } from 'next/navigation';
 import { IRootState } from '@/store';
 import { toggleRTL, toggleTheme, toggleMenu, toggleLayout, toggleAnimation, toggleNavbar, toggleSemidark } from '@/store/themeConfigSlice';
 import Loading from '@/components/layouts/loading';
 import { getTranslation } from '@/i18n';
-import { getCurrentUser } from '@/lib/auth';
 
 function App({ children }: PropsWithChildren) {
     const themeConfig = useSelector((state: IRootState) => state.themeConfig);
     const dispatch = useDispatch();
-    const router = useRouter();
-    const pathname = usePathname();
     const { initLocale } = getTranslation();
     const [isLoading, setIsLoading] = useState(true);
 
@@ -30,38 +26,13 @@ function App({ children }: PropsWithChildren) {
             initLocale(themeConfig.locale);
         };
 
-        const checkAuth = async () => {
+        const init = () => {
             initTheme();
-
-            const publicPages = ['/login', '/reset-password', '/update-password', '/signup'];
-            if (pathname && publicPages.includes(pathname)) {
-                setIsLoading(false);
-                return;
-            }
-
-            const { user, error } = await getCurrentUser();
-            if (error || !user) {
-                router.push('/login');
-            } else {
-                setIsLoading(false);
-            }
+            setIsLoading(false);
         };
 
-        checkAuth();
-    }, [
-        dispatch,
-        initLocale,
-        router,
-        pathname,
-        themeConfig.theme,
-        themeConfig.menu,
-        themeConfig.layout,
-        themeConfig.rtlClass,
-        themeConfig.animation,
-        themeConfig.navbar,
-        themeConfig.locale,
-        themeConfig.semidark,
-    ]);
+        init();
+    }, [dispatch, initLocale, themeConfig.theme, themeConfig.menu, themeConfig.layout, themeConfig.rtlClass, themeConfig.animation, themeConfig.navbar, themeConfig.locale, themeConfig.semidark]);
 
     return (
         <div

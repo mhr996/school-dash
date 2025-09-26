@@ -20,6 +20,7 @@ import IconLogout from '@/components/icon/icon-logout';
 import { usePathname, useRouter } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
+import { getCurrentUserWithRole } from '@/lib/auth';
 
 const Header = () => {
     const pathname = usePathname();
@@ -29,33 +30,42 @@ const Header = () => {
     const [user, setUser] = useState<{ user: any } | null>(null);
     // New state for holding profile data
     const [profile, setProfile] = useState<{ avatar_url: string | null }>({ avatar_url: null });
+    const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchUser = async () => {
-            const { data: authUser, error } = await supabase.auth.getUser();
-            if (authUser) setUser(authUser);
-        };
-
-        fetchUser();
-    }, []);
-
-    // Once user is available, fetch their profile from 'users' table.
-    useEffect(() => {
-        const fetchProfile = async () => {
-            if (user?.user?.id) {
-                const { data, error } = await supabase.from('users').select('avatar_url').eq('id', user.user.id).single();
-                if (data) {
-                    setProfile({ avatar_url: data.avatar_url });
-                }
+        const fetchUserData = async () => {
+            const { user: userData, error } = await getCurrentUserWithRole();
+            if (userData) {
+                // Set user auth data for compatibility
+                setUser({
+                    user: {
+                        id: userData.auth_user_id,
+                        email: userData.email,
+                        user_metadata: { full_name: userData.full_name },
+                    },
+                });
+                // Set profile data
+                setProfile({ avatar_url: userData.avatar_url });
+                // Set user role
+                setUserRole(userData.user_roles?.name || null);
             }
         };
 
-        fetchProfile();
-    }, [user]);
+        fetchUserData();
+    }, []);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
         router.push('/login');
+    };
+
+    // Determine the correct profile URL based on user role
+    const getProfileUrl = () => {
+        const serviceProviderRoles = ['guide', 'paramedic', 'security_company', 'travel_company', 'entertainment_company'];
+        if (userRole && serviceProviderRoles.includes(userRole)) {
+            return '/service/profile';
+        }
+        return '/profile';
     };
 
     useEffect(() => {
@@ -126,15 +136,6 @@ const Header = () => {
                         </button>
                     </div>
 
-                    <div className="hidden ltr:mr-2 rtl:ml-2 sm:block">
-                        <ul className="flex items-center space-x-2 rtl:space-x-reverse dark:text-[#d0d2d6]">
-                            <li>
-                                <Link href="/products/add" className="block rounded-full bg-white-light/40 p-2 hover:bg-white-light/90 hover:text-primary dark:bg-dark/40 dark:hover:bg-dark/60">
-                                    <IconEdit />
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
                     <div className="flex items-center space-x-1.5 ltr:ml-auto rtl:mr-auto rtl:space-x-reverse dark:text-[#d0d2d6] sm:flex-1 ltr:sm:ml-0 sm:rtl:mr-0 lg:space-x-2">
                         <div className="sm:ltr:mr-auto sm:rtl:ml-auto">
                             <div className={`${search && '!block'} w-[400px] absolute inset-x-0 top-1/2 z-10 mx-4 hidden -translate-y-1/2 sm:relative sm:top-0 sm:mx-0 sm:block sm:translate-y-0`}>
@@ -360,10 +361,7 @@ const Header = () => {
                                         <div className="flex items-center px-4 py-4">
                                             <img className="h-10 w-10 rounded-md object-cover" src={profile.avatar_url || '/assets/images/user-placeholder.webp'} alt="userProfile" />
                                             <div className="truncate ltr:pl-4 rtl:pr-4">
-                                                <h4 className="text-base">
-                                                    {user?.user?.user_metadata?.display_name || ''}
-                                                    <span className="rounded bg-success-light px-1 text-xs text-success ltr:ml-2 rtl:ml-2">Pro</span>
-                                                </h4>
+                                                <h4 className="text-base">{user?.user?.user_metadata?.full_name || ''}</h4>
                                                 <button type="button" className="text-black/60 hover:text-primary dark:text-dark-light/60 dark:hover:text-white">
                                                     {user?.user?.email}
                                                 </button>
@@ -371,7 +369,7 @@ const Header = () => {
                                         </div>
                                     </li>
                                     <li>
-                                        <Link href="/profile" className="dark:hover:text-white">
+                                        <Link href={getProfileUrl()} className="dark:hover:text-white">
                                             <IconUser className="h-4.5 w-4.5 shrink-0 ltr:mr-2 rtl:ml-2" />
                                             Profile
                                         </Link>

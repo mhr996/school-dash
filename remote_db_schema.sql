@@ -102,7 +102,9 @@ CREATE TABLE public.external_entertainment_companies (
   description text,
   price numeric,
   status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])),
-  CONSTRAINT external_entertainment_companies_pkey PRIMARY KEY (id)
+  user_id uuid,
+  CONSTRAINT external_entertainment_companies_pkey PRIMARY KEY (id),
+  CONSTRAINT external_entertainment_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.guides (
   name character varying NOT NULL,
@@ -118,7 +120,9 @@ CREATE TABLE public.guides (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  CONSTRAINT guides_pkey PRIMARY KEY (id)
+  user_id uuid,
+  CONSTRAINT guides_pkey PRIMARY KEY (id),
+  CONSTRAINT guides_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.paramedics (
   name character varying NOT NULL,
@@ -134,7 +138,9 @@ CREATE TABLE public.paramedics (
   notes text,
   status text CHECK (status = ANY (ARRAY['active'::text, 'inactive'::text])),
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  CONSTRAINT paramedics_pkey PRIMARY KEY (id)
+  user_id uuid,
+  CONSTRAINT paramedics_pkey PRIMARY KEY (id),
+  CONSTRAINT paramedics_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.payments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -192,7 +198,9 @@ CREATE TABLE public.security_companies (
   daily_rate numeric DEFAULT 400.00,
   regional_rate numeric DEFAULT 600.00,
   overnight_rate numeric DEFAULT 500.00,
-  CONSTRAINT security_companies_pkey PRIMARY KEY (id)
+  user_id uuid,
+  CONSTRAINT security_companies_pkey PRIMARY KEY (id),
+  CONSTRAINT security_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.students (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -235,7 +243,9 @@ CREATE TABLE public.travel_companies (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   pricing_data jsonb,
-  CONSTRAINT travel_companies_pkey PRIMARY KEY (id)
+  user_id uuid,
+  CONSTRAINT travel_companies_pkey PRIMARY KEY (id),
+  CONSTRAINT travel_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.trip_buses (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -7,12 +7,11 @@ import ScrollToTop from '@/components/layouts/scroll-to-top';
 import Setting from '@/components/layouts/setting';
 import Sidebar from '@/components/layouts/sidebar';
 import Portals from '@/components/portals';
+import RouteGuard from '@/components/auth/route-guard';
 
 export default function DefaultLayout({ children }: { children: React.ReactNode }) {
-  
-
     return (
-        <>
+        <RouteGuard>
             {/* BEGIN MAIN CONTAINER */}
             <div className="relative">
                 <Overlay />
@@ -42,6 +41,6 @@ export default function DefaultLayout({ children }: { children: React.ReactNode 
                     </div>
                 </MainContainer>
             </div>
-        </>
+        </RouteGuard>
     );
 }
