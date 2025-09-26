@@ -1,6 +1,7 @@
 'use client';
 import IconLockDots from '@/components/icon/icon-lock-dots';
 import IconMail from '@/components/icon/icon-mail';
+import IconEye from '@/components/icon/icon-eye';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { signIn } from '@/lib/auth';
@@ -20,6 +21,7 @@ const ComponentsAuthLoginForm = () => {
     const [password, setPassword] = useState('');
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const validateForm = () => {
         const newErrors: FormErrors = {};
@@ -91,18 +93,40 @@ const ComponentsAuthLoginForm = () => {
                 <div className="relative text-white-dark">
                     <input
                         id="Password"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         placeholder={t('enter_password')}
-                        className={`form-input rounded-3xl py-3 ps-10 placeholder:text-white-dark ${errors.password ? 'border-red-500' : ''}`}
+                        className={`form-input rounded-3xl py-3 ps-10 pe-12 placeholder:text-white-dark ${errors.password ? 'border-red-500' : ''}`}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                     />
                     <span className="absolute start-4 top-1/2 -translate-y-1/2">
                         <IconLockDots fill={true} />
                     </span>
+                    <button type="button" className="absolute end-4 top-1/2 -translate-y-1/2 text-white-dark hover:text-primary transition-colors" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? (
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                    d="M2 2L22 22M6.71277 6.7226C3.66479 8.79527 2 12 2 12C2 12 5.63636 19 12 19C14.0503 19 15.8174 18.2734 17.2711 17.2711M11 5.05822C11.3254 5.02013 11.6588 5 12 5C18.3636 5 22 12 22 12C22 12 21.3082 13.3317 20 14.8335"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                                <path
+                                    d="M14 14.2362C13.4692 14.7112 12.7684 15.0000 12 15.0000C10.3431 15.0000 9 13.6569 9 12.0000C9 11.1573 9.33193 10.3931 9.86932 9.8407"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        ) : (
+                            <IconEye />
+                        )}
+                    </button>
                 </div>
                 {errors.password && <span className="text-red-500 text-sm mt-1">{errors.password}</span>}
-            </div> 
+            </div>
             <div className="flex justify-between">
                 <label className="flex cursor-pointer items-center">
                     <input type="checkbox" className="form-checkbox bg-white dark:bg-black" />

@@ -5,6 +5,8 @@ import IconBuilding from '@/components/icon/icon-building';
 import IconPlus from '@/components/icon/icon-plus';
 import IconUser from '@/components/icon/icon-user';
 import IconCar from '@/components/icon/icon-car';
+import IconMail from '@/components/icon/icon-mail';
+import IconEye from '@/components/icon/icon-eye';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { getTranslation } from '@/i18n';
 import Link from 'next/link';
@@ -24,6 +26,8 @@ interface FormData {
     phone: string;
     status: string;
     notes: string;
+    user_email: string;
+    user_password: string;
 }
 
 interface PricingData {
@@ -52,9 +56,15 @@ const AddTravelCompany = () => {
         phone: '',
         status: 'active',
         notes: '',
+        user_email: '',
+        user_password: '',
     });
 
     const [pricingData, setPricingData] = useState<PricingData>({});
+
+    // User account creation state
+    const [showPassword, setShowPassword] = useState(false);
+    const [roles, setRoles] = useState<any[]>([]);
 
     const vehicleAvailabilityOptions: SelectOption[] = [
         { value: 'available', label: t('available') },
@@ -84,6 +94,26 @@ const AddTravelCompany = () => {
                 setZonesLoading(false);
             }
         })();
+    }, []);
+
+    // Fetch user roles on component mount
+    useEffect(() => {
+        async function fetchRoles() {
+            try {
+                const { data: rolesData, error } = await supabase.from('user_roles').select('*').order('id');
+
+                if (error) {
+                    console.error('Error fetching roles:', error);
+                    return;
+                }
+
+                setRoles(rolesData || []);
+            } catch (error) {
+                console.error('Error fetching roles:', error);
+            }
+        }
+
+        fetchRoles();
     }, []);
 
     const handleInputChange = (name: string, value: any) => {
@@ -128,6 +158,18 @@ const AddTravelCompany = () => {
         return true;
     };
 
+    const validateUserInfo = () => {
+        if (!formData.user_email.trim()) {
+            setAlert({ message: t('email_required'), type: 'danger' });
+            return false;
+        }
+        if (!formData.user_password.trim() || formData.user_password.length < 6) {
+            setAlert({ message: t('password_min_6_chars'), type: 'danger' });
+            return false;
+        }
+        return true;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -136,20 +178,70 @@ const AddTravelCompany = () => {
             return;
         }
 
+        if (!validateUserInfo()) {
+            setActiveTab(2); // Switch to user account tab if validation fails
+            return;
+        }
+
         try {
             setLoading(true);
             setAlert(null);
 
-            const { data, error } = await supabase
-                .from('travel_companies')
-                .insert([
-                    {
-                        ...formData,
-                        pricing_data: pricingData,
+            // 1) Find the travel_company role
+            const travelCompanyRole = roles.find((role) => role.name === 'travel_company');
+            if (!travelCompanyRole) {
+                throw new Error(t('role_not_found'));
+            }
+
+            // 2) Create user account
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.user_email.trim(),
+                password: formData.user_password,
+                options: {
+                    data: {
+                        full_name: formData.name.trim(), // Use travel company name as full name
                     },
-                ])
-                .select()
-                .single();
+                },
+            });
+
+            if (authError) throw authError;
+
+            if (!authData.user) {
+                throw new Error('Failed to create user account');
+            }
+
+            // 3) Create user profile with travel_company role
+            const { error: profileError } = await supabase.from('users').insert([
+                {
+                    id: authData.user.id,
+                    full_name: formData.name.trim(), // Use travel company name as full name
+                    email: formData.user_email.trim(),
+                    role_id: travelCompanyRole.id,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                },
+            ]);
+
+            if (profileError) throw profileError;
+
+            // 4) Create travel company record
+            const companyData = {
+                name: formData.name,
+                code: formData.code,
+                services_offered: formData.services_offered,
+                vehicle_count: formData.vehicle_count,
+                vehicle_availability: formData.vehicle_availability,
+                accounting_methods: formData.accounting_methods,
+                address: formData.address,
+                email: formData.email,
+                phone: formData.phone,
+                status: formData.status,
+                notes: formData.notes,
+                pricing_data: pricingData,
+                user_id: authData.user.id,
+            };
+
+            const { data, error } = await supabase.from('travel_companies').insert([companyData]).select().single();
 
             if (error) {
                 if (error.code === '23505') {
@@ -190,6 +282,10 @@ const AddTravelCompany = () => {
         {
             id: 'pricing',
             title: t('pricing_tab'),
+        },
+        {
+            id: 'user-account',
+            title: t('user_account_creation'),
         },
     ];
 
@@ -392,7 +488,7 @@ const AddTravelCompany = () => {
                                                     ? t('vehicle_type_bus_40')
                                                     : vehicleType === 'باص 50'
                                                       ? t('vehicle_type_bus_50')
-                                                      : vehicleType === 'مينيبوس 18'
+                                                      : vehicleType === 'مينيبוس 18'
                                                         ? t('vehicle_type_minibus_18')
                                                         : vehicleType === 'مينيبوس 24'
                                                           ? t('vehicle_type_minibus_24')
@@ -436,6 +532,92 @@ const AddTravelCompany = () => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            );
+        }
+
+        if (activeTab === 2) {
+            return (
+                <div className="space-y-6">
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <h3 className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">{t('user_account_creation')}</h3>
+                        <p className="text-sm text-green-600 dark:text-green-300">{t('user_account_description')}</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* User Email */}
+                        <div className="space-y-2">
+                            <label htmlFor="user_email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                <IconMail className="w-5 h-5 text-primary" />
+                                {t('email')} <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="email"
+                                id="user_email"
+                                name="user_email"
+                                value={formData.user_email}
+                                onChange={(e) => handleInputChange('user_email', e.target.value)}
+                                className="form-input"
+                                placeholder={t('enter_email')}
+                                required
+                            />
+                        </div>
+
+                        {/* User Password */}
+                        <div className="space-y-2">
+                            <label htmlFor="user_password" className="text-sm font-bold text-gray-700 dark:text-white">
+                                {t('password')} <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    id="user_password"
+                                    name="user_password"
+                                    value={formData.user_password}
+                                    onChange={(e) => handleInputChange('user_password', e.target.value)}
+                                    className="form-input pr-12"
+                                    placeholder={t('enter_password')}
+                                    minLength={6}
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                                >
+                                    {showPassword ? (
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M2 2L22 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <path
+                                                d="M6.71 6.71C4.33 8.26 2.67 10.94 2 12C2.67 13.06 4.33 15.74 6.71 17.29"
+                                                stroke="currentColor"
+                                                strokeWidth="1.5"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                            <path
+                                                d="M10.59 10.59C10.21 11.37 10.21 12.63 10.59 13.41C10.97 14.19 11.81 14.81 12.59 14.59"
+                                                stroke="currentColor"
+                                                strokeWidth="1.5"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                            <path
+                                                d="M17.29 17.29C19.67 15.74 21.33 13.06 22 12C21.33 10.94 19.67 8.26 17.29 6.71"
+                                                stroke="currentColor"
+                                                strokeWidth="1.5"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            />
+                                        </svg>
+                                    ) : (
+                                        <IconEye className="w-5 h-5" />
+                                    )}
+                                </button>
+                            </div>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">{t('password_min_6_chars')}</p>
+                        </div>
                     </div>
                 </div>
             );

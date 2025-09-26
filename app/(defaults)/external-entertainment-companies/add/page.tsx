@@ -1,13 +1,15 @@
 ﻿'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '@/lib/supabase';
 import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
+import IconMail from '@/components/icon/icon-mail';
+import IconEye from '@/components/icon/icon-eye';
 
 interface EntertainmentCompanyForm {
     name: string;
@@ -15,6 +17,8 @@ interface EntertainmentCompanyForm {
     description: string;
     price: number;
     status: string;
+    user_email: string;
+    user_password: string;
 }
 
 export default function AddEntertainmentCompany() {
@@ -27,6 +31,8 @@ export default function AddEntertainmentCompany() {
         description: '',
         price: 0,
         status: 'active',
+        user_email: '',
+        user_password: '',
     });
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -41,10 +47,34 @@ export default function AddEntertainmentCompany() {
     // Store the created company ID for image upload
     const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
 
+    // User account creation state
+    const [showPassword, setShowPassword] = useState(false);
+    const [roles, setRoles] = useState<any[]>([]);
+
     const statusOptions = [
         { value: 'active', label: t('active') },
         { value: 'inactive', label: t('inactive') },
     ];
+
+    // Fetch user roles on component mount
+    useEffect(() => {
+        async function fetchRoles() {
+            try {
+                const { data: rolesData, error } = await supabase.from('user_roles').select('*').order('id');
+
+                if (error) {
+                    console.error('Error fetching roles:', error);
+                    return;
+                }
+
+                setRoles(rolesData || []);
+            } catch (error) {
+                console.error('Error fetching roles:', error);
+            }
+        }
+
+        fetchRoles();
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -62,15 +92,64 @@ export default function AddEntertainmentCompany() {
             return;
         }
 
+        // Validate user account fields
+        if (!formData.user_email.trim()) {
+            setAlert({ visible: true, message: t('email_required'), type: 'danger' });
+            return;
+        }
+
+        if (!formData.user_password.trim() || formData.user_password.length < 6) {
+            setAlert({ visible: true, message: t('password_min_6_chars'), type: 'danger' });
+            return;
+        }
+
         setIsLoading(true);
 
         try {
-            // 1) Create base record to get ID
+            // 1) Find the entertainment_company role
+            const entertainmentCompanyRole = roles.find((role) => role.name === 'entertainment_company');
+            if (!entertainmentCompanyRole) {
+                throw new Error(t('role_not_found'));
+            }
+
+            // 2) Create user account
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.user_email.trim(),
+                password: formData.user_password,
+                options: {
+                    data: {
+                        full_name: formData.name.trim(), // Use entertainment company name as full name
+                    },
+                },
+            });
+
+            if (authError) throw authError;
+
+            if (!authData.user) {
+                throw new Error('Failed to create user account');
+            }
+
+            // 3) Create user profile with entertainment_company role
+            const { error: profileError } = await supabase.from('users').insert([
+                {
+                    id: authData.user.id,
+                    full_name: formData.name.trim(), // Use entertainment company name as full name
+                    email: formData.user_email.trim(),
+                    role_id: entertainmentCompanyRole.id,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                },
+            ]);
+
+            if (profileError) throw profileError;
+
+            // 4) Create entertainment company record
             const basePayload = {
                 name: formData.name.trim(),
                 description: formData.description.trim() || null,
                 price: formData.price,
                 status: formData.status,
+                user_id: authData.user.id,
             };
 
             const { data: created, error: insertError } = await supabase.from('external_entertainment_companies').insert([basePayload]).select().single();
@@ -80,7 +159,7 @@ export default function AddEntertainmentCompany() {
             const companyId = created.id as string;
             setCreatedCompanyId(companyId);
 
-            // 2) Upload image if any, then update the record
+            // 5) Upload image if any, then update the record
             let imagePath: string | null = null;
 
             if (imageFile) {
@@ -288,6 +367,87 @@ export default function AddEntertainmentCompany() {
                             placeholder={t('enter_description')}
                             className="form-textarea"
                         />
+                    </div>
+
+                    {/* User Account Creation */}
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <h3 className="text-lg font-semibold mb-4">{t('user_account_creation')}</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">{t('user_account_description')}</p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* User Email */}
+                            <div className="space-y-2">
+                                <label htmlFor="user_email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                    <IconMail className="w-5 h-5 text-primary" />
+                                    {t('email')} <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    id="user_email"
+                                    name="user_email"
+                                    value={formData.user_email}
+                                    onChange={handleInputChange}
+                                    className="form-input"
+                                    placeholder={t('enter_email')}
+                                    required
+                                />
+                            </div>
+
+                            {/* User Password */}
+                            <div className="space-y-2">
+                                <label htmlFor="user_password" className="text-sm font-bold text-gray-700 dark:text-white">
+                                    {t('password')} <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        id="user_password"
+                                        name="user_password"
+                                        value={formData.user_password}
+                                        onChange={handleInputChange}
+                                        className="form-input pr-12"
+                                        placeholder={t('enter_password')}
+                                        minLength={6}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M2 2L22 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                <path
+                                                    d="M6.71 6.71C4.33 8.26 2.67 10.94 2 12C2.67 13.06 4.33 15.74 6.71 17.29"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                <path
+                                                    d="M10.59 10.59C10.21 11.37 10.21 12.63 10.59 13.41C10.97 14.19 11.81 14.81 12.59 14.59"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                <path
+                                                    d="M17.29 17.29C19.67 15.74 21.33 13.06 22 12C21.33 10.94 19.67 8.26 17.29 6.71"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                            </svg>
+                                        ) : (
+                                            <IconEye className="w-5 h-5" />
+                                        )}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-500">{t('password_min_6_chars')}</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="flex justify-end gap-3">

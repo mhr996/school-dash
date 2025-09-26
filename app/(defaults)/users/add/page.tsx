@@ -53,8 +53,12 @@ const AddUserPage = () => {
             if (!isAdminUser) return;
 
             try {
-                // Fetch roles
-                const { data: rolesData, error: rolesError } = await supabase.from('user_roles').select('*').order('name');
+                // Fetch roles (exclude service provider roles)
+                const { data: rolesData, error: rolesError } = await supabase
+                    .from('user_roles')
+                    .select('*')
+                    .not('name', 'in', '(guide,paramedic,security_company,entertainment_company,travel_company)')
+                    .order('name');
 
                 if (rolesError) throw rolesError;
                 setRoles(rolesData || []);
@@ -71,6 +75,16 @@ const AddUserPage = () => {
         };
         fetchData();
     }, [isAdminUser]); // Removed 't' from dependencies to prevent re-fetching
+
+    // Clear school_id when role changes to non-school role
+    useEffect(() => {
+        if (form.role_id && roles.length > 0) {
+            const selectedRole = roles.find((role) => role.id.toString() === form.role_id);
+            if (selectedRole && selectedRole.name !== 'school_manager' && selectedRole.name !== 'trip_planner') {
+                setForm((prev) => ({ ...prev, school_id: '' }));
+            }
+        }
+    }, [form.role_id, roles]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -102,6 +116,16 @@ const AddUserPage = () => {
             setAlert({ visible: true, message: t('role_required'), type: 'danger' });
             setLoading(false);
             return;
+        }
+
+        // School validation for school managers and trip planners
+        const selectedRole = roles.find((role) => role.id.toString() === form.role_id);
+        if (selectedRole && (selectedRole.name === 'school_manager' || selectedRole.name === 'trip_planner')) {
+            if (!form.school_id) {
+                setAlert({ visible: true, message: t('school_required_for_role'), type: 'danger' });
+                setLoading(false);
+                return;
+            }
         }
 
         try {
@@ -263,21 +287,31 @@ const AddUserPage = () => {
                             className="form-input"
                         />
                     </div>
-                    <div>
-                        <label htmlFor="school_id" className="block text-sm font-bold text-gray-700 dark:text-white">
-                            {t('school_assignment')}
-                        </label>
-                        <CustomSelect
-                            value={form.school_id}
-                            onChange={(value: string | string[]) => setForm((prev) => ({ ...prev, school_id: Array.isArray(value) ? value[0] : value }))}
-                            options={schools.map((school) => ({
-                                value: school.id,
-                                label: school.name,
-                            }))}
-                            placeholder={t('select_school')}
-                            className="form-input"
-                        />
-                    </div>
+                    {(() => {
+                        const selectedRole = roles.find((role) => role.id.toString() === form.role_id);
+                        const shouldShowSchoolSelector = selectedRole && (selectedRole.name === 'school_manager' || selectedRole.name === 'trip_planner');
+
+                        if (shouldShowSchoolSelector) {
+                            return (
+                                <div>
+                                    <label htmlFor="school_id" className="block text-sm font-bold text-gray-700 dark:text-white">
+                                        {t('school_assignment')} *
+                                    </label>
+                                    <CustomSelect
+                                        value={form.school_id}
+                                        onChange={(value: string | string[]) => setForm((prev) => ({ ...prev, school_id: Array.isArray(value) ? value[0] : value }))}
+                                        options={schools.map((school) => ({
+                                            value: school.id,
+                                            label: school.name,
+                                        }))}
+                                        placeholder={t('select_school')}
+                                        className="form-input"
+                                    />
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
                     <div className="sm:col-span-2">
                         <label htmlFor="address" className="block text-sm font-bold text-gray-700 dark:text-white">
                             {t('address')}

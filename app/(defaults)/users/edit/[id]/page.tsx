@@ -17,6 +17,9 @@ const EditUserPage = () => {
     const [isAdminUser, setIsAdminUser] = useState(false);
     const [roles, setRoles] = useState<any[]>([]);
     const [schools, setSchools] = useState<any[]>([]);
+    const [isServiceProviderUser, setIsServiceProviderUser] = useState(false);
+    const [originalRoleId, setOriginalRoleId] = useState('');
+    const [userRoleName, setUserRoleName] = useState('');
 
     const [form, setForm] = useState({
         full_name: '',
@@ -69,13 +72,14 @@ const EditUserPage = () => {
             if (!isAdminUser || !userId) return;
 
             try {
-                // Fetch user data
+                // Fetch user data with role information
                 const { data: userData, error: userError } = await supabase
                     .from('users')
                     .select(
                         `
                         full_name, email, phone, address, birth_date, 
-                        role_id, school_id, is_active
+                        role_id, school_id, is_active,
+                        user_roles(name)
                     `,
                     )
                     .eq('id', userId)
@@ -84,20 +88,34 @@ const EditUserPage = () => {
                 if (userError) throw userError;
 
                 if (userData) {
+                    const roleId = userData.role_id?.toString() || '';
+                    setOriginalRoleId(roleId);
+
+                    // Check if user has a service provider role
+                    const roleNameFromData = (userData.user_roles as any)?.name;
+                    setUserRoleName(roleNameFromData || '');
+                    const serviceProviderRoles = ['guide', 'paramedic', 'security_company', 'entertainment_company', 'travel_company'];
+                    const isServiceProvider = roleNameFromData && serviceProviderRoles.includes(roleNameFromData);
+                    setIsServiceProviderUser(isServiceProvider);
+
                     setForm({
                         full_name: userData.full_name || '',
                         email: userData.email || '',
                         phone: userData.phone || '',
                         address: userData.address || '',
                         birth_date: userData.birth_date || '',
-                        role_id: userData.role_id?.toString() || '',
+                        role_id: roleId,
                         school_id: userData.school_id || '',
                         is_active: userData.is_active ?? true,
                     });
                 }
 
-                // Fetch roles
-                const { data: rolesData, error: rolesError } = await supabase.from('user_roles').select('*').order('name');
+                // Fetch roles (exclude service provider roles)
+                const { data: rolesData, error: rolesError } = await supabase
+                    .from('user_roles')
+                    .select('*')
+                    .not('name', 'in', '(guide,paramedic,security_company,entertainment_company,travel_company)')
+                    .order('name');
 
                 if (rolesError) throw rolesError;
                 setRoles(rolesData || []);
@@ -122,6 +140,16 @@ const EditUserPage = () => {
         fetchData();
     }, [userId, isAdminUser]); // Removed 't' from dependencies to prevent re-fetching
 
+    // Clear school_id when role changes to non-school role
+    useEffect(() => {
+        if (form.role_id && roles.length > 0) {
+            const selectedRole = roles.find((role) => role.id.toString() === form.role_id);
+            if (selectedRole && selectedRole.name !== 'school_manager' && selectedRole.name !== 'trip_planner') {
+                setForm((prev) => ({ ...prev, school_id: '' }));
+            }
+        }
+    }, [form.role_id, roles]);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setForm((prev) => ({
@@ -141,14 +169,29 @@ const EditUserPage = () => {
             return;
         }
 
-        // Role validation
-        if (!form.role_id) {
+        // Role validation (skip for service provider users)
+        if (!isServiceProviderUser && !form.role_id) {
             setAlert({ visible: true, message: t('role_required'), type: 'danger' });
             setLoading(false);
             return;
         }
 
+        // School validation for school managers and trip planners (skip for service provider users)
+        if (!isServiceProviderUser) {
+            const selectedRole = roles.find((role) => role.id.toString() === form.role_id);
+            if (selectedRole && (selectedRole.name === 'school_manager' || selectedRole.name === 'trip_planner')) {
+                if (!form.school_id) {
+                    setAlert({ visible: true, message: t('school_required_for_role'), type: 'danger' });
+                    setLoading(false);
+                    return;
+                }
+            }
+        }
+
         try {
+            // For service provider users, preserve their original role
+            const roleIdToUpdate = isServiceProviderUser ? parseInt(originalRoleId) : parseInt(form.role_id);
+
             // Update user profile in database
             const { error: profileError } = await supabase
                 .from('users')
@@ -158,7 +201,7 @@ const EditUserPage = () => {
                     phone: form.phone || null,
                     address: form.address || null,
                     birth_date: form.birth_date || null,
-                    role_id: parseInt(form.role_id),
+                    role_id: roleIdToUpdate,
                     school_id: form.school_id || null,
                     is_active: form.is_active,
                 })
@@ -228,6 +271,29 @@ const EditUserPage = () => {
             <div className="rounded-md border border-[#ebedf2] bg-white p-4 dark:border-[#191e3a] dark:bg-black">
                 <h6 className="mb-5 text-lg font-bold">{t('edit_user')}</h6>
 
+                {/* Service Provider Notice */}
+                {isServiceProviderUser && (
+                    <div className="mb-5 rounded-md bg-blue-50 border border-blue-200 p-4 dark:bg-blue-900/20 dark:border-blue-800">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">{t('service_provider_account')}</h3>
+                                <div className="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                                    <p>{t('service_provider_edit_notice')}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                     <div>
                         <label htmlFor="full_name" className="block text-sm font-bold text-gray-700 dark:text-white">
@@ -253,36 +319,59 @@ const EditUserPage = () => {
                         </label>
                         <input type="date" id="birth_date" name="birth_date" value={form.birth_date} onChange={handleInputChange} className="form-input" />
                     </div>
+                    {/* Role section - show selector for regular users, display-only for service providers */}
                     <div>
-                        <label htmlFor="role_id" className="block text-sm font-bold text-gray-700 dark:text-white">
-                            {t('user_role')} *
+                        <label className="block text-sm font-bold text-gray-700 dark:text-white">
+                            {t('user_role')} {!isServiceProviderUser && '*'}
                         </label>
-                        <CustomSelect
-                            value={form.role_id}
-                            onChange={(value: string | string[]) => setForm((prev) => ({ ...prev, role_id: Array.isArray(value) ? value[0] : value }))}
-                            options={roles.map((role) => ({
-                                value: role.id.toString(),
-                                label: t(`role_${role.name}`),
-                            }))}
-                            placeholder={t('select_role')}
-                            className="form-input"
-                        />
+                        {!isServiceProviderUser ? (
+                            <CustomSelect
+                                value={form.role_id}
+                                onChange={(value: string | string[]) => setForm((prev) => ({ ...prev, role_id: Array.isArray(value) ? value[0] : value }))}
+                                options={roles.map((role) => ({
+                                    value: role.id.toString(),
+                                    label: t(`role_${role.name}`),
+                                }))}
+                                placeholder={t('select_role')}
+                                className="form-input"
+                            />
+                        ) : (
+                            <div className="flex items-center space-x-2">
+                                <div className="form-input bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 cursor-not-allowed">
+                                    {userRoleName ? t(`role_${userRoleName}`) : t('service_provider_role')}
+                                </div>
+                                <span className="text-sm text-gray-500 dark:text-gray-400">({t('role_managed_by_service')})</span>
+                            </div>
+                        )}
                     </div>
-                    <div>
-                        <label htmlFor="school_id" className="block text-sm font-bold text-gray-700 dark:text-white">
-                            {t('school_assignment')}
-                        </label>
-                        <CustomSelect
-                            value={form.school_id}
-                            onChange={(value: string | string[]) => setForm((prev) => ({ ...prev, school_id: Array.isArray(value) ? value[0] : value }))}
-                            options={schools.map((school) => ({
-                                value: school.id,
-                                label: school.name,
-                            }))}
-                            placeholder={t('select_school')}
-                            className="form-input"
-                        />
-                    </div>
+                    {/* School selector - only show for non-service provider users with school-related roles */}
+                    {(() => {
+                        if (isServiceProviderUser) return null;
+
+                        const selectedRole = roles.find((role) => role.id.toString() === form.role_id);
+                        const shouldShowSchoolSelector = selectedRole && (selectedRole.name === 'school_manager' || selectedRole.name === 'trip_planner');
+
+                        if (shouldShowSchoolSelector) {
+                            return (
+                                <div>
+                                    <label htmlFor="school_id" className="block text-sm font-bold text-gray-700 dark:text-white">
+                                        {t('school_assignment')} *
+                                    </label>
+                                    <CustomSelect
+                                        value={form.school_id}
+                                        onChange={(value: string | string[]) => setForm((prev) => ({ ...prev, school_id: Array.isArray(value) ? value[0] : value }))}
+                                        options={schools.map((school) => ({
+                                            value: school.id,
+                                            label: school.name,
+                                        }))}
+                                        placeholder={t('select_school')}
+                                        className="form-input"
+                                    />
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
                     <div className="sm:col-span-2">
                         <label htmlFor="address" className="block text-sm font-bold text-gray-700 dark:text-white">
                             {t('address')}

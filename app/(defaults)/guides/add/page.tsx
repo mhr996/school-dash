@@ -1,14 +1,16 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import supabase from '@/lib/supabase';
 
 // Components
 import IconPlus from '@/components/icon/icon-plus';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
 import IconCreditCard from '@/components/icon/icon-credit-card';
+import IconEye from '@/components/icon/icon-eye';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect from '@/components/elements/custom-select';
 import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
@@ -31,12 +33,17 @@ interface GuideForm {
     overnight_rate: number;
     status: string;
     notes: string;
+    // User account fields
+    user_email: string;
+    user_password: string;
 }
 
 const AddGuide = () => {
     const { t } = getTranslation();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [roles, setRoles] = useState<any[]>([]);
     const [formData, setFormData] = useState<GuideForm>({
         name: '',
         identity_number: '',
@@ -48,6 +55,9 @@ const AddGuide = () => {
         overnight_rate: 0,
         status: 'active',
         notes: '',
+        // User account fields
+        user_email: '',
+        user_password: '',
     });
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
 
@@ -62,7 +72,21 @@ const AddGuide = () => {
         },
     ];
 
-    const supabase = createClientComponentClient();
+    const supabaseClient = createClientComponentClient();
+
+    // Fetch roles on component mount
+    useEffect(() => {
+        const fetchRoles = async () => {
+            try {
+                const { data: rolesData, error: rolesError } = await supabase.from('user_roles').select('*').order('name');
+                if (rolesError) throw rolesError;
+                setRoles(rolesData || []);
+            } catch (error) {
+                console.error('Error fetching roles:', error);
+            }
+        };
+        fetchRoles();
+    }, []);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -94,7 +118,57 @@ const AddGuide = () => {
                 return;
             }
 
-            const { error } = await supabase.from('guides').insert([formData]);
+            // Validate user account fields
+            if (!formData.user_email.trim()) {
+                setAlert({ message: t('email_required'), type: 'danger' });
+                return;
+            }
+
+            if (!formData.user_password || formData.user_password.length < 6) {
+                setAlert({ message: t('password_required_min_6'), type: 'danger' });
+                return;
+            }
+
+            // Find the guide role
+            const guideRole = roles.find((role) => role.name === 'guide');
+            if (!guideRole) {
+                setAlert({ message: t('guide_role_not_found'), type: 'danger' });
+                return;
+            }
+
+            // Create user account first
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.user_email,
+                password: formData.user_password,
+                options: {
+                    data: {
+                        full_name: formData.name, // Use guide name as full name
+                    },
+                },
+            });
+
+            if (authError) throw authError;
+
+            if (!authData.user) {
+                throw new Error('User creation failed - no user data returned');
+            }
+
+            // Create user profile in database
+            const { error: profileError } = await supabase.from('users').insert({
+                email: formData.user_email,
+                full_name: formData.name, // Use guide name as full name
+                phone: formData.phone,
+                role_id: guideRole.id,
+                is_active: formData.status === 'active',
+                auth_user_id: authData.user.id,
+            });
+
+            if (profileError) throw profileError;
+
+            // Prepare guide data (excluding user account fields)
+            const { user_email, user_password, ...guideData } = formData;
+
+            const { error } = await supabase.from('guides').insert([guideData]);
 
             if (error) {
                 if (error.code === '23505') {
@@ -299,6 +373,87 @@ const AddGuide = () => {
                             {t('notes')}
                         </label>
                         <textarea id="notes" name="notes" value={formData.notes} onChange={handleInputChange} className="form-textarea" placeholder={t('enter_notes')} rows={4} />
+                    </div>
+
+                    {/* User Account Creation */}
+                    <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+                        <h3 className="text-lg font-semibold mb-4">{t('user_account_creation')}</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-4">{t('user_account_description')}</p>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* User Email */}
+                            <div className="space-y-2">
+                                <label htmlFor="user_email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                    <IconMail className="w-5 h-5 text-primary" />
+                                    {t('email')} <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="email"
+                                    id="user_email"
+                                    name="user_email"
+                                    value={formData.user_email}
+                                    onChange={handleInputChange}
+                                    className="form-input"
+                                    placeholder={t('enter_email')}
+                                    required
+                                />
+                            </div>
+
+                            {/* User Password */}
+                            <div className="space-y-2">
+                                <label htmlFor="user_password" className="text-sm font-bold text-gray-700 dark:text-white">
+                                    {t('password')} <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        id="user_password"
+                                        name="user_password"
+                                        value={formData.user_password}
+                                        onChange={handleInputChange}
+                                        className="form-input pr-12"
+                                        placeholder={t('enter_password')}
+                                        minLength={6}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                                    >
+                                        {showPassword ? (
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M2 2L22 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                <path
+                                                    d="M6.71 6.71C4.33 8.26 2.67 10.94 2 12C2.67 13.06 4.33 15.74 6.71 17.29"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                <path
+                                                    d="M10.59 10.59C10.21 11.37 10.21 12.63 10.59 13.41C10.97 14.19 11.81 14.81 12.59 14.59"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                <path
+                                                    d="M17.29 17.29C19.67 15.74 21.33 13.06 22 12C21.33 10.94 19.67 8.26 17.29 6.71"
+                                                    stroke="currentColor"
+                                                    strokeWidth="1.5"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                            </svg>
+                                        ) : (
+                                            <IconEye className="w-5 h-5" />
+                                        )}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-500">{t('password_min_6_chars')}</p>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Submit Button */}
