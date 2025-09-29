@@ -13,13 +13,13 @@ const AccountPendingPage = () => {
 
     const handleSignOut = async () => {
         await signOut();
-        router.push('/auth/signin');
+        router.push('/login');
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
             <div className="max-w-lg w-full">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 text-center">
                     {/* Icon */}
                     <div className="w-24 h-24 mx-auto mb-6 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
                         <IconClock className="w-12 h-12 text-orange-500" />
@@ -45,7 +45,7 @@ const AccountPendingPage = () => {
                     {/* Action Button */}
                     <button
                         onClick={handleSignOut}
-                        className="inline-flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105"
+                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105"
                     >
                         <IconLogout className="w-4 h-4" />
                         {t('sign_out')}

@@ -23,6 +23,7 @@ interface FormErrors {
     // Service provider error fields
     guideYearsOfExperience?: string;
     guideIdentityNumber?: string;
+    guidePhone?: string;
     paramedicPhone?: string;
     paramedicIdentityNumber?: string;
     securityCompanyPhone?: string;
@@ -74,6 +75,7 @@ const ComponentsAuthSignupForm = () => {
         // Guide fields
         guideYearsOfExperience: '',
         guideIdentityNumber: '',
+        guidePhone: '',
 
         // Paramedic fields
         paramedicPhone: '',
@@ -206,6 +208,11 @@ const ComponentsAuthSignupForm = () => {
                 case 'guide':
                     if (!serviceData.guideIdentityNumber.trim()) {
                         newErrors.guideIdentityNumber = t('identity_number_required');
+                    }
+                    if (!serviceData.guidePhone.trim()) {
+                        newErrors.guidePhone = t('phone_number_required');
+                    } else if (!/^\+?[\d\s\-\(\)]+$/.test(serviceData.guidePhone)) {
+                        newErrors.guidePhone = t('invalid_phone_number');
                     }
                     if (!serviceData.guideYearsOfExperience) {
                         newErrors.guideYearsOfExperience = t('years_of_experience_required');
@@ -354,13 +361,36 @@ const ComponentsAuthSignupForm = () => {
                 throw new Error(t('invalid_role'));
             }
 
-            // 3. Create user record in users table
+            // 3. Extract phone number for service providers
+            let phoneNumber = null;
+            if (isServiceProvider) {
+                switch (selectedRole) {
+                    case 'guide':
+                        phoneNumber = serviceData.guidePhone?.trim() || null;
+                        break;
+                    case 'paramedic':
+                        phoneNumber = serviceData.paramedicPhone?.trim() || null;
+                        break;
+                    case 'security_company':
+                        phoneNumber = serviceData.securityCompanyPhone?.trim() || null;
+                        break;
+                    case 'entertainment_company':
+                        phoneNumber = serviceData.entertainmentCompanyPhone?.trim() || null;
+                        break;
+                    case 'travel_company':
+                        phoneNumber = serviceData.travelCompanyPhone?.trim() || null;
+                        break;
+                }
+            }
+
+            // 4. Create user record in users table
             const userData = {
                 id: authData.user.id,
                 email: sanitizedEmail,
                 full_name: fullName.trim(),
                 role_id: selectedRoleData.id,
                 school_id: requiresSchool ? selectedSchool : null,
+                phone: phoneNumber, // Add phone number to users table
                 is_active: !isServiceProvider, // Service providers start inactive and need admin approval
                 auth_user_id: authData.user.id,
             };
@@ -374,7 +404,7 @@ const ComponentsAuthSignupForm = () => {
                 throw new Error(userError.message);
             }
 
-            // 4. Create service provider record if applicable
+            // 5. Create service provider record if applicable
             if (isServiceProvider) {
                 let serviceError = null;
 
@@ -385,6 +415,7 @@ const ComponentsAuthSignupForm = () => {
                                 {
                                     user_id: authData.user.id,
                                     name: fullName.trim(),
+                                    phone: serviceData.guidePhone,
                                     identity_number: serviceData.guideIdentityNumber,
                                 },
                             ]);
@@ -737,6 +768,20 @@ const ComponentsAuthSignupForm = () => {
                             {selectedRole === 'guide' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
+                                        <label htmlFor="guidePhone">
+                                            {t('phone')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            id="guidePhone"
+                                            type="tel"
+                                            placeholder={t('enter_phone_number')}
+                                            className={`form-input rounded-xl py-2 ${errors.guidePhone ? 'border-red-500' : ''}`}
+                                            value={serviceData.guidePhone}
+                                            onChange={(e) => setServiceData((prev) => ({ ...prev, guidePhone: e.target.value }))}
+                                        />
+                                        {errors.guidePhone && <span className="text-red-500 text-sm mt-1">{errors.guidePhone}</span>}
+                                    </div>
+                                    <div>
                                         <label htmlFor="guideYearsOfExperience">
                                             {t('years_of_experience')} <span className="text-red-500">*</span>
                                         </label>
@@ -751,7 +796,7 @@ const ComponentsAuthSignupForm = () => {
                                         />
                                         {errors.guideYearsOfExperience && <span className="text-red-500 text-sm mt-1">{errors.guideYearsOfExperience}</span>}
                                     </div>
-                                    <div>
+                                    <div className="md:col-span-2">
                                         <label htmlFor="guideIdentityNumber">
                                             {t('identity_number')} <span className="text-red-500">*</span>
                                         </label>
