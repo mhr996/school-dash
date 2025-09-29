@@ -212,7 +212,7 @@ const Sidebar = () => {
                             )}
 
                             {/* Admin Menu */}
-                            {!isServiceProvider && userRole === 'admin' && (
+                            {!isServiceProvider && (userRole === 'admin' || userRole === 'trip_planner') && (
                                 <>
                                     <h2 className="-mx-4 mb-1 flex items-center bg-white-light/30 px-7 py-3 font-extrabold uppercase dark:bg-dark dark:bg-opacity-[0.08]">
                                         <IconMinus className="hidden h-5 w-4 flex-none" />

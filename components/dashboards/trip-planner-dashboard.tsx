@@ -80,10 +80,19 @@ type ExternalEntertainmentCompany = {
     status: string;
 };
 
+type TravelCompany = {
+    id: string;
+    name: string;
+    phone?: string | null;
+    email?: string | null;
+    pricing_data?: any;
+    status: string;
+};
+
 type RequirementSelection = {
     id: string;
     name: string;
-    type: 'paramedics' | 'guides' | 'security_companies' | 'external_entertainment_companies';
+    type: 'paramedics' | 'guides' | 'security_companies' | 'external_entertainment_companies' | 'travel_companies';
     quantity: number;
     rate_type: 'hourly' | 'daily' | 'fixed';
     cost: number;
@@ -157,6 +166,7 @@ export default function TripPlannerDashboard() {
     const [guides, setGuides] = useState<Guide[]>([]);
     const [securityCompanies, setSecurityCompanies] = useState<SecurityCompany[]>([]);
     const [entertainmentCompanies, setEntertainmentCompanies] = useState<ExternalEntertainmentCompany[]>([]);
+    const [travelCompanies, setTravelCompanies] = useState<TravelCompany[]>([]);
     const [selectedRequirements, setSelectedRequirements] = useState<RequirementSelection[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
 
@@ -217,6 +227,7 @@ export default function TripPlannerDashboard() {
                 { data: guidesData, error: guidesError },
                 { data: securityData, error: securityError },
                 { data: entertainmentData, error: entertainmentError },
+                { data: travelData, error: travelError },
             ] = await Promise.all([
                 // Paramedics: id, name, phone, email, hourly_rate, daily_rate, status
                 supabase.from('paramedics').select('id, name, phone, email, hourly_rate, daily_rate, status').eq('status', 'active'),
@@ -226,17 +237,21 @@ export default function TripPlannerDashboard() {
                 supabase.from('security_companies').select('id, name, phone, email, hourly_rate, daily_rate, status').eq('status', 'active'),
                 // Entertainment companies: id, name, price, description, status
                 supabase.from('external_entertainment_companies').select('id, name, price, description, status').eq('status', 'active'),
+                // Travel companies: id, name, phone, email, pricing_data, status
+                supabase.from('travel_companies').select('id, name, phone, email, pricing_data, status').eq('status', 'active'),
             ]);
 
             if (paramedicsError) throw paramedicsError;
             if (guidesError) throw guidesError;
             if (securityError) throw securityError;
             if (entertainmentError) throw entertainmentError;
+            if (travelError) throw travelError;
 
             setParamedics(paramedicsData || []);
             setGuides(guidesData || []);
             setSecurityCompanies(securityData || []);
             setEntertainmentCompanies(entertainmentData || []);
+            setTravelCompanies(travelData || []);
         } catch (error) {
             console.error('Error loading requirements data:', error);
         }
@@ -297,6 +312,14 @@ export default function TripPlannerDashboard() {
                     const entertainment = entertainmentCompanies.find((e) => e.id === req.id);
                     if (entertainment) {
                         itemPrice = entertainment.price * req.quantity;
+                    }
+                    break;
+                case 'travel_companies':
+                    const travelCompany = travelCompanies.find((t) => t.id === req.id);
+                    if (travelCompany && travelCompany.pricing_data) {
+                        // For now, use a default price from pricing_data or fallback to 100
+                        const defaultPrice = travelCompany.pricing_data?.default_price || 100;
+                        itemPrice = defaultPrice * req.quantity;
                     }
                     break;
             }
@@ -371,6 +394,28 @@ export default function TripPlannerDashboard() {
         }
     };
 
+    const selectTravelCompany = (travelCompany: TravelCompany) => {
+        if (isSelected('travel_companies', travelCompany.id)) {
+            // Remove if already selected
+            setSelectedRequirements((prev) => prev.filter((req) => !(req.type === 'travel_companies' && req.id === travelCompany.id)));
+        } else {
+            // Add new selection with default pricing
+            const defaultPrice = travelCompany.pricing_data?.default_price || 100;
+            setSelectedRequirements((prev) => [
+                ...prev,
+                {
+                    type: 'travel_companies',
+                    id: travelCompany.id,
+                    name: travelCompany.name,
+                    quantity: 1,
+                    rate_type: 'daily',
+                    cost: defaultPrice,
+                    days: 1,
+                },
+            ]);
+        }
+    };
+
     const selectEntertainment = (entertainment: ExternalEntertainmentCompany) => {
         if (isSelected('external_entertainment_companies', entertainment.id)) {
             // Remove if already selected
@@ -429,6 +474,9 @@ export default function TripPlannerDashboard() {
                             break;
                         case 'external_entertainment_companies':
                             serviceName = t('entertainment');
+                            break;
+                        case 'travel_companies':
+                            serviceName = 'Transportation';
                             break;
                         default:
                             serviceName = requirement;
@@ -511,24 +559,36 @@ export default function TripPlannerDashboard() {
 
             // Create individual service records in booking_services table
             if (selectedRequirements.length > 0) {
-                const serviceRecords = selectedRequirements.map((requirement) => ({
-                    booking_id: booking.id,
-                    service_type: requirement.type,
-                    service_id: requirement.id,
-                    quantity: requirement.quantity,
-                    days: requirement.days || 1,
-                    booked_price: requirement.cost,
-                    rate_type: requirement.rate_type || 'fixed',
-                }));
+                // Filter out travel_companies as they're not allowed in booking_services table constraint
+                const allowedServiceTypes = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies'];
+                const validServiceRecords = selectedRequirements
+                    .filter((requirement) => allowedServiceTypes.includes(requirement.type))
+                    .map((requirement) => ({
+                        booking_id: booking.id,
+                        service_type: requirement.type,
+                        service_id: requirement.id,
+                        quantity: requirement.quantity,
+                        days: requirement.days || 1,
+                        booked_price: requirement.cost,
+                        rate_type: requirement.rate_type || 'fixed',
+                    }));
 
-                const { error: servicesError } = await supabase.from('booking_services').insert(serviceRecords);
+                if (validServiceRecords.length > 0) {
+                    const { error: servicesError } = await supabase.from('booking_services').insert(validServiceRecords);
 
-                if (servicesError) {
-                    console.error('Error creating service records:', servicesError);
-                    throw servicesError;
+                    if (servicesError) {
+                        console.error('Error creating service records:', servicesError);
+                        throw servicesError;
+                    }
+
+                    console.log('Successfully created booking services:', validServiceRecords);
                 }
 
-                console.log('Successfully created booking services:', serviceRecords);
+                // Log travel companies separately (they're included in the main booking record's services field)
+                const travelCompanies = selectedRequirements.filter((req) => req.type === 'travel_companies');
+                if (travelCompanies.length > 0) {
+                    console.log('Travel companies included in booking (stored in booking.services):', travelCompanies);
+                }
             }
 
             // Store booking reference for success display
@@ -1413,6 +1473,47 @@ export default function TripPlannerDashboard() {
                                                 </div>
                                             </motion.div>
                                         )}
+
+                                    {/* Travel Companies */}
+                                    {selectedForPlanning?.requirements?.includes('travel_companies') && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.4 }}
+                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                        >
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                                                    <IconCar className="w-4 h-4 text-white" />
+                                                </div>
+                                                {t('travel_companies')}
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {travelCompanies.map((travelCompany) => (
+                                                    <div
+                                                        key={travelCompany.id}
+                                                        className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
+                                                    >
+                                                        <div>
+                                                            <p className="font-medium text-gray-900 dark:text-white">{travelCompany.name}</p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                                {travelCompany.pricing_data?.default_price ? `$${travelCompany.pricing_data.default_price}/day` : 'Contact for pricing'}
+                                                            </p>
+                                                            {travelCompany.phone && <p className="text-xs text-blue-600 dark:text-blue-400">{travelCompany.phone}</p>}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => selectTravelCompany(travelCompany)}
+                                                            className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                isSelected('travel_companies', travelCompany.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
+                                                            }`}
+                                                        >
+                                                            {isSelected('travel_companies', travelCompany.id) ? t('selected') : t('select')}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
                                 </div>
 
                                 {/* Right Column - Price Summary & Selection */}

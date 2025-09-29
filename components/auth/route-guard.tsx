@@ -98,6 +98,8 @@ export default function RouteGuard({ children }: RouteGuardProps) {
 
         if (role === 'admin') {
             router.push('/');
+        } else if (role === 'trip_planner') {
+            router.push('/');
         } else if (['guide', 'paramedic', 'security_company', 'travel_company', 'entertainment_company'].includes(role)) {
             router.push('/service/dashboard');
         } else {
@@ -122,6 +124,16 @@ export default function RouteGuard({ children }: RouteGuardProps) {
         // Admin access
         if (role === 'admin') {
             // Admins can access everything except service provider routes
+            if (currentPath.startsWith('/service')) {
+                router.push('/');
+                return false;
+            }
+            return true;
+        }
+
+        // Trip planner access
+        if (role === 'trip_planner') {
+            // Trip planners can access main dashboard routes but not service provider routes
             if (currentPath.startsWith('/service')) {
                 router.push('/');
                 return false;
