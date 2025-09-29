@@ -505,7 +505,7 @@ const ComponentsAuthSignupForm = () => {
                 <div className="flex items-center justify-center space-x-4">
                     <div className="flex items-center">
                         <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                        <span className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">{t('signup_step_basic')}</span>
+                        <span className="mx-2 text-sm font-medium text-gray-700 dark:text-gray-300">{t('signup_step_basic')}</span>
                     </div>
                     <div className={`h-1 w-12 ${selectedRole ? 'bg-primary' : 'bg-gray-300'} transition-colors duration-300`}></div>
                     <div className="flex items-center">
@@ -514,7 +514,7 @@ const ComponentsAuthSignupForm = () => {
                         >
                             2
                         </div>
-                        <span className={`ml-2 text-sm font-medium ${selectedRole ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'} transition-colors duration-300`}>
+                        <span className={`mx-2 text-sm font-medium ${selectedRole ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'} transition-colors duration-300`}>
                             {t('signup_step_role')}
                         </span>
                     </div>
@@ -525,7 +525,7 @@ const ComponentsAuthSignupForm = () => {
                         >
                             3
                         </div>
-                        <span className={`ml-2 text-sm font-medium ${isServiceProvider || requiresSchool ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'} transition-colors duration-300`}>
+                        <span className={`mx-2 text-sm font-medium ${isServiceProvider || requiresSchool ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'} transition-colors duration-300`}>
                             {t('signup_step_additional')}
                         </span>
                     </div>
@@ -724,7 +724,7 @@ const ComponentsAuthSignupForm = () => {
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="overflow-hidden"
+                        className="overflow-visible"
                     >
                         <label htmlFor="school">
                             {t('select_school')} <span className="text-red-500">*</span>
@@ -756,7 +756,7 @@ const ComponentsAuthSignupForm = () => {
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.4 }}
-                        className="overflow-hidden"
+                        className="overflow-visible"
                     >
                         <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-6 border border-primary/20">
                             <h3 className="text-lg font-semibold mb-4 text-primary dark:text-white flex items-center">

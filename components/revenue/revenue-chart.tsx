@@ -148,12 +148,12 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, isLoading = false }) 
                         {t('monthly_revenue')} vs {t('payments_received_chart')}
                     </p>
                 </div>
-                <div className="flex items-center space-x-2">
-                    <div className="flex items-center space-x-1">
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                         <span className="text-xs text-gray-600 dark:text-gray-400">Revenue</span>
                     </div>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center gap-1">
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                         <span className="text-xs text-gray-600 dark:text-gray-400">Payments</span>
                     </div>

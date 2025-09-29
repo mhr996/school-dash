@@ -116,7 +116,7 @@ const TransactionsTable: React.FC<TransactionsTableProps> = ({ transactions, isL
                     <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <input type="text" placeholder={t('search_transactions')} className="form-input pl-10" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                     <IconFilter className="text-gray-400 w-4 h-4" />
                     <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                         <option value="all">{t('all_statuses')}</option>
