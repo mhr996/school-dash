@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
 import { getPublicUrlFromPath } from '@/utils/file-upload';
@@ -22,6 +23,13 @@ import IconCoffee from '@/components/icon/icon-coffee';
 import IconUsersGroup from '@/components/icon/icon-users-group';
 import IconLock from '@/components/icon/icon-lock';
 import IconStar from '@/components/icon/icon-star';
+import IconUsers from '@/components/icon/icon-users';
+import IconRouter from '@/components/icon/icon-router';
+import IconHelpCircle from '@/components/icon/icon-help-circle';
+import IconFire from '@/components/icon/icon-fire';
+import IconCaretDown from '@/components/icon/icon-caret-down';
+import IconShoppingBag from '@/components/icon/icon-shopping-bag';
+import IconPlayCircle from '@/components/icon/icon-play-circle';
 import DestinationDetailsModal from '@/components/modals/destination-details-modal';
 
 type Destination = {
@@ -145,10 +153,14 @@ const getRequirementIcon = (requirement: string) => {
 
 export default function TripPlannerDashboard() {
     const { t } = getTranslation();
+    const router = useRouter();
     const [currentView, setCurrentView] = useState<'dashboard' | 'destinations'>('dashboard');
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [zones, setZones] = useState<Zone[]>([]);
     const [loading, setLoading] = useState(false);
+
+    // New trip dropdown state
+    const [showTripDropdown, setShowTripDropdown] = useState(false);
 
     // Filter states
     const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
@@ -179,11 +191,45 @@ export default function TripPlannerDashboard() {
     // Filtered destinations
     const [filteredDestinations, setFilteredDestinations] = useState<Destination[]>([]);
 
+    // Dashboard sections state
+    const [topDestinations, setTopDestinations] = useState<Destination[]>([]);
+    const [bestDeals, setBestDeals] = useState<Destination[]>([]);
+    const [upcomingTrips, setUpcomingTrips] = useState<any[]>([]);
+    const [previousTrips, setPreviousTrips] = useState<any[]>([]);
+    const [previousPayments, setPreviousPayments] = useState<any[]>([]);
+    const [dashboardLoading, setDashboardLoading] = useState(false);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (showTripDropdown) {
+                setShowTripDropdown(false);
+            }
+        };
+
+        if (showTripDropdown) {
+            document.addEventListener('click', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [showTripDropdown]);
+
     useEffect(() => {
         if (currentView === 'destinations') {
             loadDestinations();
+        } else if (currentView === 'dashboard') {
+            loadDashboardData();
         }
     }, [currentView]);
+
+    useEffect(() => {
+        // Load dashboard data when component mounts
+        if (currentView === 'dashboard') {
+            loadDashboardData();
+        }
+    }, []);
 
     useEffect(() => {
         // Apply filters
@@ -254,6 +300,94 @@ export default function TripPlannerDashboard() {
             setTravelCompanies(travelData || []);
         } catch (error) {
             console.error('Error loading requirements data:', error);
+        }
+    };
+
+    const loadDashboardData = async () => {
+        try {
+            setDashboardLoading(true);
+
+            // Load top destinations (most popular based on booking count)
+            const { data: topDestData, error: topDestError } = await supabase
+                .from('destinations')
+                .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties, requirements, suitable_for, pricing')
+                .eq('is_active', true)
+                .limit(6);
+
+            if (topDestError) throw topDestError;
+
+            // Load best deals (destinations with special pricing or featured)
+            const { data: bestDealsData, error: bestDealsError } = await supabase
+                .from('destinations')
+                .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties, requirements, suitable_for, pricing')
+                .eq('is_active', true)
+                .not('pricing', 'is', null)
+                .limit(6);
+
+            if (bestDealsError) throw bestDealsError;
+
+            // Load user's upcoming trips (bookings with future trip_date)
+            const today = new Date().toISOString().split('T')[0];
+            const { data: upcomingData, error: upcomingError } = await supabase
+                .from('bookings')
+                .select(
+                    `
+                    id, booking_reference, trip_date, total_amount, status, payment_status,
+                    destinations!bookings_destination_id_fkey(name, address, thumbnail_path)
+                `,
+                )
+                .gte('trip_date', today)
+                .in('status', ['confirmed', 'pending'])
+                .order('trip_date', { ascending: true })
+                .limit(5);
+
+            if (upcomingError) throw upcomingError;
+
+            // Load user's previous trips (completed bookings)
+            const { data: previousData, error: previousError } = await supabase
+                .from('bookings')
+                .select(
+                    `
+                    id, booking_reference, trip_date, total_amount, status, payment_status,
+                    destinations!bookings_destination_id_fkey(name, address, thumbnail_path)
+                `,
+                )
+                .lt('trip_date', today)
+                .in('status', ['completed', 'confirmed'])
+                .order('trip_date', { ascending: false })
+                .limit(5);
+
+            if (previousError) throw previousError;
+
+            // Load user's payment history
+            const { data: paymentsData, error: paymentsError } = await supabase
+                .from('payments')
+                .select(
+                    `
+                    id, amount, payment_type, payment_date,
+                    bills!payments_bill_id_fkey(
+                        bill_number, total_amount,
+                        bookings!bills_booking_id_fkey(
+                            booking_reference,
+                            destinations!bookings_destination_id_fkey(name)
+                        )
+                    )
+                `,
+                )
+                .order('payment_date', { ascending: false })
+                .limit(5);
+
+            if (paymentsError) throw paymentsError;
+
+            setTopDestinations(topDestData || []);
+            setBestDeals(bestDealsData || []);
+            setUpcomingTrips(upcomingData || []);
+            setPreviousTrips(previousData || []);
+            setPreviousPayments(paymentsData || []);
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+        } finally {
+            setDashboardLoading(false);
         }
     };
 
@@ -646,15 +780,86 @@ export default function TripPlannerDashboard() {
         return zone?.name || t('unknown_zone');
     };
 
+    // Trip options for dropdown
+    const tripOptions = [
+        {
+            id: 'full-trip',
+            title: t('full_trip'),
+            description: t('complete_trip_planning'),
+            icon: IconStar,
+            color: 'from-blue-500 to-blue-600',
+            onClick: () => {
+                setCurrentView('destinations');
+                setShowTripDropdown(false);
+            },
+        },
+        {
+            id: 'paramedics',
+            title: t('paramedics'),
+            description: t('medical_services'),
+            icon: IconHeart,
+            color: 'from-red-500 to-red-600',
+            onClick: () => {
+                console.log('Paramedics service clicked');
+                setShowTripDropdown(false);
+            },
+        },
+        {
+            id: 'guides',
+            title: t('guides'),
+            description: t('tour_guides'),
+            icon: IconUsers,
+            color: 'from-green-500 to-green-600',
+            onClick: () => {
+                console.log('Guides service clicked');
+                setShowTripDropdown(false);
+            },
+        },
+        {
+            id: 'security',
+            title: t('security'),
+            description: t('security_services'),
+            icon: IconLock,
+            color: 'from-yellow-500 to-yellow-600',
+            onClick: () => {
+                console.log('Security service clicked');
+                setShowTripDropdown(false);
+            },
+        },
+        {
+            id: 'entertainment',
+            title: t('entertainment'),
+            description: t('entertainment_services'),
+            icon: IconPlayCircle,
+            color: 'from-purple-500 to-purple-600',
+            onClick: () => {
+                console.log('Entertainment service clicked');
+                setShowTripDropdown(false);
+            },
+        },
+        {
+            id: 'travel-companies',
+            title: t('travel_companies'),
+            description: t('transportation_services'),
+            icon: IconCar,
+            color: 'from-indigo-500 to-indigo-600',
+            onClick: () => {
+                console.log('Travel companies service clicked');
+                setShowTripDropdown(false);
+            },
+        },
+    ];
+
     const shortcuts = [
         {
-            id: 'new-trip',
-            title: t('new_trip'),
-            description: t('start_planning_new_trip'),
+            id: 'new-booking',
+            title: t('new_booking'),
+            description: t('start_planning_new_booking'),
             icon: IconPlus,
             color: 'from-blue-500 to-blue-600',
             shadowColor: 'shadow-blue-500/25',
-            onClick: () => setCurrentView('destinations'),
+            onClick: () => setShowTripDropdown(!showTripDropdown),
+            hasDropdown: true,
         },
         {
             id: 'my-trips',
@@ -663,7 +868,7 @@ export default function TripPlannerDashboard() {
             icon: IconCalendar,
             color: 'from-green-500 to-green-600',
             shadowColor: 'shadow-green-500/25',
-            onClick: () => {}, // TODO: Navigate to trips
+            onClick: () => router.push('/my-trips'),
         },
         {
             id: 'transactions',
@@ -672,7 +877,7 @@ export default function TripPlannerDashboard() {
             icon: IconCreditCard,
             color: 'from-purple-500 to-purple-600',
             shadowColor: 'shadow-purple-500/25',
-            onClick: () => {}, // TODO: Navigate to transactions
+            onClick: () => router.push('/my-transactions'),
         },
         {
             id: 'profile',
@@ -681,16 +886,7 @@ export default function TripPlannerDashboard() {
             icon: IconUser,
             color: 'from-orange-500 to-orange-600',
             shadowColor: 'shadow-orange-500/25',
-            onClick: () => {}, // TODO: Navigate to profile
-        },
-        {
-            id: 'settings',
-            title: t('settings'),
-            description: t('app_preferences'),
-            icon: IconSettings,
-            color: 'from-gray-500 to-gray-600',
-            shadowColor: 'shadow-gray-500/25',
-            onClick: () => {}, // TODO: Navigate to settings
+            onClick: () => router.push('/my-profile'),
         },
     ];
 
@@ -774,43 +970,594 @@ export default function TripPlannerDashboard() {
                         </motion.div>
 
                         {/* Action Shortcuts Grid */}
-                        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6  mx-auto">
                             {shortcuts.map((shortcut, index) => (
                                 <motion.div
                                     key={shortcut.id}
                                     variants={cardVariants}
                                     whileHover="hover"
                                     whileTap={{ scale: 0.95 }}
-                                    className={`relative group cursor-pointer`}
+                                    className={`relative group cursor-pointer ${shortcut.hasDropdown && showTripDropdown ? 'z-50' : ''}`}
                                     onClick={shortcut.onClick}
                                     style={{
                                         animationDelay: `${index * 0.1}s`,
                                     }}
                                 >
                                     <div
-                                        className={`absolute inset-0 bg-gradient-to-r ${shortcut.color} rounded-2xl blur-xl opacity-25 group-hover:opacity-40 transition-all duration-300 ${shortcut.shadowColor} shadow-2xl`}
+                                        className={`absolute inset-0 bg-gradient-to-r ${shortcut.color} rounded-xl blur-lg opacity-25 group-hover:opacity-40 transition-all duration-300 ${shortcut.shadowColor} shadow-xl`}
                                     ></div>
-                                    <div className="relative bg-white dark:bg-slate-900/80 rounded-2xl p-8 border border-gray-200/50 dark:border-slate-700/60 backdrop-blur-sm hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-300">
+                                    <div className="relative bg-white dark:bg-slate-900/80 rounded-xl p-4 md:p-6 border border-gray-200/50 dark:border-slate-700/60 backdrop-blur-sm hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-300">
                                         <div
-                                            className={`w-16 h-16 bg-gradient-to-r ${shortcut.color} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
+                                            className={`w-12 h-12 md:w-14 md:h-14 bg-gradient-to-r ${shortcut.color} rounded-xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}
                                         >
-                                            <shortcut.icon className="h-8 w-8 text-white" />
+                                            <shortcut.icon className="h-6 w-6 md:h-7 md:w-7 text-white" />
                                         </div>
-                                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                                        <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
                                             {shortcut.title}
                                         </h3>
-                                        <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{shortcut.description}</p>
-                                        <div className="absolute bottom-7 ltr:right-6 rtl:left-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                            <div className="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center">
-                                                <svg className="w-4 h-4 text-white ltr:rotate-0 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                                </svg>
-                                            </div>
-                                        </div>
+                                        <p
+                                            className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed overflow-hidden"
+                                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+                                        >
+                                            {shortcut.description}
+                                        </p>
+
+                                        {/* Dropdown for New Trip */}
+                                        <AnimatePresence>
+                                            {shortcut.hasDropdown && showTripDropdown && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                                                    className="absolute top-full left-0 right-0 mt-2 md:w-[400px] w-[300px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/60 backdrop-blur-xl overflow-hidden"
+                                                    style={{ zIndex: 9999 }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <div className="p-2">
+                                                        {tripOptions.map((option, optionIndex) => (
+                                                            <motion.div
+                                                                key={option.id}
+                                                                initial={{ opacity: 0, x: -10 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                transition={{ delay: optionIndex * 0.05, duration: 0.2 }}
+                                                                onClick={option.onClick}
+                                                                className="group/option relative flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/60 transition-all duration-200"
+                                                            >
+                                                                <div
+                                                                    className={`w-10 h-10 bg-gradient-to-r ${option.color} rounded-lg flex items-center justify-center group-hover/option:scale-110 transition-transform duration-200`}
+                                                                >
+                                                                    <option.icon className="h-5 w-5 text-white" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white group-hover/option:text-blue-600 dark:group-hover/option:text-blue-400 transition-colors duration-200">
+                                                                        {option.title}
+                                                                    </h4>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{option.description}</p>
+                                                                </div>
+                                                                <div className="opacity-0 group-hover/option:opacity-100 transition-opacity duration-200">
+                                                                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                                                        <svg className="w-3 h-3 text-white ltr:rotate-0 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                                        </svg>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </motion.div>
                             ))}
                         </motion.div>
+
+                        {/* Dashboard Sections */}
+                        {!dashboardLoading && (
+                            <>
+                                {/* Top Destinations Section */}
+                                <motion.div variants={itemVariants} className="mb-16 mt-16">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{t('top_destinations')}</h2>
+                                        <button
+                                            onClick={() => setCurrentView('destinations')}
+                                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium flex items-center gap-2 transition-colors"
+                                        >
+                                            {t('view_all')}
+                                            <svg className="w-4 h-4 ltr:rotate-0 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {topDestinations.map((destination, index) => (
+                                            <motion.div
+                                                key={destination.id}
+                                                initial={{ scale: 0, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                transition={{
+                                                    delay: index * 0.1,
+                                                    type: 'spring',
+                                                    stiffness: 100,
+                                                    damping: 15,
+                                                }}
+                                                whileHover={{
+                                                    y: -10,
+                                                    scale: 1.02,
+                                                    transition: { type: 'spring', stiffness: 400, damping: 25 },
+                                                }}
+                                                className="group cursor-pointer"
+                                            >
+                                                <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60">
+                                                    {/* Image */}
+                                                    <div className="relative h-48 overflow-hidden">
+                                                        <img
+                                                            src={destination.thumbnail_path ? getPublicUrlFromPath(destination.thumbnail_path) : '/assets/images/img-placeholder-fallback.webp'}
+                                                            alt={destination.name}
+                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                            <div
+                                                                className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg cursor-pointer hover:bg-white/30 hover:scale-110 transition-all duration-200"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openDestinationModal(destination);
+                                                                }}
+                                                            >
+                                                                <IconEye className="h-5 w-5 text-white drop-shadow-sm" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Content */}
+                                                    <div className="p-6 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm">
+                                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 drop-shadow-sm">
+                                                            {destination.name}
+                                                        </h3>
+                                                        <div className="flex items-center text-gray-700 dark:text-gray-200 mb-4">
+                                                            <IconMapPin className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
+                                                            <span className="text-sm truncate drop-shadow-sm">{destination.address}</span>
+                                                        </div>
+
+                                                        {/* Properties */}
+                                                        {destination.properties && destination.properties.length > 0 && (
+                                                            <div className="mb-4">
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {destination.properties.slice(0, 3).map((property, idx) => {
+                                                                        const IconComponent = getPropertyIcon(property);
+                                                                        return (
+                                                                            <motion.div
+                                                                                key={idx}
+                                                                                initial={{ scale: 0 }}
+                                                                                animate={{ scale: 1 }}
+                                                                                transition={{ delay: 0.5 + idx * 0.1 }}
+                                                                                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500/20 dark:bg-blue-400/20 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium backdrop-blur-sm border border-blue-200/50 dark:border-blue-600/30"
+                                                                            >
+                                                                                <IconComponent className="h-3 w-3" />
+                                                                                <span className="drop-shadow-sm">{t(property)}</span>
+                                                                            </motion.div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Requirements Section */}
+                                                        {destination.requirements && destination.requirements.length > 0 && (
+                                                            <div className="mt-4 pt-4 border-t border-gray-200/30 dark:border-gray-700/30">
+                                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3 flex items-center gap-2">
+                                                                    <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    {t('requirements')}
+                                                                </p>
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {destination.requirements.map((requirement: string, idx: number) => (
+                                                                        <motion.div
+                                                                            key={idx}
+                                                                            initial={{ scale: 0 }}
+                                                                            animate={{ scale: 1 }}
+                                                                            transition={{ delay: 0.5 + idx * 0.1 }}
+                                                                            className="inline-flex items-center gap-1 px-3 py-1 bg-orange-500/20 dark:bg-orange-400/20 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium backdrop-blur-sm border border-orange-200/50 dark:border-orange-600/30"
+                                                                        >
+                                                                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4" />
+                                                                            </svg>
+                                                                            <span className="drop-shadow-sm">{t(requirement)}</span>
+                                                                        </motion.div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Action Buttons */}
+                                                        <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleSelectForPlanning(destination);
+                                                                }}
+                                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-blue-500/25 backdrop-blur-sm border border-blue-500/30"
+                                                            >
+                                                                {t('select')}
+                                                            </motion.button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+
+                                {/* Best Deals Section */}
+                                <motion.div variants={itemVariants} className="mb-16">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{t('best_deals')}</h2>
+                                        <button
+                                            onClick={() => setCurrentView('destinations')}
+                                            className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium flex items-center gap-2 transition-colors"
+                                        >
+                                            {t('view_all')}
+                                            <svg className="w-4 h-4 ltr:rotate-0 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {bestDeals.map((destination, index) => (
+                                            <motion.div
+                                                key={destination.id}
+                                                initial={{ scale: 0, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                transition={{
+                                                    delay: index * 0.1,
+                                                    type: 'spring',
+                                                    stiffness: 100,
+                                                    damping: 15,
+                                                }}
+                                                whileHover={{
+                                                    y: -10,
+                                                    scale: 1.02,
+                                                    transition: { type: 'spring', stiffness: 400, damping: 25 },
+                                                }}
+                                                className="group cursor-pointer"
+                                            >
+                                                <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60">
+                                                    {/* Best Deal Badge */}
+                                                    <div className="absolute top-4 left-4 z-10">
+                                                        <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">{t('best_deal')}</span>
+                                                    </div>
+
+                                                    {/* Image */}
+                                                    <div className="relative h-48 overflow-hidden">
+                                                        <img
+                                                            src={destination.thumbnail_path ? getPublicUrlFromPath(destination.thumbnail_path) : '/assets/images/img-placeholder-fallback.webp'}
+                                                            alt={destination.name}
+                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        />
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                            <div
+                                                                className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg cursor-pointer hover:bg-white/30 hover:scale-110 transition-all duration-200"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openDestinationModal(destination);
+                                                                }}
+                                                            >
+                                                                <IconEye className="h-5 w-5 text-white drop-shadow-sm" />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Content */}
+                                                    <div className="p-6 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm">
+                                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-300 drop-shadow-sm">
+                                                            {destination.name}
+                                                        </h3>
+                                                        <div className="flex items-center text-gray-700 dark:text-gray-200 mb-4">
+                                                            <IconMapPin className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
+                                                            <span className="text-sm truncate drop-shadow-sm">{destination.address}</span>
+                                                        </div>
+
+                                                        {/* Pricing */}
+                                                        {destination.pricing && (
+                                                            <div className="mb-4">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="text-2xl font-bold text-green-600 dark:text-green-400 drop-shadow-sm">
+                                                                            {destination.pricing?.child ? `$${destination.pricing.child}` : t('contact_for_price')}
+                                                                        </div>
+                                                                        {destination.pricing?.adult && destination.pricing?.child && destination.pricing.adult !== destination.pricing.child && (
+                                                                            <div className="flex flex-col">
+                                                                                <div className="text-sm text-gray-500 dark:text-gray-400 line-through">${destination.pricing.adult}</div>
+                                                                                <div className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                                                                    {Math.round(((destination.pricing.adult - destination.pricing.child) / destination.pricing.adult) * 100)}% OFF
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('per_person')}</div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Requirements Section */}
+                                                        {destination.requirements && destination.requirements.length > 0 && (
+                                                            <div className="mb-4 pb-4 border-b border-gray-200/30 dark:border-gray-700/30">
+                                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-2">
+                                                                    <svg className="h-3 w-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    {t('requirements')}
+                                                                </p>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {destination.requirements.slice(0, 3).map((requirement: string, idx: number) => (
+                                                                        <span
+                                                                            key={idx}
+                                                                            className="inline-flex items-center gap-1 px-2 py-1 bg-orange-500/20 dark:bg-orange-400/20 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium backdrop-blur-sm border border-orange-200/50 dark:border-orange-600/30"
+                                                                        >
+                                                                            <span className="drop-shadow-sm">{t(requirement)}</span>
+                                                                        </span>
+                                                                    ))}
+                                                                    {destination.requirements.length > 3 && (
+                                                                        <span className="inline-flex items-center px-2 py-1 bg-gray-500/20 dark:bg-gray-400/20 text-gray-700 dark:text-gray-300 rounded-full text-xs font-medium backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/30">
+                                                                            +{destination.requirements.length - 3} {t('more')}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Action Buttons */}
+                                                        <div className="flex flex-col sm:flex-row gap-3">
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleSelectForPlanning(destination);
+                                                                }}
+                                                                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-green-500/25 backdrop-blur-sm border border-green-500/30"
+                                                            >
+                                                                {t('book_now')}
+                                                            </motion.button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+
+                                {/* Upcoming Trips Section */}
+                                <motion.div variants={itemVariants} className="mb-16">
+                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-8">{t('my_upcoming_trips')}</h2>
+                                    {upcomingTrips.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {upcomingTrips.map((trip, index) => (
+                                                <motion.div
+                                                    key={trip.id}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: index * 0.1 }}
+                                                    whileHover={{
+                                                        y: -5,
+                                                        scale: 1.02,
+                                                        transition: { type: 'spring', stiffness: 400, damping: 25 },
+                                                    }}
+                                                    className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40"
+                                                >
+                                                    <div className="p-6">
+                                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                                            <div className="flex items-center gap-4 flex-1">
+                                                                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                                                                    <IconCalendar className="w-6 h-6 text-white" />
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate">{trip.destinations?.name}</h3>
+                                                                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                                                                        {t('booking_ref')}: {trip.booking_reference}
+                                                                    </p>
+                                                                    <p className="text-sm text-gray-500 mt-1">{new Date(trip.trip_date).toLocaleDateString()}</p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-center sm:text-right">
+                                                                <div className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">${trip.total_amount}</div>
+                                                                <span
+                                                                    className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                                                                        trip.status === 'confirmed'
+                                                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                                                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
+                                                                    }`}
+                                                                >
+                                                                    {t(trip.status)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-slate-700/40">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                                <IconCalendar className="w-8 h-8 text-white" />
+                                            </div>
+                                            <p className="text-gray-500 dark:text-gray-400 text-lg mb-4">{t('no_upcoming_trips')}</p>
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => setCurrentView('destinations')}
+                                                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-blue-500/25"
+                                            >
+                                                {t('plan_your_first_trip')}
+                                            </motion.button>
+                                        </div>
+                                    )}
+                                </motion.div>
+
+                                {/* Previous Trips Section */}
+                                <motion.div variants={itemVariants} className="mb-16">
+                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-8">{t('my_previous_trips')}</h2>
+                                    {previousTrips.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {previousTrips.map((trip, index) => (
+                                                <motion.div
+                                                    key={trip.id}
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: index * 0.1 }}
+                                                    whileHover={{
+                                                        y: -5,
+                                                        scale: 1.02,
+                                                        transition: { type: 'spring', stiffness: 400, damping: 25 },
+                                                    }}
+                                                    className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40"
+                                                >
+                                                    <div className="p-6">
+                                                        <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex-1 min-w-0">
+                                                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate">{trip.destinations?.name}</h3>
+                                                                <p className="text-gray-600 dark:text-gray-400 text-sm truncate">{trip.destinations?.address}</p>
+                                                                <p className="text-sm text-gray-500 mt-2">{new Date(trip.trip_date).toLocaleDateString()}</p>
+                                                            </div>
+                                                            <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-full text-xs font-medium ml-2">
+                                                                {t('completed')}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="text-lg font-bold text-gray-800 dark:text-gray-200">${trip.total_amount}</div>
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium transition-colors"
+                                                            >
+                                                                {t('view_details')}
+                                                            </motion.button>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-slate-700/40">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-gray-500 to-gray-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                                <IconMapPin className="w-8 h-8 text-white" />
+                                            </div>
+                                            <p className="text-gray-500 dark:text-gray-400 text-lg">{t('no_previous_trips')}</p>
+                                        </div>
+                                    )}
+                                </motion.div>
+
+                                {/* Previous Payments Section */}
+                                <motion.div variants={itemVariants} className="mb-16">
+                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-8">{t('payment_history')}</h2>
+                                    {previousPayments.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {/* Desktop Table View */}
+                                            <div className="hidden md:block bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl border border-white/30 dark:border-slate-700/40">
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full">
+                                                        <thead className="bg-white/10 dark:bg-slate-800/20">
+                                                            <tr>
+                                                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                                    {t('payment_date')}
+                                                                </th>
+                                                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('booking')}</th>
+                                                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('amount')}</th>
+                                                                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                                    {t('payment_method')}
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-white/20 dark:divide-slate-700/30">
+                                                            {previousPayments.map((payment, index) => (
+                                                                <motion.tr
+                                                                    key={payment.id}
+                                                                    initial={{ opacity: 0, x: -20 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    transition={{ delay: index * 0.05 }}
+                                                                    className="hover:bg-white/10 dark:hover:bg-slate-800/20 transition-colors"
+                                                                >
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">
+                                                                        {new Date(payment.payment_date).toLocaleDateString()}
+                                                                    </td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                                        <div>
+                                                                            <div className="text-sm font-medium text-gray-900 dark:text-gray-300">{payment.bills?.bookings?.destinations?.name}</div>
+                                                                            <div className="text-sm text-gray-500 dark:text-gray-400">{payment.bills?.bookings?.booking_reference}</div>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300">${payment.amount}</td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                                                            {t(payment.payment_type)}
+                                                                        </span>
+                                                                    </td>
+                                                                </motion.tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+
+                                            {/* Mobile Card View */}
+                                            <div className="md:hidden space-y-4">
+                                                {previousPayments.map((payment, index) => (
+                                                    <motion.div
+                                                        key={payment.id}
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: index * 0.1 }}
+                                                        className="bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl p-6 shadow-xl border border-white/30 dark:border-slate-700/40"
+                                                    >
+                                                        <div className="flex items-start justify-between mb-4">
+                                                            <div className="flex-1 min-w-0">
+                                                                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 truncate">{payment.bills?.bookings?.destinations?.name}</h3>
+                                                                <p className="text-gray-600 dark:text-gray-400 text-sm">{payment.bills?.bookings?.booking_reference}</p>
+                                                                <p className="text-sm text-gray-500 mt-1">{new Date(payment.payment_date).toLocaleDateString()}</p>
+                                                            </div>
+                                                            <div className="text-right ml-4">
+                                                                <div className="text-xl font-bold text-gray-800 dark:text-gray-200">${payment.amount}</div>
+                                                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 mt-2">
+                                                                    {t(payment.payment_type)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-slate-700/40">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                                <IconCreditCard className="w-8 h-8 text-white" />
+                                            </div>
+                                            <p className="text-gray-500 dark:text-gray-400 text-lg">{t('no_payment_history')}</p>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </>
+                        )}
+
+                        {dashboardLoading && (
+                            <div className="space-y-16 mt-16">
+                                {[1, 2, 3, 4, 5].map((section) => (
+                                    <div key={section} className="animate-pulse">
+                                        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-8"></div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {[1, 2, 3].map((card) => (
+                                                <div key={card} className="bg-gray-200 dark:bg-gray-700 rounded-2xl h-64"></div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </motion.div>
                 )}
 

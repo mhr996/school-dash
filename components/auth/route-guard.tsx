@@ -19,18 +19,15 @@ export default function RouteGuard({ children }: RouteGuardProps) {
     const publicRoutes = ['/login', '/reset-password', '/update-password', '/signup'];
     const authRoutes = ['/login', '/signup', '/reset-password', '/update-password'];
     const serviceProviderRoutes = ['/service'];
-    const adminRoutes = [
+    const adminOnlyRoutes = [
         '/users',
         '/guides',
         '/paramedics',
         '/security-companies',
         '/travel-companies',
         '/external-entertainment-companies',
-        '/destinations',
         '/zones',
         '/schools',
-        '/bookings',
-        '/trip-plans',
         '/reports',
         '/analytics',
         '/bills',
@@ -38,6 +35,9 @@ export default function RouteGuard({ children }: RouteGuardProps) {
         '/company-settings',
         '/profile',
     ];
+    const tripPlannerRoutes = ['/destinations', '/bookings', '/trip-plans'];
+    const tripPlannerUserRoutes = ['/my-trips', '/my-transactions', '/my-profile'];
+    const adminRoutes = [...adminOnlyRoutes, ...tripPlannerRoutes];
 
     useEffect(() => {
         const checkAuth = async () => {
@@ -131,10 +131,22 @@ export default function RouteGuard({ children }: RouteGuardProps) {
             return true;
         }
 
-        // Trip planner access
+        // Trip planner access - home page and user-specific pages
         if (role === 'trip_planner') {
-            // Trip planners can access main dashboard routes but not service provider routes
-            if (currentPath.startsWith('/service')) {
+            // Trip planners can access home page and their own pages
+            const allowedPaths = ['/', ...tripPlannerUserRoutes];
+            if (!allowedPaths.includes(currentPath) && !publicRoutes.includes(currentPath)) {
+                router.push('/');
+                return false;
+            }
+            return true;
+        }
+
+        // School manager access - home page and user-specific pages
+        if (role === 'school_manager') {
+            // School managers can access home page and their own pages
+            const allowedPaths = ['/', ...tripPlannerUserRoutes];
+            if (!allowedPaths.includes(currentPath) && !publicRoutes.includes(currentPath)) {
                 router.push('/');
                 return false;
             }
