@@ -142,30 +142,68 @@ export default function MyBookingsPage() {
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // Fetch current user
+    // Fetch user and bookings together
     useEffect(() => {
-        const fetchUser = async () => {
-            const { user, error } = await getCurrentUserWithRole();
-            if (!error && user) {
+        const fetchUserAndBookings = async () => {
+            try {
+                setLoading(true);
+
+                // Get current user
+                const { user, error: userError } = await getCurrentUserWithRole();
+                if (userError || !user) {
+                    setLoading(false);
+                    return;
+                }
+
                 setCurrentUser(user);
+
+                // Fetch bookings for this user
+                const { data, error } = await supabase
+                    .from('bookings')
+                    .select(
+                        `
+                    id,
+                    booking_reference,
+                    booking_type,
+                    trip_date,
+                    total_amount,
+                    payment_status,
+                    status,
+                    notes,
+                    special_requests,
+                    services,
+                    created_at,
+                    updated_at,
+                    destinations (
+                        id,
+                        name,
+                        address,
+                        thumbnail_path
+                    )
+                `,
+                    )
+                    .eq('customer_id', user.id)
+                    .order('trip_date', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching bookings:', error);
+                } else {
+                    setBookings((data as any) || []);
+                }
+            } catch (error) {
+                console.error('Error fetching user and bookings:', error);
+            } finally {
+                setLoading(false);
             }
         };
-        fetchUser();
-    }, []);
 
-    // Fetch bookings when user is loaded
-    useEffect(() => {
-        if (currentUser?.id) {
-            fetchBookings();
-        }
-    }, [currentUser]);
+        fetchUserAndBookings();
+    }, []);
 
     const fetchBookings = async () => {
         if (!currentUser?.id) return;
 
         try {
-            setLoading(true);
-
             const { data, error } = await supabase
                 .from('bookings')
                 .select(
@@ -195,14 +233,11 @@ export default function MyBookingsPage() {
 
             if (error) {
                 console.error('Error fetching bookings:', error);
-                return;
+            } else {
+                setBookings((data as any) || []);
             }
-
-            setBookings((data as any) || []);
         } catch (error) {
             console.error('Error fetching bookings:', error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -275,18 +310,11 @@ export default function MyBookingsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50 dark:from-gray-900 dark:via-purple-900/10 dark:to-blue-900/10">
-                <div className="container mx-auto px-4 py-8">
-                    <div className="flex items-center justify-center min-h-[400px]">
-                        <div className="text-center">
-                            <div className="relative w-16 h-16 mx-auto mb-6">
-                                <div className="absolute inset-0 rounded-full border-4 border-purple-200 dark:border-purple-500/30"></div>
-                                <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-600 dark:border-t-purple-400 animate-spin"></div>
-                            </div>
-                            <p className="text-lg font-medium bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
-                                {t('loading_your_bookings')}
-                            </p>
-                        </div>
+            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-violet-50 to-fuchsia-50 dark:from-slate-900 dark:via-purple-950 dark:to-slate-900">
+                <div className="relative">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-t-4 border-purple-600"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <IconCalendar className="w-12 h-12 text-purple-600 animate-pulse" />
                     </div>
                 </div>
             </div>

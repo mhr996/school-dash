@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
 import { getCurrentUserWithRole } from '@/lib/auth';
+import Dropdown from '@/components/dropdown';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
@@ -15,6 +16,7 @@ import IconMapPin from '@/components/icon/icon-map-pin';
 import IconUser from '@/components/icon/icon-user';
 import IconTrendingUp from '@/components/icon/icon-trending-up';
 import IconTrendingDown from '@/components/icon/icon-trending-down';
+import IconCheck from '@/components/icon/icon-check';
 
 type Transaction = {
     id: string;
@@ -247,9 +249,9 @@ export default function MyTransactionsPage() {
     };
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('en-US', {
+        return new Intl.NumberFormat('he-IL', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'ILS',
         }).format(amount);
     };
 
@@ -281,114 +283,176 @@ export default function MyTransactionsPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-purple-50 via-violet-50 to-fuchsia-50 dark:from-slate-900 dark:via-purple-950 dark:to-slate-900">
+                <div className="relative">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-4 border-t-4 border-purple-600"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <IconCreditCard className="w-12 h-12 text-purple-600 animate-pulse" />
+                    </div>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="p-6 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 min-h-screen">
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-violet-50 to-fuchsia-50 dark:from-slate-900 dark:via-purple-950 dark:to-slate-900 p-6">
             <motion.div variants={containerVariants} initial="hidden" animate="visible" className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
-                <motion.div variants={itemVariants} className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div>
-                        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">{t.my_transactions || 'My Transactions'}</h1>
-                        <p className="text-gray-600 dark:text-gray-300">{t.my_transactions_description || 'Track your payment history and transaction details'}</p>
+                <motion.div variants={itemVariants} className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-600 via-violet-600 to-fuchsia-600 p-8 shadow-2xl">
+                    <div className="absolute inset-0 bg-black/10"></div>
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/30">
+                                <IconCreditCard className="w-6 h-6 text-white" />
+                            </div>
+                            <h1 className="text-4xl font-bold text-white drop-shadow-lg">{t.my_transactions || 'My Transactions'}</h1>
+                        </div>
+                        <p className="text-white/90 text-lg drop-shadow-md">{t.my_transactions_description || 'Track your payment history and transaction details'}</p>
                     </div>
                 </motion.div>
 
                 {/* Summary Cards */}
                 <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {/* Total Spent */}
-                    <div className="bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl p-6 border border-white/30 dark:border-slate-700/40 shadow-xl">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.total_spent || 'Total Spent'}</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.total_spent)}</p>
-                            </div>
-                            <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
-                                <IconDollarSign className="w-6 h-6 text-green-500" />
+                    <div className="group relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-purple-200/50 dark:border-purple-500/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t.total_spent || 'Total Spent'}</p>
+                                    <p className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">{formatCurrency(summary.total_spent)}</p>
+                                </div>
+                                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                    <IconDollarSign className="w-7 h-7 text-white" />
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Total Transactions */}
-                    <div className="bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl p-6 border border-white/30 dark:border-slate-700/40 shadow-xl">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.total_transactions || 'Total Transactions'}</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary.total_transactions}</p>
-                            </div>
-                            <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
-                                <IconCreditCard className="w-6 h-6 text-blue-500" />
+                    <div className="group relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-blue-200/50 dark:border-blue-500/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t.total_transactions || 'Total Transactions'}</p>
+                                    <p className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">{summary.total_transactions}</p>
+                                </div>
+                                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                    <IconCreditCard className="w-7 h-7 text-white" />
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Pending Amount */}
-                    <div className="bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl p-6 border border-white/30 dark:border-slate-700/40 shadow-xl">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.pending_amount || 'Pending Amount'}</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.pending_amount)}</p>
-                            </div>
-                            <div className="w-12 h-12 bg-yellow-500/20 rounded-full flex items-center justify-center">
-                                <IconCalendar className="w-6 h-6 text-yellow-500" />
+                    <div className="group relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-amber-200/50 dark:border-amber-500/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t.pending_amount || 'Pending Amount'}</p>
+                                    <p className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">{formatCurrency(summary.pending_amount)}</p>
+                                </div>
+                                <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg">
+                                    <IconCalendar className="w-7 h-7 text-white" />
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Monthly Change */}
-                    <div className="bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl p-6 border border-white/30 dark:border-slate-700/40 shadow-xl">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.this_month || 'This Month'}</p>
-                                <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(summary.this_month_spent)}</p>
-                                {summary.last_month_spent > 0 && (
-                                    <div className="flex items-center mt-1">
-                                        {getMonthlyChange().isIncrease ? <IconTrendingUp className="w-4 h-4 text-red-500 mr-1" /> : <IconTrendingDown className="w-4 h-4 text-green-500 mr-1" />}
-                                        <span className={`text-sm ${getMonthlyChange().isIncrease ? 'text-red-500' : 'text-green-500'}`}>{getMonthlyChange().percentage.toFixed(1)}%</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className={`w-12 h-12 ${getMonthlyChange().isIncrease ? 'bg-red-500/20' : 'bg-green-500/20'} rounded-full flex items-center justify-center`}>
-                                {getMonthlyChange().isIncrease ? <IconTrendingUp className="w-6 h-6 text-red-500" /> : <IconTrendingDown className="w-6 h-6 text-green-500" />}
+                    <div className="group relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-emerald-200/50 dark:border-emerald-500/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
+                        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        <div className="relative">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t.this_month || 'This Month'}</p>
+                                    <p className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{formatCurrency(summary.this_month_spent)}</p>
+                                    {summary.last_month_spent > 0 && (
+                                        <div className="flex items-center mt-2 gap-1">
+                                            {getMonthlyChange().isIncrease ? <IconTrendingUp className="w-4 h-4 text-red-500" /> : <IconTrendingDown className="w-4 h-4 text-emerald-500" />}
+                                            <span className={`text-sm font-semibold ${getMonthlyChange().isIncrease ? 'text-red-500' : 'text-emerald-500'}`}>
+                                                {getMonthlyChange().percentage.toFixed(1)}%
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div
+                                    className={`w-14 h-14 ${getMonthlyChange().isIncrease ? 'bg-gradient-to-br from-red-500 to-rose-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'} rounded-2xl flex items-center justify-center shadow-lg`}
+                                >
+                                    {getMonthlyChange().isIncrease ? <IconTrendingUp className="w-7 h-7 text-white" /> : <IconTrendingDown className="w-7 h-7 text-white" />}
+                                </div>
                             </div>
                         </div>
                     </div>
                 </motion.div>
 
                 {/* Search and Filters */}
-                <motion.div variants={itemVariants} className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-slate-700/40 p-6 shadow-xl">
+                <motion.div variants={itemVariants} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl border border-purple-200/50 dark:border-purple-500/30 p-6 shadow-xl">
                     <div className="flex flex-col lg:flex-row gap-4">
                         {/* Search */}
-                        <div className="flex-1 relative">
-                            <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <div className="flex-1 relative group">
+                            <IconSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-purple-500 transition-colors duration-200" />
                             <input
                                 type="text"
                                 placeholder={t.search_transactions || 'Search transactions...'}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-3 bg-white/50 dark:bg-slate-700/50 backdrop-blur-sm border border-gray-200/50 dark:border-slate-600/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                className="w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-200 text-gray-900 dark:text-white placeholder:text-gray-400"
                             />
                         </div>
 
-                        {/* Filter Buttons */}
-                        <div className="flex flex-wrap gap-2">
-                            {(['all', 'paid', 'pending', 'cancelled'] as FilterType[]).map((filter) => (
-                                <button
-                                    key={filter}
-                                    onClick={() => setFilterType(filter)}
-                                    className={`px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                                        filterType === filter
-                                            ? 'bg-blue-500 text-white shadow-lg'
-                                            : 'bg-white/50 dark:bg-slate-700/50 hover:bg-white/70 dark:hover:bg-slate-700/70 text-gray-700 dark:text-gray-300'
-                                    }`}
-                                >
-                                    {t[`filter_${filter}`] || filter.charAt(0).toUpperCase() + filter.slice(1)}
-                                </button>
-                            ))}
+                        {/* Status Filter Dropdown */}
+                        <div className="w-full lg:w-64">
+                            <Dropdown
+                                placement="bottom-end"
+                                btnClassName="w-full px-4 py-3.5 bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-xl hover:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all duration-200 flex items-center justify-between gap-2 text-gray-900 dark:text-white"
+                                button={
+                                    <>
+                                        <div className="flex items-center gap-2">
+                                            <IconFilter className="w-4 h-4 text-purple-500" />
+                                            <span className="font-medium">
+                                                {filterType === 'all'
+                                                    ? t.filter_all || 'All Transactions'
+                                                    : filterType === 'paid'
+                                                      ? t.filter_paid || 'Paid'
+                                                      : filterType === 'pending'
+                                                        ? t.filter_pending || 'Pending'
+                                                        : t.filter_cancelled || 'Cancelled'}
+                                            </span>
+                                        </div>
+                                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </>
+                                }
+                            >
+                                <ul className="w-64 !py-2 text-sm font-medium">
+                                    {(['all', 'paid', 'pending', 'cancelled'] as FilterType[]).map((filter) => (
+                                        <li key={filter}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFilterType(filter)}
+                                                className={`w-full text-left px-4 py-2.5 flex items-center justify-between gap-2 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors duration-150 ${
+                                                    filterType === filter ? 'text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-900/10' : 'text-gray-700 dark:text-gray-300'
+                                                }`}
+                                            >
+                                                <span>
+                                                    {filter === 'all'
+                                                        ? t.filter_all || 'All Transactions'
+                                                        : filter === 'paid'
+                                                          ? t.filter_paid || 'Paid'
+                                                          : filter === 'pending'
+                                                            ? t.filter_pending || 'Pending'
+                                                            : t.filter_cancelled || 'Cancelled'}
+                                                </span>
+                                                {filterType === filter && <IconCheck className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+                                            </button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </Dropdown>
                         </div>
                     </div>
                 </motion.div>
@@ -400,12 +464,12 @@ export default function MyTransactionsPage() {
                             {filteredTransactions.map((transaction, index) => (
                                 <motion.div
                                     key={transaction.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.1 }}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: index * 0.05 }}
                                     whileHover={{
-                                        y: -2,
-                                        scale: 1.01,
+                                        y: -4,
+                                        scale: 1.005,
                                         transition: { type: 'spring', stiffness: 400, damping: 25 },
                                     }}
                                     className="group cursor-pointer"
@@ -414,99 +478,121 @@ export default function MyTransactionsPage() {
                                         setShowTransactionDetails(true);
                                     }}
                                 >
-                                    <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl p-6 border border-white/30 dark:border-slate-700/40 shadow-xl hover:shadow-2xl transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60">
-                                        {/* Status and Type Badges */}
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="flex gap-2">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm border ${statusColors[transaction.status]}`}>
-                                                    {t[`status_${transaction.status}`] || transaction.status}
-                                                </span>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-bold backdrop-blur-sm border ${billTypeColors[transaction.bill_type]}`}>
-                                                    {t[`bill_type_${transaction.bill_type}`] || transaction.bill_type.replace('_', ' ')}
-                                                </span>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(transaction.total_amount)}</p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {t.bill_number || 'Bill'}: {transaction.bill_number}
-                                                </p>
-                                            </div>
-                                        </div>
+                                    <div className="relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-purple-200/50 dark:border-purple-500/30 shadow-xl hover:shadow-2xl transition-all duration-500 hover:bg-white/80 dark:hover:bg-gray-800/80 hover:border-purple-300/60 dark:hover:border-purple-400/40">
+                                        {/* Hover Gradient Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-fuchsia-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-                                        {/* Transaction Details */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {/* Destination */}
-                                            {transaction.booking?.destination && (
-                                                <div className="flex items-center text-gray-700 dark:text-gray-200">
-                                                    <IconMapPin className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                                    <span className="text-sm truncate drop-shadow-sm">{transaction.booking.destination.name}</span>
-                                                </div>
-                                            )}
-
-                                            {/* Trip Date */}
-                                            {transaction.booking?.trip_date && (
-                                                <div className="flex items-center text-gray-700 dark:text-gray-200">
-                                                    <IconCalendar className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                                    <span className="text-sm drop-shadow-sm">{formatDate(transaction.booking.trip_date)}</span>
-                                                </div>
-                                            )}
-
-                                            {/* Payment Method */}
-                                            {transaction.payment_method && (
-                                                <div className="flex items-center text-gray-700 dark:text-gray-200">
-                                                    <IconCreditCard className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                                    <span className="text-sm drop-shadow-sm">{transaction.payment_method}</span>
-                                                </div>
-                                            )}
-
-                                            {/* Issue Date */}
-                                            <div className="flex items-center text-gray-700 dark:text-gray-200">
-                                                <IconCalendar className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                                <span className="text-sm drop-shadow-sm">
-                                                    {t.issued || 'Issued'}: {formatDate(transaction.issue_date)}
-                                                </span>
-                                            </div>
-
-                                            {/* Paid Date */}
-                                            {transaction.paid_date && (
-                                                <div className="flex items-center text-gray-700 dark:text-gray-200">
-                                                    <IconDollarSign className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0 text-green-500" />
-                                                    <span className="text-sm drop-shadow-sm">
-                                                        {t.paid || 'Paid'}: {formatDate(transaction.paid_date)}
+                                        {/* Content */}
+                                        <div className="relative">
+                                            {/* Status and Type Badges */}
+                                            <div className="flex flex-wrap justify-between items-start gap-3 mb-4">
+                                                <div className="flex gap-2 flex-wrap">
+                                                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm border shadow-sm ${statusColors[transaction.status]}`}>
+                                                        {t[`status_${transaction.status}`] || transaction.status}
+                                                    </span>
+                                                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold backdrop-blur-sm border shadow-sm ${billTypeColors[transaction.bill_type]}`}>
+                                                        {t[`bill_type_${transaction.bill_type}`] || transaction.bill_type.replace('_', ' ')}
                                                     </span>
                                                 </div>
+                                                <div className="text-right">
+                                                    <p className="text-xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">
+                                                        {formatCurrency(transaction.total_amount)}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                                                        {t.bill_number || 'Bill'}: {transaction.bill_number}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Transaction Details */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {/* Destination */}
+                                                {transaction.booking?.destination && (
+                                                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                                        <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <IconMapPin className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                                        </div>
+                                                        <span className="text-sm truncate font-medium">{transaction.booking.destination.name}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Trip Date */}
+                                                {transaction.booking?.trip_date && (
+                                                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                                        <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <IconCalendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                                        </div>
+                                                        <span className="text-sm font-medium">{formatDate(transaction.booking.trip_date)}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Payment Method */}
+                                                {transaction.payment_method && (
+                                                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                                        <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <IconCreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                        </div>
+                                                        <span className="text-sm font-medium">{transaction.payment_method}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Issue Date */}
+                                                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                                    <div className="w-8 h-8 bg-violet-100 dark:bg-violet-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                        <IconCalendar className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                                                    </div>
+                                                    <span className="text-sm font-medium">
+                                                        {t.issued || 'Issued'}: {formatDate(transaction.issue_date)}
+                                                    </span>
+                                                </div>
+
+                                                {/* Paid Date */}
+                                                {transaction.paid_date && (
+                                                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                                        <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <IconDollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                        </div>
+                                                        <span className="text-sm font-medium">
+                                                            {t.paid || 'Paid'}: {formatDate(transaction.paid_date)}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {/* Customer Name */}
+                                                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                                                    <div className="w-8 h-8 bg-fuchsia-100 dark:bg-fuchsia-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                        <IconUser className="h-4 w-4 text-fuchsia-600 dark:text-fuchsia-400" />
+                                                    </div>
+                                                    <span className="text-sm font-medium">{transaction.customer_name}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Description */}
+                                            {transaction.description && (
+                                                <div className="mt-4 pt-4 border-t border-purple-200/30 dark:border-purple-700/30">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{transaction.description}</p>
+                                                </div>
                                             )}
 
-                                            {/* Customer Name */}
-                                            <div className="flex items-center text-gray-700 dark:text-gray-200">
-                                                <IconUser className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                                <span className="text-sm drop-shadow-sm">{transaction.customer_name}</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Description */}
-                                        {transaction.description && (
-                                            <div className="mt-4 pt-4 border-t border-gray-200/30 dark:border-gray-700/30">
-                                                <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{transaction.description}</p>
-                                            </div>
-                                        )}
-
-                                        {/* Breakdown */}
-                                        <div className="mt-4 pt-4 border-t border-gray-200/30 dark:border-gray-700/30">
-                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                                                <div>
-                                                    <span className="text-gray-600 dark:text-gray-400">{t.subtotal || 'Subtotal'}:</span>
-                                                    <span className="ml-2 font-semibold text-gray-900 dark:text-white">{formatCurrency(transaction.subtotal)}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-gray-600 dark:text-gray-400">
-                                                        {t.tax || 'Tax'} ({transaction.tax_rate}%):
-                                                    </span>
-                                                    <span className="ml-2 font-semibold text-gray-900 dark:text-white">{formatCurrency(transaction.tax_amount)}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-gray-600 dark:text-gray-400">{t.total || 'Total'}:</span>
-                                                    <span className="ml-2 font-bold text-green-600 dark:text-green-400">{formatCurrency(transaction.total_amount)}</span>
+                                            {/* Breakdown */}
+                                            <div className="mt-4 pt-4 border-t border-purple-200/30 dark:border-purple-700/30">
+                                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-gray-500 dark:text-gray-400 mb-1">{t.subtotal || 'Subtotal'}:</span>
+                                                        <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(transaction.subtotal)}</span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-gray-500 dark:text-gray-400 mb-1">
+                                                            {t.tax || 'Tax'} ({transaction.tax_rate}%):
+                                                        </span>
+                                                        <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(transaction.tax_amount)}</span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-gray-500 dark:text-gray-400 mb-1">{t.total || 'Total'}:</span>
+                                                        <span className="font-bold text-transparent bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text">
+                                                            {formatCurrency(transaction.total_amount)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -515,8 +601,13 @@ export default function MyTransactionsPage() {
                             ))}
                         </div>
                     ) : (
-                        <motion.div variants={itemVariants} className="text-center py-12 bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-slate-700/40">
-                            <IconCreditCard className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                        <motion.div
+                            variants={itemVariants}
+                            className="text-center py-16 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl border border-purple-200/50 dark:border-purple-500/30 shadow-xl"
+                        >
+                            <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-fuchsia-100 dark:from-purple-900/30 dark:to-fuchsia-900/30 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                                <IconCreditCard className="h-10 w-10 text-purple-500 dark:text-purple-400" />
+                            </div>
                             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t.no_transactions_found || 'No transactions found'}</h3>
                             <p className="text-gray-600 dark:text-gray-400">
                                 {searchTerm || filterType !== 'all'
@@ -535,89 +626,130 @@ export default function MyTransactionsPage() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4"
                         onClick={() => setShowTransactionDetails(false)}
                     >
                         <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
+                            initial={{ scale: 0.95, opacity: 0 }}
                             animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-2xl rounded-3xl shadow-2xl max-w-3xl w-full max-h-[85vh] border border-purple-200/50 dark:border-purple-500/30 flex flex-col"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <div className="flex justify-between items-start mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">{t.transaction_details || 'Transaction Details'}</h2>
-                                <button onClick={() => setShowTransactionDetails(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
+                            {/* Header - Fixed */}
+                            <div className="flex-shrink-0 relative overflow-hidden rounded-t-3xl bg-gradient-to-r from-purple-600 via-violet-600 to-fuchsia-600 p-6 shadow-lg">
+                                <div className="absolute inset-0 bg-black/10"></div>
+                                <div className="relative z-10 flex justify-between items-start">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white drop-shadow-lg mb-1">{t.transaction_details || 'Transaction Details'}</h2>
+                                        <p className="text-white/80 text-sm">{t.transaction_information || 'Complete transaction information'}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowTransactionDetails(false)}
+                                        className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-xl rounded-xl flex items-center justify-center transition-all duration-200 border border-white/30 group"
+                                    >
+                                        <svg className="w-5 h-5 text-white group-hover:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
 
-                            <div className="space-y-6">
+                            {/* Content - Scrollable */}
+                            <div
+                                className="flex-1 overflow-y-auto p-6 space-y-6"
+                                style={{
+                                    scrollbarWidth: 'thin',
+                                    scrollbarColor: '#a855f7 transparent',
+                                }}
+                            >
+                                <style jsx>{`
+                                    div::-webkit-scrollbar {
+                                        width: 8px;
+                                    }
+                                    div::-webkit-scrollbar-track {
+                                        background: transparent;
+                                    }
+                                    div::-webkit-scrollbar-thumb {
+                                        background: linear-gradient(180deg, #a855f7, #ec4899);
+                                        border-radius: 10px;
+                                    }
+                                    div::-webkit-scrollbar-thumb:hover {
+                                        background: linear-gradient(180deg, #9333ea, #db2777);
+                                    }
+                                `}</style>
+
                                 {/* Basic Info */}
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">{t.basic_information || 'Basic Information'}</h3>
+                                <div className="bg-gradient-to-br from-white/60 to-purple-50/60 dark:from-gray-800/60 dark:to-purple-900/20 backdrop-blur-xl rounded-2xl p-5 border border-purple-200/50 dark:border-purple-500/30 shadow-lg">
+                                    <h3 className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent mb-4">
+                                        {t.basic_information || 'Basic Information'}
+                                    </h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.bill_number || 'Bill Number'}</label>
-                                            <p className="text-gray-900 dark:text-white">{selectedTransaction.bill_number}</p>
+                                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.bill_number || 'Bill Number'}</label>
+                                            <p className="text-gray-900 dark:text-white font-semibold">{selectedTransaction.bill_number}</p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.bill_type || 'Bill Type'}</label>
-                                            <p className="text-gray-900 dark:text-white">{t[`bill_type_${selectedTransaction.bill_type}`] || selectedTransaction.bill_type.replace('_', ' ')}</p>
+                                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.bill_type || 'Bill Type'}</label>
+                                            <p className="text-gray-900 dark:text-white font-semibold">
+                                                {t[`bill_type_${selectedTransaction.bill_type}`] || selectedTransaction.bill_type.replace('_', ' ')}
+                                            </p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.status || 'Status'}</label>
-                                            <p className="text-gray-900 dark:text-white">{t[`status_${selectedTransaction.status}`] || selectedTransaction.status}</p>
+                                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.status || 'Status'}</label>
+                                            <p className="text-gray-900 dark:text-white font-semibold">{t[`status_${selectedTransaction.status}`] || selectedTransaction.status}</p>
                                         </div>
                                         <div>
-                                            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.payment_method || 'Payment Method'}</label>
-                                            <p className="text-gray-900 dark:text-white">{selectedTransaction.payment_method || t.not_specified || 'Not specified'}</p>
+                                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.payment_method || 'Payment Method'}</label>
+                                            <p className="text-gray-900 dark:text-white font-semibold">{selectedTransaction.payment_method || t.not_specified || 'Not specified'}</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Amount Breakdown */}
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">{t.amount_breakdown || 'Amount Breakdown'}</h3>
+                                <div className="bg-gradient-to-br from-white/60 to-emerald-50/60 dark:from-gray-800/60 dark:to-emerald-900/20 backdrop-blur-xl rounded-2xl p-5 border border-emerald-200/50 dark:border-emerald-500/30 shadow-lg">
+                                    <h3 className="text-lg font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent mb-4">
+                                        {t.amount_breakdown || 'Amount Breakdown'}
+                                    </h3>
                                     <div className="space-y-3">
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between items-center">
                                             <span className="text-gray-600 dark:text-gray-400">{t.subtotal || 'Subtotal'}:</span>
                                             <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(selectedTransaction.subtotal)}</span>
                                         </div>
-                                        <div className="flex justify-between">
+                                        <div className="flex justify-between items-center">
                                             <span className="text-gray-600 dark:text-gray-400">
                                                 {t.tax || 'Tax'} ({selectedTransaction.tax_rate}%):
                                             </span>
                                             <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(selectedTransaction.tax_amount)}</span>
                                         </div>
-                                        <hr className="border-gray-200 dark:border-gray-700" />
-                                        <div className="flex justify-between text-lg">
-                                            <span className="font-semibold text-gray-900 dark:text-white">{t.total || 'Total'}:</span>
-                                            <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(selectedTransaction.total_amount)}</span>
+                                        <div className="h-px bg-gradient-to-r from-transparent via-purple-300 dark:via-purple-700 to-transparent"></div>
+                                        <div className="flex justify-between items-center pt-2">
+                                            <span className="text-lg font-semibold text-gray-900 dark:text-white">{t.total || 'Total'}:</span>
+                                            <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                                                {formatCurrency(selectedTransaction.total_amount)}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Dates */}
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-3">{t.important_dates || 'Important Dates'}</h3>
+                                <div className="bg-gradient-to-br from-white/60 to-blue-50/60 dark:from-gray-800/60 dark:to-blue-900/20 backdrop-blur-xl rounded-2xl p-5 border border-blue-200/50 dark:border-blue-500/30 shadow-lg">
+                                    <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4">{t.important_dates || 'Important Dates'}</h3>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.issue_date || 'Issue Date'}</label>
-                                            <p className="text-gray-900 dark:text-white">{formatDate(selectedTransaction.issue_date)}</p>
+                                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.issue_date || 'Issue Date'}</label>
+                                            <p className="text-gray-900 dark:text-white font-semibold">{formatDate(selectedTransaction.issue_date)}</p>
                                         </div>
                                         {selectedTransaction.due_date && (
                                             <div>
-                                                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.due_date || 'Due Date'}</label>
-                                                <p className="text-gray-900 dark:text-white">{formatDate(selectedTransaction.due_date)}</p>
+                                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.due_date || 'Due Date'}</label>
+                                                <p className="text-gray-900 dark:text-white font-semibold">{formatDate(selectedTransaction.due_date)}</p>
                                             </div>
                                         )}
                                         {selectedTransaction.paid_date && (
                                             <div>
-                                                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.paid_date || 'Paid Date'}</label>
-                                                <p className="text-gray-900 dark:text-white">{formatDate(selectedTransaction.paid_date)}</p>
+                                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.paid_date || 'Paid Date'}</label>
+                                                <p className="text-gray-900 dark:text-white font-semibold">{formatDate(selectedTransaction.paid_date)}</p>
                                             </div>
                                         )}
                                     </div>
@@ -625,22 +757,24 @@ export default function MyTransactionsPage() {
 
                                 {/* Trip Information */}
                                 {selectedTransaction.booking && (
-                                    <div>
-                                        <h3 className="text-lg font-semibold mb-3">{t.trip_information || 'Trip Information'}</h3>
+                                    <div className="bg-gradient-to-br from-white/60 to-violet-50/60 dark:from-gray-800/60 dark:to-violet-900/20 backdrop-blur-xl rounded-2xl p-5 border border-violet-200/50 dark:border-violet-500/30 shadow-lg">
+                                        <h3 className="text-lg font-semibold bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent mb-4">
+                                            {t.trip_information || 'Trip Information'}
+                                        </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
-                                                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.booking_reference || 'Booking Reference'}</label>
-                                                <p className="text-gray-900 dark:text-white">{selectedTransaction.booking.booking_reference}</p>
+                                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.booking_reference || 'Booking Reference'}</label>
+                                                <p className="text-gray-900 dark:text-white font-semibold">{selectedTransaction.booking.booking_reference}</p>
                                             </div>
                                             {selectedTransaction.booking.destination && (
                                                 <div>
-                                                    <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.destination || 'Destination'}</label>
-                                                    <p className="text-gray-900 dark:text-white">{selectedTransaction.booking.destination.name}</p>
+                                                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.destination || 'Destination'}</label>
+                                                    <p className="text-gray-900 dark:text-white font-semibold">{selectedTransaction.booking.destination.name}</p>
                                                 </div>
                                             )}
                                             <div>
-                                                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.trip_date || 'Trip Date'}</label>
-                                                <p className="text-gray-900 dark:text-white">{formatDate(selectedTransaction.booking.trip_date)}</p>
+                                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.trip_date || 'Trip Date'}</label>
+                                                <p className="text-gray-900 dark:text-white font-semibold">{formatDate(selectedTransaction.booking.trip_date)}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -648,17 +782,19 @@ export default function MyTransactionsPage() {
 
                                 {/* Description and Notes */}
                                 {(selectedTransaction.description || selectedTransaction.notes) && (
-                                    <div>
-                                        <h3 className="text-lg font-semibold mb-3">{t.additional_information || 'Additional Information'}</h3>
+                                    <div className="bg-gradient-to-br from-white/60 to-amber-50/60 dark:from-gray-800/60 dark:to-amber-900/20 backdrop-blur-xl rounded-2xl p-5 border border-amber-200/50 dark:border-amber-500/30 shadow-lg">
+                                        <h3 className="text-lg font-semibold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent mb-4">
+                                            {t.additional_information || 'Additional Information'}
+                                        </h3>
                                         {selectedTransaction.description && (
                                             <div className="mb-4">
-                                                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.description || 'Description'}</label>
+                                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.description || 'Description'}</label>
                                                 <p className="text-gray-700 dark:text-gray-300">{selectedTransaction.description}</p>
                                             </div>
                                         )}
                                         {selectedTransaction.notes && (
                                             <div>
-                                                <label className="text-sm font-medium text-gray-600 dark:text-gray-400">{t.notes || 'Notes'}</label>
+                                                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">{t.notes || 'Notes'}</label>
                                                 <p className="text-gray-700 dark:text-gray-300">{selectedTransaction.notes}</p>
                                             </div>
                                         )}
