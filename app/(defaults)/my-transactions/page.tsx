@@ -393,7 +393,7 @@ export default function MyTransactionsPage() {
                     <div className="flex flex-col lg:flex-row gap-4">
                         {/* Search */}
                         <div className="flex-1 relative group">
-                            <IconSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-purple-500 transition-colors duration-200" />
+                            <IconSearch className="absolute left-4 top-1/2 z-50 transform -translate-y-1/2 h-5 w-5 text-gray-400 group-focus-within:text-purple-500 transition-colors duration-200" />
                             <input
                                 type="text"
                                 placeholder={t.search_transactions || 'Search transactions...'}

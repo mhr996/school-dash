@@ -225,7 +225,7 @@ const Sidebar = () => {
                                                 <Link href="/my-bookings" className="group">
                                                     <div className="flex items-center">
                                                         <IconMapPin className="shrink-0 group-hover:!text-primary" />
-                                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('my_trips')}</span>
+                                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('my_bookings')}</span>
                                                     </div>
                                                 </Link>
                                             </li>

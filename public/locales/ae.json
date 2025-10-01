@@ -2185,6 +2185,7 @@
     "notification_preferences": "تفضيلات الإشعارات",
     "email_notifications": "إشعارات البريد الإلكتروني",
     "sms_notifications": "إشعارات الرسائل النصية",
+    "no_bookings_yet": "لم تقم بأي حجوزات بعد",
     "trip_update_notifications": "إشعارات تحديث الرحلة",
     "payment_reminder_notifications": "إشعارات تذكير الدفع",
     "save_preferences": "حفظ التفضيلات",

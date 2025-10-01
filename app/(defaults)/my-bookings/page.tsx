@@ -630,7 +630,7 @@ export default function MyBookingsPage() {
                                 {searchTerm || selectedBookingType !== 'all' || selectedStatus !== 'all' || selectedPaymentStatus !== 'all' ? t('no_bookings_match_filters') : t('no_bookings_yet')}
                             </p>
                             <button
-                                onClick={() => (window.location.href = '/trip-planner')}
+                                onClick={() => (window.location.href = '/')}
                                 className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 via-violet-600 to-fuchsia-600 hover:from-purple-700 hover:via-violet-700 hover:to-fuchsia-700 text-white font-semibold rounded-xl shadow-lg shadow-purple-500/30 hover:shadow-xl hover:shadow-purple-500/40 transition-all transform hover:scale-105"
                             >
                                 <IconStar className="w-5 h-5" />
