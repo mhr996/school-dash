@@ -36,7 +36,7 @@ export default function RouteGuard({ children }: RouteGuardProps) {
         '/profile',
     ];
     const tripPlannerRoutes = ['/destinations', '/bookings', '/trip-plans'];
-    const tripPlannerUserRoutes = ['/my-trips', '/my-transactions', '/my-profile'];
+    const tripPlannerUserRoutes = ['/my-bookings', '/my-transactions', '/my-profile'];
     const adminRoutes = [...adminOnlyRoutes, ...tripPlannerRoutes];
 
     useEffect(() => {

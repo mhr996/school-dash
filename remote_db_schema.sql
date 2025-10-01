@@ -31,7 +31,7 @@ CREATE TABLE public.bills (
 CREATE TABLE public.booking_services (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   booking_id uuid NOT NULL,
-  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying, 'paramedics'::character varying, 'security_companies'::character varying, 'external_entertainment_companies'::character varying]::text[])),
+  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text])),
   service_id uuid NOT NULL,
   quantity integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
   days integer NOT NULL DEFAULT 1 CHECK (days > 0),
@@ -45,9 +45,6 @@ CREATE TABLE public.booking_services (
 CREATE TABLE public.bookings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   booking_reference character varying NOT NULL UNIQUE,
-  customer_name character varying,
-  customer_email character varying,
-  customer_phone character varying,
   destination_id uuid,
   trip_date date NOT NULL,
   total_amount numeric NOT NULL DEFAULT 0,
@@ -59,8 +56,10 @@ CREATE TABLE public.bookings (
   special_requests text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  customer_id uuid NOT NULL,
   CONSTRAINT bookings_pkey PRIMARY KEY (id),
-  CONSTRAINT bookings_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id)
+  CONSTRAINT bookings_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT bookings_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.company_settings (
   name character varying NOT NULL,

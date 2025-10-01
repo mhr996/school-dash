@@ -18,6 +18,7 @@ import IconBook from '@/components/icon/icon-book';
 import IconAward from '@/components/icon/icon-award';
 import IconClock from '@/components/icon/icon-clock';
 import IconHeart from '@/components/icon/icon-heart';
+import { getCurrentUserWithRole } from '@/lib/auth';
 import IconCar from '@/components/icon/icon-car';
 import IconCoffee from '@/components/icon/icon-coffee';
 import IconUsersGroup from '@/components/icon/icon-users-group';
@@ -97,6 +98,21 @@ type TravelCompany = {
     status: string;
 };
 
+// Booking types
+type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'transportation_only' | 'mixed_services';
+
+type BookingTypeConfig = {
+    id: BookingType;
+    title: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    shadowColor: string;
+    requiredServices: string[];
+    allowsDestination: boolean;
+    requiresDestination: boolean;
+};
+
 type RequirementSelection = {
     id: string;
     name: string;
@@ -154,7 +170,9 @@ const getRequirementIcon = (requirement: string) => {
 export default function TripPlannerDashboard() {
     const { t } = getTranslation();
     const router = useRouter();
-    const [currentView, setCurrentView] = useState<'dashboard' | 'destinations'>('dashboard');
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [currentView, setCurrentView] = useState<'dashboard' | 'destinations' | 'service-booking'>('dashboard');
+    const [selectedBookingType, setSelectedBookingType] = useState<BookingType | null>(null);
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [zones, setZones] = useState<Zone[]>([]);
     const [loading, setLoading] = useState(false);
@@ -199,6 +217,87 @@ export default function TripPlannerDashboard() {
     const [previousPayments, setPreviousPayments] = useState<any[]>([]);
     const [dashboardLoading, setDashboardLoading] = useState(false);
 
+    // Booking type configurations
+    const bookingTypeConfigs: BookingTypeConfig[] = [
+        {
+            id: 'full_trip',
+            title: t('full_trip'),
+            description: t('complete_trip_with_destination_and_services'),
+            icon: IconStar,
+            color: 'from-blue-500 to-blue-600',
+            shadowColor: 'shadow-blue-500/25',
+            requiredServices: [],
+            allowsDestination: true,
+            requiresDestination: true,
+        },
+        {
+            id: 'guides_only',
+            title: t('guides_only'),
+            description: t('professional_tour_guides_only'),
+            icon: IconUsers,
+            color: 'from-green-500 to-green-600',
+            shadowColor: 'shadow-green-500/25',
+            requiredServices: ['guides'],
+            allowsDestination: false,
+            requiresDestination: false,
+        },
+        {
+            id: 'paramedics_only',
+            title: t('paramedics_only'),
+            description: t('medical_assistance_only'),
+            icon: IconHeart,
+            color: 'from-red-500 to-red-600',
+            shadowColor: 'shadow-red-500/25',
+            requiredServices: ['paramedics'],
+            allowsDestination: false,
+            requiresDestination: false,
+        },
+        {
+            id: 'security_only',
+            title: t('security_only'),
+            description: t('security_services_only'),
+            icon: IconLock,
+            color: 'from-yellow-500 to-yellow-600',
+            shadowColor: 'shadow-yellow-500/25',
+            requiredServices: ['security_companies'],
+            allowsDestination: false,
+            requiresDestination: false,
+        },
+        {
+            id: 'entertainment_only',
+            title: t('entertainment_only'),
+            description: t('entertainment_services_only'),
+            icon: IconPlayCircle,
+            color: 'from-purple-500 to-purple-600',
+            shadowColor: 'shadow-purple-500/25',
+            requiredServices: ['external_entertainment_companies'],
+            allowsDestination: false,
+            requiresDestination: false,
+        },
+        {
+            id: 'transportation_only',
+            title: t('transportation_only'),
+            description: t('travel_and_transportation_only'),
+            icon: IconCar,
+            color: 'from-indigo-500 to-indigo-600',
+            shadowColor: 'shadow-indigo-500/25',
+            requiredServices: ['travel_companies'],
+            allowsDestination: false,
+            requiresDestination: false,
+        },
+        {
+            id: 'mixed_services',
+            title: t('mixed_services'),
+            description: t('multiple_services_without_destination'),
+            icon: IconShoppingBag,
+            color: 'from-teal-500 to-teal-600',
+            shadowColor: 'shadow-teal-500/25',
+            requiredServices: [],
+            allowsDestination: false,
+            requiresDestination: false,
+        },
+    ];
+
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -216,11 +315,24 @@ export default function TripPlannerDashboard() {
         };
     }, [showTripDropdown]);
 
+    // Fetch current user
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { user, error } = await getCurrentUserWithRole();
+            if (!error && user) {
+                setCurrentUser(user);
+            }
+        };
+        fetchUser();
+    }, []);
+
     useEffect(() => {
         if (currentView === 'destinations') {
             loadDestinations();
         } else if (currentView === 'dashboard') {
             loadDashboardData();
+        } else if (currentView === 'service-booking') {
+            loadRequirementsData();
         }
     }, [currentView]);
 
@@ -587,8 +699,43 @@ export default function TripPlannerDashboard() {
             missingServices.push(t('trip_date'));
         }
 
-        // Check required services only if destination has requirements
-        if (selectedForPlanning?.requirements && selectedForPlanning.requirements.length > 0) {
+        // Get current booking type config
+        const currentBookingConfig = selectedBookingType ? bookingTypeConfigs.find((config) => config.id === selectedBookingType) : null;
+
+        // For full trip bookings, check destination requirement
+        if (currentBookingConfig?.requiresDestination && !selectedForPlanning) {
+            missingServices.push(t('destination'));
+        }
+
+        // Check required services based on booking type
+        if (currentBookingConfig?.requiredServices && currentBookingConfig.requiredServices.length > 0) {
+            currentBookingConfig.requiredServices.forEach((requiredService) => {
+                const hasSelectedService = selectedRequirements.some((selected) => selected.type === requiredService);
+                if (!hasSelectedService) {
+                    switch (requiredService) {
+                        case 'paramedics':
+                            missingServices.push(t('paramedics'));
+                            break;
+                        case 'guides':
+                            missingServices.push(t('guides'));
+                            break;
+                        case 'security_companies':
+                            missingServices.push(t('security'));
+                            break;
+                        case 'external_entertainment_companies':
+                            missingServices.push(t('entertainment'));
+                            break;
+                        case 'travel_companies':
+                            missingServices.push(t('transportation'));
+                            break;
+                    }
+                }
+            });
+        } else if (selectedBookingType === 'mixed_services' && selectedRequirements.length === 0) {
+            // For mixed services, at least one service must be selected
+            missingServices.push(t('at_least_one_service'));
+        } else if (!currentBookingConfig && selectedForPlanning?.requirements && selectedForPlanning.requirements.length > 0) {
+            // Fallback to destination requirements for legacy full trip mode
             const requiredServices = selectedForPlanning.requirements;
 
             requiredServices.forEach((requirement) => {
@@ -610,7 +757,7 @@ export default function TripPlannerDashboard() {
                             serviceName = t('entertainment');
                             break;
                         case 'travel_companies':
-                            serviceName = 'Transportation';
+                            serviceName = t('transportation');
                             break;
                         default:
                             serviceName = requirement;
@@ -657,6 +804,12 @@ export default function TripPlannerDashboard() {
 
         try {
             console.log('Starting booking creation process...');
+
+            // Validate that we have a current user
+            if (!currentUser?.id) {
+                throw new Error('User not authenticated or user ID not available');
+            }
+
             // Generate unique booking reference to prevent collisions (max 10 characters)
             const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
             const random = Math.floor(Math.random() * 100)
@@ -664,20 +817,35 @@ export default function TripPlannerDashboard() {
                 .padStart(2, '0');
             const uniqueBookingRef = `BK${timestamp}${random}`; // BK + 6 digits + 2 digits = 10 characters
             console.log('Generated booking reference:', uniqueBookingRef);
+            console.log('Current user:', currentUser);
 
-            // Create booking record without services (using normalized approach)
+            // Create booking record using the correct database schema
             const bookingData = {
                 booking_reference: uniqueBookingRef,
-                destination_id: selectedForPlanning?.id,
+                booking_type: selectedBookingType || 'full_trip', // Now stored in dedicated column
+                destination_id: selectedForPlanning?.id || null, // Allow null for service-only bookings
+                customer_id: currentUser?.id, // Use customer_id instead of individual customer fields
                 trip_date: selectedDate?.toISOString().split('T')[0],
                 total_amount: totalPrice,
                 payment_status: 'paid',
                 payment_method: 'bank_transfer',
                 status: 'pending',
-                customer_name: 'Customer Name', // TODO: Get from user profile
-                customer_email: 'customer@example.com', // TODO: Get from user profile
-                customer_phone: '+1234567890', // TODO: Get from user profile
-                notes: 'Booking created via trip planner',
+                notes: `Booking created via trip planner - Type: ${selectedBookingType || 'full_trip'}`,
+                // Store service details in the services jsonb column
+                services: {
+                    selected_services: selectedRequirements.map((req) => ({
+                        type: req.type,
+                        id: req.id,
+                        name: req.name,
+                        quantity: req.quantity,
+                        cost: req.cost,
+                        rate_type: req.rate_type,
+                        days: req.days,
+                        hours: req.hours,
+                    })),
+                    created_from: 'trip_planner_dashboard',
+                    user_agent: navigator.userAgent,
+                },
             };
 
             console.log('Creating booking with data:', bookingData);
@@ -693,8 +861,8 @@ export default function TripPlannerDashboard() {
 
             // Create individual service records in booking_services table
             if (selectedRequirements.length > 0) {
-                // Filter out travel_companies as they're not allowed in booking_services table constraint
-                const allowedServiceTypes = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies'];
+                // All service types are now supported in booking_services table
+                const allowedServiceTypes = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies', 'travel_companies'];
                 const validServiceRecords = selectedRequirements
                     .filter((requirement) => allowedServiceTypes.includes(requirement.type))
                     .map((requirement) => ({
@@ -716,12 +884,6 @@ export default function TripPlannerDashboard() {
                     }
 
                     console.log('Successfully created booking services:', validServiceRecords);
-                }
-
-                // Log travel companies separately (they're included in the main booking record's services field)
-                const travelCompanies = selectedRequirements.filter((req) => req.type === 'travel_companies');
-                if (travelCompanies.length > 0) {
-                    console.log('Travel companies included in booking (stored in booking.services):', travelCompanies);
                 }
             }
 
@@ -746,9 +908,29 @@ export default function TripPlannerDashboard() {
         setTotalPrice(0);
         setSelectedForPlanning(null);
         setSelectedDate(null);
+        setSelectedBookingType(null);
         setShowRequirementsSection(false);
         setBookingReference('');
+        setCurrentView('dashboard');
         closeCheckout();
+    };
+
+    // Helper function to determine if a service type should be shown based on booking type
+    const shouldShowServiceType = (serviceType: string) => {
+        if (!selectedBookingType) {
+            // For legacy full trip mode, show all services
+            return true;
+        }
+
+        const config = bookingTypeConfigs.find((c) => c.id === selectedBookingType);
+
+        if (config?.requiredServices.length === 0) {
+            // For mixed_services or full_trip, show all services
+            return true;
+        }
+
+        // For specific service types, only show the required service
+        return config?.requiredServices.includes(serviceType) || false;
     };
 
     useEffect(() => {
@@ -789,6 +971,7 @@ export default function TripPlannerDashboard() {
             icon: IconStar,
             color: 'from-blue-500 to-blue-600',
             onClick: () => {
+                setSelectedBookingType('full_trip');
                 setCurrentView('destinations');
                 setShowTripDropdown(false);
             },
@@ -800,7 +983,8 @@ export default function TripPlannerDashboard() {
             icon: IconHeart,
             color: 'from-red-500 to-red-600',
             onClick: () => {
-                console.log('Paramedics service clicked');
+                setSelectedBookingType('paramedics_only');
+                setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
         },
@@ -811,7 +995,8 @@ export default function TripPlannerDashboard() {
             icon: IconUsers,
             color: 'from-green-500 to-green-600',
             onClick: () => {
-                console.log('Guides service clicked');
+                setSelectedBookingType('guides_only');
+                setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
         },
@@ -822,7 +1007,8 @@ export default function TripPlannerDashboard() {
             icon: IconLock,
             color: 'from-yellow-500 to-yellow-600',
             onClick: () => {
-                console.log('Security service clicked');
+                setSelectedBookingType('security_only');
+                setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
         },
@@ -833,7 +1019,8 @@ export default function TripPlannerDashboard() {
             icon: IconPlayCircle,
             color: 'from-purple-500 to-purple-600',
             onClick: () => {
-                console.log('Entertainment service clicked');
+                setSelectedBookingType('entertainment_only');
+                setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
         },
@@ -844,7 +1031,20 @@ export default function TripPlannerDashboard() {
             icon: IconCar,
             color: 'from-indigo-500 to-indigo-600',
             onClick: () => {
-                console.log('Travel companies service clicked');
+                setSelectedBookingType('transportation_only');
+                setCurrentView('service-booking');
+                setShowTripDropdown(false);
+            },
+        },
+        {
+            id: 'mixed-services',
+            title: t('mixed_services'),
+            description: t('multiple_services_booking'),
+            icon: IconShoppingBag,
+            color: 'from-teal-500 to-teal-600',
+            onClick: () => {
+                setSelectedBookingType('mixed_services');
+                setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
         },
@@ -862,13 +1062,13 @@ export default function TripPlannerDashboard() {
             hasDropdown: true,
         },
         {
-            id: 'my-trips',
-            title: t('my_trips'),
-            description: t('view_manage_trips'),
+            id: 'my-bookings',
+            title: t('my_bookings'),
+            description: t('view_manage_bookings'),
             icon: IconCalendar,
             color: 'from-green-500 to-green-600',
             shadowColor: 'shadow-green-500/25',
-            onClick: () => router.push('/my-trips'),
+            onClick: () => router.push('/my-bookings'),
         },
         {
             id: 'transactions',
@@ -952,25 +1152,28 @@ export default function TripPlannerDashboard() {
                         {/* Welcome Header */}
                         <motion.div variants={itemVariants} className="text-center mb-12">
                             <motion.h1
-                                className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-4"
+                                className="text-2xl md:text-2xl lg:text-4xl text-left rtl:text-right font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-2"
                                 initial={{ scale: 0.5, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 transition={{ duration: 0.8, type: 'spring' }}
                             >
-                                {t('welcome_trip_planner')}
+                                {(() => {
+                                    const hour = new Date().getHours();
+                                    let greeting = '';
+                                    if (hour >= 5 && hour < 12) {
+                                        greeting = t('good_morning');
+                                    } else if (hour >= 12 && hour < 17) {
+                                        greeting = t('good_afternoon');
+                                    } else {
+                                        greeting = t('good_evening');
+                                    }
+                                    return `${greeting}, ${currentUser?.full_name || t('guest')}`;
+                                })()}
                             </motion.h1>
-                            <motion.p
-                                className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed"
-                                initial={{ y: 20, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.2, duration: 0.6 }}
-                            >
-                                {t('trip_planner_subtitle')}
-                            </motion.p>
                         </motion.div>
 
                         {/* Action Shortcuts Grid */}
-                        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6  mx-auto">
+                        <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mx-auto">
                             {shortcuts.map((shortcut, index) => (
                                 <motion.div
                                     key={shortcut.id}
@@ -1987,9 +2190,410 @@ export default function TripPlannerDashboard() {
                 )}
             </AnimatePresence>
 
+            {/* Service Booking View */}
+            <AnimatePresence mode="wait">
+                {currentView === 'service-booking' && (
+                    <motion.div
+                        key="service-booking"
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -50 }}
+                        transition={{ duration: 0.4 }}
+                        className="container mx-auto px-6 py-8"
+                    >
+                        {/* Header with Back Button */}
+                        <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-4">
+                                <button
+                                    onClick={() => {
+                                        // Reset selections when going back to dashboard
+                                        setSelectedRequirements([]);
+                                        setTotalPrice(0);
+                                        setSelectedDate(null);
+                                        setSelectedBookingType(null);
+                                        setCurrentView('dashboard');
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl border border-white/30 dark:border-slate-700/40 hover:bg-white/30 dark:hover:bg-slate-800/30 transition-all duration-300"
+                                >
+                                    <svg className="w-4 h-4 ltr:rotate-0 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                    </svg>
+                                    <span className="text-sm font-medium">{t('back_to_dashboard')}</span>
+                                </button>
+                            </div>
+                        </motion.div>
+
+                        {/* Hero Section */}
+                        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="text-center mb-12">
+                            <div className="flex items-center justify-center mb-6">
+                                {selectedBookingType &&
+                                    (() => {
+                                        const config = bookingTypeConfigs.find((c) => c.id === selectedBookingType);
+                                        if (!config) return null;
+                                        return (
+                                            <div className={`w-20 h-20 bg-gradient-to-r ${config.color} rounded-2xl flex items-center justify-center shadow-xl`}>
+                                                <config.icon className="w-10 h-10 text-white" />
+                                            </div>
+                                        );
+                                    })()}
+                            </div>
+                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-4">
+                                {selectedBookingType && bookingTypeConfigs.find((config) => config.id === selectedBookingType)?.title}
+                            </h1>
+                            <p className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto mb-8">
+                                {selectedBookingType && bookingTypeConfigs.find((config) => config.id === selectedBookingType)?.description}
+                            </p>
+                        </motion.div>
+
+                        {/* Service Selection Section */}
+                        <motion.div
+                            initial={{ y: 30, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                            className="bg-white/10 dark:bg-slate-900/20 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-slate-700/30 shadow-2xl overflow-hidden"
+                        >
+                            {/* Header */}
+                            <div className="relative bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-md p-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-white mb-2">{t('select_services')}</h2>
+                                        <p className="text-blue-100">{t('choose_from_available_services_below')}</p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        {/* Trip Date Selector */}
+                                        <div className="bg-white/20 backdrop-blur-md rounded-xl p-3 border border-white/30">
+                                            <label className="block text-xs text-blue-100 mb-1">{t('trip_date')}</label>
+                                            <input
+                                                type="date"
+                                                value={selectedDate?.toISOString().split('T')[0] || ''}
+                                                onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
+                                                className="bg-transparent text-white text-sm border-none outline-none"
+                                                min={new Date().toISOString().split('T')[0]}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                    {/* Left Column - Services Selection */}
+                                    <div className="space-y-6">
+                                        {/* Paramedics */}
+                                        {shouldShowServiceType('paramedics') && paramedics.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-red-500 rounded-lg flex items-center justify-center">
+                                                        <IconHeart className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('paramedics')}
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {paramedics.map((paramedic) => (
+                                                        <motion.div
+                                                            key={paramedic.id}
+                                                            whileHover={{ scale: 1.02 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            onClick={() => selectParamedic(paramedic)}
+                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                isSelected('paramedics', paramedic.id)
+                                                                    ? 'border-red-500 bg-red-50/10 dark:bg-red-900/10'
+                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-red-300 dark:hover:border-red-600'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{paramedic.name}</h4>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{paramedic.phone}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                        ${paramedic.daily_rate}/{t('day')}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        ${paramedic.hourly_rate}/{t('hr')}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Guides */}
+                                        {shouldShowServiceType('guides') && guides.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.1 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
+                                                        <IconUsers className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('guides')}
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {guides.map((guide) => (
+                                                        <motion.div
+                                                            key={guide.id}
+                                                            whileHover={{ scale: 1.02 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            onClick={() => selectGuide(guide)}
+                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                isSelected('guides', guide.id)
+                                                                    ? 'border-green-500 bg-green-50/10 dark:bg-green-900/10'
+                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-600'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{guide.name}</h4>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{guide.phone}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                        ${guide.daily_rate}/{t('day')}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        ${guide.hourly_rate}/{t('hr')}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Security Companies */}
+                                        {shouldShowServiceType('security_companies') && securityCompanies.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.2 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                                        <IconLock className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('security')}
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {securityCompanies.map((security) => (
+                                                        <motion.div
+                                                            key={security.id}
+                                                            whileHover={{ scale: 1.02 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            onClick={() => selectSecurity(security)}
+                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                isSelected('security_companies', security.id)
+                                                                    ? 'border-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10'
+                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-yellow-300 dark:hover:border-yellow-600'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{security.name}</h4>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{security.phone}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                        ${security.daily_rate}/{t('day')}
+                                                                    </p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                        ${security.hourly_rate}/{t('hr')}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Entertainment Companies */}
+                                        {shouldShowServiceType('external_entertainment_companies') && entertainmentCompanies.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.3 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
+                                                        <IconPlayCircle className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('entertainment')}
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {entertainmentCompanies.map((entertainment) => (
+                                                        <motion.div
+                                                            key={entertainment.id}
+                                                            whileHover={{ scale: 1.02 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            onClick={() => selectEntertainment(entertainment)}
+                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                isSelected('external_entertainment_companies', entertainment.id)
+                                                                    ? 'border-purple-500 bg-purple-50/10 dark:bg-purple-900/10'
+                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-600'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{entertainment.name}</h4>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{entertainment.description}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">${entertainment.price}</p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('fixed_price')}</p>
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Travel Companies */}
+                                        {shouldShowServiceType('travel_companies') && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.4 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                                                        <IconCar className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('travel_companies')}
+                                                </h3>
+                                                <div className="grid grid-cols-1 gap-3">
+                                                    {travelCompanies.map((travel) => (
+                                                        <motion.div
+                                                            key={travel.id}
+                                                            whileHover={{ scale: 1.02 }}
+                                                            whileTap={{ scale: 0.98 }}
+                                                            onClick={() => selectTravelCompany(travel)}
+                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                isSelected('travel_companies', travel.id)
+                                                                    ? 'border-blue-500 bg-blue-50/10 dark:bg-blue-900/10'
+                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-600'
+                                                            }`}
+                                                        >
+                                                            <div className="flex items-center justify-between">
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{travel.name}</h4>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{travel.phone}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">${travel.pricing_data?.default_price || 100}</p>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('per_trip')}</p>
+                                                                </div>
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </div>
+
+                                    {/* Right Column - Summary and Checkout */}
+                                    <div className="space-y-6">
+                                        {/* Selected Services Summary */}
+                                        <div className="bg-white/20 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-white/30 dark:border-slate-700/40 sticky top-6">
+                                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                                <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                                                    <IconShoppingBag className="w-4 h-4 text-white" />
+                                                </div>
+                                                {t('booking_summary')}
+                                            </h3>
+
+                                            {selectedRequirements.length === 0 ? (
+                                                <div className="text-center py-8">
+                                                    <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                        <IconShoppingBag className="w-8 h-8 text-gray-400" />
+                                                    </div>
+                                                    <p className="text-gray-500 dark:text-gray-400 text-sm">{t('no_services_selected')}</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {selectedRequirements.map((requirement, index) => (
+                                                        <motion.div
+                                                            key={index}
+                                                            initial={{ opacity: 0, x: 20 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            className="flex items-center justify-between p-3 bg-white/10 dark:bg-slate-700/20 rounded-lg"
+                                                        >
+                                                            <div className="flex-1">
+                                                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{requirement.name}</h4>
+                                                                <p className="text-xs text-gray-600 dark:text-gray-300">
+                                                                    {requirement.quantity}x {requirement.rate_type === 'daily' ? t('daily') : t('hourly')}
+                                                                </p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <p className="font-semibold text-gray-900 dark:text-white text-sm">${requirement.cost}</p>
+                                                                <button onClick={() => removeRequirement(index)} className="text-red-500 hover:text-red-700 text-xs">
+                                                                    {t('remove')}
+                                                                </button>
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* Total */}
+                                            <div className="border-t border-gray-200/30 dark:border-slate-700/50 mt-4 pt-4">
+                                                <div className="flex items-center justify-between text-lg font-bold text-gray-900 dark:text-white">
+                                                    <span>{t('total')}</span>
+                                                    <span>${totalPrice}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Validation Errors */}
+                                            {!validateRequiredServices().isValid && (
+                                                <div className="mt-4 p-3 bg-red-50/10 dark:bg-red-900/10 border border-red-200/30 dark:border-red-700/30 rounded-lg">
+                                                    <p className="text-red-600 dark:text-red-400 text-sm font-medium mb-2">{t('missing_required')}:</p>
+                                                    <ul className="text-red-600 dark:text-red-400 text-sm space-y-1">
+                                                        {validateRequiredServices().missingServices.map((service, idx) => (
+                                                            <li key={idx}>• {service}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {/* Checkout Button */}
+                                            <motion.button
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={openCheckout}
+                                                className={`w-full mt-6 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                                                    validateRequiredServices().isValid ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+                                                }`}
+                                            >
+                                                {validateRequiredServices().isValid ? t('proceed_to_booking') : t('select_required_services_first')}
+                                            </motion.button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Requirements Selection Section */}
             <AnimatePresence>
-                {showRequirementsSection && selectedForPlanning && (
+                {showRequirementsSection && (
                     <motion.div
                         id="requirements-section"
                         initial={{ opacity: 0, y: 50 }}
@@ -2002,15 +2606,25 @@ export default function TripPlannerDashboard() {
                         <div className="relative bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-md p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white mb-2">{t('plan_your_trip')}</h2>
-                                    <p className="text-blue-100">
-                                        {t('selected_destination')}: <span className="font-semibold">{selectedForPlanning.name}</span>
-                                    </p>
+                                    <h2 className="text-2xl font-bold text-white mb-2">{selectedForPlanning ? t('plan_your_trip') : t('book_services')}</h2>
+                                    {selectedForPlanning ? (
+                                        <p className="text-blue-100">
+                                            {t('selected_destination')}: <span className="font-semibold">{selectedForPlanning.name}</span>
+                                        </p>
+                                    ) : (
+                                        <p className="text-blue-100">{selectedBookingType && bookingTypeConfigs.find((config) => config.id === selectedBookingType)?.title}</p>
+                                    )}
                                 </div>
                                 <motion.button
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.9 }}
-                                    onClick={() => setShowRequirementsSection(false)}
+                                    onClick={() => {
+                                        setShowRequirementsSection(false);
+                                        // If it's a service-only booking, go back to dashboard
+                                        if (!selectedForPlanning && selectedBookingType !== 'full_trip') {
+                                            setCurrentView('dashboard');
+                                        }
+                                    }}
                                     className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 hover:bg-white/30 transition-all duration-300"
                                 >
                                     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2020,7 +2634,7 @@ export default function TripPlannerDashboard() {
                             </div>
 
                             {/* Required Services Indicator */}
-                            {selectedForPlanning.requirements && selectedForPlanning.requirements.length > 0 ? (
+                            {selectedForPlanning?.requirements && selectedForPlanning?.requirements?.length > 0 ? (
                                 <div className="mt-4">
                                     <p className="text-sm text-blue-100 mb-2">{t('required_services')}:</p>
                                     <div className="flex flex-wrap gap-2">
@@ -2043,8 +2657,8 @@ export default function TripPlannerDashboard() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* Left Column - Services Selection */}
                                 <div className="space-y-6">
-                                    {/* Show message if no requirements */}
-                                    {(!selectedForPlanning.requirements || selectedForPlanning.requirements.length === 0) && (
+                                    {/* Show message if no requirements for full trip mode */}
+                                    {selectedForPlanning && (!selectedForPlanning.requirements || selectedForPlanning.requirements.length === 0) && (
                                         <div className="text-center py-8">
                                             <div className="bg-blue-50/50 dark:bg-blue-900/20 backdrop-blur-sm rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/40">
                                                 <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -2059,7 +2673,7 @@ export default function TripPlannerDashboard() {
                                     )}
 
                                     {/* Paramedics */}
-                                    {selectedForPlanning.requirements?.includes('paramedics') && paramedics.length > 0 && (
+                                    {shouldShowServiceType('paramedics') && paramedics.length > 0 && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -2098,7 +2712,7 @@ export default function TripPlannerDashboard() {
                                     )}
 
                                     {/* Guides */}
-                                    {selectedForPlanning.requirements?.includes('guides') && guides.length > 0 && (
+                                    {shouldShowServiceType('guides') && guides.length > 0 && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -2138,7 +2752,7 @@ export default function TripPlannerDashboard() {
                                     )}
 
                                     {/* Security Companies */}
-                                    {(selectedForPlanning.requirements?.includes('security') || selectedForPlanning.requirements?.includes('security_companies')) && securityCompanies.length > 0 && (
+                                    {shouldShowServiceType('security_companies') && securityCompanies.length > 0 && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -2178,51 +2792,50 @@ export default function TripPlannerDashboard() {
                                     )}
 
                                     {/* Entertainment Companies */}
-                                    {(selectedForPlanning.requirements?.includes('entertainment') || selectedForPlanning.requirements?.includes('external_entertainment_companies')) &&
-                                        entertainmentCompanies.length > 0 && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: 0.3 }}
-                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                            >
-                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                    <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
-                                                        <IconStar className="w-4 h-4 text-white" />
-                                                    </div>
-                                                    {t('entertainment')}
-                                                </h3>
-                                                <div className="space-y-3">
-                                                    {entertainmentCompanies.map((entertainment) => (
-                                                        <div
-                                                            key={entertainment.id}
-                                                            className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
-                                                        >
-                                                            <div>
-                                                                <p className="font-medium text-gray-900 dark:text-white">{entertainment.name}</p>
-                                                                <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                    ${entertainment.price} {t('fixed_price')}
-                                                                </p>
-                                                                {entertainment.description && <p className="text-xs text-purple-600 dark:text-purple-400">{entertainment.description}</p>}
-                                                            </div>
-                                                            <button
-                                                                onClick={() => selectEntertainment(entertainment)}
-                                                                className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                    isSelected('external_entertainment_companies', entertainment.id)
-                                                                        ? 'bg-green-500 hover:bg-green-600'
-                                                                        : 'bg-purple-500 hover:bg-purple-600'
-                                                                }`}
-                                                            >
-                                                                {isSelected('external_entertainment_companies', entertainment.id) ? t('selected') : t('select')}
-                                                            </button>
-                                                        </div>
-                                                    ))}
+                                    {shouldShowServiceType('external_entertainment_companies') && entertainmentCompanies.length > 0 && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.3 }}
+                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                        >
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
+                                                    <IconStar className="w-4 h-4 text-white" />
                                                 </div>
-                                            </motion.div>
-                                        )}
+                                                {t('entertainment')}
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {entertainmentCompanies.map((entertainment) => (
+                                                    <div
+                                                        key={entertainment.id}
+                                                        className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
+                                                    >
+                                                        <div>
+                                                            <p className="font-medium text-gray-900 dark:text-white">{entertainment.name}</p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                                ${entertainment.price} {t('fixed_price')}
+                                                            </p>
+                                                            {entertainment.description && <p className="text-xs text-purple-600 dark:text-purple-400">{entertainment.description}</p>}
+                                                        </div>
+                                                        <button
+                                                            onClick={() => selectEntertainment(entertainment)}
+                                                            className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                isSelected('external_entertainment_companies', entertainment.id)
+                                                                    ? 'bg-green-500 hover:bg-green-600'
+                                                                    : 'bg-purple-500 hover:bg-purple-600'
+                                                            }`}
+                                                        >
+                                                            {isSelected('external_entertainment_companies', entertainment.id) ? t('selected') : t('select')}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
 
                                     {/* Travel Companies */}
-                                    {selectedForPlanning?.requirements?.includes('travel_companies') && (
+                                    {shouldShowServiceType('travel_companies') && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
