@@ -1285,7 +1285,11 @@ export default function TripPlannerDashboard() {
 
                                 {/* Upcoming Trips Section */}
                                 <motion.div variants={itemVariants} className="mb-16">
-                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-8">{t('my_upcoming_trips')}</h2>
+                                    <div className="relative -mx-6 mb-8 overflow-hidden">
+                                        <div className="relative px-6 py-4 w-[96%] mx-auto rounded-lg inset-0 bg-gradient-to-r from-blue-500 to-indigo-700 opacity-90">
+                                            <h2 className="text-3xl font-bold text-white drop-shadow-lg">{t('my_upcoming_trips')}</h2>
+                                        </div>
+                                    </div>
                                     {upcomingTrips.length > 0 ? (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             {upcomingTrips.map((trip, index) => (
@@ -1352,7 +1356,11 @@ export default function TripPlannerDashboard() {
 
                                 {/* Previous Trips Section */}
                                 <motion.div variants={itemVariants} className="mb-16">
-                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-8">{t('my_previous_trips')}</h2>
+                                    <div className="relative -mx-6 mb-8 overflow-hidden">
+                                        <div className="relative px-6 py-4 w-[96%] mx-auto rounded-lg bg-gradient-to-r from-green-500 via-teal-500 to-cyan-500 opacity-90">
+                                            <h2 className="text-3xl font-bold text-white drop-shadow-lg">{t('my_previous_trips')}</h2>
+                                        </div>
+                                    </div>
                                     {previousTrips.length > 0 ? (
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {previousTrips.map((trip, index) => (
@@ -1405,7 +1413,11 @@ export default function TripPlannerDashboard() {
 
                                 {/* Previous Payments Section */}
                                 <motion.div variants={itemVariants} className="mb-16">
-                                    <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-8">{t('payment_history')}</h2>
+                                    <div className="relative -mx-6 mb-8 overflow-hidden">
+                                        <div className="relative px-6 py-4 w-[96%] mx-auto rounded-lg bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 opacity-90">
+                                            <h2 className="text-3xl font-bold text-white drop-shadow-lg">{t('payment_history')}</h2>
+                                        </div>
+                                    </div>
                                     {previousPayments.length > 0 ? (
                                         <div className="space-y-4">
                                             {/* Desktop Table View */}
