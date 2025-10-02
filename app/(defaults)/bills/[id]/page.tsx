@@ -16,6 +16,19 @@ import IconUser from '@/components/icon/icon-user';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
 
+interface BookingService {
+    id: string;
+    service_type: string;
+    service_id: string;
+    quantity: number;
+    days: number;
+    booked_price: number;
+    rate_type: string;
+    service_details?: {
+        name: string;
+    };
+}
+
 interface BillDetails {
     id: string;
     bill_number: string;
@@ -77,6 +90,7 @@ export default function BillDetailsPage() {
 
     const [loading, setLoading] = useState(true);
     const [bill, setBill] = useState<BillDetails | null>(null);
+    const [bookingServices, setBookingServices] = useState<BookingService[]>([]);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -122,6 +136,37 @@ export default function BillDetailsPage() {
                 }
 
                 setBill(data as BillDetails);
+
+                // Fetch booking services if this is a tax invoice
+                if (data && data.bill_type === 'tax_invoice' && data.booking_id) {
+                    const { data: servicesData, error: servicesError } = await supabase.from('booking_services').select('*').eq('booking_id', data.booking_id);
+
+                    if (servicesError) {
+                        console.error('Error fetching booking services:', servicesError);
+                    } else if (servicesData) {
+                        // Fetch service details for each service
+                        const servicesWithDetails = await Promise.all(
+                            servicesData.map(async (service) => {
+                                let serviceName = '';
+                                try {
+                                    const { data: serviceDetail } = await supabase.from(service.service_type).select('name').eq('id', service.service_id).single();
+
+                                    if (serviceDetail) {
+                                        serviceName = serviceDetail.name;
+                                    }
+                                } catch (e) {
+                                    console.error(`Error fetching service details for ${service.service_type}:`, e);
+                                }
+
+                                return {
+                                    ...service,
+                                    service_details: { name: serviceName || t('unknown_service') },
+                                };
+                            }),
+                        );
+                        setBookingServices(servicesWithDetails);
+                    }
+                }
             } catch (error) {
                 console.error('Unexpected error:', error);
                 setError(t('error_loading_bill'));
@@ -187,7 +232,7 @@ export default function BillDetailsPage() {
     };
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+        return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(amount);
     };
 
     const renderPaymentDetails = (payment: NonNullable<BillDetails['payments']>[number]) => {
@@ -379,6 +424,45 @@ export default function BillDetailsPage() {
                                             {renderPaymentDetails(payment)}
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Booking Services (for tax invoices) */}
+                        {bill.bill_type === 'tax_invoice' && bookingServices.length > 0 && (
+                            <div className="mb-6">
+                                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{t('booking_services')}</h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-100 dark:bg-gray-800">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('service_type')}</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('service_name')}</th>
+                                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('quantity')}</th>
+                                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('days')}</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('price')}</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('total')}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                                            {bookingServices.map((service) => (
+                                                <tr key={service.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                                    <td className="px-4 py-3 whitespace-nowrap">
+                                                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                            {t(`service_${service.service_type}`)}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-3 text-gray-900 dark:text-white">{service.service_details?.name || t('unknown_service')}</td>
+                                                    <td className="px-4 py-3 text-center text-gray-900 dark:text-white">{service.quantity}</td>
+                                                    <td className="px-4 py-3 text-center text-gray-900 dark:text-white">{service.days}</td>
+                                                    <td className="px-4 py-3 text-right text-gray-900 dark:text-white">{formatCurrency(service.booked_price)}</td>
+                                                    <td className="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">
+                                                        {formatCurrency(service.booked_price * service.quantity * service.days)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         )}

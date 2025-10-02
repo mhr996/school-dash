@@ -169,7 +169,7 @@ const BillsList = () => {
     };
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(amount);
+        return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(amount);
     };
 
     // Calculate status based on bill type
