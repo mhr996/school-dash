@@ -356,7 +356,7 @@ export default function MyBookingsPage() {
                         </h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                         {/* Search */}
                         <div className="lg:col-span-2">
                             <label className="block text-sm font-semibold text-gray-700 dark:text-purple-300 mb-2">{t('search')}</label>
@@ -464,7 +464,7 @@ export default function MyBookingsPage() {
                         </div>
 
                         {/* Payment Status Filter - Custom Dropdown */}
-                        <div>
+                        {/* <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-purple-300 mb-2">{t('payment')}</label>
                             <Dropdown
                                 offset={[0, 5]}
@@ -504,7 +504,7 @@ export default function MyBookingsPage() {
                                     })}
                                 </ul>
                             </Dropdown>
-                        </div>
+                        </div> */}
 
                         {/* Sort By - Custom Dropdown */}
                         <div>

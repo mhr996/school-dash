@@ -1829,5 +1829,9 @@
     "most_visited": "Most Visited",
     "top_rated": "Top Rated",
     "latest": "Latest",
-    "deals": "Deals"
+    "deals": "Deals",
+    "booking_date": "Booking Date",
+    "creation_date": "Creation Date",
+    "sort_by": "Sort By",
+    "select_date": "Select the date"
 }

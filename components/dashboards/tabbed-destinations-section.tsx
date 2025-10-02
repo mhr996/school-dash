@@ -36,6 +36,7 @@ interface TabbedDestinationsSectionProps {
     topRatedDestinations: Destination[];
     latestDestinations: Destination[];
     bestDeals: Destination[];
+    isLoading?: boolean;
     onSelectDestination: (destination: Destination) => void;
     onViewDestinationDetails: (destination: Destination) => void;
     onViewAll: () => void;
@@ -58,6 +59,7 @@ export default function TabbedDestinationsSection({
     topRatedDestinations,
     latestDestinations,
     bestDeals,
+    isLoading = false,
     onSelectDestination,
     onViewDestinationDetails,
     onViewAll,
@@ -374,8 +376,31 @@ export default function TabbedDestinationsSection({
                 </motion.div>
             </AnimatePresence>
 
-            {/* Empty State */}
-            {currentDestinations.length === 0 && (
+            {/* Loading State */}
+            {isLoading && currentDestinations.length === 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="animate-pulse">
+                            <div className="bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/30 dark:border-slate-700/40">
+                                <div className="h-48 bg-gray-300/50 dark:bg-gray-700/50"></div>
+                                <div className="p-6 space-y-3">
+                                    <div className="h-6 bg-gray-300/50 dark:bg-gray-700/50 rounded w-3/4"></div>
+                                    <div className="h-4 bg-gray-300/50 dark:bg-gray-700/50 rounded w-1/2"></div>
+                                    <div className="h-8 bg-gray-300/50 dark:bg-gray-700/50 rounded w-1/3"></div>
+                                    <div className="flex gap-2">
+                                        <div className="h-6 bg-gray-300/50 dark:bg-gray-700/50 rounded w-16"></div>
+                                        <div className="h-6 bg-gray-300/50 dark:bg-gray-700/50 rounded w-16"></div>
+                                    </div>
+                                    <div className="h-10 bg-gray-300/50 dark:bg-gray-700/50 rounded"></div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Empty State - Only show when NOT loading and no destinations */}
+            {!isLoading && currentDestinations.length === 0 && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}

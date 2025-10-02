@@ -216,7 +216,7 @@ export default function TripPlannerDashboard() {
     const [upcomingTrips, setUpcomingTrips] = useState<any[]>([]);
     const [previousTrips, setPreviousTrips] = useState<any[]>([]);
     const [previousPayments, setPreviousPayments] = useState<any[]>([]);
-    const [dashboardLoading, setDashboardLoading] = useState(false);
+    const [dashboardLoading, setDashboardLoading] = useState(true); // TRUE BY DEFAULT!
 
     // Tabbed destinations state
     const [mostVisitedDestinations, setMostVisitedDestinations] = useState<Destination[]>([]);
@@ -335,19 +335,19 @@ export default function TripPlannerDashboard() {
     useEffect(() => {
         if (currentView === 'destinations') {
             loadDestinations();
-        } else if (currentView === 'dashboard') {
+        } else if (currentView === 'dashboard' && currentUser?.id) {
             loadDashboardData();
         } else if (currentView === 'service-booking') {
             loadRequirementsData();
         }
-    }, [currentView]);
+    }, [currentView, currentUser]);
 
     useEffect(() => {
-        // Load dashboard data when component mounts
-        if (currentView === 'dashboard') {
+        // Load dashboard data when component mounts and user is authenticated
+        if (currentView === 'dashboard' && currentUser?.id) {
             loadDashboardData();
         }
-    }, []);
+    }, [currentUser]);
 
     useEffect(() => {
         // Apply filters
@@ -422,6 +422,12 @@ export default function TripPlannerDashboard() {
     };
 
     const loadDashboardData = async () => {
+        // Security check: Only load dashboard data if user is authenticated
+        if (!currentUser?.id) {
+            console.warn('Cannot load dashboard data: User not authenticated');
+            return;
+        }
+
         try {
             setDashboardLoading(true);
 
@@ -454,6 +460,7 @@ export default function TripPlannerDashboard() {
                     destinations!bookings_destination_id_fkey(name, address, thumbnail_path)
                 `,
                 )
+                .eq('customer_id', currentUser?.id) // Filter by current user
                 .gte('trip_date', today)
                 .in('status', ['confirmed', 'pending'])
                 .order('trip_date', { ascending: true })
@@ -470,6 +477,7 @@ export default function TripPlannerDashboard() {
                     destinations!bookings_destination_id_fkey(name, address, thumbnail_path)
                 `,
                 )
+                .eq('customer_id', currentUser?.id) // Filter by current user
                 .lt('trip_date', today)
                 .in('status', ['completed', 'confirmed'])
                 .order('trip_date', { ascending: false })
@@ -478,6 +486,7 @@ export default function TripPlannerDashboard() {
             if (previousError) throw previousError;
 
             // Load user's payment history
+            // Note: payments table doesn't have customer_id, need to filter through bills->bookings relationship
             const { data: paymentsData, error: paymentsError } = await supabase
                 .from('payments')
                 .select(
@@ -486,22 +495,29 @@ export default function TripPlannerDashboard() {
                     bills!payments_bill_id_fkey(
                         bill_number, total_amount,
                         bookings!bills_booking_id_fkey(
-                            booking_reference,
+                            booking_reference, customer_id,
                             destinations!bookings_destination_id_fkey(name)
                         )
                     )
                 `,
                 )
-                .order('payment_date', { ascending: false })
-                .limit(5);
+                .order('payment_date', { ascending: false });
 
             if (paymentsError) throw paymentsError;
+
+            // Filter payments by customer_id on the client side (since we can't filter through nested relationships in Supabase)
+            const userPayments =
+                paymentsData
+                    ?.filter((payment: any) => {
+                        return payment.bills?.bookings?.customer_id === currentUser?.id;
+                    })
+                    .slice(0, 5) || [];
 
             setTopDestinations(topDestData || []);
             setBestDeals(bestDealsData || []);
             setUpcomingTrips(upcomingData || []);
             setPreviousTrips(previousData || []);
-            setPreviousPayments(paymentsData || []);
+            setPreviousPayments(userPayments);
 
             // Derive tabbed destinations categories
             const allDests = topDestData || [];
@@ -929,20 +945,31 @@ export default function TripPlannerDashboard() {
 
     // Helper function to determine if a service type should be shown based on booking type
     const shouldShowServiceType = (serviceType: string) => {
-        if (!selectedBookingType) {
-            // For legacy full trip mode, show all services
-            return true;
+        // For full_trip bookings with a selected destination, check destination requirements
+        if (selectedBookingType === 'full_trip' && selectedForPlanning?.requirements) {
+            return selectedForPlanning.requirements.includes(serviceType);
         }
 
-        const config = bookingTypeConfigs.find((c) => c.id === selectedBookingType);
-
-        if (config?.requiredServices.length === 0) {
-            // For mixed_services or full_trip, show all services
-            return true;
+        // For legacy full trip mode (no booking type selected) with a destination
+        if (!selectedBookingType && selectedForPlanning?.requirements) {
+            return selectedForPlanning.requirements.includes(serviceType);
         }
 
-        // For specific service types, only show the required service
-        return config?.requiredServices.includes(serviceType) || false;
+        // For service-only bookings, check booking type configuration
+        if (selectedBookingType && selectedBookingType !== 'full_trip') {
+            const config = bookingTypeConfigs.find((c) => c.id === selectedBookingType);
+
+            if (config?.requiredServices.length === 0) {
+                // For mixed_services, show all services
+                return true;
+            }
+
+            // For specific service types, only show the required service
+            return config?.requiredServices.includes(serviceType) || false;
+        }
+
+        // Default: show all services (fallback for legacy or undefined states)
+        return true;
     };
 
     useEffect(() => {
@@ -1277,6 +1304,7 @@ export default function TripPlannerDashboard() {
                                     topRatedDestinations={topRatedDestinations}
                                     latestDestinations={latestDestinations}
                                     bestDeals={bestDeals}
+                                    isLoading={dashboardLoading}
                                     onSelectDestination={handleSelectForPlanning}
                                     onViewDestinationDetails={openDestinationModal}
                                     onViewAll={() => setCurrentView('destinations')}
@@ -2410,6 +2438,99 @@ export default function TripPlannerDashboard() {
                                 </div>
                             )}
                         </div>
+
+                        {/* Trip Date Selection */}
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="relative bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-slate-800/30 dark:via-slate-800/20 dark:to-transparent backdrop-blur-xl border-y border-white/20 dark:border-slate-700/30 shadow-inner"
+                        >
+                            <div className="px-6 py-6">
+                                <div className="max-w-4xl">
+                                    <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
+                                        {/* Icon and Label */}
+                                        <div className="flex items-center gap-4 lg:w-48 shrink-0">
+                                            <motion.div
+                                                whileHover={{ scale: 1.1, rotate: 5 }}
+                                                className="relative w-14 h-14 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30"
+                                            >
+                                                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-purple-600 rounded-2xl blur opacity-50 animate-pulse"></div>
+                                                <IconCalendar className="relative h-7 w-7 text-white drop-shadow-lg" />
+                                            </motion.div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-0.5">{t('trip_date')}</h3>
+                                                <p className="text-xs text-gray-600 dark:text-gray-400">{t('select_date')}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Date Input */}
+                                        <div className="flex-1 w-full lg:w-auto">
+                                            <div className="relative">
+                                                <input
+                                                    type="date"
+                                                    value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+                                                    onChange={(e) => {
+                                                        const date = e.target.value ? new Date(e.target.value) : null;
+                                                        setSelectedDate(date);
+                                                    }}
+                                                    min={new Date().toISOString().split('T')[0]}
+                                                    className="w-full px-5 py-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-blue-500/30 dark:focus:ring-blue-400/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-300 text-gray-900 dark:text-white font-medium text-lg shadow-sm hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500"
+                                                    style={{
+                                                        colorScheme: 'light',
+                                                    }}
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Selected Date Badge */}
+                                        <AnimatePresence>
+                                            {selectedDate && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, scale: 0.8, x: 20 }}
+                                                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                                                    exit={{ opacity: 0, scale: 0.8, x: 20 }}
+                                                    transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                                                    className="lg:w-64 shrink-0"
+                                                >
+                                                    <div className="relative overflow-hidden bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg shadow-green-500/30 p-4">
+                                                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIwLjUiIG9wYWNpdHk9IjAuMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-20"></div>
+                                                        <div className="relative flex items-center gap-3">
+                                                            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shrink-0">
+                                                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                                </svg>
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-white truncate">
+                                                                    {selectedDate.toLocaleDateString(t('locale'), {
+                                                                        weekday: 'short',
+                                                                        year: 'numeric',
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                    })}
+                                                                </p>
+                                                            </div>
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.1, rotate: 90 }}
+                                                                whileTap={{ scale: 0.9 }}
+                                                                onClick={() => setSelectedDate(null)}
+                                                                className="w-7 h-7 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center hover:bg-white/30 transition-all duration-200 shrink-0"
+                                                            >
+                                                                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                                                                </svg>
+                                                            </motion.button>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
 
                         {/* Content */}
                         <div className="p-6">
