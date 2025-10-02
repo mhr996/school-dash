@@ -740,6 +740,9 @@
     "search_providers": "חיפוש ספקים",
     "thumbnail_description": "העלה תמונות של הרכב (מומלץ)",
     "upload_thumbnail": "העלאת תמונות של הרכב",
+    "replace_thumbnail": "החלף תמונה ממוזערת",
+    "upload_new_thumbnail": "העלה תמונה ממוזערת חדשה",
+    "add_more_images": "הוסף עוד תמונות",
     "Optional document image": "תמונה של החוזה(אופציונאלי)",
     "gallery_description": "כאן ניתן לראות את גלרית התמונות של הרכב",
     "upload_gallery_images": "העלאת תמונות לגלריה של הרכב",
@@ -1854,5 +1857,10 @@
     "top_rated": "המדורגים הגבוה",
     "latest": "האחרונים",
     "deals": "מבצעים",
+    "number_of_students": "מספר תלמידים",
+    "number_of_crew": "מספר צוות",
+    "number_of_buses": "מספר אוטובוסים",
+    "total_participants": "סך המשתתפים",
+    "buses": "אוטובוסים",
     "select_date": "בחר את התאריך"
 }

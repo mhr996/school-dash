@@ -603,6 +603,9 @@
     "additional_information": "Additional Information",
     "updating": "Updating...",
     "upload_thumbnail": "Upload Thumbnail",
+    "replace_thumbnail": "Replace Thumbnail",
+    "upload_new_thumbnail": "Upload New Thumbnail",
+    "add_more_images": "Add More Images",
     "thumbnail_formats": "PNG, JPG up to 2MB",
     "upload_gallery_images": "Upload Gallery Images",
     "customers": "Customers",
@@ -1833,5 +1836,10 @@
     "booking_date": "Booking Date",
     "creation_date": "Creation Date",
     "sort_by": "Sort By",
+    "number_of_students": "Number of Students",
+    "number_of_crew": "Number of Crew",
+    "number_of_buses": "Number of Buses",
+    "total_participants": "Total Participants",
+    "buses": "Buses",
     "select_date": "Select the date"
 }

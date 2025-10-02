@@ -223,6 +223,11 @@ export default function TripPlannerDashboard() {
     const [topRatedDestinations, setTopRatedDestinations] = useState<Destination[]>([]);
     const [latestDestinations, setLatestDestinations] = useState<Destination[]>([]);
 
+    // Trip details state (number of students, crew, buses)
+    const [numberOfStudents, setNumberOfStudents] = useState<number>();
+    const [numberOfCrew, setNumberOfCrew] = useState<number>();
+    const [numberOfBuses, setNumberOfBuses] = useState<number>();
+
     // Booking type configurations
     const bookingTypeConfigs: BookingTypeConfig[] = [
         {
@@ -727,6 +732,20 @@ export default function TripPlannerDashboard() {
             missingServices.push(t('trip_date'));
         }
 
+        // Check trip details for full trip bookings
+        if (selectedBookingType === 'full_trip' || !selectedBookingType) {
+            if (numberOfStudents === 0) {
+                missingServices.push(t('number_of_students'));
+            }
+            if (numberOfCrew === 0) {
+                missingServices.push(t('number_of_crew'));
+            }
+            // Check buses only if destination requires travel company
+            if (selectedForPlanning?.requirements?.includes('travel_companies') && numberOfBuses === 0) {
+                missingServices.push(t('number_of_buses'));
+            }
+        }
+
         // Get current booking type config
         const currentBookingConfig = selectedBookingType ? bookingTypeConfigs.find((config) => config.id === selectedBookingType) : null;
 
@@ -859,6 +878,10 @@ export default function TripPlannerDashboard() {
                 payment_method: 'bank_transfer',
                 status: 'pending',
                 notes: `Booking created via trip planner - Type: ${selectedBookingType || 'full_trip'}`,
+                // Trip details
+                number_of_students: numberOfStudents || null,
+                number_of_crew: numberOfCrew || null,
+                number_of_buses: numberOfBuses || null,
                 // Store service details in the services jsonb column
                 services: {
                     selected_services: selectedRequirements.map((req) => ({
@@ -939,6 +962,10 @@ export default function TripPlannerDashboard() {
         setSelectedBookingType(null);
         setShowRequirementsSection(false);
         setBookingReference('');
+        // Reset trip details
+        setNumberOfStudents(0);
+        setNumberOfCrew(0);
+        setNumberOfBuses(0);
         setCurrentView('dashboard');
         closeCheckout();
     };
@@ -1206,7 +1233,7 @@ export default function TripPlannerDashboard() {
                                     } else {
                                         greeting = t('good_evening');
                                     }
-                                    return `${greeting}, ${currentUser?.full_name || t('guest')}`;
+                                    return `${greeting}, ${currentUser?.full_name || ''}`;
                                 })()}
                             </motion.h1>
                         </motion.div>
@@ -2528,6 +2555,102 @@ export default function TripPlannerDashboard() {
                                             )}
                                         </AnimatePresence>
                                     </div>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Trip Details Section (Students, Crew, Buses) */}
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className="relative bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-slate-800/30 dark:via-slate-800/20 dark:to-transparent backdrop-blur-xl border-y border-white/20 dark:border-slate-700/30 shadow-inner"
+                        >
+                            <div className="px-6 py-6">
+                                <div className="max-w-4xl">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* Number of Students */}
+                                        <div className="space-y-2">
+                                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                                                    <IconUsersGroup className="h-4 w-4 text-white" />
+                                                </div>
+                                                {t('number_of_students')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={numberOfStudents}
+                                                onChange={(e) => setNumberOfStudents(parseInt(e.target.value) || 0)}
+                                                placeholder="0"
+                                                className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-blue-500/30 dark:focus:ring-blue-400/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
+                                            />
+                                        </div>
+
+                                        {/* Number of Crew */}
+                                        <div className="space-y-2">
+                                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                                                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                                                    <IconUser className="h-4 w-4 text-white" />
+                                                </div>
+                                                {t('number_of_crew')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                value={numberOfCrew}
+                                                onChange={(e) => setNumberOfCrew(parseInt(e.target.value) || 0)}
+                                                placeholder="0"
+                                                className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-purple-500/30 dark:focus:ring-purple-400/30 focus:border-purple-500 dark:focus:border-purple-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
+                                            />
+                                        </div>
+
+                                        {/* Number of Buses - Only show if destination requires travel company */}
+                                        {selectedForPlanning?.requirements?.includes('travel_companies') && (
+                                            <div className="space-y-2">
+                                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                                                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                                                        <IconCar className="h-4 w-4 text-white" />
+                                                    </div>
+                                                    {t('number_of_buses')} <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={numberOfBuses}
+                                                    onChange={(e) => setNumberOfBuses(parseInt(e.target.value) || 0)}
+                                                    placeholder="0"
+                                                    className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-green-500/30 dark:focus:ring-green-400/30 focus:border-green-500 dark:focus:border-green-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Summary Info */}
+                                    {((numberOfStudents || 0) > 0 || (numberOfCrew || 0) > 0 || (numberOfBuses || 0) > 0) && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className="mt-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-400/10 dark:to-purple-400/10 rounded-xl border border-blue-300/30 dark:border-blue-600/30"
+                                        >
+                                            <div className="flex flex-wrap items-center gap-4 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-gray-600 dark:text-gray-400">{t('total_participants')}:</span>
+                                                    <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{(numberOfStudents || 0) + (numberOfCrew || 0)}</span>
+                                                </div>
+                                                {selectedForPlanning?.requirements?.includes('travel_companies') && (numberOfBuses || 0) > 0 && (
+                                                    <>
+                                                        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
+                                                        <div className="flex items-center gap-2">
+                                                            <IconCar className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                                            <span className="text-gray-600 dark:text-gray-400">{t('buses')}:</span>
+                                                            <span className="font-bold text-green-600 dark:text-green-400 text-lg">{numberOfBuses || 0}</span>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>

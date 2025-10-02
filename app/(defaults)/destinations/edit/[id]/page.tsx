@@ -11,6 +11,7 @@ import SingleFileUpload from '@/components/file-upload/single-file-upload';
 import FileUpload from '@/components/file-upload/file-upload';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
+import { getPublicUrlFromPath } from '@/utils/file-upload';
 
 type Zone = { id: string; name: string; is_active: boolean };
 type KV = { label: string; value: string };
@@ -61,6 +62,8 @@ export default function EditDestinationPage({ params }: { params: { id: string }
     const [galleryPaths, setGalleryPaths] = useState<string[]>([]);
     const [newGalleryFiles, setNewGalleryFiles] = useState<File[]>([]);
     const [newGalleryUI, setNewGalleryUI] = useState<Array<{ file: File; preview?: string; id: string }>>([]);
+    const [deletedGalleryPaths, setDeletedGalleryPaths] = useState<string[]>([]);
+    const [shouldDeleteThumbnail, setShouldDeleteThumbnail] = useState(false);
 
     const [properties, setProperties] = useState<string[]>([]);
     const [requirements, setRequirements] = useState<string[]>([]);
@@ -137,15 +140,14 @@ export default function EditDestinationPage({ params }: { params: { id: string }
 
     const toggleSuitable = (key: string) => setSuitable((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
 
-    const handleRemoveGallery = async (path: string) => {
-        try {
-            const cleanPath = path.startsWith('/destinations/') ? path.replace('/destinations/', '') : path;
-            const { error } = await supabase.storage.from('destinations').remove([cleanPath]);
-            if (error) throw error;
-            setGalleryPaths((prev) => prev.filter((p) => p !== path));
-        } catch (e) {
-            console.error('Error removing image', e);
-        }
+    const handleRemoveGallery = (path: string) => {
+        setGalleryPaths((prev) => prev.filter((p) => p !== path));
+        setDeletedGalleryPaths((prev) => [...prev, path]);
+    };
+
+    const handleDeleteExistingThumbnail = () => {
+        setShouldDeleteThumbnail(true);
+        setThumbnailPath(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -176,6 +178,28 @@ export default function EditDestinationPage({ params }: { params: { id: string }
                 updated_at: new Date().toISOString(),
             };
 
+            // Delete marked gallery images from storage
+            if (deletedGalleryPaths.length > 0) {
+                for (const path of deletedGalleryPaths) {
+                    try {
+                        const cleanPath = path.startsWith('/destinations/') ? path.replace('/destinations/', '') : path;
+                        await supabase.storage.from('destinations').remove([cleanPath]);
+                    } catch (e) {
+                        console.error('Error removing gallery image', e);
+                    }
+                }
+            }
+
+            // Delete old thumbnail if marked for deletion
+            if (shouldDeleteThumbnail && thumbnailPath) {
+                try {
+                    const cleanPath = thumbnailPath.startsWith('/destinations/') ? thumbnailPath.replace('/destinations/', '') : thumbnailPath;
+                    await supabase.storage.from('destinations').remove([cleanPath]);
+                } catch (e) {
+                    console.error('Error removing old thumbnail', e);
+                }
+            }
+
             // Upload new thumbnail if any
             if (thumbnailFile) {
                 const ext = thumbnailFile.name.split('.').pop()?.toLowerCase() || 'jpg';
@@ -183,18 +207,24 @@ export default function EditDestinationPage({ params }: { params: { id: string }
                 const { error: upErr } = await supabase.storage.from('destinations').upload(path, thumbnailFile, { cacheControl: '3600', upsert: true });
                 if (upErr) throw upErr;
                 basePayload.thumbnail_path = `/destinations/${path}`;
+            } else if (!shouldDeleteThumbnail && thumbnailPath) {
+                // Keep existing thumbnail if not deleted and no new file
+                basePayload.thumbnail_path = thumbnailPath;
+            } else {
+                basePayload.thumbnail_path = null;
             }
 
             // Upload new gallery files
+            const updatedGalleryPaths = [...galleryPaths];
             for (const file of newGalleryFiles) {
                 const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-                const path = `${params.id}/gallery/${Date.now()}_${file.name}`;
+                const path = `${params.id}/gallery/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
                 const { error: upErr } = await supabase.storage.from('destinations').upload(path, file, { cacheControl: '3600', upsert: true });
                 if (upErr) throw upErr;
-                setGalleryPaths((prev) => [...prev, `/destinations/${path}`]);
+                updatedGalleryPaths.push(`/destinations/${path}`);
             }
 
-            basePayload.gallery_paths = galleryPaths;
+            basePayload.gallery_paths = updatedGalleryPaths;
 
             const { error } = await supabase.from('destinations').update(basePayload).eq('id', params.id);
             if (error) throw error;
@@ -250,9 +280,34 @@ export default function EditDestinationPage({ params }: { params: { id: string }
                     <textarea className="form-textarea" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('description')} />
                 </div>
                 <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-2">{t('upload_thumbnail')}</label>
+
+                    {/* Show existing thumbnail preview */}
+                    {thumbnailPath && !thumbnailFile && (
+                        <div className="mb-4 relative inline-block">
+                            <div className="relative group">
+                                <img src={getPublicUrlFromPath(thumbnailPath)} alt="Current thumbnail" className="w-48 h-48 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700" />
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center">
+                                    <button
+                                        type="button"
+                                        onClick={handleDeleteExistingThumbnail}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
+                                        title={t('delete')}
+                                    >
+                                        <IconTrashLines className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                                {t('current')}: {thumbnailPath.split('/').pop()}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Upload new thumbnail */}
                     <SingleFileUpload
-                        title={t('upload_thumbnail')}
-                        description={thumbnailPath ? `${t('current')}: ${thumbnailPath.split('/').pop()}` : t('upload_thumbnail_desc') || ''}
+                        title={thumbnailFile ? t('replace_thumbnail') : thumbnailPath ? t('upload_new_thumbnail') : t('upload_thumbnail')}
+                        description={t('upload_thumbnail_desc') || ''}
                         accept="image/*"
                         file={thumbnailUI}
                         onFileChange={(fi) => {
@@ -262,8 +317,34 @@ export default function EditDestinationPage({ params }: { params: { id: string }
                     />
                 </div>
                 <div className="md:col-span-2">
+                    {/* Show existing gallery images */}
+                    {galleryPaths.length > 0 && (
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium mb-3">{t('existing_gallery')}</label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {galleryPaths.map((path) => (
+                                    <div key={path} className="relative group">
+                                        <img src={getPublicUrlFromPath(path)} alt="Gallery image" className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-700" />
+                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveGallery(path)}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full"
+                                                title={t('delete')}
+                                            >
+                                                <IconTrashLines className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1 truncate">{path.split('/').pop()}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Upload new gallery images */}
                     <FileUpload
-                        title={t('upload_gallery_images')}
+                        title={galleryPaths.length > 0 ? t('add_more_images') : t('upload_gallery_images')}
                         description={t('upload_gallery_desc') || ''}
                         accept="image/*"
                         maxFiles={10}
@@ -273,21 +354,6 @@ export default function EditDestinationPage({ params }: { params: { id: string }
                             setNewGalleryFiles(fis.map((x) => x.file));
                         }}
                     />
-                    {galleryPaths.length > 0 && (
-                        <div className="mt-4">
-                            <h6 className="text-sm font-semibold mb-2">{t('existing_gallery')}</h6>
-                            <div className="space-y-2">
-                                {galleryPaths.map((p) => (
-                                    <div key={p} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 rounded px-3 py-2">
-                                        <span className="text-xs truncate">{p.split('/').slice(-1)[0]}</span>
-                                        <button type="button" onClick={() => handleRemoveGallery(p)} className="hover:text-danger" title={t('delete')}>
-                                            <IconTrashLines />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

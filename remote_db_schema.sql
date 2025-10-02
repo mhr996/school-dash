@@ -57,6 +57,9 @@ CREATE TABLE public.bookings (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   customer_id uuid NOT NULL,
+  number_of_students integer,
+  number_of_crew integer,
+  number_of_buses integer,
   CONSTRAINT bookings_pkey PRIMARY KEY (id),
   CONSTRAINT bookings_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
   CONSTRAINT bookings_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id)

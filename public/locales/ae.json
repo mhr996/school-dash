@@ -683,6 +683,9 @@
     "select_type": "اختر نوع السيارة",
     "thumbnail_description": "سيتم استخدام هذه الصورة كصورة مصغرة للسيارة في قائمة السيارات.",
     "upload_thumbnail": "تحميل الصورة المصغرة",
+    "replace_thumbnail": "استبدال الصورة المصغرة",
+    "upload_new_thumbnail": "تحميل صورة مصغرة جديدة",
+    "add_more_images": "إضافة المزيد من الصور",
     "thumbnail_formats": "PNG، JPG حتى 2 ميجابايت",
     "gallery_description": "قم بتحميل صور لمعرض السيارة. يمكن تحميل عدة صور، وسيتم عرضها في صفحة تفاصيل السيارة.",
     "upload_gallery_images": "تحميل صور المعرض",
@@ -2203,5 +2206,10 @@
     "top_rated": "الأعلى تقييماً",
     "latest": "الأحدث",
     "deals": "العروض",
+    "number_of_students": "عدد الطلاب",
+    "number_of_crew": "عدد المرافقين",
+    "number_of_buses": "عدد الحافلات",
+    "total_participants": "إجمالي المشاركين",
+    "buses": "الحافلات",
     "select_date": "اختر التاريخ"
 }
