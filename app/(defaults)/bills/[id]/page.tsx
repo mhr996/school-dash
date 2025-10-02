@@ -436,8 +436,8 @@ export default function BillDetailsPage() {
                                     <table className="w-full text-sm">
                                         <thead className="bg-gray-100 dark:bg-gray-800">
                                             <tr>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('service_type')}</th>
-                                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('service_name')}</th>
+                                                <th className="px-4 py-3  text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('service_type')}</th>
+                                                <th className="px-4 py-3  text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('service_name')}</th>
                                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('quantity')}</th>
                                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('days')}</th>
                                                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">{t('price')}</th>
