@@ -32,6 +32,7 @@ import IconCaretDown from '@/components/icon/icon-caret-down';
 import IconShoppingBag from '@/components/icon/icon-shopping-bag';
 import IconPlayCircle from '@/components/icon/icon-play-circle';
 import DestinationDetailsModal from '@/components/modals/destination-details-modal';
+import TabbedDestinationsSection from '@/components/dashboards/tabbed-destinations-section';
 
 type Destination = {
     id: string;
@@ -216,6 +217,11 @@ export default function TripPlannerDashboard() {
     const [previousTrips, setPreviousTrips] = useState<any[]>([]);
     const [previousPayments, setPreviousPayments] = useState<any[]>([]);
     const [dashboardLoading, setDashboardLoading] = useState(false);
+
+    // Tabbed destinations state
+    const [mostVisitedDestinations, setMostVisitedDestinations] = useState<Destination[]>([]);
+    const [topRatedDestinations, setTopRatedDestinations] = useState<Destination[]>([]);
+    const [latestDestinations, setLatestDestinations] = useState<Destination[]>([]);
 
     // Booking type configurations
     const bookingTypeConfigs: BookingTypeConfig[] = [
@@ -496,6 +502,12 @@ export default function TripPlannerDashboard() {
             setUpcomingTrips(upcomingData || []);
             setPreviousTrips(previousData || []);
             setPreviousPayments(paymentsData || []);
+
+            // Derive tabbed destinations categories
+            const allDests = topDestData || [];
+            setMostVisitedDestinations(allDests.slice(0, 8));
+            setTopRatedDestinations([...allDests].sort((a, b) => (a.name || '').localeCompare(b.name || '')).slice(0, 8));
+            setLatestDestinations([...allDests].sort((a, b) => (b.id || '').localeCompare(a.id || '')).slice(0, 8));
         } catch (error) {
             console.error('Error loading dashboard data:', error);
         } finally {
@@ -1055,7 +1067,7 @@ export default function TripPlannerDashboard() {
             id: 'new-booking',
             title: t('new_booking'),
             description: t('start_planning_new_booking'),
-            icon: IconPlus,
+            iconImage: '/assets/shortcuts-icons/add.png',
             color: 'from-blue-500 to-blue-600',
             shadowColor: 'shadow-blue-500/25',
             onClick: () => setShowTripDropdown(!showTripDropdown),
@@ -1065,7 +1077,7 @@ export default function TripPlannerDashboard() {
             id: 'my-bookings',
             title: t('my_bookings'),
             description: t('view_manage_bookings'),
-            icon: IconCalendar,
+            iconImage: '/assets/shortcuts-icons/calendar.png',
             color: 'from-green-500 to-green-600',
             shadowColor: 'shadow-green-500/25',
             onClick: () => router.push('/my-bookings'),
@@ -1074,7 +1086,7 @@ export default function TripPlannerDashboard() {
             id: 'transactions',
             title: t('my_transactions'),
             description: t('view_payment_history'),
-            icon: IconCreditCard,
+            iconImage: '/assets/shortcuts-icons/cards.png',
             color: 'from-purple-500 to-purple-600',
             shadowColor: 'shadow-purple-500/25',
             onClick: () => router.push('/my-transactions'),
@@ -1083,7 +1095,7 @@ export default function TripPlannerDashboard() {
             id: 'profile',
             title: t('my_profile'),
             description: t('manage_account_settings'),
-            icon: IconUser,
+            iconImage: '/assets/shortcuts-icons/profile.png',
             color: 'from-orange-500 to-orange-600',
             shadowColor: 'shadow-orange-500/25',
             onClick: () => router.push('/my-profile'),
@@ -1191,9 +1203,9 @@ export default function TripPlannerDashboard() {
                                     ></div>
                                     <div className="relative bg-white dark:bg-slate-900/80 rounded-xl p-4 md:p-6 border border-gray-200/50 dark:border-slate-700/60 backdrop-blur-sm hover:border-gray-300 dark:hover:border-slate-600 transition-all duration-300">
                                         <div
-                                            className={`w-12 h-12 md:w-14 md:h-14 bg-gradient-to-r ${shortcut.color} rounded-xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}
+                                            className={`w-12 h-12 md:w-14 md:h-14 bg-transparent rounded-xl flex items-center justify-center mb-3 md:mb-4 group-hover:scale-110 transition-transform duration-300`}
                                         >
-                                            <shortcut.icon className="h-6 w-6 md:h-7 md:w-7 text-white" />
+                                            <img src={shortcut.iconImage} alt={shortcut.title} className="h-6 w-6 md:h-11 md:w-11 object-contain" />
                                         </div>
                                         <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
                                             {shortcut.title}
@@ -1259,282 +1271,17 @@ export default function TripPlannerDashboard() {
                         {/* Dashboard Sections */}
                         {!dashboardLoading && (
                             <>
-                                {/* Top Destinations Section */}
-                                <motion.div variants={itemVariants} className="mb-16 mt-16">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{t('top_destinations')}</h2>
-                                        <button
-                                            onClick={() => setCurrentView('destinations')}
-                                            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium flex items-center gap-2 transition-colors"
-                                        >
-                                            {t('view_all')}
-                                            <svg className="w-4 h-4 ltr:rotate-0 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {topDestinations.map((destination, index) => (
-                                            <motion.div
-                                                key={destination.id}
-                                                initial={{ scale: 0, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                transition={{
-                                                    delay: index * 0.1,
-                                                    type: 'spring',
-                                                    stiffness: 100,
-                                                    damping: 15,
-                                                }}
-                                                whileHover={{
-                                                    y: -10,
-                                                    scale: 1.02,
-                                                    transition: { type: 'spring', stiffness: 400, damping: 25 },
-                                                }}
-                                                className="group cursor-pointer"
-                                            >
-                                                <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60">
-                                                    {/* Image */}
-                                                    <div className="relative h-48 overflow-hidden">
-                                                        <img
-                                                            src={destination.thumbnail_path ? getPublicUrlFromPath(destination.thumbnail_path) : '/assets/images/img-placeholder-fallback.webp'}
-                                                            alt={destination.name}
-                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                        />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
-                                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                            <div
-                                                                className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg cursor-pointer hover:bg-white/30 hover:scale-110 transition-all duration-200"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openDestinationModal(destination);
-                                                                }}
-                                                            >
-                                                                <IconEye className="h-5 w-5 text-white drop-shadow-sm" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Content */}
-                                                    <div className="p-6 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm">
-                                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 drop-shadow-sm">
-                                                            {destination.name}
-                                                        </h3>
-                                                        <div className="flex items-center text-gray-700 dark:text-gray-200 mb-4">
-                                                            <IconMapPin className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                                            <span className="text-sm truncate drop-shadow-sm">{destination.address}</span>
-                                                        </div>
-
-                                                        {/* Properties */}
-                                                        {destination.properties && destination.properties.length > 0 && (
-                                                            <div className="mb-4">
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {destination.properties.slice(0, 3).map((property, idx) => {
-                                                                        const IconComponent = getPropertyIcon(property);
-                                                                        return (
-                                                                            <motion.div
-                                                                                key={idx}
-                                                                                initial={{ scale: 0 }}
-                                                                                animate={{ scale: 1 }}
-                                                                                transition={{ delay: 0.5 + idx * 0.1 }}
-                                                                                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500/20 dark:bg-blue-400/20 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium backdrop-blur-sm border border-blue-200/50 dark:border-blue-600/30"
-                                                                            >
-                                                                                <IconComponent className="h-3 w-3" />
-                                                                                <span className="drop-shadow-sm">{t(property)}</span>
-                                                                            </motion.div>
-                                                                        );
-                                                                    })}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Requirements Section */}
-                                                        {destination.requirements && destination.requirements.length > 0 && (
-                                                            <div className="mt-4 pt-4 border-t border-gray-200/30 dark:border-gray-700/30">
-                                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3 flex items-center gap-2">
-                                                                    <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                    </svg>
-                                                                    {t('requirements')}
-                                                                </p>
-                                                                <div className="flex flex-wrap gap-2">
-                                                                    {destination.requirements.map((requirement: string, idx: number) => (
-                                                                        <motion.div
-                                                                            key={idx}
-                                                                            initial={{ scale: 0 }}
-                                                                            animate={{ scale: 1 }}
-                                                                            transition={{ delay: 0.5 + idx * 0.1 }}
-                                                                            className="inline-flex items-center gap-1 px-3 py-1 bg-orange-500/20 dark:bg-orange-400/20 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium backdrop-blur-sm border border-orange-200/50 dark:border-orange-600/30"
-                                                                        >
-                                                                            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4" />
-                                                                            </svg>
-                                                                            <span className="drop-shadow-sm">{t(requirement)}</span>
-                                                                        </motion.div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Action Buttons */}
-                                                        <div className="flex flex-col sm:flex-row gap-3 mt-4">
-                                                            <motion.button
-                                                                whileHover={{ scale: 1.05 }}
-                                                                whileTap={{ scale: 0.95 }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleSelectForPlanning(destination);
-                                                                }}
-                                                                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-blue-500/25 backdrop-blur-sm border border-blue-500/30"
-                                                            >
-                                                                {t('select')}
-                                                            </motion.button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                </motion.div>
-
-                                {/* Best Deals Section */}
-                                <motion.div variants={itemVariants} className="mb-16">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200">{t('best_deals')}</h2>
-                                        <button
-                                            onClick={() => setCurrentView('destinations')}
-                                            className="text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium flex items-center gap-2 transition-colors"
-                                        >
-                                            {t('view_all')}
-                                            <svg className="w-4 h-4 ltr:rotate-0 rtl:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {bestDeals.map((destination, index) => (
-                                            <motion.div
-                                                key={destination.id}
-                                                initial={{ scale: 0, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                transition={{
-                                                    delay: index * 0.1,
-                                                    type: 'spring',
-                                                    stiffness: 100,
-                                                    damping: 15,
-                                                }}
-                                                whileHover={{
-                                                    y: -10,
-                                                    scale: 1.02,
-                                                    transition: { type: 'spring', stiffness: 400, damping: 25 },
-                                                }}
-                                                className="group cursor-pointer"
-                                            >
-                                                <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60">
-                                                    {/* Best Deal Badge */}
-                                                    <div className="absolute top-4 left-4 z-10">
-                                                        <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg">{t('best_deal')}</span>
-                                                    </div>
-
-                                                    {/* Image */}
-                                                    <div className="relative h-48 overflow-hidden">
-                                                        <img
-                                                            src={destination.thumbnail_path ? getPublicUrlFromPath(destination.thumbnail_path) : '/assets/images/img-placeholder-fallback.webp'}
-                                                            alt={destination.name}
-                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                        />
-                                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
-                                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                            <div
-                                                                className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg cursor-pointer hover:bg-white/30 hover:scale-110 transition-all duration-200"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openDestinationModal(destination);
-                                                                }}
-                                                            >
-                                                                <IconEye className="h-5 w-5 text-white drop-shadow-sm" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Content */}
-                                                    <div className="p-6 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm">
-                                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors duration-300 drop-shadow-sm">
-                                                            {destination.name}
-                                                        </h3>
-                                                        <div className="flex items-center text-gray-700 dark:text-gray-200 mb-4">
-                                                            <IconMapPin className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                                            <span className="text-sm truncate drop-shadow-sm">{destination.address}</span>
-                                                        </div>
-
-                                                        {/* Pricing */}
-                                                        {destination.pricing && (
-                                                            <div className="mb-4">
-                                                                <div className="flex items-center justify-between">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="text-2xl font-bold text-green-600 dark:text-green-400 drop-shadow-sm">
-                                                                            {destination.pricing?.child ? `$${destination.pricing.child}` : t('contact_for_price')}
-                                                                        </div>
-                                                                        {destination.pricing?.adult && destination.pricing?.child && destination.pricing.adult !== destination.pricing.child && (
-                                                                            <div className="flex flex-col">
-                                                                                <div className="text-sm text-gray-500 dark:text-gray-400 line-through">${destination.pricing.adult}</div>
-                                                                                <div className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                                                                    {Math.round(((destination.pricing.adult - destination.pricing.child) / destination.pricing.adult) * 100)}% OFF
-                                                                                </div>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="text-xs text-gray-500 dark:text-gray-400">{t('per_person')}</div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Requirements Section */}
-                                                        {destination.requirements && destination.requirements.length > 0 && (
-                                                            <div className="mb-4 pb-4 border-b border-gray-200/30 dark:border-gray-700/30">
-                                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-2">
-                                                                    <svg className="h-3 w-3 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                    </svg>
-                                                                    {t('requirements')}
-                                                                </p>
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {destination.requirements.slice(0, 3).map((requirement: string, idx: number) => (
-                                                                        <span
-                                                                            key={idx}
-                                                                            className="inline-flex items-center gap-1 px-2 py-1 bg-orange-500/20 dark:bg-orange-400/20 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium backdrop-blur-sm border border-orange-200/50 dark:border-orange-600/30"
-                                                                        >
-                                                                            <span className="drop-shadow-sm">{t(requirement)}</span>
-                                                                        </span>
-                                                                    ))}
-                                                                    {destination.requirements.length > 3 && (
-                                                                        <span className="inline-flex items-center px-2 py-1 bg-gray-500/20 dark:bg-gray-400/20 text-gray-700 dark:text-gray-300 rounded-full text-xs font-medium backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/30">
-                                                                            +{destination.requirements.length - 3} {t('more')}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Action Buttons */}
-                                                        <div className="flex flex-col sm:flex-row gap-3">
-                                                            <motion.button
-                                                                whileHover={{ scale: 1.05 }}
-                                                                whileTap={{ scale: 0.95 }}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleSelectForPlanning(destination);
-                                                                }}
-                                                                className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-green-500/25 backdrop-blur-sm border border-green-500/30"
-                                                            >
-                                                                {t('book_now')}
-                                                            </motion.button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                </motion.div>
+                                {/* Tabbed Destinations Section - NEW */}
+                                <TabbedDestinationsSection
+                                    mostVisitedDestinations={mostVisitedDestinations}
+                                    topRatedDestinations={topRatedDestinations}
+                                    latestDestinations={latestDestinations}
+                                    bestDeals={bestDeals}
+                                    onSelectDestination={handleSelectForPlanning}
+                                    onViewDestinationDetails={openDestinationModal}
+                                    onViewAll={() => setCurrentView('destinations')}
+                                    getPublicUrlFromPath={getPublicUrlFromPath}
+                                />
 
                                 {/* Upcoming Trips Section */}
                                 <motion.div variants={itemVariants} className="mb-16">

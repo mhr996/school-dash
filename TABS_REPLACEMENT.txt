@@ -1,0 +1,11 @@
+This file contains the complete tabbed destinations replacement.
+
+Starting from line 1262: {/* Top Destinations Section */}
+Ending before line 1554: {/* Upcoming Trips Section */}
+
+The replacement will convert two separate sections (Top Destinations + Best Deals) 
+into one tabbed interface with 4 tabs:
+1. Most Visited (purple theme)
+2. Top Rated (amber theme)  
+3. Latest (blue theme)
+4. Best Deals (emerald theme)

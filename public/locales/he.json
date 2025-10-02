@@ -1845,5 +1845,13 @@
     "save_preferences": "שמור העדפות",
     "good_morning": "בוקר טוב",
     "good_afternoon": "אחר הצהריים טובים",
-    "good_evening": "ערב טוב"
+    "good_evening": "ערב טוב",
+    "most_visited_destinations": "היעדים הנצפים ביותר",
+    "top_rated_destinations": "היעדים המדורגים הגבוה ביותר",
+    "latest_destinations": "היעדים האחרונים",
+    "explore_destinations": "חקור יעדים",
+    "most_visited": "הנצפים ביותר",
+    "top_rated": "המדורגים הגבוה",
+    "latest": "האחרונים",
+    "deals": "מבצעים"
 }

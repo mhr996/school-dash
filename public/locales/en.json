@@ -1821,5 +1821,13 @@
     "start_planning_new_booking": "Start planning a new booking",
     "good_morning": "Good Morning",
     "good_afternoon": "Good Afternoon",
-    "good_evening": "Good Evening"
+    "good_evening": "Good Evening",
+    "most_visited_destinations": "Most Visited Destinations",
+    "top_rated_destinations": "Top Rated Destinations",
+    "latest_destinations": "Latest Destinations",
+    "explore_destinations": "Explore Destinations",
+    "most_visited": "Most Visited",
+    "top_rated": "Top Rated",
+    "latest": "Latest",
+    "deals": "Deals"
 }

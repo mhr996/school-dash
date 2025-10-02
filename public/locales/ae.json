@@ -2194,5 +2194,13 @@
     "good_evening": "مساء الخير",
     "booking_date": "تاريخ الحجز",
     "sort_by": "الترتيب حسب",
-    "creation_date": "تاريخ الإنشاء"
+    "creation_date": "تاريخ الإنشاء",
+    "most_visited_destinations": "الوجهات الأكثر زيارة",
+    "top_rated_destinations": "الوجهات الأعلى تقييماً",
+    "latest_destinations": "أحدث الوجهات",
+    "explore_destinations": "استكشف الوجهات",
+    "most_visited": "الأكثر زيارة",
+    "top_rated": "الأعلى تقييماً",
+    "latest": "الأحدث",
+    "deals": "العروض"
 }
