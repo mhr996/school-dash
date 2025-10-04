@@ -46,15 +46,15 @@ interface Booking {
         address?: string;
         thumbnail_path?: string;
     } | null;
-    services?: {
-        selected_services?: Array<{
-            type: string;
-            name: string;
-            quantity: number;
-            cost: number;
-        }>;
-        created_from?: string;
-    };
+    booking_services?: Array<{
+        id: string;
+        service_type: string;
+        service_id: string;
+        quantity: number;
+        days: number;
+        booked_price: number;
+        rate_type: string;
+    }>;
 }
 
 // Booking type configurations for display
@@ -171,7 +171,7 @@ export default function MyBookingsPage() {
                     status,
                     notes,
                     special_requests,
-                    services,
+                    booking_services(*),
                     created_at,
                     updated_at,
                     destinations (
@@ -689,13 +689,13 @@ export default function MyBookingsPage() {
                                                         <span className="text-gray-700 dark:text-gray-200 font-medium">{formatDate(booking.trip_date)}</span>
                                                     </div>
 
-                                                    {booking.services?.selected_services && booking.services.selected_services.length > 0 && (
+                                                    {booking.booking_services && Array.isArray(booking.booking_services) && booking.booking_services.length > 0 && (
                                                         <div className="flex items-center gap-3 group/item">
                                                             <div className="p-2 bg-fuchsia-100 dark:bg-fuchsia-500/20 rounded-lg group-hover/item:bg-fuchsia-200 dark:group-hover/item:bg-fuchsia-500/30 transition-colors">
                                                                 <IconShoppingBag className="w-4 h-4 text-fuchsia-600 dark:text-fuchsia-400" />
                                                             </div>
                                                             <span className="text-gray-700 dark:text-gray-200 font-medium">
-                                                                {booking.services.selected_services.length} {t('services_included')}
+                                                                {booking.booking_services.length} {t('services_included')}
                                                             </span>
                                                         </div>
                                                     )}
@@ -883,7 +883,7 @@ export default function MyBookingsPage() {
                                             </motion.div>
 
                                             {/* Services Breakdown */}
-                                            {selectedBooking.services?.selected_services && selectedBooking.services.selected_services.length > 0 && (
+                                            {selectedBooking.booking_services && selectedBooking.booking_services.length > 0 && (
                                                 <motion.div
                                                     initial={{ opacity: 0, y: 20 }}
                                                     animate={{ opacity: 1, y: 0 }}
@@ -896,24 +896,27 @@ export default function MyBookingsPage() {
                                                     </h3>
 
                                                     <div className="space-y-3">
-                                                        {selectedBooking.services.selected_services.map((service, index) => (
+                                                        {selectedBooking.booking_services.map((service: any, index: number) => (
                                                             <div key={index} className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-4 border border-blue-200 dark:border-blue-500/20">
                                                                 <div className="flex items-center justify-between">
                                                                     <div className="flex-1">
-                                                                        <p className="font-bold text-gray-900 dark:text-white text-lg">{service.name}</p>
+                                                                        <p className="font-bold text-gray-900 dark:text-white text-lg">{service.service_type}</p>
                                                                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
                                                                             <span>
                                                                                 <strong>{t('quantity')}:</strong> {service.quantity}
                                                                             </span>
                                                                             <span>
-                                                                                <strong>{t('cost_per_unit')}:</strong> {formatCurrency(service.cost)}
+                                                                                <strong>{t('days')}:</strong> {service.days}
+                                                                            </span>
+                                                                            <span>
+                                                                                <strong>{t('rate_type')}:</strong> {service.rate_type}
                                                                             </span>
                                                                         </div>
                                                                     </div>
                                                                     <div className="text-right">
-                                                                        <p className="text-sm font-semibold text-gray-600 dark:text-purple-300">{t('subtotal')}</p>
+                                                                        <p className="text-sm font-semibold text-gray-600 dark:text-purple-300">{t('price')}</p>
                                                                         <p className="text-2xl font-black bg-gradient-to-r from-blue-600 to-violet-600 dark:from-blue-400 dark:to-violet-400 bg-clip-text text-transparent">
-                                                                            {formatCurrency(service.cost * service.quantity)}
+                                                                            {formatCurrency(service.booked_price)}
                                                                         </p>
                                                                     </div>
                                                                 </div>

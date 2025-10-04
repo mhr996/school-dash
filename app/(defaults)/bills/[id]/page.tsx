@@ -60,6 +60,11 @@ interface BillDetails {
             address: string;
         };
         trip_date: string;
+        customer?: {
+            full_name: string;
+            email: string | null;
+            phone: string | null;
+        };
     };
     payments?: Array<{
         id: string;
@@ -106,7 +111,8 @@ export default function BillDetailsPage() {
                             booking_reference,
                             trip_date,
                             total_amount,
-                            destination:destinations(name, address)
+                            destination:destinations(name, address),
+                            customer:users!customer_id(full_name, email, phone)
                         ),
                         payments (
                             id,

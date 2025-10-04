@@ -21,9 +21,12 @@ import IconEdit from '@/components/icon/icon-edit';
 interface BookingDetails {
     id: string;
     booking_reference: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    customer_phone: string | null;
+    customer_id: string;
+    customer: {
+        full_name: string;
+        email: string;
+        phone: string | null;
+    } | null;
     destination_id: string;
     destination: {
         name: string;
@@ -40,19 +43,29 @@ interface BookingDetails {
     special_requests: string | null;
     created_at: string;
     updated_at: string;
-    services: Array<{
-        type: string;
-        id: string;
-        name: string;
+    booking_services?: Array<{
+        service_type: string;
+        service_id: string;
         quantity: number;
         days: number;
-        cost: number;
+        booked_price: number;
         rate_type: string;
     }>;
 }
 
 export default function BookingDetailsPage() {
     const [booking, setBooking] = useState<BookingDetails | null>(null);
+    const [services, setServices] = useState<
+        Array<{
+            type: string;
+            id: string;
+            name: string;
+            quantity: number;
+            days: number;
+            cost: number;
+            rate_type: string;
+        }>
+    >([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { t } = getTranslation();
@@ -69,19 +82,69 @@ export default function BookingDetailsPage() {
     const fetchBookingDetails = async () => {
         try {
             setLoading(true);
-            const { data, error } = await supabase
+
+            // Fetch booking details
+            const { data: bookingData, error: bookingError } = await supabase
                 .from('bookings')
                 .select(
                     `
                     *,
+                    customer:users!customer_id(full_name, email, phone),
                     destination:destinations(name, address, thumbnail_path, gallery_paths)
                 `,
                 )
                 .eq('id', bookingId)
                 .single();
 
-            if (error) throw error;
-            setBooking(data);
+            if (bookingError) throw bookingError;
+
+            // Fetch booking services from the booking_services table
+            const { data: servicesData, error: servicesError } = await supabase.from('booking_services').select('*').eq('booking_id', bookingId);
+
+            if (servicesError) {
+                console.error('Error fetching booking services:', servicesError);
+            }
+
+            // Transform services data and fetch service names
+            let enrichedServices: Array<{
+                type: string;
+                id: string;
+                name: string;
+                quantity: number;
+                days: number;
+                cost: number;
+                rate_type: string;
+            }> = [];
+            if (servicesData && servicesData.length > 0) {
+                enrichedServices = await Promise.all(
+                    servicesData.map(async (service) => {
+                        let serviceName = '';
+
+                        // Fetch service name based on type
+                        try {
+                            const { data: serviceDetails } = await supabase.from(service.service_type).select('name').eq('id', service.service_id).single();
+
+                            serviceName = serviceDetails?.name || 'Unknown Service';
+                        } catch (e) {
+                            console.error(`Error fetching ${service.service_type} details:`, e);
+                            serviceName = 'Unknown Service';
+                        }
+
+                        return {
+                            type: service.service_type,
+                            id: service.service_id,
+                            name: serviceName,
+                            quantity: service.quantity,
+                            days: service.days,
+                            cost: service.booked_price,
+                            rate_type: service.rate_type,
+                        };
+                    }),
+                );
+            }
+
+            setBooking(bookingData);
+            setServices(enrichedServices);
         } catch (err: any) {
             setError(err.message);
             console.error('Error fetching booking details:', err);
@@ -245,36 +308,40 @@ export default function BookingDetailsPage() {
                         >
                             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{t('selected_services')}</h2>
                             <div className="space-y-4">
-                                {booking.services?.map((service, index) => (
-                                    <div
-                                        key={`${service.type}-${service.id}-${index}`}
-                                        className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200/50 dark:border-slate-700/40"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {getServiceIcon(service.type)}
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900 dark:text-white">{service.name}</h3>
-                                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                                    <span>
-                                                        {t('quantity')}: {service.quantity}
-                                                    </span>
-                                                    {service.days > 1 && (
+                                {services && services.length > 0 ? (
+                                    services.map((service: any, index: number) => (
+                                        <div
+                                            key={`${service.type}-${service.id}-${index}`}
+                                            className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200/50 dark:border-slate-700/40"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                {getServiceIcon(service.type)}
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900 dark:text-white">{service.name}</h3>
+                                                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                                         <span>
-                                                            {t('days')}: {service.days}
+                                                            {t('quantity')}: {service.quantity}
                                                         </span>
-                                                    )}
-                                                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs">{t(service.rate_type)}</span>
+                                                        {service.days > 1 && (
+                                                            <span>
+                                                                {t('days')}: {service.days}
+                                                            </span>
+                                                        )}
+                                                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs">{t(service.rate_type)}</span>
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <div className="text-right">
+                                                <p className="text-lg font-semibold text-gray-900 dark:text-white">{calculateTotalCost(service).toFixed(2)} ₪</p>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                    {service.cost.toFixed(2)} ₪ / {t(service.rate_type.replace('ly', ''))}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-lg font-semibold text-gray-900 dark:text-white">{calculateTotalCost(service).toFixed(2)} ₪</p>
-                                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                {service.cost.toFixed(2)} ₪ / {t(service.rate_type.replace('ly', ''))}
-                                            </p>
-                                        </div>
-                                    </div>
-                                )) || <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t('no_services_selected')}</div>}
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t('no_services_selected')}</div>
+                                )}
                             </div>
                         </motion.div>
 
@@ -318,23 +385,23 @@ export default function BookingDetailsPage() {
                             <div className="space-y-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('name')}</label>
-                                    <p className="text-gray-900 dark:text-white">{booking.customer_name || t('guest')}</p>
+                                    <p className="text-gray-900 dark:text-white">{booking.customer?.full_name || t('guest')}</p>
                                 </div>
-                                {booking.customer_email && (
+                                {booking.customer?.email && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('email')}</label>
                                         <div className="flex items-center gap-2">
                                             <IconMail className="w-4 h-4 text-gray-500" />
-                                            <p className="text-gray-900 dark:text-white">{booking.customer_email}</p>
+                                            <p className="text-gray-900 dark:text-white">{booking.customer.email}</p>
                                         </div>
                                     </div>
                                 )}
-                                {booking.customer_phone && (
+                                {booking.customer?.phone && (
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('phone')}</label>
                                         <div className="flex items-center gap-2">
                                             <IconPhone className="w-4 h-4 text-gray-500" />
-                                            <p className="text-gray-900 dark:text-white">{booking.customer_phone}</p>
+                                            <p className="text-gray-900 dark:text-white">{booking.customer.phone}</p>
                                         </div>
                                     </div>
                                 )}

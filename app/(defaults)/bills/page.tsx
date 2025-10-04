@@ -40,6 +40,12 @@ interface Bill {
     booking: {
         booking_reference: string;
         total_amount: number;
+        customer_id: string;
+        customer: {
+            full_name: string;
+            email: string;
+            phone: string | null;
+        } | null;
         destination: {
             name: string;
         };
@@ -86,6 +92,8 @@ const BillsList = () => {
                         booking:bookings(
                             booking_reference,
                             total_amount,
+                            customer_id,
+                            customer:users!customer_id(full_name, email, phone),
                             destination:destinations(name)
                         )
                     `,
@@ -123,8 +131,8 @@ const BillsList = () => {
                 const matchesSearch =
                     !searchTerm ||
                     item.bill_number.toLowerCase().includes(searchTerm) ||
-                    item.customer_name.toLowerCase().includes(searchTerm) ||
-                    item.customer_email?.toLowerCase().includes(searchTerm) ||
+                    item.booking?.customer?.full_name?.toLowerCase().includes(searchTerm) ||
+                    item.booking?.customer?.email?.toLowerCase().includes(searchTerm) ||
                     item.booking?.booking_reference.toLowerCase().includes(searchTerm) ||
                     item.booking?.destination?.name.toLowerCase().includes(searchTerm);
 
@@ -270,10 +278,10 @@ const BillsList = () => {
                                 accessor: 'customer_name',
                                 title: t('customer'),
                                 sortable: true,
-                                render: ({ customer_name, customer_email }) => (
+                                render: ({ booking }) => (
                                     <div>
-                                        <div className="font-semibold">{customer_name}</div>
-                                        {customer_email && <div className="text-xs text-gray-500">{customer_email}</div>}
+                                        <div className="font-semibold">{booking?.customer?.full_name || t('unknown_customer')}</div>
+                                        {booking?.customer?.email && <div className="text-xs text-gray-500">{booking.customer.email}</div>}
                                     </div>
                                 ),
                             },

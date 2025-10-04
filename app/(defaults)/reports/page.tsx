@@ -388,16 +388,16 @@ const ReportsPage = () => {
         const calculateServicePerformance = (services: any[], allBookings: any[], type: 'guides' | 'paramedics' | 'security_companies' | 'external_entertainment_companies'): any[] => {
             return services
                 .map((service: any) => {
-                    // Count real bookings for this service based on the services JSON field
+                    // Count real bookings for this service based on the booking_services table
                     let serviceBookings = 0;
                     let totalRevenue = 0;
 
                     allBookings.forEach((booking: any) => {
-                        if (booking.services && Array.isArray(booking.services)) {
-                            booking.services.forEach((bookingService: any) => {
-                                if (bookingService.type === type && bookingService.id === service.id) {
+                        if (booking.booking_services && Array.isArray(booking.booking_services)) {
+                            booking.booking_services.forEach((bookingService: any) => {
+                                if (bookingService.service_type === type && bookingService.service_id === service.id) {
                                     serviceBookings++;
-                                    totalRevenue += bookingService.cost || 0;
+                                    totalRevenue += bookingService.booked_price || 0;
                                 }
                             });
                         }

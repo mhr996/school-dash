@@ -17,10 +17,14 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 interface BookingOption {
     id: string;
     booking_reference: string;
-    customer_name: string;
+    customer?: {
+        full_name: string;
+    };
     total_amount: number;
     trip_date: string;
-    destination_name: string;
+    destination: {
+        name: string;
+    };
 }
 
 interface PaymentMethod {
@@ -87,10 +91,10 @@ export default function AddBill() {
                         `
                         id,
                         booking_reference,
-                        customer_name,
                         total_amount,
                         trip_date,
-                        destination:destinations(name)
+                        destination:destinations(name),
+                        customer:users!customer_id(full_name)
                     `,
                     )
                     .eq('status', 'confirmed')
@@ -109,10 +113,10 @@ export default function AddBill() {
                 const formattedBookings: BookingOption[] = data.map((booking: any) => ({
                     id: booking.id,
                     booking_reference: booking.booking_reference,
-                    customer_name: booking.customer_name || 'Unknown Customer',
+                    customer: booking.customer,
                     total_amount: booking.total_amount || 0,
                     trip_date: booking.trip_date,
-                    destination_name: booking.destination?.name || 'Unknown Destination',
+                    destination: booking.destination,
                 }));
 
                 setBookings(formattedBookings);
@@ -273,7 +277,7 @@ export default function AddBill() {
                 bill_number: billNumber,
                 bill_type: 'receipt',
                 booking_id: selectedBooking,
-                customer_name: selectedBookingDetails.customer_name,
+                customer_name: selectedBookingDetails.customer?.full_name || 'Unknown Customer',
                 subtotal: total,
                 tax_amount: 0, // Receipts don't have tax
                 total_amount: total,
@@ -436,7 +440,7 @@ export default function AddBill() {
                             <CustomSelect
                                 options={bookings.map((booking) => ({
                                     value: booking.id,
-                                    label: `${booking.booking_reference} - ${booking.customer_name} (${booking.destination_name})`,
+                                    label: `${booking.booking_reference} - ${booking.customer?.full_name || t('guest')} (${booking.destination?.name || t('unknown')})`,
                                 }))}
                                 value={selectedBooking}
                                 onChange={(value) => handleBookingSelection(Array.isArray(value) ? value[0] : value)}
@@ -450,7 +454,7 @@ export default function AddBill() {
                                     <div className="grid grid-cols-2 gap-4 text-sm">
                                         <div>
                                             <span className="text-gray-600 dark:text-gray-400">{t('customer')}:</span>
-                                            <span className="ml-2 font-medium">{selectedBookingDetails.customer_name}</span>
+                                            <span className="ml-2 font-medium">{selectedBookingDetails.customer?.full_name || t('guest')}</span>
                                         </div>
                                         <div>
                                             <span className="text-gray-600 dark:text-gray-400">{t('amount')}:</span>
@@ -462,7 +466,7 @@ export default function AddBill() {
                                         </div>
                                         <div>
                                             <span className="text-gray-600 dark:text-gray-400">{t('destination')}:</span>
-                                            <span className="ml-2 font-medium">{selectedBookingDetails.destination_name}</span>
+                                            <span className="ml-2 font-medium">{selectedBookingDetails.destination?.name || t('unknown')}</span>
                                         </div>
                                     </div>
 

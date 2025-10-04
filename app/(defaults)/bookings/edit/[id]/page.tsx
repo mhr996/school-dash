@@ -17,9 +17,12 @@ import { generateTaxInvoiceForBooking, checkExistingTaxInvoice } from '@/utils/b
 interface BookingEditData {
     id: string;
     booking_reference: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    customer_phone: string | null;
+    customer_id: string;
+    customer?: {
+        full_name: string;
+        email: string | null;
+        phone: string | null;
+    };
     destination_id: string;
     destination: {
         name: string;
@@ -121,6 +124,11 @@ export default function EditBooking() {
                         destination:destinations(
                             name,
                             address
+                        ),
+                        customer:users!customer_id(
+                            full_name,
+                            email,
+                            phone
                         )
                     `,
                     )
@@ -137,10 +145,10 @@ export default function EditBooking() {
                     return;
                 }
 
-                // Fetch services from both old JSON format and new normalized table
-                let parsedServices = [];
+                // Fetch services from the normalized table
+                let parsedServices: any[] = [];
 
-                // Try to get services from the new normalized table first
+                // Get services from the booking_services table
                 const { data: normalizedServices, error: servicesError } = await supabase.from('booking_services').select('*').eq('booking_id', bookingId);
 
                 if (servicesError) {
@@ -159,13 +167,6 @@ export default function EditBooking() {
                         // We'll fetch the name separately in the next step
                         name: `Service ${service.service_id}`, // Placeholder
                     }));
-                } else if (bookingData.services) {
-                    // Fallback to old JSON format if no normalized services found
-                    if (typeof bookingData.services === 'string') {
-                        parsedServices = JSON.parse(bookingData.services);
-                    } else {
-                        parsedServices = bookingData.services;
-                    }
                 }
 
                 // Update booking data with parsed services
@@ -356,9 +357,6 @@ export default function EditBooking() {
             const isConfirming = originalBookingStatus !== 'confirmed' && booking.status === 'confirmed';
 
             const updateData = {
-                customer_name: booking.customer_name,
-                customer_email: booking.customer_email,
-                customer_phone: booking.customer_phone,
                 destination_id: booking.destination_id,
                 trip_date: booking.trip_date,
                 total_amount: calculatedTotal,
@@ -366,20 +364,52 @@ export default function EditBooking() {
                 status: booking.status,
                 notes: booking.notes,
                 special_requests: booking.special_requests,
-                services: booking.services,
                 updated_at: new Date().toISOString(),
             };
 
-            const { error } = await supabase.from('bookings').update(updateData).eq('id', bookingId);
+            const { error: bookingUpdateError } = await supabase.from('bookings').update(updateData).eq('id', bookingId);
 
-            if (error) {
-                console.error('Error updating booking:', error);
+            if (bookingUpdateError) {
+                console.error('Error updating booking:', bookingUpdateError);
                 setAlert({
                     visible: true,
                     message: t('error_updating_booking'),
                     type: 'danger',
                 });
                 return;
+            }
+
+            // Update booking_services table
+            // First, delete existing services
+            const { error: deleteError } = await supabase.from('booking_services').delete().eq('booking_id', bookingId);
+
+            if (deleteError) {
+                console.error('Error deleting old booking services:', deleteError);
+            }
+
+            // Then, insert new services
+            if (booking.services && booking.services.length > 0) {
+                const servicesData = booking.services.map((service) => ({
+                    booking_id: bookingId,
+                    service_type: service.type,
+                    service_id: service.id,
+                    quantity: service.quantity,
+                    days: service.days,
+                    booked_price: service.cost,
+                    rate_type: service.rate_type,
+                }));
+
+                const { error: insertError } = await supabase.from('booking_services').insert(servicesData);
+
+                if (insertError) {
+                    console.error('Error inserting booking services:', insertError);
+                    setAlert({
+                        visible: true,
+                        message: t('error_updating_services'),
+                        type: 'danger',
+                    });
+                    return;
+                }
             }
 
             // Auto-generate tax invoice when booking is confirmed
@@ -399,7 +429,7 @@ export default function EditBooking() {
                 console.log('Booking data for tax invoice:', {
                     id: bookingId,
                     booking_reference: booking.booking_reference,
-                    customer_name: booking.customer_name,
+                    customer_name: booking.customer?.full_name,
                     total_amount: calculatedTotal,
                     services: booking.services,
                 });
@@ -413,9 +443,9 @@ export default function EditBooking() {
                     const taxInvoiceResult = await generateTaxInvoiceForBooking({
                         id: bookingId,
                         booking_reference: booking.booking_reference,
-                        customer_name: booking.customer_name || 'Customer',
-                        customer_email: booking.customer_email || undefined,
-                        customer_phone: booking.customer_phone || undefined,
+                        customer_name: booking.customer?.full_name || 'Customer',
+                        customer_email: booking.customer?.email || undefined,
+                        customer_phone: booking.customer?.phone || undefined,
                         total_amount: calculatedTotal,
                         services: booking.services,
                     });
@@ -561,34 +591,20 @@ export default function EditBooking() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('customer_name')}</label>
-                                <input
-                                    type="text"
-                                    value={booking.customer_name || ''}
-                                    onChange={(e) => handleInputChange('customer_name', e.target.value)}
-                                    className="form-input"
-                                    placeholder={t('enter_customer_name')}
-                                />
+                                <p className="form-input bg-gray-100 dark:bg-gray-800 cursor-not-allowed">{booking.customer?.full_name || t('guest')}</p>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('customer_email')}</label>
-                                <input
-                                    type="email"
-                                    value={booking.customer_email || ''}
-                                    onChange={(e) => handleInputChange('customer_email', e.target.value)}
-                                    className="form-input"
-                                    placeholder={t('enter_customer_email')}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('customer_phone')}</label>
-                                <input
-                                    type="tel"
-                                    value={booking.customer_phone || ''}
-                                    onChange={(e) => handleInputChange('customer_phone', e.target.value)}
-                                    className="form-input"
-                                    placeholder={t('enter_customer_phone')}
-                                />
-                            </div>
+                            {booking.customer?.email && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('customer_email')}</label>
+                                    <p className="form-input bg-gray-100 dark:bg-gray-800 cursor-not-allowed">{booking.customer.email}</p>
+                                </div>
+                            )}
+                            {booking.customer?.phone && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-white mb-2">{t('customer_phone')}</label>
+                                    <p className="form-input bg-gray-100 dark:bg-gray-800 cursor-not-allowed">{booking.customer.phone}</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 

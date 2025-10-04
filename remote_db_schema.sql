@@ -31,7 +31,7 @@ CREATE TABLE public.bills (
 CREATE TABLE public.booking_services (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   booking_id uuid NOT NULL,
-  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text])),
+  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text, 'travel_companies'::character varying::text])),
   service_id uuid NOT NULL,
   quantity integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
   days integer NOT NULL DEFAULT 1 CHECK (days > 0),
@@ -57,12 +57,15 @@ CREATE TABLE public.bookings (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   customer_id uuid NOT NULL,
+  booking_type character varying NOT NULL DEFAULT 'full_trip'::character varying CHECK (booking_type::text = ANY (ARRAY['full_trip'::character varying::text, 'guides_only'::character varying::text, 'paramedics_only'::character varying::text, 'security_only'::character varying::text, 'entertainment_only'::character varying::text, 'transportation_only'::character varying::text, 'mixed_services'::character varying::text])),
   number_of_students integer,
   number_of_crew integer,
   number_of_buses integer,
+  school_id uuid,
   CONSTRAINT bookings_pkey PRIMARY KEY (id),
   CONSTRAINT bookings_destination_id_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
-  CONSTRAINT bookings_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id)
+  CONSTRAINT bookings_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.users(id),
+  CONSTRAINT bookings_school_id_fkey FOREIGN KEY (school_id) REFERENCES public.schools(id)
 );
 CREATE TABLE public.company_settings (
   name character varying NOT NULL,

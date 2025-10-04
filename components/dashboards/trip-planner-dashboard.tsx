@@ -33,6 +33,7 @@ import IconShoppingBag from '@/components/icon/icon-shopping-bag';
 import IconPlayCircle from '@/components/icon/icon-play-circle';
 import DestinationDetailsModal from '@/components/modals/destination-details-modal';
 import TabbedDestinationsSection from '@/components/dashboards/tabbed-destinations-section';
+import CustomSelect from '@/components/elements/custom-select';
 
 type Destination = {
     id: string;
@@ -201,6 +202,13 @@ export default function TripPlannerDashboard() {
     const [selectedRequirements, setSelectedRequirements] = useState<RequirementSelection[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
 
+    // Admin override state for school/user selection
+    const [isAdminUser, setIsAdminUser] = useState(false);
+    const [allSchools, setAllSchools] = useState<any[]>([]);
+    const [allUsers, setAllUsers] = useState<any[]>([]);
+    const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+    const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
     // Checkout modal states
     const [showCheckoutModal, setShowCheckoutModal] = useState(false);
     const [paymentStep, setPaymentStep] = useState<'payment' | 'confirmation' | 'success'>('payment');
@@ -326,12 +334,25 @@ export default function TripPlannerDashboard() {
         };
     }, [showTripDropdown]);
 
-    // Fetch current user
+    // Fetch current user and check if admin
     useEffect(() => {
         const fetchUser = async () => {
             const { user, error } = await getCurrentUserWithRole();
             if (!error && user) {
                 setCurrentUser(user);
+                // Check if user is admin
+                const isAdmin = user.user_roles?.name === 'admin';
+                setIsAdminUser(isAdmin);
+
+                // If admin, fetch schools and users for selection
+                if (isAdmin) {
+                    const [{ data: schools }, { data: users }] = await Promise.all([
+                        supabase.from('schools').select('id, name').eq('status', 'active'),
+                        supabase.from('users').select('id, full_name, school_id').eq('is_active', true),
+                    ]);
+                    setAllSchools(schools || []);
+                    setAllUsers(users || []);
+                }
             }
         };
         fetchUser();
@@ -822,16 +843,57 @@ export default function TripPlannerDashboard() {
 
     // Checkout functions
     const openCheckout = () => {
-        const validation = validateRequiredServices();
+        // Validation is now handled by the disabled state of the button
+        // Only open checkout if button is clickable (i.e., all validations pass)
+        const validation = getValidationErrors();
+        if (validation.isValid) {
+            setShowCheckoutModal(true);
+            setPaymentStep('payment');
+        }
+    };
 
-        if (!validation.isValid) {
-            // Show error message for missing required services
-            alert(`${t('must_select_required_services')}: ${validation.missingServices.join(', ')}`);
-            return;
+    // Comprehensive validation function that returns all errors
+    const getValidationErrors = () => {
+        const errors: string[] = [];
+
+        // 1. Validate date selection
+        if (!selectedDate) {
+            errors.push(t('trip_date'));
         }
 
-        setShowCheckoutModal(true);
-        setPaymentStep('payment');
+        // 2. Validate number of students/crew
+        if (selectedBookingType === 'full_trip' || selectedBookingType === 'entertainment_only' || selectedBookingType === 'mixed_services') {
+            if (!numberOfStudents || numberOfStudents <= 0) {
+                errors.push(t('number_of_students'));
+            }
+            // Also validate number of crew for full trip
+            if (selectedBookingType === 'full_trip') {
+                if (!numberOfCrew || numberOfCrew <= 0) {
+                    errors.push(t('number_of_crew'));
+                }
+            }
+        }
+
+        // 3. Validate admin selections if user is admin
+        if (isAdminUser) {
+            if (!selectedSchoolId) {
+                errors.push(t('select_school'));
+            }
+            if (!selectedUserId) {
+                errors.push(t('select_user'));
+            }
+        }
+
+        // 4. Validate required services
+        const validation = validateRequiredServices();
+        if (!validation.isValid) {
+            errors.push(...validation.missingServices);
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors,
+        };
     };
 
     const closeCheckout = () => {
@@ -857,6 +919,29 @@ export default function TripPlannerDashboard() {
                 throw new Error('User not authenticated or user ID not available');
             }
 
+            // Admin validation: ensure school and user are selected
+            if (isAdminUser) {
+                if (!selectedSchoolId || !selectedUserId) {
+                    alert(t('admin_must_select_school_and_user'));
+                    setIsProcessingPayment(false);
+                    return;
+                }
+            }
+
+            // Determine school_id and customer_id for booking
+            let school_id = null;
+            let customer_id = null;
+
+            if (isAdminUser) {
+                // Admin: use selected school and user
+                school_id = selectedSchoolId;
+                customer_id = selectedUserId;
+            } else {
+                // Non-admin: use current user's school and id
+                school_id = currentUser?.school_id;
+                customer_id = currentUser?.id;
+            }
+
             // Generate unique booking reference to prevent collisions (max 10 characters)
             const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
             const random = Math.floor(Math.random() * 100)
@@ -865,38 +950,25 @@ export default function TripPlannerDashboard() {
             const uniqueBookingRef = `BK${timestamp}${random}`; // BK + 6 digits + 2 digits = 10 characters
             console.log('Generated booking reference:', uniqueBookingRef);
             console.log('Current user:', currentUser);
+            console.log('School ID:', school_id);
+            console.log('Customer ID:', customer_id);
 
             // Create booking record using the correct database schema
             const bookingData = {
                 booking_reference: uniqueBookingRef,
-                booking_type: selectedBookingType || 'full_trip', // Now stored in dedicated column
-                destination_id: selectedForPlanning?.id || null, // Allow null for service-only bookings
-                customer_id: currentUser?.id, // Use customer_id instead of individual customer fields
+                booking_type: selectedBookingType || 'full_trip',
+                destination_id: selectedForPlanning?.id || null,
+                customer_id,
+                school_id,
                 trip_date: selectedDate?.toISOString().split('T')[0],
                 total_amount: totalPrice,
                 payment_status: 'paid',
                 payment_method: 'bank_transfer',
                 status: 'pending',
                 notes: `Booking created via trip planner - Type: ${selectedBookingType || 'full_trip'}`,
-                // Trip details
                 number_of_students: numberOfStudents || null,
                 number_of_crew: numberOfCrew || null,
                 number_of_buses: numberOfBuses || null,
-                // Store service details in the services jsonb column
-                services: {
-                    selected_services: selectedRequirements.map((req) => ({
-                        type: req.type,
-                        id: req.id,
-                        name: req.name,
-                        quantity: req.quantity,
-                        cost: req.cost,
-                        rate_type: req.rate_type,
-                        days: req.days,
-                        hours: req.hours,
-                    })),
-                    created_from: 'trip_planner_dashboard',
-                    user_agent: navigator.userAgent,
-                },
             };
 
             console.log('Creating booking with data:', bookingData);
@@ -2374,27 +2446,33 @@ export default function TripPlannerDashboard() {
                                             </div>
 
                                             {/* Validation Errors */}
-                                            {!validateRequiredServices().isValid && (
-                                                <div className="mt-4 p-3 bg-red-50/10 dark:bg-red-900/10 border border-red-200/30 dark:border-red-700/30 rounded-lg">
-                                                    <p className="text-red-600 dark:text-red-400 text-sm font-medium mb-2">{t('missing_required')}:</p>
-                                                    <ul className="text-red-600 dark:text-red-400 text-sm space-y-1">
-                                                        {validateRequiredServices().missingServices.map((service, idx) => (
-                                                            <li key={idx}>• {service}</li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const validation = getValidationErrors();
+                                                return !validation.isValid ? (
+                                                    <div className="mt-4 p-3 bg-red-50/10 dark:bg-red-900/10 border border-red-200/30 dark:border-red-700/30 rounded-lg">
+                                                        <p className="text-red-600 dark:text-red-400 text-sm font-medium mb-2">{t('missing_required')}:</p>
+                                                        <ul className="text-red-600 dark:text-red-400 text-sm space-y-1">
+                                                            {validation.errors.map((error, idx) => (
+                                                                <li key={idx}>• {error}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                ) : null;
+                                            })()}
 
                                             {/* Checkout Button */}
                                             <motion.button
-                                                whileHover={{ scale: 1.02 }}
-                                                whileTap={{ scale: 0.98 }}
+                                                whileHover={getValidationErrors().isValid ? { scale: 1.02 } : {}}
+                                                whileTap={getValidationErrors().isValid ? { scale: 0.98 } : {}}
                                                 onClick={openCheckout}
+                                                disabled={!getValidationErrors().isValid}
                                                 className={`w-full mt-6 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                                                    validateRequiredServices().isValid ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+                                                    getValidationErrors().isValid
+                                                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer shadow-lg hover:shadow-emerald-500/25'
+                                                        : 'bg-red-500 text-white cursor-not-allowed opacity-75'
                                                 }`}
                                             >
-                                                {validateRequiredServices().isValid ? t('proceed_to_booking') : t('select_required_services_first')}
+                                                {getValidationErrors().isValid ? t('proceed_to_booking') : t('select_required_services_first')}
                                             </motion.button>
                                         </div>
                                     </div>
@@ -2558,6 +2636,81 @@ export default function TripPlannerDashboard() {
                                 </div>
                             </div>
                         </motion.div>
+
+                        {/* Admin Override Section - School and User Selection */}
+                        {isAdminUser && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.25 }}
+                                className="relative z-30 bg-gradient-to-br from-amber-50/90 via-orange-50/80 to-yellow-50/70 dark:from-amber-900/20 dark:via-orange-900/15 dark:to-yellow-900/10 backdrop-blur-xl border-y border-amber-200/50 dark:border-amber-700/30 shadow-lg"
+                            >
+                                <div className="px-6 py-6">
+                                    <div className="max-w-4xl relative z-30">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                                                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth={2}
+                                                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                                                    />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100">{t('admin_override')}</h3>
+                                                <p className="text-sm text-amber-700 dark:text-amber-300">{t('select_school_and_user')}</p>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* School Selection */}
+                                            <div className="space-y-2">
+                                                <label className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                                    <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-orange-600 rounded-lg flex items-center justify-center shadow">
+                                                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                                                        </svg>
+                                                    </div>
+                                                    {t('select_school')} <span className="text-red-500">*</span>
+                                                </label>
+                                                <CustomSelect
+                                                    options={allSchools.map((school) => ({
+                                                        value: school.id,
+                                                        label: school.name,
+                                                    }))}
+                                                    value={selectedSchoolId || ''}
+                                                    onChange={(value) => setSelectedSchoolId(Array.isArray(value) ? value[0] : value)}
+                                                    placeholder={t('select_school')}
+                                                />
+                                            </div>
+
+                                            {/* User Selection */}
+                                            <div className="space-y-2">
+                                                <label className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                                    <div className="w-8 h-8 bg-gradient-to-br from-orange-600 to-red-600 rounded-lg flex items-center justify-center shadow">
+                                                        <IconUser className="h-4 w-4 text-white" />
+                                                    </div>
+                                                    {t('select_user')} <span className="text-red-500">*</span>
+                                                </label>
+                                                <CustomSelect
+                                                    options={allUsers
+                                                        .filter((user) => !selectedSchoolId || user.school_id === selectedSchoolId)
+                                                        .map((user) => ({
+                                                            value: user.id,
+                                                            label: user.full_name,
+                                                        }))}
+                                                    value={selectedUserId || ''}
+                                                    onChange={(value) => setSelectedUserId(Array.isArray(value) ? value[0] : value)}
+                                                    placeholder={t('select_user')}
+                                                    disabled={!selectedSchoolId}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
 
                         {/* Trip Details Section (Students, Crew, Buses) */}
                         <motion.div
@@ -2777,7 +2930,7 @@ export default function TripPlannerDashboard() {
                                                         <div>
                                                             <p className="font-medium text-gray-900 dark:text-white">{security.name}</p>
                                                             <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                {t('contact')}: {security.phone || security.email || t('contact_company')}
+                                                                {security.hourly_rate}₪/hr • {security.daily_rate}₪/day
                                                             </p>
                                                         </div>
                                                         <button
@@ -2928,26 +3081,32 @@ export default function TripPlannerDashboard() {
                                         )}
 
                                         {/* Validation Message */}
-                                        {!validateRequiredServices().isValid && (
-                                            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700/50 rounded-lg">
-                                                <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">{t('must_select_required_services')}:</p>
-                                                <ul className="text-sm text-red-700 dark:text-red-400 list-disc list-inside">
-                                                    {validateRequiredServices().missingServices.map((service, idx) => (
-                                                        <li key={idx}>{service}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
+                                        {(() => {
+                                            const validation = getValidationErrors();
+                                            return !validation.isValid ? (
+                                                <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700/50 rounded-lg">
+                                                    <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">{t('must_select_required_services')}:</p>
+                                                    <ul className="text-sm text-red-700 dark:text-red-400 list-disc list-inside">
+                                                        {validation.errors.map((error, idx) => (
+                                                            <li key={idx}>{error}</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            ) : null;
+                                        })()}
 
                                         <motion.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
+                                            whileHover={getValidationErrors().isValid ? { scale: 1.02 } : {}}
+                                            whileTap={getValidationErrors().isValid ? { scale: 0.98 } : {}}
                                             onClick={openCheckout}
+                                            disabled={!getValidationErrors().isValid}
                                             className={`w-full font-semibold py-3 rounded-xl transition-colors duration-300 ${
-                                                validateRequiredServices().isValid ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
+                                                getValidationErrors().isValid
+                                                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer shadow-lg hover:shadow-emerald-500/25'
+                                                    : 'bg-red-500 text-white cursor-not-allowed opacity-75'
                                             }`}
                                         >
-                                            {validateRequiredServices().isValid ? t('proceed_to_booking') : t('select_required_services_first')}
+                                            {getValidationErrors().isValid ? t('proceed_to_booking') : t('select_required_services_first')}
                                         </motion.button>
                                     </motion.div>
                                 </div>

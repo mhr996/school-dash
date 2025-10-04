@@ -17,9 +17,12 @@ import { useRouter } from 'next/navigation';
 interface Booking {
     id: string;
     booking_reference: string;
-    customer_name: string | null;
-    customer_email: string | null;
-    customer_phone: string | null;
+    customer_id: string;
+    customer: {
+        full_name: string;
+        email: string;
+        phone: string | null;
+    } | null;
     destination_id: string;
     destination: {
         name: string;
@@ -79,6 +82,7 @@ const BookingsList = () => {
                     .select(
                         `
                         *,
+                        customer:users!customer_id(full_name, email, phone),
                         destination:destinations(name, address)
                     `,
                     )
@@ -115,8 +119,8 @@ const BookingsList = () => {
                 const matchesSearch =
                     !searchTerm ||
                     item.booking_reference.toLowerCase().includes(searchTerm) ||
-                    item.customer_name?.toLowerCase().includes(searchTerm) ||
-                    item.customer_email?.toLowerCase().includes(searchTerm) ||
+                    item.customer?.full_name?.toLowerCase().includes(searchTerm) ||
+                    item.customer?.email?.toLowerCase().includes(searchTerm) ||
                     item.destination?.name.toLowerCase().includes(searchTerm);
 
                 return matchesSearch;
@@ -257,10 +261,10 @@ const BookingsList = () => {
                             accessor: 'booking_reference',
                             title: t('booking_reference'),
                             sortable: true,
-                            render: ({ booking_reference, customer_name }) => (
+                            render: ({ booking_reference, customer }) => (
                                 <div>
                                     <div className="font-semibold">{booking_reference}</div>
-                                    <div className="text-xs text-gray-500">{customer_name || t('no_name')}</div>
+                                    <div className="text-xs text-gray-500">{customer?.full_name || t('no_name')}</div>
                                 </div>
                             ),
                         },

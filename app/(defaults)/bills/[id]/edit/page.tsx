@@ -66,6 +66,11 @@ interface BillDetails {
         destination: {
             name: string;
         };
+        customer?: {
+            full_name: string;
+            email: string | null;
+            phone: string | null;
+        };
     };
     payments: ExistingPayment[];
 }
@@ -105,7 +110,8 @@ export default function EditReceiptPage() {
                         booking:bookings(
                             booking_reference,
                             total_amount,
-                            destination:destinations(name)
+                            destination:destinations(name),
+                            customer:users!customer_id(full_name, email, phone)
                         ),
                         payments (
                             id,
