@@ -314,7 +314,7 @@ const BookingsList = () => {
                             titleClassName: '!text-center',
                             render: (booking) => (
                                 <div className="flex items-center justify-center gap-2">
-                                    <Link href={`/bookings/${booking.id}`} className="hover:text-info">
+                                    <Link href={`/bookings/preview/${booking.id}`} className="hover:text-info">
                                         <IconEye />
                                     </Link>
                                     <Link href={`/bookings/edit/${booking.id}`} className="hover:text-success">

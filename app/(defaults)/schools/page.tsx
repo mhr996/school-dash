@@ -14,6 +14,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
+import { calculateMultipleSchoolBalances } from '@/utils/balance-manager';
 
 interface School {
     id: string;
@@ -63,6 +64,9 @@ const SchoolsList = () => {
         type: 'success',
     });
 
+    // Balance state
+    const [balances, setBalances] = useState<Map<string, number>>(new Map());
+
     // Helper function to get localized institution type
     const getLocalizedType = (type: string) => {
         switch (type) {
@@ -106,6 +110,22 @@ const SchoolsList = () => {
         fetchSchools();
     }, []);
 
+    // Fetch balances when items change
+    useEffect(() => {
+        const fetchBalances = async () => {
+            if (items.length === 0) return;
+
+            try {
+                const schoolIds = items.map((school) => school.id);
+                const balancesMap = await calculateMultipleSchoolBalances(schoolIds);
+                setBalances(balancesMap);
+            } catch (error) {
+                console.error('Error fetching school balances:', error);
+            }
+        };
+        fetchBalances();
+    }, [items]);
+
     useEffect(() => {
         setPage(1);
     }, [pageSize]);
@@ -137,10 +157,22 @@ const SchoolsList = () => {
     }, [items, search]);
 
     useEffect(() => {
-        const data2 = sortBy(initialRecords, sortStatus.columnAccessor);
+        let data2;
+
+        // Special handling for balance sorting
+        if (sortStatus.columnAccessor === 'balance') {
+            data2 = [...initialRecords].sort((a, b) => {
+                const balanceA = balances.get(a.id) || 0;
+                const balanceB = balances.get(b.id) || 0;
+                return balanceA - balanceB;
+            });
+        } else {
+            data2 = sortBy(initialRecords, sortStatus.columnAccessor);
+        }
+
         setInitialRecords(sortStatus.direction === 'desc' ? data2.reverse() : data2);
         setPage(1);
-    }, [sortStatus]);
+    }, [sortStatus, balances]);
 
     const deleteSchool = async (school: School) => {
         try {
@@ -309,6 +341,26 @@ const SchoolsList = () => {
                             title: t('created_at'),
                             sortable: true,
                             render: ({ created_at }) => new Date(created_at).toLocaleDateString('tr-TR'),
+                        },
+                        {
+                            accessor: 'balance',
+                            title: t('balance'),
+                            sortable: true,
+                            render: ({ id }) => {
+                                const balance = balances.get(id) || 0;
+                                const isNegative = balance < 0;
+                                const isPositive = balance > 0;
+
+                                return (
+                                    <div className={`font-semibold ${isNegative ? 'text-red-600' : isPositive ? 'text-green-600' : 'text-gray-600'}`}>
+                                        {balance.toLocaleString('en-US', {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2,
+                                        })}{' '}
+                                        ₪
+                                    </div>
+                                );
+                            },
                         },
                         {
                             accessor: 'actions',

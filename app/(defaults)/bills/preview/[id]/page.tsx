@@ -374,7 +374,7 @@ export default function BillDetailsPage() {
                         <div className="flex items-center gap-3">
                             {/* Edit button - only for receipts */}
                             {bill.bill_type === 'receipt' && (
-                                <Link href={`/bills/${bill.id}/edit`} className="btn btn-outline-primary gap-2">
+                                <Link href={`/bills/edit/${bill.id}`} className="btn btn-outline-primary gap-2">
                                     <IconEdit className="w-4 h-4" />
                                     {t('add_payments')}
                                 </Link>
@@ -572,7 +572,7 @@ export default function BillDetailsPage() {
                             <div className="space-y-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('booking_reference')}</label>
-                                    <Link href={`/bookings/${bill.booking_id}`} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
+                                    <Link href={`/bookings/preview/${bill.booking_id}`} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
                                         {bill.booking?.booking_reference}
                                     </Link>
                                 </div>

@@ -333,14 +333,14 @@ const BillsList = () => {
                                 titleClassName: '!text-center',
                                 render: ({ id, bill_type }) => (
                                     <div className="flex items-center justify-center gap-2">
-                                        <Link href={`/bills/${id}`} className="btn btn-outline-primary btn-sm gap-1">
+                                        <Link href={`/bills/preview/${id}`} className="btn btn-outline-primary btn-sm gap-1">
                                             <IconEye className="h-4 w-4" />
                                             {t('view')}
                                         </Link>
 
                                         {/* Edit button - only for receipts */}
                                         {bill_type === 'receipt' && (
-                                            <Link href={`/bills/${id}/edit`} className="btn btn-outline-warning btn-sm gap-1">
+                                            <Link href={`/bills/edit/${id}`} className="btn btn-outline-warning btn-sm gap-1">
                                                 <IconEdit className="h-4 w-4" />
                                                 {t('edit')}
                                             </Link>

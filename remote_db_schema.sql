@@ -51,7 +51,6 @@ CREATE TABLE public.bookings (
   payment_status character varying DEFAULT 'pending'::character varying CHECK (payment_status::text = ANY (ARRAY['pending'::character varying, 'deposit_paid'::character varying, 'fully_paid'::character varying, 'cancelled'::character varying, 'paid'::character varying]::text[])),
   payment_method character varying DEFAULT 'bank_transfer'::character varying,
   status character varying DEFAULT 'confirmed'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying, 'confirmed'::character varying, 'completed'::character varying, 'cancelled'::character varying, 'active'::character varying, 'inactive'::character varying]::text[])),
-  services jsonb,
   notes text,
   special_requests text,
   created_at timestamp with time zone DEFAULT now(),

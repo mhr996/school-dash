@@ -143,7 +143,7 @@ export default function EditReceiptPage() {
                 // Check if it's a receipt
                 if (data.bill_type !== 'receipt') {
                     setAlert({ visible: true, message: t('only_receipts_can_be_edited'), type: 'danger' });
-                    setTimeout(() => router.push(`/bills/${billId}`), 2000);
+                    setTimeout(() => router.push(`/bills/preview/${billId}`), 2000);
                     return;
                 }
 
@@ -284,7 +284,7 @@ export default function EditReceiptPage() {
 
             // Redirect back to bill details after delay
             setTimeout(() => {
-                router.push(`/bills/${billId}`);
+                router.push(`/bills`);
             }, 1500);
         } catch (error) {
             console.error('Error adding payments:', error);
@@ -488,7 +488,7 @@ export default function EditReceiptPage() {
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-4">
                             <Link
-                                href={`/bills/${billId}`}
+                                href={`/bills`}
                                 className="p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-lg border border-white/30 dark:border-slate-700/40 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300"
                             >
                                 <IconArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 ltr:rotate-180" />

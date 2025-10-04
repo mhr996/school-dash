@@ -491,7 +491,7 @@ export default function EditBooking() {
 
             // Redirect back to booking details after short delay
             setTimeout(() => {
-                router.push(`/bookings/${bookingId}`);
+                router.push(`/bookings/preview/${bookingId}`);
             }, 1500);
         } catch (error) {
             console.error('Error saving booking:', error);
@@ -532,7 +532,7 @@ export default function EditBooking() {
         <div className="container mx-auto p-6">
             {/* Header */}
             <div className="flex items-center gap-5 mb-6">
-                <Link href={`/bookings/${bookingId}`} className="text-primary hover:text-primary/80">
+                <Link href={`/bookings`} className="text-primary hover:text-primary/80">
                     <IconArrowLeft className="h-7 w-7" />
                 </Link>
 
@@ -549,7 +549,7 @@ export default function EditBooking() {
                         </Link>
                     </li>
                     <li className="before:content-['/'] ltr:before:mr-2 rtl:before:ml-2">
-                        <Link href={`/bookings/${bookingId}`} className="text-primary hover:underline">
+                        <Link href={`/bookings/preview/${bookingId}`} className="text-primary hover:underline">
                             {booking.booking_reference}
                         </Link>
                     </li>

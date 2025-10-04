@@ -349,3 +349,212 @@ export const handleExchangeDealCustomerCarCredit = async (dealId: string, custom
         description: `Credit for customer car in exchange deal: ${customerName} (₪${carEvaluationAmount})`,
     });
 };
+
+// ============================================
+// SCHOOL BALANCE MANAGEMENT
+// ============================================
+
+export interface SchoolBalanceDetails {
+    schoolId: string;
+    schoolName: string;
+    totalTaxInvoices: number;
+    totalReceipts: number;
+    netBalance: number;
+    taxInvoiceCount: number;
+    receiptCount: number;
+    bills: SchoolBill[];
+}
+
+export interface SchoolBill {
+    id: string;
+    bill_number: string;
+    bill_type: 'tax_invoice' | 'receipt';
+    total_amount: number;
+    status: string;
+    issue_date: string;
+    booking_reference: string;
+    booking_id: string;
+    payments?: Array<{
+        id: string;
+        amount: number;
+        payment_date: string;
+        payment_type: string;
+    }>;
+}
+
+/**
+ * Calculate school balance from bills
+ * Balance = Total Receipts (payments) - Total Tax Invoices
+ * Negative balance means school owes money
+ * Positive balance means school has credit/overpaid
+ */
+export const calculateSchoolBalance = async (schoolId: string): Promise<SchoolBalanceDetails | null> => {
+    try {
+        // Fetch school info
+        const { data: school, error: schoolError } = await supabase
+            .from('schools')
+            .select('id, name')
+            .eq('id', schoolId)
+            .single();
+
+        if (schoolError || !school) {
+            console.error('Error fetching school:', schoolError);
+            return null;
+        }
+
+        // Fetch all bills for bookings linked to this school
+        const { data: bills, error: billsError } = await supabase
+            .from('bills')
+            .select(`
+                id,
+                bill_number,
+                bill_type,
+                total_amount,
+                status,
+                issue_date,
+                booking_id,
+                bookings!bills_booking_id_fkey(
+                    booking_reference,
+                    school_id
+                ),
+                payments(
+                    id,
+                    amount,
+                    payment_date,
+                    payment_type
+                )
+            `)
+            .eq('bookings.school_id', schoolId)
+            .order('issue_date', { ascending: false });
+
+        if (billsError) {
+            console.error('Error fetching bills:', billsError);
+            return null;
+        }
+
+        // Filter bills that have a valid booking with matching school_id
+        const schoolBills = (bills || []).filter((bill: any) => bill.bookings?.school_id === schoolId);
+
+        let totalTaxInvoices = 0;
+        let totalReceipts = 0;
+        let taxInvoiceCount = 0;
+        let receiptCount = 0;
+
+        const formattedBills: SchoolBill[] = schoolBills.map((bill: any) => {
+            if (bill.bill_type === 'tax_invoice') {
+                totalTaxInvoices += bill.total_amount || 0;
+                taxInvoiceCount++;
+            } else if (bill.bill_type === 'receipt') {
+                // For receipts, sum up actual payments instead of using total_amount
+                const receiptTotal = (bill.payments || []).reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+                totalReceipts += receiptTotal;
+                receiptCount++;
+            }
+
+            return {
+                id: bill.id,
+                bill_number: bill.bill_number,
+                bill_type: bill.bill_type,
+                total_amount: bill.total_amount,
+                status: bill.status,
+                issue_date: bill.issue_date,
+                booking_reference: bill.bookings?.booking_reference || 'N/A',
+                booking_id: bill.booking_id,
+                payments: bill.payments || [],
+            };
+        });
+
+        // Calculate net balance
+        // Positive balance = school has overpaid (credit)
+        // Negative balance = school owes money (debt)
+        const netBalance = totalReceipts - totalTaxInvoices;
+
+        return {
+            schoolId: school.id,
+            schoolName: school.name,
+            totalTaxInvoices,
+            totalReceipts,
+            netBalance,
+            taxInvoiceCount,
+            receiptCount,
+            bills: formattedBills,
+        };
+    } catch (error) {
+        console.error('Error calculating school balance:', error);
+        return null;
+    }
+};
+
+/**
+ * Get balances for multiple schools (for list view)
+ */
+export const calculateMultipleSchoolBalances = async (schoolIds: string[]): Promise<Map<string, number>> => {
+    const balanceMap = new Map<string, number>();
+
+    try {
+        // Fetch all bills for all schools at once
+        const { data: bills, error: billsError } = await supabase
+            .from('bills')
+            .select(`
+                id,
+                bill_type,
+                total_amount,
+                booking_id,
+                bookings!bills_booking_id_fkey(
+                    school_id
+                ),
+                payments(
+                    amount
+                )
+            `)
+            .in('bookings.school_id', schoolIds);
+
+        if (billsError) {
+            console.error('Error fetching bills for multiple schools:', billsError);
+            return balanceMap;
+        }
+
+        // Group bills by school and calculate balances
+        const schoolBillsMap = new Map<string, any[]>();
+        
+        (bills || []).forEach((bill: any) => {
+            const schoolId = bill.bookings?.school_id;
+            if (schoolId) {
+                if (!schoolBillsMap.has(schoolId)) {
+                    schoolBillsMap.set(schoolId, []);
+                }
+                schoolBillsMap.get(schoolId)!.push(bill);
+            }
+        });
+
+        // Calculate balance for each school
+        schoolBillsMap.forEach((schoolBills, schoolId) => {
+            let totalTaxInvoices = 0;
+            let totalReceipts = 0;
+
+            schoolBills.forEach((bill: any) => {
+                if (bill.bill_type === 'tax_invoice') {
+                    totalTaxInvoices += bill.total_amount || 0;
+                } else if (bill.bill_type === 'receipt') {
+                    const receiptTotal = (bill.payments || []).reduce((sum: number, payment: any) => sum + (payment.amount || 0), 0);
+                    totalReceipts += receiptTotal;
+                }
+            });
+
+            const netBalance = totalReceipts - totalTaxInvoices;
+            balanceMap.set(schoolId, netBalance);
+        });
+
+        // Set 0 balance for schools with no bills
+        schoolIds.forEach(schoolId => {
+            if (!balanceMap.has(schoolId)) {
+                balanceMap.set(schoolId, 0);
+            }
+        });
+
+        return balanceMap;
+    } catch (error) {
+        console.error('Error calculating multiple school balances:', error);
+        return balanceMap;
+    }
+};
