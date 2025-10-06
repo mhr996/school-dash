@@ -1180,6 +1180,8 @@
     "entertainment_company_name": "שם חברת הבידור",
     "people": "אנשים",
     "external_entertainment_companies": "חברות בידור חיצוניות",
+    "entertainment_companies": "חברות בידור",
+    "no_entertainment_companies": "אין חברות בידור זמינות",
     "search_entertainment_companies": "חפש חברות בידור...",
     "add_entertainment_company": "הוסף חברת בידור",
     "edit_entertainment_company": "עריכת חברת בידור",

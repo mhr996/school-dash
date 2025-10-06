@@ -1536,6 +1536,8 @@
     "entertainment_company_name": "اسم شركة الترفيه",
     "people": "أشخاص",
     "external_entertainment_companies": "شركات الترفيه الخارجية",
+    "entertainment_companies": "شركات الترفيه",
+    "no_entertainment_companies": "لا توجد شركات ترفيه متاحة",
     "search_entertainment_companies": "البحث عن شركات الترفيه...",
     "add_entertainment_company": "إضافة شركة ترفيه",
     "edit_entertainment_company": "تعديل شركة الترفيه",

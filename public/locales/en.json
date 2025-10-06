@@ -1136,6 +1136,8 @@
     "entertainment_company_name": "Entertainment Company Name",
     "people": "People",
     "external_entertainment_companies": "External Entertainment Companies",
+    "entertainment_companies": "Entertainment Companies",
+    "no_entertainment_companies": "No entertainment companies available",
     "search_entertainment_companies": "Search entertainment companies...",
     "add_entertainment_company": "Add Entertainment Company",
     "no_entertainment_companies_found": "No entertainment companies found",

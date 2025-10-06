@@ -88,6 +88,7 @@ type ExternalEntertainmentCompany = {
     name: string;
     price: number;
     description?: string | null;
+    image?: string | null;
     status: string;
 };
 
@@ -539,11 +540,21 @@ export default function TripPlannerDashboard() {
                     })
                     .slice(0, 5) || [];
 
+            // Load entertainment companies for the dashboard
+            const { data: entertainmentData, error: entertainmentError } = await supabase
+                .from('external_entertainment_companies')
+                .select('id, name, image, description, price, status')
+                .eq('status', 'active')
+                .limit(10);
+
+            if (entertainmentError) console.error('Error loading entertainment companies:', entertainmentError);
+
             setTopDestinations(topDestData || []);
             setBestDeals(bestDealsData || []);
             setUpcomingTrips(upcomingData || []);
             setPreviousTrips(previousData || []);
             setPreviousPayments(userPayments);
+            setEntertainmentCompanies(entertainmentData || []);
 
             // Derive tabbed destinations categories
             const allDests = topDestData || [];
@@ -744,14 +755,9 @@ export default function TripPlannerDashboard() {
         return selectedRequirements.some((req) => req.type === type && req.id === id);
     };
 
-    // Validation function to check if all required services and trip date are selected
+    // Validation function to check if all required services are selected
     const validateRequiredServices = () => {
         const missingServices: string[] = [];
-
-        // Check if trip date is selected
-        if (!selectedDate) {
-            missingServices.push(t('trip_date'));
-        }
 
         // Check trip details for full trip bookings
         if (selectedBookingType === 'full_trip' || !selectedBookingType) {
@@ -861,16 +867,13 @@ export default function TripPlannerDashboard() {
             errors.push(t('trip_date'));
         }
 
-        // 2. Validate number of students/crew
-        if (selectedBookingType === 'full_trip' || selectedBookingType === 'entertainment_only' || selectedBookingType === 'mixed_services') {
+        // 2. Validate number of students/crew - ONLY for full_trip booking type
+        if (selectedBookingType === 'full_trip') {
             if (!numberOfStudents || numberOfStudents <= 0) {
                 errors.push(t('number_of_students'));
             }
-            // Also validate number of crew for full trip
-            if (selectedBookingType === 'full_trip') {
-                if (!numberOfCrew || numberOfCrew <= 0) {
-                    errors.push(t('number_of_crew'));
-                }
+            if (!numberOfCrew || numberOfCrew <= 0) {
+                errors.push(t('number_of_crew'));
             }
         }
 
@@ -1410,6 +1413,104 @@ export default function TripPlannerDashboard() {
                                     getPublicUrlFromPath={getPublicUrlFromPath}
                                 />
 
+                                {/* Entertainment Companies Section */}
+                                <motion.div variants={itemVariants} className="mb-16">
+                                    <div className="relative -mx-6 mb-8 overflow-hidden">
+                                        <div className="relative px-6 py-4 w-[96%] mx-auto rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 opacity-90">
+                                            <div className="flex items-center justify-between">
+                                                <h2 className="text-3xl font-bold text-white drop-shadow-lg">{t('entertainment_companies')}</h2>
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => {
+                                                        setSelectedBookingType('entertainment_only');
+                                                        setCurrentView('service-booking');
+                                                    }}
+                                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-lg font-medium transition-all duration-300 border border-white/30"
+                                                >
+                                                    {t('view_all')}
+                                                </motion.button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {entertainmentCompanies.length > 0 ? (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                                            {entertainmentCompanies.slice(0, 10).map((company, index) => (
+                                                <motion.div
+                                                    key={company.id}
+                                                    initial={{ scale: 0, opacity: 0 }}
+                                                    animate={{ scale: 1, opacity: 1 }}
+                                                    transition={{
+                                                        delay: index * 0.1,
+                                                        type: 'spring',
+                                                        stiffness: 100,
+                                                        damping: 15,
+                                                    }}
+                                                    whileHover={{
+                                                        y: -10,
+                                                        scale: 1.02,
+                                                        transition: { type: 'spring', stiffness: 400, damping: 25 },
+                                                    }}
+                                                    className="group cursor-pointer flex"
+                                                    onClick={() => {
+                                                        setSelectedBookingType('entertainment_only');
+                                                        setCurrentView('service-booking');
+                                                        selectEntertainment(company);
+                                                    }}
+                                                >
+                                                    <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-visible shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60 flex flex-col w-full">
+                                                        {/* Image */}
+                                                        <div className="relative h-32 overflow-hidden rounded-t-2xl">
+                                                            <img
+                                                                src={company.image ? company.image : '/assets/images/img-placeholder-fallback.webp'}
+                                                                alt={company.name}
+                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                            />
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
+                                                        </div>
+
+                                                        {/* Content */}
+                                                        <div className="p-3 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm flex flex-col flex-grow">
+                                                            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors duration-300 drop-shadow-sm leading-tight">
+                                                                {company.name}
+                                                            </h3>
+                                                            {company.description && <p className="text-[10px] text-gray-600 dark:text-gray-400 mb-2.5 line-clamp-2">{company.description}</p>}
+
+                                                            {/* Price and Action Button */}
+                                                            <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10 dark:border-slate-700/30 mt-auto">
+                                                                {company.price && (
+                                                                    <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm leading-none">₪{company.price}</div>
+                                                                )}
+                                                                <motion.button
+                                                                    whileHover={{ scale: 1.05 }}
+                                                                    whileTap={{ scale: 0.95 }}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setSelectedBookingType('entertainment_only');
+                                                                        setCurrentView('service-booking');
+                                                                        selectEntertainment(company);
+                                                                    }}
+                                                                    className="bg-gradient-to-r from-orange-500/80 to-amber-600/80 hover:from-orange-600/90 hover:to-amber-700/90 backdrop-blur-md text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl border border-orange-400/30 whitespace-nowrap"
+                                                                >
+                                                                    <span className="drop-shadow-sm">{t('book_now')}</span>
+                                                                </motion.button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl border border-white/30 dark:border-slate-700/40">
+                                            <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                                <IconAward className="w-8 h-8 text-white" />
+                                            </div>
+                                            <p className="text-gray-500 dark:text-gray-400 text-lg">{t('no_entertainment_companies')}</p>
+                                        </div>
+                                    )}
+                                </motion.div>
+
                                 {/* Upcoming Trips Section */}
                                 <motion.div variants={itemVariants} className="mb-16">
                                     <div className="relative -mx-6 mb-8 overflow-hidden">
@@ -1638,8 +1739,8 @@ export default function TripPlannerDashboard() {
                                 {[1, 2, 3, 4, 5].map((section) => (
                                     <div key={section} className="animate-pulse">
                                         <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-8"></div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {[1, 2, 3].map((card) => (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                                            {[1, 2, 3, 4, 5].map((card) => (
                                                 <div key={card} className="bg-gray-200 dark:bg-gray-700 rounded-2xl h-64"></div>
                                             ))}
                                         </div>
@@ -2114,6 +2215,81 @@ export default function TripPlannerDashboard() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Admin Override Section - School and User Selection */}
+                            {isAdminUser && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.25 }}
+                                    className="relative z-30 bg-gradient-to-br from-amber-50/90 via-orange-50/80 to-yellow-50/70 dark:from-amber-900/20 dark:via-orange-900/15 dark:to-yellow-900/10 backdrop-blur-xl border-y border-amber-200/50 dark:border-amber-700/30 shadow-lg"
+                                >
+                                    <div className="px-6 py-6">
+                                        <div className="max-w-4xl relative z-30">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth={2}
+                                                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                                                        />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100">{t('admin_override')}</h3>
+                                                    <p className="text-sm text-amber-700 dark:text-amber-300">{t('select_school_and_user')}</p>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {/* School Selection */}
+                                                <div className="space-y-2">
+                                                    <label className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                                        <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-orange-600 rounded-lg flex items-center justify-center shadow">
+                                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                                                            </svg>
+                                                        </div>
+                                                        {t('select_school')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <CustomSelect
+                                                        options={allSchools.map((school) => ({
+                                                            value: school.id,
+                                                            label: school.name,
+                                                        }))}
+                                                        value={selectedSchoolId || ''}
+                                                        onChange={(value) => setSelectedSchoolId(Array.isArray(value) ? value[0] : value)}
+                                                        placeholder={t('select_school')}
+                                                    />
+                                                </div>
+
+                                                {/* User Selection */}
+                                                <div className="space-y-2">
+                                                    <label className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                                        <div className="w-8 h-8 bg-gradient-to-br from-orange-600 to-red-600 rounded-lg flex items-center justify-center shadow">
+                                                            <IconUser className="h-4 w-4 text-white" />
+                                                        </div>
+                                                        {t('select_user')} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <CustomSelect
+                                                        options={allUsers
+                                                            .filter((user) => !selectedSchoolId || user.school_id === selectedSchoolId)
+                                                            .map((user) => ({
+                                                                value: user.id,
+                                                                label: user.full_name,
+                                                            }))}
+                                                        value={selectedUserId || ''}
+                                                        onChange={(value) => setSelectedUserId(Array.isArray(value) ? value[0] : value)}
+                                                        placeholder={t('select_user')}
+                                                        disabled={!selectedSchoolId}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
 
                             {/* Content */}
                             <div className="p-6">
