@@ -174,6 +174,7 @@ export default function TripPlannerDashboard() {
     const { t } = getTranslation();
     const router = useRouter();
     const [currentUser, setCurrentUser] = useState<any>(null);
+    const [isAdminUser, setIsAdminUser] = useState(false); // Track if user is admin (for admin override features)
     const [currentView, setCurrentView] = useState<'dashboard' | 'destinations' | 'service-booking'>('dashboard');
     const [selectedBookingType, setSelectedBookingType] = useState<BookingType | null>(null);
     const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -204,7 +205,6 @@ export default function TripPlannerDashboard() {
     const [totalPrice, setTotalPrice] = useState<number>(0);
 
     // Admin override state for school/user selection
-    const [isAdminUser, setIsAdminUser] = useState(false);
     const [allSchools, setAllSchools] = useState<any[]>([]);
     const [allUsers, setAllUsers] = useState<any[]>([]);
     const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
@@ -341,7 +341,7 @@ export default function TripPlannerDashboard() {
             const { user, error } = await getCurrentUserWithRole();
             if (!error && user) {
                 setCurrentUser(user);
-                // Check if user is admin
+                // Check if user is admin (for admin override functionality)
                 const isAdmin = user.user_roles?.name === 'admin';
                 setIsAdminUser(isAdmin);
 
