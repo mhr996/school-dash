@@ -2229,5 +2229,6 @@
     "number_of_buses": "عدد الحافلات",
     "total_participants": "إجمالي المشاركين",
     "buses": "الحافلات",
-    "select_date": "اختر التاريخ"
+    "select_date": "اختر التاريخ",
+    "all_requirements": "جميع المتطلبات"
 }

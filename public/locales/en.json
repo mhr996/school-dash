@@ -1859,5 +1859,6 @@
     "number_of_buses": "Number of Buses",
     "total_participants": "Total Participants",
     "buses": "Buses",
-    "select_date": "Select the date"
+    "select_date": "Select the date",
+    "all_requirements": "All Requirements"
 }

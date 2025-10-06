@@ -217,9 +217,9 @@ export default function TabbedDestinationsSection({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+                    className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
                 >
-                    {currentDestinations.slice(0, 8).map((destination, index) => (
+                    {currentDestinations.slice(0, 10).map((destination, index) => (
                         <motion.div
                             key={destination.id}
                             initial={{ scale: 0, opacity: 0 }}
@@ -235,9 +235,9 @@ export default function TabbedDestinationsSection({
                                 scale: 1.02,
                                 transition: { type: 'spring', stiffness: 400, damping: 25 },
                             }}
-                            className="group cursor-pointer"
+                            className="group cursor-pointer flex"
                         >
-                            <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60">
+                            <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-visible shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60 flex flex-col w-full">
                                 {/* Special Badge for Best Deals */}
                                 {activeTab === 'best_deals' && (
                                     <div className="absolute top-4 left-4 z-10">
@@ -246,117 +246,95 @@ export default function TabbedDestinationsSection({
                                 )}
 
                                 {/* Image */}
-                                <div className="relative h-48 overflow-hidden">
+                                <div className="relative h-32 overflow-hidden rounded-t-2xl">
                                     <img
                                         src={destination.thumbnail_path ? getPublicUrlFromPath(destination.thumbnail_path) : '/assets/images/img-placeholder-fallback.webp'}
                                         alt={destination.name}
                                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
-                                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                         <div
-                                            className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg cursor-pointer hover:bg-white/30 hover:scale-110 transition-all duration-200"
+                                            className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg cursor-pointer hover:bg-white/30 hover:scale-110 transition-all duration-200"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onViewDestinationDetails(destination);
                                             }}
                                         >
-                                            <IconEye className="h-5 w-5 text-white drop-shadow-sm" />
+                                            <IconEye className="h-4 w-4 text-white drop-shadow-sm" />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Content */}
-                                <div className="p-6 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm">
-                                    <h3 className={`text-xl font-bold text-gray-900 dark:text-white mb-2 ${theme.hoverColor} transition-colors duration-300 drop-shadow-sm`}>{destination.name}</h3>
-                                    <div className="flex items-center text-gray-700 dark:text-gray-200 mb-4">
-                                        <IconMapPin className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                        <span className="text-sm truncate drop-shadow-sm">{destination.address}</span>
+                                <div className="p-3 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm flex flex-col flex-grow">
+                                    <h3
+                                        className={`text-sm font-bold text-gray-900 dark:text-white mb-1.5 line-clamp-2 ${theme.hoverColor} transition-colors duration-300 drop-shadow-sm leading-tight`}
+                                    >
+                                        {destination.name}
+                                    </h3>
+                                    <div className="flex items-center text-gray-500 dark:text-gray-400 mb-2.5">
+                                        <IconMapPin className="h-3 w-3 ltr:mr-1 rtl:ml-1 flex-shrink-0 opacity-70" />
+                                        <span className="text-[10px] truncate">{destination.address}</span>
                                     </div>
 
-                                    {/* Pricing */}
-                                    {destination.pricing && (
-                                        <div className="mb-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`text-2xl font-bold ${theme.iconColor} drop-shadow-sm`}>
-                                                        {destination.pricing?.child ? `₪${destination.pricing.child}` : t('contact_for_price')}
-                                                    </div>
-                                                    {activeTab === 'best_deals' &&
-                                                        destination.pricing?.adult &&
-                                                        destination.pricing?.child &&
-                                                        destination.pricing.adult !== destination.pricing.child && (
-                                                            <div className="flex flex-col">
-                                                                <div className="text-sm text-gray-500 dark:text-gray-400 line-through">₪{destination.pricing.adult}</div>
-                                                                <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                                                                    {Math.round(((destination.pricing.adult - destination.pricing.child) / destination.pricing.adult) * 100)}% {t('off')}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                </div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">{t('per_person')}</div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Properties */}
-                                    {destination.properties && destination.properties.length > 0 && (
-                                        <div className="mb-4">
-                                            <div className="flex flex-wrap gap-2">
-                                                {destination.properties.slice(0, 3).map((property, idx) => {
-                                                    const IconComponent = getPropertyIcon(property);
-                                                    return (
-                                                        <motion.div
-                                                            key={idx}
-                                                            initial={{ scale: 0 }}
-                                                            animate={{ scale: 1 }}
-                                                            transition={{ delay: 0.5 + idx * 0.1 }}
-                                                            className={`inline-flex items-center gap-1 px-3 py-1 bg-${activeTab === 'most_visited' ? 'purple' : activeTab === 'top_rated' ? 'amber' : activeTab === 'latest' ? 'blue' : 'emerald'}-500/20 dark:bg-${activeTab === 'most_visited' ? 'purple' : activeTab === 'top_rated' ? 'amber' : activeTab === 'latest' ? 'blue' : 'emerald'}-400/20 text-${activeTab === 'most_visited' ? 'purple' : activeTab === 'top_rated' ? 'amber' : activeTab === 'latest' ? 'blue' : 'emerald'}-700 dark:text-${activeTab === 'most_visited' ? 'purple' : activeTab === 'top_rated' ? 'amber' : activeTab === 'latest' ? 'blue' : 'emerald'}-300 rounded-full text-xs font-medium backdrop-blur-sm border border-${activeTab === 'most_visited' ? 'purple' : activeTab === 'top_rated' ? 'amber' : activeTab === 'latest' ? 'blue' : 'emerald'}-200/50 dark:border-${activeTab === 'most_visited' ? 'purple' : activeTab === 'top_rated' ? 'amber' : activeTab === 'latest' ? 'blue' : 'emerald'}-600/30`}
-                                                        >
-                                                            <IconComponent className="h-3 w-3" />
-                                                            <span className="drop-shadow-sm">{t(property)}</span>
-                                                        </motion.div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Requirements Section */}
+                                    {/* Requirements Section - With Badges */}
                                     {destination.requirements && destination.requirements.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t border-gray-200/30 dark:border-gray-700/30">
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3 flex items-center gap-2">
-                                                <svg className="h-4 w-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                {t('requirements')}
-                                            </p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {destination.requirements.slice(0, 2).map((requirement: string, idx: number) => (
-                                                    <motion.div
+                                        <div className="mb-3 relative group/requirements">
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {destination.requirements.slice(0, 3).map((req: string, idx: number) => (
+                                                    <span
                                                         key={idx}
-                                                        initial={{ scale: 0 }}
-                                                        animate={{ scale: 1 }}
-                                                        transition={{ delay: 0.5 + idx * 0.1 }}
-                                                        className="inline-flex items-center gap-1 px-3 py-1 bg-orange-500/20 dark:bg-orange-400/20 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium backdrop-blur-sm border border-orange-200/50 dark:border-orange-600/30"
+                                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 text-orange-700 dark:text-orange-300 rounded-md text-[10px] font-medium border border-orange-200/50 dark:border-orange-700/30"
                                                     >
-                                                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4" />
+                                                        <svg className="h-2.5 w-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
-                                                        <span className="drop-shadow-sm">{t(requirement)}</span>
-                                                    </motion.div>
+                                                        <span className="line-clamp-1">{t(req)}</span>
+                                                    </span>
                                                 ))}
-                                                {destination.requirements.length > 2 && (
-                                                    <span className="inline-flex items-center px-2 py-1 bg-gray-500/20 dark:bg-gray-400/20 text-gray-700 dark:text-gray-300 rounded-full text-xs font-medium">
-                                                        +{destination.requirements.length - 2}
+                                                {destination.requirements.length > 3 && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-md text-[10px] font-bold shadow-sm">
+                                                        +{destination.requirements.length - 3}
                                                     </span>
                                                 )}
                                             </div>
+
+                                            {/* Tooltip - only show when more than 3 requirements */}
+                                            {destination.requirements.length > 3 && (
+                                                <div className="absolute left-0 right-0 bottom-full mb-2 opacity-0 invisible group-hover/requirements:opacity-100 group-hover/requirements:visible transition-all duration-200 pointer-events-none z-[100]">
+                                                    <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white text-xs rounded-lg shadow-2xl p-3 border border-gray-700 max-w-xs">
+                                                        <div className="font-semibold mb-2 text-orange-400">{t('all_requirements')}:</div>
+                                                        <ul className="space-y-1">
+                                                            {destination.requirements.map((req: string, idx: number) => (
+                                                                <li key={idx} className="flex items-start gap-2">
+                                                                    <svg className="h-3.5 w-3.5 flex-shrink-0 text-orange-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    <span className="leading-tight break-words">{t(req)}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-col sm:flex-row gap-3 mt-4">
+                                    {/* Action Buttons with Price */}
+                                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10 dark:border-slate-700/30 mt-auto">
+                                        {destination.pricing && (
+                                            <div className="flex flex-col">
+                                                <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm leading-none">
+                                                    {destination.pricing?.child ? `₪${destination.pricing.child}` : t('contact_for_price')}
+                                                </div>
+                                                {activeTab === 'best_deals' && destination.pricing?.adult && destination.pricing?.child && destination.pricing.adult !== destination.pricing.child && (
+                                                    <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                                                        {Math.round(((destination.pricing.adult - destination.pricing.child) / destination.pricing.adult) * 100)}% {t('off')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
@@ -364,7 +342,7 @@ export default function TabbedDestinationsSection({
                                                 e.stopPropagation();
                                                 onSelectDestination(destination);
                                             }}
-                                            className={`flex-1 ${theme.buttonBg} text-white px-4 py-2 rounded-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl ${theme.buttonShadow} backdrop-blur-sm border border-white/10`}
+                                            className={`${theme.buttonBg} text-white px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-300 shadow-lg hover:shadow-xl ${theme.buttonShadow} backdrop-blur-sm border border-white/10 whitespace-nowrap`}
                                         >
                                             {activeTab === 'best_deals' ? t('book_now') : t('select')}
                                         </motion.button>
@@ -378,20 +356,18 @@ export default function TabbedDestinationsSection({
 
             {/* Loading State */}
             {isLoading && currentDestinations.length === 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[...Array(8)].map((_, i) => (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {[...Array(10)].map((_, i) => (
                         <div key={i} className="animate-pulse">
                             <div className="bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden border border-white/30 dark:border-slate-700/40">
-                                <div className="h-48 bg-gray-300/50 dark:bg-gray-700/50"></div>
-                                <div className="p-6 space-y-3">
-                                    <div className="h-6 bg-gray-300/50 dark:bg-gray-700/50 rounded w-3/4"></div>
-                                    <div className="h-4 bg-gray-300/50 dark:bg-gray-700/50 rounded w-1/2"></div>
-                                    <div className="h-8 bg-gray-300/50 dark:bg-gray-700/50 rounded w-1/3"></div>
-                                    <div className="flex gap-2">
-                                        <div className="h-6 bg-gray-300/50 dark:bg-gray-700/50 rounded w-16"></div>
-                                        <div className="h-6 bg-gray-300/50 dark:bg-gray-700/50 rounded w-16"></div>
+                                <div className="h-32 bg-gray-300/50 dark:bg-gray-700/50"></div>
+                                <div className="p-3 space-y-2">
+                                    <div className="h-4 bg-gray-300/50 dark:bg-gray-700/50 rounded w-3/4"></div>
+                                    <div className="h-3 bg-gray-300/50 dark:bg-gray-700/50 rounded w-1/2"></div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="h-4 bg-gray-300/50 dark:bg-gray-700/50 rounded w-1/3"></div>
+                                        <div className="h-6 bg-gray-300/50 dark:bg-gray-700/50 rounded w-1/3"></div>
                                     </div>
-                                    <div className="h-10 bg-gray-300/50 dark:bg-gray-700/50 rounded"></div>
                                 </div>
                             </div>
                         </div>

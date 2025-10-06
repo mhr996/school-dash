@@ -1880,18 +1880,21 @@ export default function TripPlannerDashboard() {
 
                         {/* Destinations Grid */}
                         {loading ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                {[...Array(6)].map((_, i) => (
-                                    <div key={i} className="bg-white dark:bg-slate-900/80 rounded-2xl p-6 animate-pulse">
-                                        <div className="w-full h-48 bg-gray-300 dark:bg-slate-700 rounded-xl mb-4"></div>
-                                        <div className="h-6 bg-gray-300 dark:bg-slate-700 rounded mb-2"></div>
-                                        <div className="h-4 bg-gray-300 dark:bg-slate-700 rounded mb-4 w-3/4"></div>
-                                        <div className="h-10 bg-gray-300 dark:bg-slate-700 rounded"></div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                                {[...Array(10)].map((_, i) => (
+                                    <div key={i} className="bg-white dark:bg-slate-900/80 rounded-2xl p-3 animate-pulse">
+                                        <div className="w-full h-32 bg-gray-300 dark:bg-slate-700 rounded-xl mb-2"></div>
+                                        <div className="h-4 bg-gray-300 dark:bg-slate-700 rounded mb-1"></div>
+                                        <div className="h-3 bg-gray-300 dark:bg-slate-700 rounded mb-2 w-3/4"></div>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="h-4 bg-gray-300 dark:bg-slate-700 rounded w-1/3"></div>
+                                            <div className="h-6 bg-gray-300 dark:bg-slate-700 rounded w-1/3"></div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+                            <motion.div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
                                 {filteredDestinations.map((destination, index) => (
                                     <motion.div
                                         key={destination.id}
@@ -1908,152 +1911,103 @@ export default function TripPlannerDashboard() {
                                             scale: 1.02,
                                             transition: { type: 'spring', stiffness: 400, damping: 25 },
                                         }}
-                                        className="group cursor-pointer"
+                                        className="group cursor-pointer flex"
                                     >
-                                        <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60">
+                                        <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-visible shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60 flex flex-col w-full">
                                             {/* Image */}
-                                            <div className="relative h-48 overflow-hidden">
+                                            <div className="relative h-32 overflow-hidden rounded-t-2xl">
                                                 <img
                                                     src={destination.thumbnail_path ? getPublicUrlFromPath(destination.thumbnail_path) : '/assets/images/img-placeholder-fallback.webp'}
                                                     alt={destination.name}
                                                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                                 />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
-                                                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                                                     <div
-                                                        className="w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg cursor-pointer hover:bg-white/30 hover:scale-110 transition-all duration-200"
+                                                        className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30 shadow-lg cursor-pointer hover:bg-white/30 hover:scale-110 transition-all duration-200"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             openDestinationModal(destination);
                                                         }}
                                                     >
-                                                        <IconEye className="h-5 w-5 text-white drop-shadow-sm" />
+                                                        <IconEye className="h-4 w-4 text-white drop-shadow-sm" />
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Content */}
-                                            <div className="p-6 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm">
-                                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 drop-shadow-sm">
+                                            <div className="p-3 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm flex flex-col flex-grow">
+                                                <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 drop-shadow-sm leading-tight">
                                                     {destination.name}
                                                 </h3>
-                                                <div className="flex items-center text-gray-700 dark:text-gray-200 mb-4">
-                                                    <IconMapPin className="h-4 w-4 ltr:mr-2 rtl:ml-2 flex-shrink-0" />
-                                                    <span className="text-sm truncate drop-shadow-sm">{getZoneName(destination.zone_id)}</span>
+                                                <div className="flex items-center text-gray-500 dark:text-gray-400 mb-2.5">
+                                                    <IconMapPin className="h-3 w-3 ltr:mr-1 rtl:ml-1 flex-shrink-0 opacity-70" />
+                                                    <span className="text-[10px] truncate">{getZoneName(destination.zone_id)}</span>
                                                 </div>
 
-                                                {/* Requirements */}
+                                                {/* Requirements - With Badges */}
                                                 {destination.requirements && destination.requirements.length > 0 && (
-                                                    <div className="mb-4">
-                                                        <div className="flex items-center gap-2 mb-2">
-                                                            <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('trip_requirements')}</span>
-                                                            <div className="flex-1 h-px bg-white/30 dark:bg-slate-600/50"></div>
-                                                        </div>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {destination.requirements.slice(0, 4).map((requirement, idx) => {
-                                                                const IconComponent = getRequirementIcon(requirement);
-                                                                return (
-                                                                    <motion.div
-                                                                        key={idx}
-                                                                        initial={{ scale: 0 }}
-                                                                        animate={{ scale: 1 }}
-                                                                        transition={{ delay: idx * 0.1 }}
-                                                                        className="flex items-center gap-1 bg-amber-200/30 dark:bg-amber-500/20 backdrop-blur-sm px-2 py-1 rounded-lg border border-amber-300/50 dark:border-amber-500/30 shadow-sm"
-                                                                    >
-                                                                        <IconComponent className="h-3 w-3 text-amber-700 dark:text-amber-300 drop-shadow-sm" />
-                                                                        <span className="text-xs font-medium text-amber-800 dark:text-amber-200 drop-shadow-sm">{t(requirement)}</span>
-                                                                    </motion.div>
-                                                                );
-                                                            })}
-                                                            {destination.requirements.length > 4 && (
-                                                                <div className="flex items-center justify-center bg-white/30 dark:bg-slate-700/30 backdrop-blur-sm px-2 py-1 rounded-lg border border-white/40 dark:border-slate-600/40 shadow-sm">
-                                                                    <span className="text-xs font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">+{destination.requirements.length - 4}</span>
-                                                                </div>
+                                                    <div className="mb-3 relative group/requirements">
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {destination.requirements.slice(0, 3).map((req: string, idx: number) => (
+                                                                <span
+                                                                    key={idx}
+                                                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 text-orange-700 dark:text-orange-300 rounded-md text-[10px] font-medium border border-orange-200/50 dark:border-orange-700/30"
+                                                                >
+                                                                    <svg className="h-2.5 w-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                    </svg>
+                                                                    <span className="line-clamp-1">{t(req)}</span>
+                                                                </span>
+                                                            ))}
+                                                            {destination.requirements.length > 3 && (
+                                                                <span className="inline-flex items-center px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-md text-[10px] font-bold shadow-sm">
+                                                                    +{destination.requirements.length - 3}
+                                                                </span>
                                                             )}
                                                         </div>
+
+                                                        {/* Tooltip - only show when more than 3 requirements */}
+                                                        {destination.requirements.length > 3 && (
+                                                            <div className="absolute left-0 right-0 bottom-full mb-2 opacity-0 invisible group-hover/requirements:opacity-100 group-hover/requirements:visible transition-all duration-200 pointer-events-none z-[100]">
+                                                                <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white text-xs rounded-lg shadow-2xl p-3 border border-gray-700 max-w-xs">
+                                                                    <div className="font-semibold mb-2 text-orange-400">{t('all_requirements')}:</div>
+                                                                    <ul className="space-y-1">
+                                                                        {destination.requirements.map((req: string, idx: number) => (
+                                                                            <li key={idx} className="flex items-start gap-2">
+                                                                                <svg className="h-3.5 w-3.5 flex-shrink-0 text-orange-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                    <path
+                                                                                        strokeLinecap="round"
+                                                                                        strokeLinejoin="round"
+                                                                                        strokeWidth="2"
+                                                                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                                                    />
+                                                                                </svg>
+                                                                                <span className="leading-tight break-words">{t(req)}</span>
+                                                                            </li>
+                                                                        ))}
+                                                                    </ul>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
 
-                                                {/* Detailed Pricing */}
-                                                {destination.pricing && (
-                                                    <div className="mb-4">
-                                                        <div className="bg-gradient-to-r from-emerald-100/40 to-blue-100/40 dark:from-emerald-800/30 dark:to-blue-800/30 backdrop-blur-md rounded-xl p-4 border border-emerald-200/50 dark:border-emerald-700/40 shadow-lg">
-                                                            {/* Header */}
-                                                            <div className="flex items-center justify-between mb-3">
-                                                                <div className="flex items-center gap-2">
-                                                                    <IconCreditCard className="h-4 w-4 text-emerald-600 dark:text-emerald-400 drop-shadow-sm" />
-                                                                    <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 drop-shadow-sm">{t('trip_pricing')}</span>
-                                                                </div>
-                                                                <div className="text-xs text-gray-600 dark:text-gray-300 bg-white/30 dark:bg-slate-700/30 backdrop-blur-sm px-2 py-1 rounded-md border border-white/40 dark:border-slate-600/40 shadow-sm">
-                                                                    {t('per_person')}
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Price Grid */}
-                                                            <div className="space-y-2 mb-3">
-                                                                {destination.pricing.child && (
-                                                                    <div className="flex items-center justify-between bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm rounded-lg p-2 border border-white/50 dark:border-slate-600/50 shadow-sm">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-3 h-3 bg-green-500 rounded-full shadow-sm"></div>
-                                                                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('child_price')}</span>
-                                                                        </div>
-                                                                        <span className="text-sm font-bold text-green-600 dark:text-green-400 drop-shadow-sm">{destination.pricing.child}₪</span>
-                                                                    </div>
-                                                                )}
-                                                                {destination.pricing.teen && (
-                                                                    <div className="flex items-center justify-between bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm rounded-lg p-2 border border-white/50 dark:border-slate-600/50 shadow-sm">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-3 h-3 bg-blue-500 rounded-full shadow-sm"></div>
-                                                                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('teen_price')}</span>
-                                                                        </div>
-                                                                        <span className="text-sm font-bold text-blue-600 dark:text-blue-400 drop-shadow-sm">{destination.pricing.teen}₪</span>
-                                                                    </div>
-                                                                )}
-                                                                {destination.pricing.adult && (
-                                                                    <div className="flex items-center justify-between bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm rounded-lg p-2 border border-white/50 dark:border-slate-600/50 shadow-sm">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-3 h-3 bg-purple-500 rounded-full shadow-sm"></div>
-                                                                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('adult_price')}</span>
-                                                                        </div>
-                                                                        <span className="text-sm font-bold text-purple-600 dark:text-purple-400 drop-shadow-sm">{destination.pricing.adult}₪</span>
-                                                                    </div>
-                                                                )}
-                                                                {destination.pricing.guide && (
-                                                                    <div className="flex items-center justify-between bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm rounded-lg p-2 border border-white/50 dark:border-slate-600/50 shadow-sm">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-3 h-3 bg-orange-500 rounded-full shadow-sm"></div>
-                                                                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200 drop-shadow-sm">{t('guide_price')}</span>
-                                                                        </div>
-                                                                        <span className="text-sm font-bold text-orange-600 dark:text-orange-400 drop-shadow-sm">{destination.pricing.guide}₪</span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {/* Action Buttons */}
-                                                <div className="flex gap-2">
+                                                {/* Pricing and Action Button */}
+                                                <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10 dark:border-slate-700/30 mt-auto">
+                                                    {destination.pricing && destination.pricing.child && (
+                                                        <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm leading-none">₪{destination.pricing.child}</div>
+                                                    )}
                                                     <motion.button
-                                                        whileHover={{ scale: 1.02 }}
-                                                        whileTap={{ scale: 0.98 }}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             handleSelectForPlanning(destination);
                                                         }}
-                                                        className="flex-1 bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-600/90 hover:to-blue-700/90 backdrop-blur-md text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border border-blue-400/30 hover:border-blue-300/50"
+                                                        className="bg-gradient-to-r from-blue-500/80 to-blue-600/80 hover:from-blue-600/90 hover:to-blue-700/90 backdrop-blur-md text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl border border-blue-400/30 whitespace-nowrap"
                                                     >
-                                                        <span className="drop-shadow-sm">{t('choose_this_destination')}</span>
-                                                    </motion.button>
-                                                    <motion.button
-                                                        whileHover={{ scale: 1.02 }}
-                                                        whileTap={{ scale: 0.98 }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            openDestinationModal(destination);
-                                                        }}
-                                                        className="bg-white/20 hover:bg-white/30 dark:bg-slate-800/40 dark:hover:bg-slate-800/60 backdrop-blur-md text-gray-800 dark:text-white font-semibold py-3 px-4 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl border border-white/30 dark:border-slate-700/40 hover:border-white/50 dark:hover:border-slate-600/60"
-                                                    >
-                                                        <IconEye className="h-5 w-5" />
+                                                        <span className="drop-shadow-sm">{t('select')}</span>
                                                     </motion.button>
                                                 </div>
                                             </div>
