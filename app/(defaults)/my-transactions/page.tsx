@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
 import { getCurrentUserWithRole } from '@/lib/auth';
+import { calculateSchoolBalance } from '@/utils/balance-manager';
 import Dropdown from '@/components/dropdown';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconCalendar from '@/components/icon/icon-calendar';
@@ -17,6 +18,7 @@ import IconUser from '@/components/icon/icon-user';
 import IconTrendingUp from '@/components/icon/icon-trending-up';
 import IconTrendingDown from '@/components/icon/icon-trending-down';
 import IconCheck from '@/components/icon/icon-check';
+import IconBuilding from '@/components/icon/icon-building';
 
 type Transaction = {
     id: string;
@@ -56,6 +58,7 @@ type TransactionSummary = {
     total_transactions: number;
     pending_amount: number;
     completed_payments: number;
+    school_balance: number;
     this_month_spent: number;
     last_month_spent: number;
 };
@@ -86,6 +89,7 @@ export default function MyTransactionsPage() {
         total_transactions: 0,
         pending_amount: 0,
         completed_payments: 0,
+        school_balance: 0,
         this_month_spent: 0,
         last_month_spent: 0,
     });
@@ -108,7 +112,33 @@ export default function MyTransactionsPage() {
             try {
                 const { user: userData, error } = await getCurrentUserWithRole();
                 if (userData && !error) {
-                    setUser(userData);
+                    // Fetch user with school_id and school details
+                    const { data: userWithSchool, error: userError } = await supabase
+                        .from('users')
+                        .select(
+                            `
+                            id, 
+                            school_id,
+                            schools (
+                                id,
+                                name,
+                                address,
+                                phone
+                            )
+                        `,
+                        )
+                        .eq('id', userData.id)
+                        .single();
+
+                    if (userWithSchool && !userError) {
+                        setUser({
+                            ...userData,
+                            school_id: userWithSchool.school_id,
+                            school: userWithSchool.schools,
+                        });
+                    } else {
+                        setUser(userData);
+                    }
                 }
             } catch (error) {
                 console.error('Error loading user:', error);
@@ -118,12 +148,21 @@ export default function MyTransactionsPage() {
     }, []);
 
     const fetchTransactions = async () => {
-        if (!user?.email) return;
+        if (!user?.id || !user?.school_id) return;
 
         try {
             setLoading(true);
 
-            // Fetch bills/transactions for the user
+            // Get school balance data using balance-manager utility
+            const balanceData = await calculateSchoolBalance(user.school_id);
+
+            if (!balanceData) {
+                console.error('Failed to calculate school balance');
+                setLoading(false);
+                return;
+            }
+
+            // Fetch ONLY receipt bills for this school (not tax invoices)
             const { data: billsData, error: billsError } = await supabase
                 .from('bills')
                 .select(
@@ -133,68 +172,64 @@ export default function MyTransactionsPage() {
                         id,
                         booking_reference,
                         trip_date,
+                        customer_id,
+                        school_id,
                         destinations(
                             name,
                             address
                         )
+                    ),
+                    payments(
+                        id,
+                        amount,
+                        payment_date,
+                        payment_type
                     )
                 `,
                 )
-                .eq('customer_email', user.email)
+                .eq('bookings.school_id', user.school_id)
+                .eq('bill_type', 'receipt')
                 .order('created_at', { ascending: false });
 
-            if (billsError) throw billsError;
+            if (billsError) {
+                console.error('Error fetching bills:', billsError);
+                throw billsError;
+            }
+
+            console.log('School receipt bills data:', billsData);
 
             // Transform data to include booking info
             const transformedTransactions =
                 billsData?.map((bill) => ({
                     ...bill,
                     booking: bill.bookings,
+                    payments: bill.payments || [],
                 })) || [];
 
             setTransactions(transformedTransactions);
 
-            // Calculate summary
-            const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
-            const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-            const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+            // Calculate total spent from ALL payments made by the school
+            const totalSpent =
+                billsData?.reduce((sum, bill) => {
+                    const billPayments = bill.payments || [];
+                    const billPaymentsTotal = billPayments.reduce((pSum: number, payment: any) => pSum + (payment.amount || 0), 0);
+                    return sum + billPaymentsTotal;
+                }, 0) || 0;
 
-            const summaryData = transformedTransactions.reduce(
-                (acc, transaction) => {
-                    const transactionDate = new Date(transaction.created_at);
-                    const isThisMonth = transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear;
-                    const isLastMonth = transactionDate.getMonth() === lastMonth && transactionDate.getFullYear() === lastMonthYear;
+            // Use balance data for summary
+            const summaryData = {
+                total_spent: totalSpent,
+                total_transactions: balanceData.receiptCount, // Only count receipts
+                // Pending amount = amount owed (negative balance means school owes money)
+                pending_amount: balanceData.netBalance < 0 ? Math.abs(balanceData.netBalance) : 0,
+                completed_payments: balanceData.receiptCount,
+                school_balance: balanceData.netBalance,
+                // Keep these for compatibility but not used in new design
+                this_month_spent: 0,
+                last_month_spent: 0,
+            };
 
-                    acc.total_transactions += 1;
-
-                    if (transaction.status === 'paid' || transaction.status === 'complete') {
-                        acc.total_spent += transaction.total_amount;
-                        acc.completed_payments += 1;
-
-                        if (isThisMonth) {
-                            acc.this_month_spent += transaction.total_amount;
-                        }
-                        if (isLastMonth) {
-                            acc.last_month_spent += transaction.total_amount;
-                        }
-                    } else if (transaction.status === 'issued' || transaction.status === 'incomplete') {
-                        acc.pending_amount += transaction.total_amount;
-                    }
-
-                    return acc;
-                },
-                {
-                    total_spent: 0,
-                    total_transactions: 0,
-                    pending_amount: 0,
-                    completed_payments: 0,
-                    this_month_spent: 0,
-                    last_month_spent: 0,
-                },
-            );
-
+            console.log('Summary data:', summaryData);
             setSummary(summaryData);
         } catch (error) {
             console.error('Error fetching transactions:', error);
@@ -205,7 +240,7 @@ export default function MyTransactionsPage() {
 
     useEffect(() => {
         fetchTransactions();
-    }, [user?.email]);
+    }, [user?.id]);
 
     useEffect(() => {
         let filtered = transactions;
@@ -253,12 +288,6 @@ export default function MyTransactionsPage() {
             style: 'currency',
             currency: 'ILS',
         }).format(amount);
-    };
-
-    const getMonthlyChange = () => {
-        if (summary.last_month_spent === 0) return { percentage: 0, isIncrease: false };
-        const change = ((summary.this_month_spent - summary.last_month_spent) / summary.last_month_spent) * 100;
-        return { percentage: Math.abs(change), isIncrease: change > 0 };
     };
 
     const containerVariants = {
@@ -311,6 +340,22 @@ export default function MyTransactionsPage() {
                     </div>
                 </motion.div>
 
+                {/* School Info Banner */}
+                {user?.school && (
+                    <motion.div variants={itemVariants} className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-blue-200/50 dark:border-blue-500/30 shadow-xl">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                                <IconBuilding className="w-7 h-7 text-white" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t.linked_to_school || 'Linked to School'}</p>
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">{user.school.name}</h3>
+                                {user.school.address && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{user.school.address}</p>}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* Summary Cards */}
                 <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {/* Total Spent */}
@@ -361,27 +406,26 @@ export default function MyTransactionsPage() {
                         </div>
                     </div>
 
-                    {/* Monthly Change */}
+                    {/* School Balance */}
                     <div className="group relative bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-emerald-200/50 dark:border-emerald-500/30 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]">
                         <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div className="relative">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t.this_month || 'This Month'}</p>
-                                    <p className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{formatCurrency(summary.this_month_spent)}</p>
-                                    {summary.last_month_spent > 0 && (
-                                        <div className="flex items-center mt-2 gap-1">
-                                            {getMonthlyChange().isIncrease ? <IconTrendingUp className="w-4 h-4 text-red-500" /> : <IconTrendingDown className="w-4 h-4 text-emerald-500" />}
-                                            <span className={`text-sm font-semibold ${getMonthlyChange().isIncrease ? 'text-red-500' : 'text-emerald-500'}`}>
-                                                {getMonthlyChange().percentage.toFixed(1)}%
-                                            </span>
-                                        </div>
-                                    )}
+                                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t.school_balance || 'School Balance'}</p>
+                                    <p
+                                        className={`text-2xl font-bold ${summary.school_balance >= 0 ? 'bg-gradient-to-r from-emerald-600 to-teal-600' : 'bg-gradient-to-r from-red-600 to-rose-600'} bg-clip-text text-transparent`}
+                                    >
+                                        {formatCurrency(summary.school_balance)}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {summary.school_balance >= 0 ? t.balance_status_credit || 'Credit' : t.balance_status_debt || 'Debt'}
+                                    </p>
                                 </div>
                                 <div
-                                    className={`w-14 h-14 ${getMonthlyChange().isIncrease ? 'bg-gradient-to-br from-red-500 to-rose-600' : 'bg-gradient-to-br from-emerald-500 to-teal-600'} rounded-2xl flex items-center justify-center shadow-lg`}
+                                    className={`w-14 h-14 ${summary.school_balance >= 0 ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-red-500 to-rose-600'} rounded-2xl flex items-center justify-center shadow-lg`}
                                 >
-                                    {getMonthlyChange().isIncrease ? <IconTrendingUp className="w-7 h-7 text-white" /> : <IconTrendingDown className="w-7 h-7 text-white" />}
+                                    {summary.school_balance >= 0 ? <IconTrendingUp className="w-7 h-7 text-white" /> : <IconTrendingDown className="w-7 h-7 text-white" />}
                                 </div>
                             </div>
                         </div>
@@ -558,12 +602,15 @@ export default function MyTransactionsPage() {
                                                     </div>
                                                 )}
 
-                                                {/* Customer Name */}
+                                                {/* Paid By (Customer Name) */}
                                                 <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
                                                     <div className="w-8 h-8 bg-fuchsia-100 dark:bg-fuchsia-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                                                         <IconUser className="h-4 w-4 text-fuchsia-600 dark:text-fuchsia-400" />
                                                     </div>
-                                                    <span className="text-sm font-medium">{transaction.customer_name}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs text-gray-500 dark:text-gray-400">{t.paid_by || 'Paid By'}</span>
+                                                        <span className="text-sm font-medium">{transaction.customer_name}</span>
+                                                    </div>
                                                 </div>
                                             </div>
 

@@ -23,6 +23,7 @@ import IconStar from '@/components/icon/icon-star';
 import IconCaretDown from '@/components/icon/icon-caret-down';
 import IconX from '@/components/icon/icon-x';
 import IconCheck from '@/components/icon/icon-check';
+import IconBuilding from '@/components/icon/icon-building';
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'active' | 'inactive';
 type PaymentStatus = 'pending' | 'deposit_paid' | 'fully_paid' | 'cancelled' | 'paid';
@@ -155,7 +156,33 @@ export default function MyBookingsPage() {
                     return;
                 }
 
-                setCurrentUser(user);
+                // Fetch user with school details
+                const { data: userWithSchool, error: schoolError } = await supabase
+                    .from('users')
+                    .select(
+                        `
+                        id, 
+                        school_id,
+                        schools (
+                            id,
+                            name,
+                            address,
+                            phone
+                        )
+                    `,
+                    )
+                    .eq('id', user.id)
+                    .single();
+
+                if (userWithSchool && !schoolError) {
+                    setCurrentUser({
+                        ...user,
+                        school_id: userWithSchool.school_id,
+                        school: userWithSchool.schools,
+                    });
+                } else {
+                    setCurrentUser(user);
+                }
 
                 // Fetch bookings for this user
                 const { data, error } = await supabase
@@ -339,6 +366,27 @@ export default function MyBookingsPage() {
                         </div>
                     </div>
                 </motion.div>
+
+                {/* School Info Banner */}
+                {currentUser?.school && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.05 }}
+                        className="mb-8 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl rounded-2xl p-6 border border-blue-200/50 dark:border-blue-500/30 shadow-xl"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                                <IconBuilding className="w-7 h-7 text-white" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{t('linked_to_school')}</p>
+                                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">{currentUser.school.name}</h3>
+                                {currentUser.school.address && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{currentUser.school.address}</p>}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* Enhanced Filters with Custom Dropdowns */}
                 <motion.div

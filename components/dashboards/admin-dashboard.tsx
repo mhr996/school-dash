@@ -182,18 +182,20 @@ const AdminDashboard = () => {
             }
 
             // Format recent bookings
-            const formattedRecentBookings: RecentBooking[] = (recentBookingsData.data || []).map((booking: any) => ({
-                id: booking.id,
-                booking_reference: booking.booking_reference,
-                booking_type: booking.booking_type,
-                trip_date: booking.trip_date,
-                total_amount: parseFloat(booking.total_amount?.toString() || '0'),
-                payment_status: booking.payment_status,
-                status: booking.status,
-                customer_name: booking.customer?.[0]?.full_name || 'N/A',
-                school_name: booking.school?.[0]?.name || 'N/A',
-                created_at: booking.created_at,
-            }));
+            const formattedRecentBookings: RecentBooking[] = (recentBookingsData.data || []).map((booking: any) => {
+                return {
+                    id: booking.id,
+                    booking_reference: booking.booking_reference,
+                    booking_type: booking.booking_type,
+                    trip_date: booking.trip_date,
+                    total_amount: parseFloat(booking.total_amount?.toString() || '0'),
+                    payment_status: booking.payment_status,
+                    status: booking.status,
+                    customer_name: booking.customer?.full_name || 'N/A',
+                    school_name: booking.school?.name || 'N/A',
+                    created_at: booking.created_at,
+                };
+            });
 
             setStats({
                 totalEarnings,
@@ -590,7 +592,7 @@ const AdminDashboard = () => {
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: 1 + index * 0.05 }}
                                         className="hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors duration-200 cursor-pointer"
-                                        onClick={() => router.push(`/bookings/${booking.id}`)}
+                                        onClick={() => router.push(`/bookings/preview/${booking.id}`)}
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="text-sm font-medium text-blue-600 dark:text-blue-400">{booking.booking_reference}</span>
