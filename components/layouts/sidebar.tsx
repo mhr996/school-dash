@@ -36,6 +36,7 @@ import IconSettings from '@/components/icon/icon-settings';
 import IconBuilding from '@/components/icon/icon-building';
 import IconListCheck from '@/components/icon/icon-list-check';
 import IconCash from '@/components/icon/icon-cash-banknotes';
+import IconCashBanknotes from '@/components/icon/icon-cash-banknotes';
 import IconCar from '@/components/icon/icon-car';
 import IconLock from '@/components/icon/icon-lock';
 import IconStar from '@/components/icon/icon-star';
@@ -386,6 +387,15 @@ const Sidebar = () => {
                                                     <div className="flex items-center">
                                                         <IconMenuInvoice className="shrink-0 group-hover:!text-primary" />
                                                         <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('bills')}</span>
+                                                    </div>
+                                                </Link>
+                                            </li>
+
+                                            <li className="nav-item">
+                                                <Link href="/payouts" className="group">
+                                                    <div className="flex items-center">
+                                                        <IconCashBanknotes className="shrink-0 group-hover:!text-primary" />
+                                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('payouts')}</span>
                                                     </div>
                                                 </Link>
                                             </li>
