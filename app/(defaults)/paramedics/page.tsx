@@ -14,6 +14,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
+import { calculateServiceProviderBalance, ServiceProviderBalance } from '@/utils/service-balance-manager';
 
 interface Paramedic {
     id: string;
@@ -29,6 +30,7 @@ interface Paramedic {
     overnight_rate?: number;
     status?: string;
     notes?: string;
+    balance?: number;
 }
 
 const ParamedicsList = () => {
@@ -68,7 +70,18 @@ const ParamedicsList = () => {
 
                 if (error) throw error;
 
-                setItems(data as Paramedic[]);
+                // Fetch balances for all paramedics
+                const paramedicsWithBalance = await Promise.all(
+                    (data as Paramedic[]).map(async (paramedic) => {
+                        const balanceData = await calculateServiceProviderBalance('paramedics', paramedic.id);
+                        return {
+                            ...paramedic,
+                            balance: balanceData?.netBalance || 0,
+                        };
+                    }),
+                );
+
+                setItems(paramedicsWithBalance);
             } catch (error) {
                 console.error('Error fetching paramedics:', error);
                 setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
@@ -115,9 +128,29 @@ const ParamedicsList = () => {
 
     const deleteParamedic = async (paramedic: Paramedic) => {
         try {
+            // Get the user_id linked to this paramedic
+            const { data: paramedicData, error: fetchError } = await supabase.from('paramedics').select('user_id').eq('id', paramedic.id).single();
+
+            if (fetchError) throw fetchError;
+
+            // Delete from paramedics table
             const { error } = await supabase.from('paramedics').delete().eq('id', paramedic.id);
 
             if (error) throw error;
+
+            // If there's a linked user account, delete it from public.users and auth.users
+            if (paramedicData?.user_id) {
+                // Get the auth_user_id from public.users
+                const { data: userData, error: userFetchError } = await supabase.from('users').select('auth_user_id').eq('id', paramedicData.user_id).single();
+
+                if (!userFetchError && userData?.auth_user_id) {
+                    // Delete from public.users
+                    await supabase.from('users').delete().eq('id', paramedicData.user_id);
+
+                    // Delete from auth.users using admin API
+                    await supabase.auth.admin.deleteUser(userData.auth_user_id);
+                }
+            }
 
             setItems((prevItems) => prevItems.filter((item) => item.id !== paramedic.id));
             setAlert({ visible: true, message: t('paramedic_deleted_successfully'), type: 'success' });
@@ -241,6 +274,18 @@ const ParamedicsList = () => {
                                     <div>
                                         {t('overnight_rate')}: {overnight_rate ? <span className="text-green-500 font-semibold">{overnight_rate}</span> : t('not_specified')}
                                     </div>
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'balance',
+                            title: t('balance'),
+                            sortable: true,
+                            render: ({ balance }) => (
+                                <div className="font-semibold">
+                                    <span className={balance && balance > 0 ? 'text-green-600' : balance && balance < 0 ? 'text-red-600' : 'text-gray-500'}>
+                                        ₪{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                    </span>
                                 </div>
                             ),
                         },

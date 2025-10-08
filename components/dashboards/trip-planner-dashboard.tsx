@@ -2526,7 +2526,7 @@ export default function TripPlannerDashboard() {
                                     {/* Right Column - Summary and Checkout */}
                                     <div className="space-y-6">
                                         {/* Selected Services Summary */}
-                                        <div className="bg-white/20 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-white/30 dark:border-slate-700/40 sticky top-6">
+                                        <div className="bg-white/20 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-white/30 dark:border-slate-700/40 sticky top-6 self-start overflow-y-auto">
                                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                                 <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
                                                     <IconShoppingBag className="w-4 h-4 text-white" />
@@ -2543,27 +2543,50 @@ export default function TripPlannerDashboard() {
                                                 </div>
                                             ) : (
                                                 <div className="space-y-3">
-                                                    {selectedRequirements.map((requirement, index) => (
-                                                        <motion.div
-                                                            key={index}
-                                                            initial={{ opacity: 0, x: 20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            className="flex items-center justify-between p-3 bg-white/10 dark:bg-slate-700/20 rounded-lg"
-                                                        >
-                                                            <div className="flex-1">
-                                                                <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{requirement.name}</h4>
-                                                                <p className="text-xs text-gray-600 dark:text-gray-300">
-                                                                    {requirement.quantity}x {requirement.rate_type === 'daily' ? t('daily') : t('hourly')}
-                                                                </p>
-                                                            </div>
-                                                            <div className="text-right">
-                                                                <p className="font-semibold text-gray-900 dark:text-white text-sm">${requirement.cost}</p>
-                                                                <button onClick={() => removeRequirement(index)} className="text-red-500 hover:text-red-700 text-xs">
-                                                                    {t('remove')}
-                                                                </button>
-                                                            </div>
-                                                        </motion.div>
-                                                    ))}
+                                                    {selectedRequirements.map((requirement, index) => {
+                                                        // Get the service type label and color (matching the service icon colors)
+                                                        const getServiceTypeInfo = (type: string) => {
+                                                            const typeMap: { [key: string]: { label: string; color: string } } = {
+                                                                paramedics: { label: t('paramedics') || 'Paramedics', color: 'bg-red-500/20 text-red-600 dark:text-red-400' },
+                                                                guides: { label: t('guides') || 'Guides', color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
+                                                                security_companies: { label: t('security_companies') || 'Security', color: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' },
+                                                                external_entertainment_companies: {
+                                                                    label: t('external_entertainment_companies') || 'Entertainment',
+                                                                    color: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+                                                                },
+                                                                travel_companies: { label: t('travel_companies') || 'Transportation', color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
+                                                            };
+                                                            return typeMap[type] || { label: type, color: 'bg-gray-500/20 text-gray-600 dark:text-gray-400' };
+                                                        };
+
+                                                        const serviceInfo = getServiceTypeInfo(requirement.type);
+
+                                                        return (
+                                                            <motion.div
+                                                                key={index}
+                                                                initial={{ opacity: 0, x: 20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                className="flex items-center justify-between p-3 bg-white/10 dark:bg-slate-700/20 rounded-lg"
+                                                            >
+                                                                <div className="flex-1">
+                                                                    <div className="flex items-center gap-2 mb-1">
+                                                                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{requirement.name}</h4>
+                                                                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${serviceInfo.color}`}>{serviceInfo.label}</span>
+                                                                    </div>
+                                                                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                                                                        {requirement.quantity}x{' '}
+                                                                        {requirement.rate_type === 'daily' ? t('daily') : requirement.rate_type === 'hourly' ? t('hourly') : t('fixed')}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">${requirement.cost}</p>
+                                                                    <button onClick={() => removeRequirement(index)} className="text-red-500 hover:text-red-700 text-xs">
+                                                                        {t('remove')}
+                                                                    </button>
+                                                                </div>
+                                                            </motion.div>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
 
@@ -3168,7 +3191,7 @@ export default function TripPlannerDashboard() {
                                     <motion.div
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="bg-gradient-to-r from-emerald-100/40 to-blue-100/40 dark:from-emerald-800/30 dark:to-blue-800/30 backdrop-blur-md rounded-xl p-6 border border-emerald-200/50 dark:border-emerald-700/40 shadow-lg"
+                                        className="bg-gradient-to-r from-emerald-100/40 to-blue-100/40 dark:from-emerald-800/30 dark:to-blue-800/30 backdrop-blur-md rounded-xl p-6 border border-emerald-200/50 dark:border-emerald-700/40 shadow-lg sticky top-6 self-start overflow-y-auto"
                                     >
                                         <div className="flex items-center gap-2 mb-4">
                                             <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center">
@@ -3185,28 +3208,52 @@ export default function TripPlannerDashboard() {
                                         {selectedRequirements.length > 0 && (
                                             <div className="space-y-2 mb-4">
                                                 <p className="text-sm font-medium text-gray-800 dark:text-white">{t('selected_services')}:</p>
-                                                {selectedRequirements.map((req, idx) => (
-                                                    <div key={idx} className="flex justify-between items-center text-sm bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg p-2">
-                                                        <span className="text-gray-700 dark:text-gray-300">{req.name}</span>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-medium text-gray-900 dark:text-white">${(req.cost * req.quantity * (req.days || 1)).toFixed(2)}</span>
-                                                            <button
-                                                                onClick={() => removeRequirement(idx)}
-                                                                className="text-red-400 hover:text-red-600 transition-colors duration-200 p-1"
-                                                                title={t('remove')}
-                                                            >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                        strokeWidth={2}
-                                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                                    />
-                                                                </svg>
-                                                            </button>
+                                                {selectedRequirements.map((req, idx) => {
+                                                    // Get the service type label and color (matching the service icon colors)
+                                                    const getServiceTypeInfo = (type: string) => {
+                                                        const typeMap: { [key: string]: { label: string; color: string } } = {
+                                                            paramedics: { label: t('paramedics') || 'Paramedics', color: 'bg-red-500/20 text-red-600 dark:text-red-400' },
+                                                            guides: { label: t('guides') || 'Guides', color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
+                                                            security_companies: { label: t('security_companies') || 'Security', color: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' },
+                                                            external_entertainment_companies: {
+                                                                label: t('external_entertainment_companies') || 'Entertainment',
+                                                                color: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+                                                            },
+                                                            travel_companies: { label: t('travel_companies') || 'Transportation', color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
+                                                        };
+                                                        return typeMap[type] || { label: type, color: 'bg-gray-500/20 text-gray-600 dark:text-gray-400' };
+                                                    };
+
+                                                    const serviceInfo = getServiceTypeInfo(req.type);
+
+                                                    return (
+                                                        <div key={idx} className="flex flex-col gap-2 text-sm bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg p-3">
+                                                            <div className="flex justify-between items-center">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-gray-700 dark:text-gray-300 font-medium">{req.name}</span>
+                                                                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${serviceInfo.color}`}>{serviceInfo.label}</span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-semibold text-gray-900 dark:text-white">${(req.cost * req.quantity * (req.days || 1)).toFixed(2)}</span>
+                                                                    <button
+                                                                        onClick={() => removeRequirement(idx)}
+                                                                        className="text-red-400 hover:text-red-600 transition-colors duration-200 p-1"
+                                                                        title={t('remove')}
+                                                                    >
+                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                                strokeWidth={2}
+                                                                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                                            />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         )}
 

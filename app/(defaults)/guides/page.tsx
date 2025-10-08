@@ -14,6 +14,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
+import { calculateServiceProviderBalance, ServiceProviderBalance } from '@/utils/service-balance-manager';
 
 interface Guide {
     id: string;
@@ -29,6 +30,7 @@ interface Guide {
     overnight_rate?: number;
     status?: string;
     notes?: string;
+    balance?: number;
 }
 
 const GuidesList = () => {
@@ -68,7 +70,18 @@ const GuidesList = () => {
 
                 if (error) throw error;
 
-                setItems(data as Guide[]);
+                // Fetch balances for all guides
+                const guidesWithBalance = await Promise.all(
+                    (data as Guide[]).map(async (guide) => {
+                        const balanceData = await calculateServiceProviderBalance('guides', guide.id);
+                        return {
+                            ...guide,
+                            balance: balanceData?.netBalance || 0,
+                        };
+                    }),
+                );
+
+                setItems(guidesWithBalance);
             } catch (error) {
                 console.error('Error fetching guides:', error);
                 setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
@@ -115,9 +128,29 @@ const GuidesList = () => {
 
     const deleteGuide = async (guide: Guide) => {
         try {
+            // Get the user_id linked to this guide
+            const { data: guideData, error: fetchError } = await supabase.from('guides').select('user_id').eq('id', guide.id).single();
+
+            if (fetchError) throw fetchError;
+
+            // Delete from guides table
             const { error } = await supabase.from('guides').delete().eq('id', guide.id);
 
             if (error) throw error;
+
+            // If there's a linked user account, delete it from public.users and auth.users
+            if (guideData?.user_id) {
+                // Get the auth_user_id from public.users
+                const { data: userData, error: userFetchError } = await supabase.from('users').select('auth_user_id').eq('id', guideData.user_id).single();
+
+                if (!userFetchError && userData?.auth_user_id) {
+                    // Delete from public.users
+                    await supabase.from('users').delete().eq('id', guideData.user_id);
+
+                    // Delete from auth.users using admin API
+                    await supabase.auth.admin.deleteUser(userData.auth_user_id);
+                }
+            }
 
             setItems((prevItems) => prevItems.filter((item) => item.id !== guide.id));
             setAlert({ visible: true, message: t('guide_deleted_successfully'), type: 'success' });
@@ -241,6 +274,18 @@ const GuidesList = () => {
                                     <div>
                                         {t('overnight_rate')}: {overnight_rate ? <span className="text-green-500 font-semibold">{overnight_rate}</span> : t('not_specified')}
                                     </div>
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'balance',
+                            title: t('balance'),
+                            sortable: true,
+                            render: ({ balance }) => (
+                                <div className="font-semibold">
+                                    <span className={balance && balance > 0 ? 'text-green-600' : balance && balance < 0 ? 'text-red-600' : 'text-gray-500'}>
+                                        ₪{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                    </span>
                                 </div>
                             ),
                         },

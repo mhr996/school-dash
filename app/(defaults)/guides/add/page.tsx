@@ -153,22 +153,35 @@ const AddGuide = () => {
                 throw new Error('User creation failed - no user data returned');
             }
 
-            // Create user profile in database
-            const { error: profileError } = await supabase.from('users').insert({
-                email: formData.user_email,
-                full_name: formData.name, // Use guide name as full name
-                phone: formData.phone,
-                role_id: guideRole.id,
-                is_active: formData.status === 'active',
-                auth_user_id: authData.user.id,
-            });
+            // Create user profile in database and get the user ID
+            const { data: userData, error: profileError } = await supabase
+                .from('users')
+                .insert({
+                    email: formData.user_email,
+                    full_name: formData.name, // Use guide name as full name
+                    phone: formData.phone,
+                    role_id: guideRole.id,
+                    is_active: formData.status === 'active',
+                    auth_user_id: authData.user.id,
+                })
+                .select()
+                .single();
 
             if (profileError) throw profileError;
 
-            // Prepare guide data (excluding user account fields)
+            if (!userData) {
+                throw new Error('User profile creation failed - no user data returned');
+            }
+
+            // Prepare guide data (excluding user account fields) and link to user
             const { user_email, user_password, ...guideData } = formData;
 
-            const { error } = await supabase.from('guides').insert([guideData]);
+            const { error } = await supabase.from('guides').insert([
+                {
+                    ...guideData,
+                    user_id: userData.id, // Link to public.users record
+                },
+            ]);
 
             if (error) {
                 if (error.code === '23505') {

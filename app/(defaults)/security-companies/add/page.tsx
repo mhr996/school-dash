@@ -147,22 +147,35 @@ const AddSecurityCompany = () => {
                 throw new Error('User creation failed - no user data returned');
             }
 
-            // Create user profile in database
-            const { error: profileError } = await supabase.from('users').insert({
-                email: formData.user_email,
-                full_name: formData.name, // Use company name as full name
-                phone: formData.phone,
-                role_id: securityRole.id,
-                is_active: formData.status === 'active',
-                auth_user_id: authData.user.id,
-            });
+            // Create user profile in database and get the user ID
+            const { data: userData, error: profileError } = await supabase
+                .from('users')
+                .insert({
+                    email: formData.user_email,
+                    full_name: formData.name, // Use company name as full name
+                    phone: formData.phone,
+                    role_id: securityRole.id,
+                    is_active: formData.status === 'active',
+                    auth_user_id: authData.user.id,
+                })
+                .select()
+                .single();
 
             if (profileError) throw profileError;
 
-            // Prepare security company data (excluding user account fields)
+            if (!userData) {
+                throw new Error('User profile creation failed - no user data returned');
+            }
+
+            // Prepare security company data (excluding user account fields) and link to user
             const { user_email, user_password, ...securityCompanyData } = formData;
 
-            const { error } = await supabase.from('security_companies').insert([securityCompanyData]);
+            const { error } = await supabase.from('security_companies').insert([
+                {
+                    ...securityCompanyData,
+                    user_id: userData.id, // Link to public.users record
+                },
+            ]);
 
             if (error) {
                 throw error;

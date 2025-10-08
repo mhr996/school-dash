@@ -129,27 +129,35 @@ export default function AddEntertainmentCompany() {
                 throw new Error('Failed to create user account');
             }
 
-            // 3) Create user profile with entertainment_company role
-            const { error: profileError } = await supabase.from('users').insert([
-                {
-                    id: authData.user.id,
-                    full_name: formData.name.trim(), // Use entertainment company name as full name
-                    email: formData.user_email.trim(),
-                    role_id: entertainmentCompanyRole.id,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                },
-            ]);
+            // 3) Create user profile with entertainment_company role and get the user ID
+            const { data: userData, error: profileError } = await supabase
+                .from('users')
+                .insert([
+                    {
+                        full_name: formData.name.trim(), // Use entertainment company name as full name
+                        email: formData.user_email.trim(),
+                        role_id: entertainmentCompanyRole.id,
+                        auth_user_id: authData.user.id,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    },
+                ])
+                .select()
+                .single();
 
             if (profileError) throw profileError;
 
-            // 4) Create entertainment company record
+            if (!userData) {
+                throw new Error('User profile creation failed - no user data returned');
+            }
+
+            // 4) Create entertainment company record and link to user
             const basePayload = {
                 name: formData.name.trim(),
                 description: formData.description.trim() || null,
                 price: formData.price,
                 status: formData.status,
-                user_id: authData.user.id,
+                user_id: userData.id, // Link to public.users record
             };
 
             const { data: created, error: insertError } = await supabase.from('external_entertainment_companies').insert([basePayload]).select().single();

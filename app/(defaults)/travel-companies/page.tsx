@@ -14,6 +14,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
+import { calculateServiceProviderBalance, ServiceProviderBalance } from '@/utils/service-balance-manager';
 
 interface TravelCompany {
     id: string;
@@ -32,6 +33,7 @@ interface TravelCompany {
     pricing_structure?: string;
     status: string;
     notes?: string;
+    balance?: number;
 }
 
 const TravelCompaniesList = () => {
@@ -67,8 +69,19 @@ const TravelCompaniesList = () => {
 
             if (error) throw error;
 
-            setItems(data || []);
-            setInitialRecords(data || []);
+            // Fetch balances for all travel companies
+            const companiesWithBalance = await Promise.all(
+                (data || []).map(async (company) => {
+                    const balanceData = await calculateServiceProviderBalance('travel_companies', company.id);
+                    return {
+                        ...company,
+                        balance: balanceData?.netBalance || 0,
+                    };
+                }),
+            );
+
+            setItems(companiesWithBalance);
+            setInitialRecords(companiesWithBalance);
         } catch (error) {
             console.error('Error fetching travel companies:', error);
             setAlert({
@@ -117,9 +130,30 @@ const TravelCompaniesList = () => {
     const handleDelete = async (id: string) => {
         try {
             setIsDeleting(true);
+
+            // Get the user_id linked to this travel company
+            const { data: companyData, error: fetchError } = await supabase.from('travel_companies').select('user_id').eq('id', id).single();
+
+            if (fetchError) throw fetchError;
+
+            // Delete from travel_companies table
             const { error } = await supabase.from('travel_companies').delete().eq('id', id);
 
             if (error) throw error;
+
+            // If there's a linked user account, delete it from public.users and auth.users
+            if (companyData?.user_id) {
+                // Get the auth_user_id from public.users
+                const { data: userData, error: userFetchError } = await supabase.from('users').select('auth_user_id').eq('id', companyData.user_id).single();
+
+                if (!userFetchError && userData?.auth_user_id) {
+                    // Delete from public.users
+                    await supabase.from('users').delete().eq('id', companyData.user_id);
+
+                    // Delete from auth.users using admin API
+                    await supabase.auth.admin.deleteUser(userData.auth_user_id);
+                }
+            }
 
             setAlert({
                 message: t('travel_company_deleted_successfully') || 'Travel company deleted successfully',
@@ -240,6 +274,18 @@ const TravelCompaniesList = () => {
                                 accessor: 'email',
                                 title: t('email'),
                                 render: ({ email }) => <span dir="ltr">{email || '-'}</span>,
+                            },
+                            {
+                                accessor: 'balance',
+                                title: t('balance'),
+                                sortable: true,
+                                render: ({ balance }) => (
+                                    <div className="font-semibold">
+                                        <span className={balance && balance > 0 ? 'text-green-600' : balance && balance < 0 ? 'text-red-600' : 'text-gray-500'}>
+                                            ₪{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                        </span>
+                                    </div>
+                                ),
                             },
                             {
                                 accessor: 'status',

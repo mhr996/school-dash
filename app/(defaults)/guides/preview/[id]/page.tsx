@@ -15,6 +15,7 @@ import IconCalendar from '@/components/icon/icon-calendar';
 import IconClipboardText from '@/components/icon/icon-clipboard-text';
 import IconDollarSign from '@/components/icon/icon-dollar-sign';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
 
 import { getTranslation } from '@/i18n';
 
@@ -263,6 +264,11 @@ const GuidePreview = () => {
                             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">{guide.notes}</div>
                         </div>
                     )}
+
+                    {/* Balance Section */}
+                    <div>
+                        <ServiceBalanceTab serviceType="guides" serviceId={guide.id} />
+                    </div>
                 </div>
 
                 {/* Sidebar */}

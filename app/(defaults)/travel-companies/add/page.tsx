@@ -210,21 +210,29 @@ const AddTravelCompany = () => {
                 throw new Error('Failed to create user account');
             }
 
-            // 3) Create user profile with travel_company role
-            const { error: profileError } = await supabase.from('users').insert([
-                {
-                    id: authData.user.id,
-                    full_name: formData.name.trim(), // Use travel company name as full name
-                    email: formData.user_email.trim(),
-                    role_id: travelCompanyRole.id,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString(),
-                },
-            ]);
+            // 3) Create user profile with travel_company role and get the user ID
+            const { data: userData, error: profileError } = await supabase
+                .from('users')
+                .insert([
+                    {
+                        full_name: formData.name.trim(), // Use travel company name as full name
+                        email: formData.user_email.trim(),
+                        role_id: travelCompanyRole.id,
+                        auth_user_id: authData.user.id,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString(),
+                    },
+                ])
+                .select()
+                .single();
 
             if (profileError) throw profileError;
 
-            // 4) Create travel company record
+            if (!userData) {
+                throw new Error('User profile creation failed - no user data returned');
+            }
+
+            // 4) Create travel company record and link to user
             const companyData = {
                 name: formData.name,
                 code: formData.code,
@@ -238,7 +246,7 @@ const AddTravelCompany = () => {
                 status: formData.status,
                 notes: formData.notes,
                 pricing_data: pricingData,
-                user_id: authData.user.id,
+                user_id: userData.id, // Link to public.users record
             };
 
             const { data, error } = await supabase.from('travel_companies').insert([companyData]).select().single();

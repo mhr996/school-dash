@@ -15,6 +15,7 @@ import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
 import { deleteFolderRecursively } from '@/utils/file-upload';
+import { calculateServiceProviderBalance, ServiceProviderBalance } from '@/utils/service-balance-manager';
 
 interface EntertainmentCompany {
     id: string;
@@ -25,6 +26,7 @@ interface EntertainmentCompany {
     description?: string;
     price?: number;
     status?: string;
+    balance?: number;
 }
 
 // Helper function to get proper image URL
@@ -87,7 +89,18 @@ const EntertainmentCompaniesList = () => {
 
                 if (error) throw error;
 
-                setItems(data || []);
+                // Fetch balances for all entertainment companies
+                const companiesWithBalance = await Promise.all(
+                    (data || []).map(async (company) => {
+                        const balanceData = await calculateServiceProviderBalance('external_entertainment_companies', company.id);
+                        return {
+                            ...company,
+                            balance: balanceData?.netBalance || 0,
+                        };
+                    }),
+                );
+
+                setItems(companiesWithBalance);
             } catch (error) {
                 console.error('Error fetching entertainment companies:', error);
                 setAlert({ visible: true, message: t('error_loading_entertainment_companies'), type: 'danger' });
@@ -129,14 +142,32 @@ const EntertainmentCompaniesList = () => {
 
     const deleteEntertainmentCompany = async (company: EntertainmentCompany) => {
         try {
-            // First delete the entertainment company record from database
+            // Get the user_id linked to this entertainment company
+            const { data: companyData, error: fetchError } = await supabase.from('external_entertainment_companies').select('user_id').eq('id', company.id).single();
+
+            if (fetchError) throw fetchError;
+
+            // Delete the entertainment company record from database
             const { error } = await supabase.from('external_entertainment_companies').delete().eq('id', company.id);
 
             if (error) throw error;
 
-            // Then delete the associated folder from storage if it exists
-            // The folder name is just the company ID (same as destinations pattern)
+            // Delete the associated folder from storage if it exists
             await deleteFolderRecursively('entertainment-companies', company.id);
+
+            // If there's a linked user account, delete it from public.users and auth.users
+            if (companyData?.user_id) {
+                // Get the auth_user_id from public.users
+                const { data: userData, error: userFetchError } = await supabase.from('users').select('auth_user_id').eq('id', companyData.user_id).single();
+
+                if (!userFetchError && userData?.auth_user_id) {
+                    // Delete from public.users
+                    await supabase.from('users').delete().eq('id', companyData.user_id);
+
+                    // Delete from auth.users using admin API
+                    await supabase.auth.admin.deleteUser(userData.auth_user_id);
+                }
+            }
 
             setItems((prevItems) => prevItems.filter((item) => item.id !== company.id));
             setAlert({ visible: true, message: t('entertainment_company_deleted_successfully'), type: 'success' });
@@ -278,6 +309,18 @@ const EntertainmentCompaniesList = () => {
                             render: ({ price }) => (
                                 <div className="text-sm">
                                     {price ? <span className="badge badge-outline-success">{price.toLocaleString()} ₪</span> : <span className="text-gray-400">{t('not_specified')}</span>}
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'balance',
+                            title: t('balance'),
+                            sortable: true,
+                            render: ({ balance }) => (
+                                <div className="font-semibold">
+                                    <span className={balance && balance > 0 ? 'text-green-600' : balance && balance < 0 ? 'text-red-600' : 'text-gray-500'}>
+                                        ₪{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                    </span>
                                 </div>
                             ),
                         },

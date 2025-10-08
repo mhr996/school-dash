@@ -16,6 +16,7 @@ import IconMapPin from '@/components/icon/icon-map-pin';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconClipboardText from '@/components/icon/icon-clipboard-text';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
 
 import { getTranslation } from '@/i18n';
 
@@ -268,6 +269,11 @@ const SecurityCompanyPreview = () => {
                             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.notes}</div>
                         </div>
                     )}
+
+                    {/* Balance Section */}
+                    <div>
+                        <ServiceBalanceTab serviceType="security_companies" serviceId={company.id} />
+                    </div>
                 </div>
 
                 {/* Sidebar */}

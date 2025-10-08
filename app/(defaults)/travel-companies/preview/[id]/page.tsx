@@ -13,6 +13,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
 
 interface TravelCompany {
     id: string;
@@ -389,6 +390,11 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
                             <p className="text-base dark:text-white-light">{formatDate(travelCompany.updated_at)}</p>
                         </div>
                     </div>
+                </div>
+
+                {/* Balance Section */}
+                <div>
+                    <ServiceBalanceTab serviceType="travel_companies" serviceId={travelCompany.id} />
                 </div>
             </div>
         </div>

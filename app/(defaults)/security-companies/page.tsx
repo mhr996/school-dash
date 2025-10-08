@@ -14,6 +14,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
+import { calculateServiceProviderBalance, ServiceProviderBalance } from '@/utils/service-balance-manager';
 
 interface SecurityCompany {
     id: string;
@@ -28,6 +29,7 @@ interface SecurityCompany {
     weapon_types?: string;
     status?: string;
     notes?: string;
+    balance?: number;
 }
 
 const SecurityCompaniesList = () => {
@@ -67,7 +69,18 @@ const SecurityCompaniesList = () => {
 
                 if (error) throw error;
 
-                setItems(data as SecurityCompany[]);
+                // Fetch balances for all security companies
+                const companiesWithBalance = await Promise.all(
+                    (data as SecurityCompany[]).map(async (company) => {
+                        const balanceData = await calculateServiceProviderBalance('security_companies', company.id);
+                        return {
+                            ...company,
+                            balance: balanceData?.netBalance || 0,
+                        };
+                    }),
+                );
+
+                setItems(companiesWithBalance);
             } catch (error) {
                 console.error('Error fetching security companies:', error);
                 setAlert({ visible: true, message: t('error_loading_security_companies'), type: 'danger' });
@@ -117,9 +130,29 @@ const SecurityCompaniesList = () => {
 
     const deleteSecurityCompany = async (company: SecurityCompany) => {
         try {
+            // Get the user_id linked to this security company
+            const { data: companyData, error: fetchError } = await supabase.from('security_companies').select('user_id').eq('id', company.id).single();
+
+            if (fetchError) throw fetchError;
+
+            // Delete from security_companies table
             const { error } = await supabase.from('security_companies').delete().eq('id', company.id);
 
             if (error) throw error;
+
+            // If there's a linked user account, delete it from public.users and auth.users
+            if (companyData?.user_id) {
+                // Get the auth_user_id from public.users
+                const { data: userData, error: userFetchError } = await supabase.from('users').select('auth_user_id').eq('id', companyData.user_id).single();
+
+                if (!userFetchError && userData?.auth_user_id) {
+                    // Delete from public.users
+                    await supabase.from('users').delete().eq('id', companyData.user_id);
+
+                    // Delete from auth.users using admin API
+                    await supabase.auth.admin.deleteUser(userData.auth_user_id);
+                }
+            }
 
             setItems((prevItems) => prevItems.filter((item) => item.id !== company.id));
             setAlert({ visible: true, message: t('security_company_deleted_successfully'), type: 'success' });
@@ -246,6 +279,18 @@ const SecurityCompaniesList = () => {
                             render: ({ weapon_types }) => (
                                 <div className="text-sm">
                                     {weapon_types ? <span className="badge badge-outline-warning">{weapon_types}</span> : <span className="text-gray-400">{t('not_specified')}</span>}
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'balance',
+                            title: t('balance'),
+                            sortable: true,
+                            render: ({ balance }) => (
+                                <div className="font-semibold">
+                                    <span className={balance && balance > 0 ? 'text-green-600' : balance && balance < 0 ? 'text-red-600' : 'text-gray-500'}>
+                                        ₪{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                    </span>
                                 </div>
                             ),
                         },

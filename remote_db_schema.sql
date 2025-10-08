@@ -108,7 +108,7 @@ CREATE TABLE public.external_entertainment_companies (
   status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])),
   user_id uuid,
   CONSTRAINT external_entertainment_companies_pkey PRIMARY KEY (id),
-  CONSTRAINT external_entertainment_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT external_entertainment_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.guides (
   name character varying NOT NULL,
@@ -126,7 +126,7 @@ CREATE TABLE public.guides (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
   CONSTRAINT guides_pkey PRIMARY KEY (id),
-  CONSTRAINT guides_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT guides_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.paramedics (
   name character varying NOT NULL,
@@ -144,7 +144,7 @@ CREATE TABLE public.paramedics (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
   CONSTRAINT paramedics_pkey PRIMARY KEY (id),
-  CONSTRAINT paramedics_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT paramedics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.payments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -166,6 +166,31 @@ CREATE TABLE public.payments (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT payments_pkey PRIMARY KEY (id),
   CONSTRAINT payments_bill_id_fkey FOREIGN KEY (bill_id) REFERENCES public.bills(id)
+);
+CREATE TABLE public.payouts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text, 'travel_companies'::character varying::text])),
+  service_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  service_provider_name character varying NOT NULL,
+  amount numeric NOT NULL CHECK (amount > 0::numeric),
+  payment_method character varying NOT NULL CHECK (payment_method::text = ANY (ARRAY['cash'::character varying::text, 'bank_transfer'::character varying::text, 'credit_card'::character varying::text, 'check'::character varying::text])),
+  payment_date date NOT NULL DEFAULT CURRENT_DATE,
+  account_number character varying,
+  account_holder_name character varying,
+  bank_name character varying,
+  transaction_number character varying,
+  reference_number character varying,
+  check_number character varying,
+  check_bank_name character varying,
+  description text,
+  notes text,
+  created_by uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT payouts_pkey PRIMARY KEY (id),
+  CONSTRAINT payouts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT payouts_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.schools (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -204,7 +229,7 @@ CREATE TABLE public.security_companies (
   overnight_rate numeric DEFAULT 500.00,
   user_id uuid,
   CONSTRAINT security_companies_pkey PRIMARY KEY (id),
-  CONSTRAINT security_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT security_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.students (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -249,7 +274,7 @@ CREATE TABLE public.travel_companies (
   pricing_data jsonb,
   user_id uuid,
   CONSTRAINT travel_companies_pkey PRIMARY KEY (id),
-  CONSTRAINT travel_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+  CONSTRAINT travel_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
 CREATE TABLE public.trip_buses (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

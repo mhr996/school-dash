@@ -9,6 +9,7 @@ import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconEdit from '@/components/icon/icon-edit';
 import IconCalendar from '@/components/icon/icon-calendar';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
 
 import { getTranslation } from '@/i18n';
 
@@ -213,6 +214,11 @@ const EntertainmentCompanyPreview = () => {
                             <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.description}</div>
                         </div>
                     )}
+
+                    {/* Balance Section */}
+                    <div>
+                        <ServiceBalanceTab serviceType="external_entertainment_companies" serviceId={company.id} />
+                    </div>
                 </div>
 
                 {/* Sidebar */}
