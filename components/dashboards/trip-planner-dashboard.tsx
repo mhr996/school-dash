@@ -187,6 +187,7 @@ export default function TripPlannerDashboard() {
     // Filter states
     const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
     const [selectedSuitableFor, setSuitableFor] = useState<string[]>([]);
+    const [selectedZones, setSelectedZones] = useState<string[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     // Modal state
@@ -380,6 +381,10 @@ export default function TripPlannerDashboard() {
         // Apply filters
         let filtered = destinations;
 
+        if (selectedZones.length > 0) {
+            filtered = filtered.filter((dest) => dest.zone_id && selectedZones.includes(dest.zone_id));
+        }
+
         if (selectedProperties.length > 0) {
             filtered = filtered.filter((dest) => dest.properties?.some((prop) => selectedProperties.includes(prop)) ?? false);
         }
@@ -389,7 +394,7 @@ export default function TripPlannerDashboard() {
         }
 
         setFilteredDestinations(filtered);
-    }, [destinations, selectedProperties, selectedSuitableFor]);
+    }, [destinations, selectedProperties, selectedSuitableFor, selectedZones]);
 
     const loadDestinations = async () => {
         try {
@@ -1100,6 +1105,10 @@ export default function TripPlannerDashboard() {
 
     const toggleSuitableForFilter = (suitable: string) => {
         setSuitableFor((prev) => (prev.includes(suitable) ? prev.filter((s) => s !== suitable) : [...prev, suitable]));
+    };
+
+    const toggleZoneFilter = (zoneId: string) => {
+        setSelectedZones((prev) => (prev.includes(zoneId) ? prev.filter((z) => z !== zoneId) : [...prev, zoneId]));
     };
 
     const openDestinationModal = (destination: Destination) => {
@@ -1881,6 +1890,51 @@ export default function TripPlannerDashboard() {
                             transition={{ delay: 0.1 }}
                             className="bg-white dark:bg-slate-900/80 rounded-2xl p-6 shadow-xl border border-gray-200/50 dark:border-slate-700/60 mb-8"
                         >
+                            {/* Zones Filter */}
+                            <div className="mb-6">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    {t('zones')}
+                                </h3>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                    {zones.map((zone, index) => (
+                                        <motion.button
+                                            key={zone.id}
+                                            initial={{ scale: 0, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            transition={{ delay: index * 0.05 }}
+                                            onClick={() => toggleZoneFilter(zone.id)}
+                                            className={`relative p-3 rounded-xl text-sm font-medium transition-all duration-300 border-2 ${
+                                                selectedZones.includes(zone.id)
+                                                    ? 'bg-purple-500 text-white border-purple-500 shadow-lg shadow-purple-500/25'
+                                                    : 'bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:border-purple-300 dark:hover:border-purple-500'
+                                            }`}
+                                        >
+                                            {zone.name}
+                                            {selectedZones.includes(zone.id) && (
+                                                <motion.div
+                                                    initial={{ scale: 0 }}
+                                                    animate={{ scale: 1 }}
+                                                    className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center"
+                                                >
+                                                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                                            clipRule="evenodd"
+                                                        />
+                                                    </svg>
+                                                </motion.div>
+                                            )}
+                                        </motion.button>
+                                    ))}
+                                </div>
+                            </div>
+
                             {/* Properties Filters */}
                             <div className="mb-6">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">

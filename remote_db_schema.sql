@@ -31,7 +31,7 @@ CREATE TABLE public.bills (
 CREATE TABLE public.booking_services (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   booking_id uuid NOT NULL,
-  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text, 'travel_companies'::character varying::text])),
+  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text, 'travel_companies'::character varying::text, 'education_programs'::character varying::text])),
   service_id uuid NOT NULL,
   quantity integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
   days integer NOT NULL DEFAULT 1 CHECK (days > 0),
@@ -39,8 +39,14 @@ CREATE TABLE public.booking_services (
   rate_type character varying DEFAULT 'fixed'::character varying,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  acceptance_status character varying DEFAULT 'pending'::character varying CHECK (acceptance_status::text = ANY (ARRAY['pending'::character varying::text, 'accepted'::character varying::text, 'rejected'::character varying::text])),
+  accepted_at timestamp with time zone,
+  rejected_at timestamp with time zone,
+  rejection_reason text,
+  responded_by uuid,
   CONSTRAINT booking_services_pkey PRIMARY KEY (id),
-  CONSTRAINT booking_services_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id)
+  CONSTRAINT booking_services_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id),
+  CONSTRAINT booking_services_responded_by_fkey FOREIGN KEY (responded_by) REFERENCES public.users(id)
 );
 CREATE TABLE public.bookings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -56,7 +62,7 @@ CREATE TABLE public.bookings (
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   customer_id uuid NOT NULL,
-  booking_type character varying NOT NULL DEFAULT 'full_trip'::character varying CHECK (booking_type::text = ANY (ARRAY['full_trip'::character varying::text, 'guides_only'::character varying::text, 'paramedics_only'::character varying::text, 'security_only'::character varying::text, 'entertainment_only'::character varying::text, 'transportation_only'::character varying::text, 'mixed_services'::character varying::text])),
+  booking_type character varying NOT NULL DEFAULT 'full_trip'::character varying CHECK (booking_type::text = ANY (ARRAY['full_trip'::character varying, 'guides_only'::character varying, 'paramedics_only'::character varying, 'security_only'::character varying, 'entertainment_only'::character varying, 'transportation_only'::character varying, 'education_only'::character varying]::text[])),
   number_of_students integer,
   number_of_crew integer,
   number_of_buses integer,
@@ -96,6 +102,39 @@ CREATE TABLE public.destinations (
   is_active boolean NOT NULL DEFAULT true,
   CONSTRAINT destinations_pkey PRIMARY KEY (id),
   CONSTRAINT destinations_zone_id_fkey FOREIGN KEY (zone_id) REFERENCES public.zones(id)
+);
+CREATE TABLE public.education_program_services (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  education_program_id uuid NOT NULL,
+  service_label character varying NOT NULL,
+  service_price numeric NOT NULL DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT education_program_services_pkey PRIMARY KEY (id),
+  CONSTRAINT education_program_services_education_program_id_fkey FOREIGN KEY (education_program_id) REFERENCES public.education_programs(id)
+);
+CREATE TABLE public.education_programs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  name character varying NOT NULL,
+  image text,
+  description text,
+  price numeric,
+  status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text])),
+  user_id uuid,
+  CONSTRAINT education_programs_pkey PRIMARY KEY (id),
+  CONSTRAINT education_programs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.entertainment_company_services (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  entertainment_company_id uuid NOT NULL,
+  service_label character varying NOT NULL,
+  service_price numeric NOT NULL DEFAULT 0 CHECK (service_price >= 0::numeric),
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT entertainment_company_services_pkey PRIMARY KEY (id),
+  CONSTRAINT entertainment_company_services_entertainment_company_id_fkey FOREIGN KEY (entertainment_company_id) REFERENCES public.external_entertainment_companies(id)
 );
 CREATE TABLE public.external_entertainment_companies (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -169,7 +208,7 @@ CREATE TABLE public.payments (
 );
 CREATE TABLE public.payouts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text, 'travel_companies'::character varying::text])),
+  service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text, 'travel_companies'::character varying::text, 'education_programs'::character varying::text])),
   service_id uuid NOT NULL,
   user_id uuid NOT NULL,
   service_provider_name character varying NOT NULL,
