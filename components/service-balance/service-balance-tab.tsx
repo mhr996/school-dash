@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { DataTable } from 'mantine-datatable';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconCashBanknotes from '@/components/icon/icon-cash-banknotes';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconClock from '@/components/icon/icon-clock';
@@ -97,7 +97,7 @@ const ServiceBalanceTab = ({ serviceType, serviceId }: ServiceBalanceTabProps) =
                     <div className="p-5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
                         <div className="flex items-center justify-between mb-3">
                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('total_earned')}</span>
-                            <IconDollarSign className="w-5 h-5 text-green-600" />
+                            <IconShekelSign className="w-5 h-5 text-green-600" />
                         </div>
                         <div className="text-2xl font-bold text-green-600">{formatCurrency(balanceData.totalEarned)}</div>
                         <div className="text-xs text-gray-500 mt-2">

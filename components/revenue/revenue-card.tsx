@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 // Icons
 import IconTrendingUp from '@/components/icon/icon-trending-up';
 import IconTrendingDown from '@/components/icon/icon-trending-down';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 
 interface RevenueCardProps {

@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { useParams, useRouter } from 'next/navigation';
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconCalendar from '@/components/icon/icon-calendar';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconUser from '@/components/icon/icon-user';
 import IconPhone from '@/components/icon/icon-phone';
@@ -50,6 +50,10 @@ interface BookingDetails {
         days: number;
         booked_price: number;
         rate_type: string;
+        acceptance_status?: 'pending' | 'accepted' | 'rejected';
+        accepted_at?: string;
+        rejected_at?: string;
+        rejection_reason?: string;
     }>;
 }
 
@@ -64,6 +68,11 @@ export default function BookingDetailsPage() {
             days: number;
             cost: number;
             rate_type: string;
+            acceptance_status?: 'pending' | 'accepted' | 'rejected';
+            accepted_at?: string;
+            rejected_at?: string;
+            rejection_reason?: string;
+            booking_service_id?: string;
         }>
     >([]);
     const [loading, setLoading] = useState(true);
@@ -114,6 +123,11 @@ export default function BookingDetailsPage() {
                 days: number;
                 cost: number;
                 rate_type: string;
+                acceptance_status?: 'pending' | 'accepted' | 'rejected';
+                accepted_at?: string;
+                rejected_at?: string;
+                rejection_reason?: string;
+                booking_service_id?: string;
             }> = [];
             if (servicesData && servicesData.length > 0) {
                 enrichedServices = await Promise.all(
@@ -138,6 +152,11 @@ export default function BookingDetailsPage() {
                             days: service.days,
                             cost: service.booked_price,
                             rate_type: service.rate_type,
+                            acceptance_status: service.acceptance_status || 'pending',
+                            accepted_at: service.accepted_at,
+                            rejected_at: service.rejected_at,
+                            rejection_reason: service.rejection_reason,
+                            booking_service_id: service.id,
                         };
                     }),
                 );
@@ -176,6 +195,31 @@ export default function BookingDetailsPage() {
         const config = statusConfig[paymentStatus as keyof typeof statusConfig] || statusConfig.pending;
 
         return <span className={`px-3 py-1 text-sm font-semibold rounded-full ${config.color}`}>{config.label}</span>;
+    };
+
+    const getAcceptanceStatusBadge = (status?: 'pending' | 'accepted' | 'rejected') => {
+        if (!status || status === 'pending') {
+            return (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                    ⏳ {t('pending_acceptance') || 'ממתין לאישור'}
+                </span>
+            );
+        }
+        if (status === 'accepted') {
+            return (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                    ✓ {t('accepted') || 'אושר'}
+                </span>
+            );
+        }
+        if (status === 'rejected') {
+            return (
+                <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                    ✗ {t('rejected') || 'נדחה'}
+                </span>
+            );
+        }
+        return null;
     };
 
     const getServiceIcon = (serviceType: string) => {
@@ -312,31 +356,59 @@ export default function BookingDetailsPage() {
                                     services.map((service: any, index: number) => (
                                         <div
                                             key={`${service.type}-${service.id}-${index}`}
-                                            className="flex items-center justify-between p-4 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200/50 dark:border-slate-700/40"
+                                            className="flex flex-col gap-3 p-4 bg-gray-50/50 dark:bg-slate-800/50 rounded-xl border border-gray-200/50 dark:border-slate-700/40"
                                         >
-                                            <div className="flex items-center gap-3">
-                                                {getServiceIcon(service.type)}
-                                                <div>
-                                                    <h3 className="font-semibold text-gray-900 dark:text-white">{service.name}</h3>
-                                                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                                                        <span>
-                                                            {t('quantity')}: {service.quantity}
-                                                        </span>
-                                                        {service.days > 1 && (
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3 flex-1">
+                                                    {getServiceIcon(service.type)}
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-gray-900 dark:text-white">{service.name}</h3>
+                                                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                                                             <span>
-                                                                {t('days')}: {service.days}
+                                                                {t('quantity')}: {service.quantity}
                                                             </span>
-                                                        )}
-                                                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs">{t(service.rate_type)}</span>
+                                                            {service.days > 1 && (
+                                                                <span>
+                                                                    {t('days')}: {service.days}
+                                                                </span>
+                                                            )}
+                                                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded text-xs">{t(service.rate_type)}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="text-right">
+                                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{calculateTotalCost(service).toFixed(2)} ₪</p>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                        {service.cost.toFixed(2)} ₪ / {t(service.rate_type.replace('ly', ''))}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-lg font-semibold text-gray-900 dark:text-white">{calculateTotalCost(service).toFixed(2)} ₪</p>
-                                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                                    {service.cost.toFixed(2)} ₪ / {t(service.rate_type.replace('ly', ''))}
-                                                </p>
+
+                                            {/* Service Acceptance Status */}
+                                            <div className="flex items-center justify-between border-t border-gray-200/50 dark:border-slate-700/40 pt-3">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-gray-600 dark:text-gray-400">{t('service_status') || 'סטטוס שירות'}:</span>
+                                                    {getAcceptanceStatusBadge(service.acceptance_status)}
+                                                </div>
+                                                {service.accepted_at && (
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {t('accepted_on') || 'אושר ב'}: {new Date(service.accepted_at).toLocaleDateString('he-IL')}
+                                                    </span>
+                                                )}
+                                                {service.rejected_at && (
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        {t('rejected_on') || 'נדחה ב'}: {new Date(service.rejected_at).toLocaleDateString('he-IL')}
+                                                    </span>
+                                                )}
                                             </div>
+
+                                            {/* Rejection Reason */}
+                                            {service.rejection_reason && (
+                                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                                                    <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">{t('rejection_reason') || 'סיבת דחייה'}:</p>
+                                                    <p className="text-sm text-red-600 dark:text-red-300">{service.rejection_reason}</p>
+                                                </div>
+                                            )}
                                         </div>
                                     ))
                                 ) : (
@@ -423,7 +495,7 @@ export default function BookingDetailsPage() {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t('total_amount')}</label>
                                     <div className="flex items-center gap-2">
-                                        <IconDollarSign className="w-5 h-5 text-green-500" />
+                                        <IconShekelSign className="w-5 h-5 text-green-500" />
                                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">{booking.total_amount.toFixed(2)} ₪</p>
                                     </div>
                                 </div>

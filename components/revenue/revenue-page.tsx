@@ -10,7 +10,7 @@ import ServiceBreakdownChart from '@/components/revenue/service-breakdown-chart'
 import TransactionsTable from '@/components/revenue/transactions-table';
 
 // Icons
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconClock from '@/components/icon/icon-clock';
 import IconTrendingUp from '@/components/icon/icon-trending-up';
@@ -172,7 +172,7 @@ const RevenuePage: React.FC = () => {
                         title={t('total_revenue')}
                         value={`$${revenueStats?.totalRevenue?.toLocaleString() || '0'}`}
                         subtitle={t('period_revenue')}
-                        icon={<IconDollarSign />}
+                        icon={<IconShekelSign />}
                         color="blue"
                         isLoading={loading}
                         trend={(revenueStats?.revenueGrowth || 0) >= 0 ? 'up' : 'down'}

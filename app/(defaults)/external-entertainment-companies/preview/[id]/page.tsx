@@ -10,6 +10,7 @@ import IconEdit from '@/components/icon/icon-edit';
 import IconCalendar from '@/components/icon/icon-calendar';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
+import EntertainmentCompanyTabs from '@/components/entertainment/entertainment-company-tabs';
 
 import { getTranslation } from '@/i18n';
 
@@ -85,6 +86,26 @@ const EntertainmentCompanyPreview = () => {
         }
     }, [companyId]);
 
+    const handleCompanyUpdate = () => {
+        // Re-fetch the company data when tabs update it
+        const fetchEntertainmentCompany = async () => {
+            try {
+                const { data, error } = await supabase.from('external_entertainment_companies').select('*').eq('id', companyId).single();
+
+                if (error) {
+                    console.error('Error fetching entertainment company:', error);
+                    return;
+                }
+
+                setCompany(data as EntertainmentCompany);
+            } catch (error) {
+                console.error('Error fetching entertainment company:', error);
+            }
+        };
+
+        fetchEntertainmentCompany();
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -139,10 +160,6 @@ const EntertainmentCompanyPreview = () => {
                 <div>
                     <h1 className="text-3xl font-bold">{company.name}</h1>
                 </div>
-                <Link href={`/external-entertainment-companies/edit/${company.id}`} className="btn btn-primary flex items-center gap-2">
-                    <IconEdit className="w-4 h-4" />
-                    {t('edit_entertainment_company')}
-                </Link>
             </div>
 
             {alert && (
@@ -152,68 +169,20 @@ const EntertainmentCompanyPreview = () => {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Information */}
+                {/* Main Content - Tabbed Interface */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Company Image */}
-                    <div className="panel">
-                        <div className="mb-5">
-                            <h3 className="text-lg font-semibold">{t('image')}</h3>
-                        </div>
-                        <div className="flex justify-center">
-                            <div className="w-full max-w-md">
-                                <img
-                                    src={getImageUrl(company.image, supabase)}
-                                    alt={company.name}
-                                    className="w-full h-64 object-cover rounded-lg shadow-md"
-                                    onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.src = '/assets/images/img-placeholder-fallback.webp';
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Basic Information */}
-                    <div className="panel">
-                        <div className="mb-5">
-                            <h3 className="text-lg font-semibold">{t('basic_information')}</h3>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('entertainment_company_name')}</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.name}</div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('price')}</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.price != null ? `${company.price.toLocaleString()} ₪` : t('not_specified')}</div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 dark:text-white mb-2">{t('status')}</label>
-                                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                        <span className={`badge ${company.status === 'active' ? 'badge-outline-success' : 'badge-outline-danger'}`}>
-                                            {company.status === 'active' ? t('active') : t('inactive')}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Description */}
-                    {company.description && (
-                        <div className="panel">
-                            <div className="mb-5">
-                                <h3 className="text-lg font-semibold flex items-center gap-2">{t('description')}</h3>
-                            </div>
-                            <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">{company.description}</div>
-                        </div>
-                    )}
+                    <EntertainmentCompanyTabs
+                        companyId={companyId}
+                        companyData={{
+                            name: company.name,
+                            description: company.description || '',
+                            price: company.price || 0,
+                            image: company.image || '',
+                            status: company.status || 'active',
+                        }}
+                        onUpdate={handleCompanyUpdate}
+                        isServiceProvider={false}
+                    />
 
                     {/* Balance Section */}
                     <div>

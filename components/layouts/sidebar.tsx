@@ -84,7 +84,7 @@ const Sidebar = () => {
                 if (!userError && user) {
                     const roleName = user.user_roles?.name;
                     setUserRole(roleName);
-                    const serviceProviderRoles = ['guide', 'paramedic', 'security_company', 'entertainment_company', 'travel_company'];
+                    const serviceProviderRoles = ['guide', 'paramedic', 'security_company', 'entertainment_company', 'education_program', 'travel_company'];
                     setIsServiceProvider(serviceProviderRoles.includes(roleName));
                 }
             } catch (error) {
@@ -324,6 +324,15 @@ const Sidebar = () => {
                                                         <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">
                                                             {t('external_entertainment_companies')}
                                                         </span>
+                                                    </div>
+                                                </Link>
+                                            </li>
+
+                                            <li className="nav-item">
+                                                <Link href="/education-programs" className="group">
+                                                    <div className="flex items-center">
+                                                        <IconOpenBook className="shrink-0 group-hover:!text-primary" />
+                                                        <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('education_programs')}</span>
                                                     </div>
                                                 </Link>
                                             </li>

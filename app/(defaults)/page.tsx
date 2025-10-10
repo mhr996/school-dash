@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import React, { useEffect, useState } from 'react';
 import { getTranslation } from '@/i18n';
 import { getCurrentUserWithRole } from '@/lib/auth';

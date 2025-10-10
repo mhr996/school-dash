@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import supabase from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { DataTable } from 'mantine-datatable';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconCashBanknotes from '@/components/icon/icon-cash-banknotes';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconDownload from '@/components/icon/icon-download';
@@ -63,7 +63,7 @@ const MyBalance = () => {
             }
 
             // Check each service type table for user_id match
-            const serviceTypes: ServiceType[] = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies', 'travel_companies'];
+            const serviceTypes: ServiceType[] = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies', 'travel_companies', 'education_programs'];
 
             for (const serviceType of serviceTypes) {
                 const { data, error } = await supabase.from(serviceType).select('id, name, email').eq('user_id', user.id).single();
@@ -199,7 +199,7 @@ const MyBalance = () => {
                                 </p>
                             </div>
                             <div className="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                                <IconDollarSign className="w-7 h-7 text-green-600 dark:text-green-500" />
+                                <IconShekelSign className="w-7 h-7 text-green-600 dark:text-green-500" />
                             </div>
                         </div>
                     </motion.div>
@@ -245,7 +245,7 @@ const MyBalance = () => {
                                     balance.netBalance > 0 ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-gray-100 dark:bg-gray-900/30'
                                 }`}
                             >
-                                <IconDollarSign className={`w-7 h-7 ${balance.netBalance > 0 ? 'text-purple-600 dark:text-purple-500' : 'text-gray-600 dark:text-gray-500'}`} />
+                                <IconShekelSign className={`w-7 h-7 ${balance.netBalance > 0 ? 'text-purple-600 dark:text-purple-500' : 'text-gray-600 dark:text-gray-500'}`} />
                             </div>
                         </div>
                     </motion.div>

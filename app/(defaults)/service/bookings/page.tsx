@@ -12,7 +12,7 @@ import { sortBy } from 'lodash';
 import IconEye from '@/components/icon/icon-eye';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconMapPin from '@/components/icon/icon-map-pin';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconUser from '@/components/icon/icon-user';
 import IconBuilding from '@/components/icon/icon-building';
 import IconOpenBook from '@/components/icon/icon-open-book';
@@ -48,6 +48,10 @@ interface BookingData {
     booked_price: number;
     rate_type: string;
     created_at: string;
+    acceptance_status?: 'pending' | 'accepted' | 'rejected';
+    accepted_at?: string;
+    rejected_at?: string;
+    rejection_reason?: string;
     bookings: {
         id: string;
         booking_reference: string;
@@ -402,13 +406,42 @@ const ServiceProviderBookings = () => {
                                     sortable: true,
                                     render: ({ booked_price }) => (
                                         <div className="flex items-center gap-1 font-medium text-green-600">
-                                            <IconDollarSign className="w-4 h-4" />${parseFloat(booked_price.toString()).toFixed(2)}
+                                            <IconShekelSign className="w-4 h-4" />${parseFloat(booked_price.toString()).toFixed(2)}
                                         </div>
                                     ),
                                 },
                                 {
+                                    accessor: 'acceptance_status',
+                                    title: t('acceptance') || 'אישור',
+                                    sortable: true,
+                                    render: ({ acceptance_status, id }) => {
+                                        if (!acceptance_status || acceptance_status === 'pending') {
+                                            return (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+                                                    ⏳ {t('pending') || 'ממתין'}
+                                                </span>
+                                            );
+                                        }
+                                        if (acceptance_status === 'accepted') {
+                                            return (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                                                    ✓ {t('accepted') || 'אושר'}
+                                                </span>
+                                            );
+                                        }
+                                        if (acceptance_status === 'rejected') {
+                                            return (
+                                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
+                                                    ✗ {t('rejected') || 'נדחה'}
+                                                </span>
+                                            );
+                                        }
+                                        return null;
+                                    },
+                                },
+                                {
                                     accessor: 'bookings.status',
-                                    title: 'Status',
+                                    title: 'Booking Status',
                                     sortable: true,
                                     render: ({ bookings }) => getStatusBadge(bookings.status),
                                 },
@@ -428,11 +461,14 @@ const ServiceProviderBookings = () => {
                                     accessor: 'action',
                                     title: 'Actions',
                                     textAlignment: 'center' as const,
-                                    render: ({ bookings }) => (
+                                    render: ({ id, acceptance_status }) => (
                                         <div className="mx-auto flex w-max items-center gap-2">
-                                            <button type="button" className="hover:text-info" title="View Details">
+                                            <button type="button" className="hover:text-info" title="View Details" onClick={() => router.push(`/service/bookings/${id}`)}>
                                                 <IconEye />
                                             </button>
+                                            {acceptance_status === 'pending' && (
+                                                <span className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">{t('respond_required') || 'נדרש מענה'}</span>
+                                            )}
                                         </div>
                                     ),
                                 },

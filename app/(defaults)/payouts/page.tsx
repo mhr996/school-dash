@@ -183,6 +183,8 @@ const PayoutsList = () => {
                 return 'badge-outline-warning';
             case 'travel_companies':
                 return 'badge-outline-danger';
+            case 'education_programs':
+                return 'badge-outline-secondary';
             default:
                 return 'badge-outline-secondary';
         }
@@ -272,6 +274,7 @@ const PayoutsList = () => {
                                 { value: 'security_companies', label: t('security_companies') },
                                 { value: 'external_entertainment_companies', label: t('external_entertainment_companies') },
                                 { value: 'travel_companies', label: t('travel_companies') },
+                                { value: 'education_programs', label: t('education_programs') },
                             ]}
                         />
                     </div>

@@ -61,7 +61,7 @@ const Header = () => {
 
     // Determine the correct profile URL based on user role
     const getProfileUrl = () => {
-        const serviceProviderRoles = ['guide', 'paramedic', 'security_company', 'travel_company', 'entertainment_company'];
+        const serviceProviderRoles = ['guide', 'paramedic', 'security_company', 'travel_company', 'entertainment_company', 'education_program'];
         if (userRole && serviceProviderRoles.includes(userRole)) {
             return '/service/profile';
         }

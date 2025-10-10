@@ -11,7 +11,7 @@ import IconDownload from '@/components/icon/icon-download';
 import IconEdit from '@/components/icon/icon-edit';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconDocument from '@/components/icon/icon-document';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconUser from '@/components/icon/icon-user';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
@@ -476,7 +476,7 @@ export default function BillDetailsPage() {
                         {/* Financial Summary */}
                         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
                             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <IconDollarSign className="w-5 h-5 text-green-500" />
+                                <IconShekelSign className="w-5 h-5 text-green-500" />
                                 {t('financial_summary')}
                             </h3>
                             <div className="space-y-2">

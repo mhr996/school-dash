@@ -8,7 +8,7 @@ import { calculateSchoolBalance } from '@/utils/balance-manager';
 import Dropdown from '@/components/dropdown';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconCalendar from '@/components/icon/icon-calendar';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconSearch from '@/components/icon/icon-search';
 import IconFilter from '@/components/icon/icon-filter';
 import IconDownload from '@/components/icon/icon-download';
@@ -368,7 +368,7 @@ export default function MyTransactionsPage() {
                                     <p className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-violet-600 bg-clip-text text-transparent">{formatCurrency(summary.total_spent)}</p>
                                 </div>
                                 <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg">
-                                    <IconDollarSign className="w-7 h-7 text-white" />
+                                    <IconShekelSign className="w-7 h-7 text-white" />
                                 </div>
                             </div>
                         </div>
@@ -594,7 +594,7 @@ export default function MyTransactionsPage() {
                                                 {transaction.paid_date && (
                                                     <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
                                                         <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                            <IconDollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                            <IconShekelSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                                         </div>
                                                         <span className="text-sm font-medium">
                                                             {t.paid || 'Paid'}: {formatDate(transaction.paid_date)}

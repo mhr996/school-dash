@@ -102,7 +102,7 @@ type TravelCompany = {
 };
 
 // Booking types
-type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'transportation_only' | 'mixed_services';
+type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'education_only' | 'transportation_only';
 
 type BookingTypeConfig = {
     id: BookingType;
@@ -306,13 +306,13 @@ export default function TripPlannerDashboard() {
             requiresDestination: false,
         },
         {
-            id: 'mixed_services',
-            title: t('mixed_services'),
-            description: t('multiple_services_without_destination'),
-            icon: IconShoppingBag,
-            color: 'from-teal-500 to-teal-600',
-            shadowColor: 'shadow-teal-500/25',
-            requiredServices: [],
+            id: 'education_only',
+            title: t('education_only'),
+            description: t('education_programs_only'),
+            icon: IconBook,
+            color: 'from-emerald-500 to-emerald-600',
+            shadowColor: 'shadow-emerald-500/25',
+            requiredServices: ['education_programs'],
             allowsDestination: false,
             requiresDestination: false,
         },
@@ -805,8 +805,8 @@ export default function TripPlannerDashboard() {
                     }
                 }
             });
-        } else if (selectedBookingType === 'mixed_services' && selectedRequirements.length === 0) {
-            // For mixed services, at least one service must be selected
+        } else if (selectedBookingType === 'education_only' && selectedRequirements.length === 0) {
+            // For education only, at least one service must be selected
             missingServices.push(t('at_least_one_service'));
         } else if (!currentBookingConfig && selectedForPlanning?.requirements && selectedForPlanning.requirements.length > 0) {
             // Fallback to destination requirements for legacy full trip mode
@@ -988,7 +988,7 @@ export default function TripPlannerDashboard() {
             // Create individual service records in booking_services table
             if (selectedRequirements.length > 0) {
                 // All service types are now supported in booking_services table
-                const allowedServiceTypes = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies', 'travel_companies'];
+                const allowedServiceTypes = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies', 'travel_companies', 'education_programs'];
                 const validServiceRecords = selectedRequirements
                     .filter((requirement) => allowedServiceTypes.includes(requirement.type))
                     .map((requirement) => ({
@@ -1062,7 +1062,7 @@ export default function TripPlannerDashboard() {
             const config = bookingTypeConfigs.find((c) => c.id === selectedBookingType);
 
             if (config?.requiredServices.length === 0) {
-                // For mixed_services, show all services
+                // For education_only, show all services
                 return true;
             }
 
@@ -1173,18 +1173,6 @@ export default function TripPlannerDashboard() {
             color: 'from-indigo-500 to-indigo-600',
             onClick: () => {
                 setSelectedBookingType('transportation_only');
-                setCurrentView('service-booking');
-                setShowTripDropdown(false);
-            },
-        },
-        {
-            id: 'mixed-services',
-            title: t('mixed_services'),
-            description: t('multiple_services_booking'),
-            icon: IconShoppingBag,
-            color: 'from-teal-500 to-teal-600',
-            onClick: () => {
-                setSelectedBookingType('mixed_services');
                 setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },

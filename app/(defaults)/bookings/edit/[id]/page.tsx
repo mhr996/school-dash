@@ -44,6 +44,11 @@ interface BookingEditData {
         days: number;
         cost: number;
         rate_type: string;
+        acceptance_status?: 'pending' | 'accepted' | 'rejected';
+        accepted_at?: string;
+        rejected_at?: string;
+        rejection_reason?: string;
+        booking_service_id?: string;
     }>;
 }
 
@@ -70,6 +75,7 @@ export default function EditBooking() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [sendingNotifications, setSendingNotifications] = useState(false);
     const [booking, setBooking] = useState<BookingEditData | null>(null);
     const [originalBookingStatus, setOriginalBookingStatus] = useState<string>(''); // Track original status from DB
     const [serviceData, setServiceData] = useState<ServiceData>({
@@ -164,6 +170,11 @@ export default function EditBooking() {
                         days: service.days,
                         cost: service.booked_price,
                         rate_type: service.rate_type,
+                        acceptance_status: service.acceptance_status || 'pending',
+                        accepted_at: service.accepted_at,
+                        rejected_at: service.rejected_at,
+                        rejection_reason: service.rejection_reason,
+                        booking_service_id: service.id,
                         // We'll fetch the name separately in the next step
                         name: `Service ${service.service_id}`, // Placeholder
                     }));
@@ -336,6 +347,63 @@ export default function EditBooking() {
                 return { ...prev, services: updatedServices };
             });
         }
+    };
+
+    const handleSendNotifications = async () => {
+        if (!booking) return;
+
+        try {
+            setSendingNotifications(true);
+            const response = await fetch(`/api/bookings/${bookingId}/notify-services`, {
+                method: 'POST',
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setAlert({
+                    visible: true,
+                    message: t('notifications_sent_successfully') || `נשלחו ${result.notificationsSent} התראות בהצלחה`,
+                    type: 'success',
+                });
+            } else {
+                throw new Error(result.error || 'Failed to send notifications');
+            }
+        } catch (error) {
+            console.error('Error sending notifications:', error);
+            setAlert({
+                visible: true,
+                message: t('error_sending_notifications') || 'שגיאה בשליחת התראות',
+                type: 'danger',
+            });
+        } finally {
+            setSendingNotifications(false);
+        }
+    };
+
+    const getAcceptanceStatusBadge = (status?: 'pending' | 'accepted' | 'rejected') => {
+        if (!status || status === 'pending') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                    ⏳ {t('pending') || 'ממתין'}
+                </span>
+            );
+        }
+        if (status === 'accepted') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                    ✓ {t('accepted') || 'אושר'}
+                </span>
+            );
+        }
+        if (status === 'rejected') {
+            return (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                    ✗ {t('rejected') || 'נדחה'}
+                </span>
+            );
+        }
+        return null;
     };
 
     const calculateTotalAmount = () => {
@@ -567,10 +635,28 @@ export default function EditBooking() {
                         {t('booking_reference')}: {booking.booking_reference}
                     </p>
                 </div>
-                <button onClick={handleSave} disabled={saving} className="btn btn-primary flex items-center gap-2">
-                    <IconSave className="w-4 h-4" />
-                    {saving ? t('saving') : t('save_changes')}
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleSendNotifications}
+                        disabled={sendingNotifications || booking.services.length === 0}
+                        className="btn btn-outline-info flex items-center gap-2"
+                        title={t('send_notifications_to_services') || 'שלח התראות לספקי שירותים'}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                            />
+                        </svg>
+                        {sendingNotifications ? t('sending') || 'שולח...' : t('notify_services') || 'התראה לספקים'}
+                    </button>
+                    <button onClick={handleSave} disabled={saving} className="btn btn-primary flex items-center gap-2">
+                        <IconSave className="w-4 h-4" />
+                        {saving ? t('saving') : t('save_changes')}
+                    </button>
+                </div>
             </div>
 
             {/* Alert */}
@@ -660,7 +746,8 @@ export default function EditBooking() {
                                                                 key={originalIndex}
                                                                 className="relative group bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-200 dark:border-emerald-700/50 rounded-xl p-6 transition-all duration-300 hover:shadow-lg hover:border-emerald-300 dark:hover:border-emerald-600 hover:scale-[1.02]"
                                                             >
-                                                                <div className="absolute top-4 right-4">
+                                                                <div className="absolute top-4 right-4 flex items-center gap-2">
+                                                                    {getAcceptanceStatusBadge(service.acceptance_status)}
                                                                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40">
                                                                         <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                                                                             <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />

@@ -16,7 +16,7 @@ import IconEye from '@/components/icon/icon-eye';
 import IconLock from '@/components/icon/icon-lock';
 import IconHome from '@/components/icon/icon-home';
 import IconChecks from '@/components/icon/icon-checks';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 
 type UserProfile = {
     id: string;
@@ -522,7 +522,7 @@ export default function ProfilePage() {
                                             { key: 'email', label: t.email_notifications || 'Email Notifications', icon: IconMail, color: 'blue' },
                                             { key: 'sms', label: t.sms_notifications || 'SMS Notifications', icon: IconPhone, color: 'emerald' },
                                             { key: 'trip_updates', label: t.trip_update_notifications || 'Trip Update Notifications', icon: IconCalendar, color: 'violet' },
-                                            { key: 'payment_reminders', label: t.payment_reminder_notifications || 'Payment Reminder Notifications', icon: IconDollarSign, color: 'amber' },
+                                            { key: 'payment_reminders', label: t.payment_reminder_notifications || 'Payment Reminder Notifications', icon: IconShekelSign, color: 'amber' },
                                         ].map((notification) => (
                                             <div
                                                 key={notification.key}

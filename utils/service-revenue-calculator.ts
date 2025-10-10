@@ -43,12 +43,13 @@ export interface BalanceInfo {
  */
 export async function calculateServiceRevenue(userId: string): Promise<RevenueStats> {
     try {
-        // Get all services for the user (guides, paramedics, security companies, entertainment)
+        // Get all services for the user (guides, paramedics, security companies, entertainment, education programs)
         const serviceQueries = await Promise.all([
             supabase.from('guides').select('id').eq('user_id', userId),
             supabase.from('paramedics').select('id').eq('user_id', userId),
             supabase.from('security_companies').select('id').eq('user_id', userId),
             supabase.from('external_entertainment_companies').select('id').eq('user_id', userId),
+            supabase.from('education_programs').select('id').eq('user_id', userId),
         ]);
 
         const serviceIds = {
@@ -56,6 +57,7 @@ export async function calculateServiceRevenue(userId: string): Promise<RevenueSt
             paramedics: serviceQueries[1].data?.map(s => s.id) || [],
             security_companies: serviceQueries[2].data?.map(s => s.id) || [],
             external_entertainment_companies: serviceQueries[3].data?.map(s => s.id) || [],
+            education_programs: serviceQueries[4].data?.map(s => s.id) || [],
         };
 
         // Get all booking services for these services
@@ -86,7 +88,8 @@ export async function calculateServiceRevenue(userId: string): Promise<RevenueSt
             ...serviceIds.guides,
             ...serviceIds.paramedics, 
             ...serviceIds.security_companies,
-            ...serviceIds.external_entertainment_companies
+            ...serviceIds.external_entertainment_companies,
+            ...serviceIds.education_programs
         ];
 
         if (allServiceIds.length === 0) {
@@ -205,6 +208,7 @@ export async function getServiceTransactions(userId: string, limit = 50): Promis
             supabase.from('paramedics').select('id').eq('user_id', userId),
             supabase.from('security_companies').select('id').eq('user_id', userId),
             supabase.from('external_entertainment_companies').select('id').eq('user_id', userId),
+            supabase.from('education_programs').select('id').eq('user_id', userId),
         ]);
 
         const allServiceIds = [
@@ -212,6 +216,7 @@ export async function getServiceTransactions(userId: string, limit = 50): Promis
             ...(serviceQueries[1].data?.map(s => s.id) || []),
             ...(serviceQueries[2].data?.map(s => s.id) || []),
             ...(serviceQueries[3].data?.map(s => s.id) || []),
+            ...(serviceQueries[4].data?.map(s => s.id) || []),
         ];
 
         if (allServiceIds.length === 0) {
@@ -328,6 +333,7 @@ export async function getRevenueTrend(userId: string): Promise<Array<{ month: st
             supabase.from('paramedics').select('id').eq('user_id', userId),
             supabase.from('security_companies').select('id').eq('user_id', userId),
             supabase.from('external_entertainment_companies').select('id').eq('user_id', userId),
+            supabase.from('education_programs').select('id').eq('user_id', userId),
         ]);
 
         const allServiceIds = [
@@ -335,6 +341,7 @@ export async function getRevenueTrend(userId: string): Promise<Array<{ month: st
             ...(serviceQueries[1].data?.map(s => s.id) || []),
             ...(serviceQueries[2].data?.map(s => s.id) || []),
             ...(serviceQueries[3].data?.map(s => s.id) || []),
+            ...(serviceQueries[4].data?.map(s => s.id) || []),
         ];
 
         if (allServiceIds.length === 0) {

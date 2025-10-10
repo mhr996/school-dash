@@ -8,7 +8,7 @@ import IconTrendingUp from '@/components/icon/icon-trending-up';
 import IconUsers from '@/components/icon/icon-users';
 import IconBuilding from '@/components/icon/icon-building';
 import IconCalendar from '@/components/icon/icon-calendar';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconReceipt from '@/components/icon/icon-receipt';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconUser from '@/components/icon/icon-user';
@@ -153,7 +153,7 @@ const AdminDashboard = () => {
                 security_only: '#f59e0b',
                 entertainment_only: '#a855f7',
                 transportation_only: '#06b6d4',
-                mixed_services: '#ec4899',
+                education_only: '#10b981',
             };
 
             const bookingTypesData: BookingTypeCount[] = Array.from(bookingTypeMap.entries()).map(([type, count]) => ({
@@ -294,7 +294,7 @@ const AdminDashboard = () => {
                 >
                     <div className="flex items-center justify-between mb-4">
                         <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                            <IconDollarSign className="w-7 h-7" />
+                            <IconShekelSign className="w-7 h-7" />
                         </div>
                         <IconTrendingUp className="w-6 h-6 text-white/60" />
                     </div>

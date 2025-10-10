@@ -24,6 +24,7 @@ const sectionMappings = {
     'security-companies': 'security_companies',
     'travel-companies': 'travel_companies',
     'external-entertainment-companies': 'external_entertainment_companies',
+    'education-programs': 'education_programs',
     'trip-plans': 'trip_plans',
 };
 

@@ -3,11 +3,10 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import supabase from '@/lib/supabase';
-import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import { getTranslation } from '@/i18n';
-import ImageUpload from '@/components/image-upload/image-upload';
+import EntertainmentCompanyTabs from '@/components/entertainment/entertainment-company-tabs';
 
 interface EntertainmentCompanyForm {
     name: string;
@@ -24,8 +23,7 @@ export default function EditEntertainmentCompany() {
     const companyId = params?.id as string;
 
     const [loading, setLoading] = useState(true);
-    const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData] = useState<EntertainmentCompanyForm>({
+    const [companyData, setCompanyData] = useState<EntertainmentCompanyForm>({
         name: '',
         image: '',
         description: '',
@@ -38,11 +36,6 @@ export default function EditEntertainmentCompany() {
         message: '',
         type: 'success',
     });
-
-    const statusOptions = [
-        { value: 'active', label: t('active') },
-        { value: 'inactive', label: t('inactive') },
-    ];
 
     useEffect(() => {
         const fetchEntertainmentCompany = async () => {
@@ -57,7 +50,7 @@ export default function EditEntertainmentCompany() {
                 }
 
                 if (data) {
-                    setFormData({
+                    setCompanyData({
                         name: data.name || '',
                         image: data.image || '',
                         description: data.description || '',
@@ -78,40 +71,27 @@ export default function EditEntertainmentCompany() {
         }
     }, [companyId]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({
-            ...prev,
-            [name]: name === 'price' ? parseFloat(value) || 0 : value,
-        }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!formData.name.trim()) {
-            setAlert({ visible: true, message: t('entertainment_company_name_required'), type: 'danger' });
-            return;
-        }
-
-        setIsLoading(true);
-
+    const handleCompanyUpdate = async () => {
+        // Re-fetch the company data when tabs update it
         try {
-            const { error } = await supabase.from('external_entertainment_companies').update(formData).eq('id', companyId);
+            const { data, error } = await supabase.from('external_entertainment_companies').select('*').eq('id', companyId).single();
 
-            if (error) throw error;
+            if (error) {
+                console.error('Error fetching entertainment company:', error);
+                return;
+            }
 
-            setAlert({ visible: true, message: t('entertainment_company_updated_successfully'), type: 'success' });
-
-            // Redirect after a brief delay
-            setTimeout(() => {
-                router.push('/external-entertainment-companies');
-            }, 700);
+            if (data) {
+                setCompanyData({
+                    name: data.name || '',
+                    image: data.image || '',
+                    description: data.description || '',
+                    price: data.price || 0,
+                    status: data.status || 'active',
+                });
+            }
         } catch (error) {
-            console.error('Error updating entertainment company:', error);
-            setAlert({ visible: true, message: t('error_updating_entertainment_company'), type: 'danger' });
-        } finally {
-            setIsLoading(false);
+            console.error('Error fetching entertainment company:', error);
         }
     };
 
@@ -165,98 +145,8 @@ export default function EditEntertainmentCompany() {
                 </div>
             )}
 
-            <div className="panel">
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('name')} *
-                            </label>
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                placeholder={t('enter_entertainment_company_name')}
-                                className="form-input"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="image" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('image_url')}
-                            </label>
-                            <div className="flex items-center gap-4">
-                                <ImageUpload
-                                    bucket="entertainment-companies"
-                                    userId={companyId || 'entertainment-temp'}
-                                    url={formData.image || null}
-                                    onUploadComplete={(url) => setFormData((prev) => ({ ...prev, image: url }))}
-                                    onError={(error) => setAlert({ visible: true, message: error, type: 'danger' })}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="price" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('price')} *
-                            </label>
-                            <input
-                                id="price"
-                                name="price"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={formData.price}
-                                onChange={handleInputChange}
-                                placeholder={t('enter_price')}
-                                className="form-input"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('status')}
-                            </label>
-                            <CustomSelect
-                                options={statusOptions}
-                                value={formData.status}
-                                onChange={(value: any) => setFormData((prev) => ({ ...prev, status: value as string }))}
-                                placeholder={t('select_status')}
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                            {t('description')}
-                        </label>
-                        <textarea
-                            id="description"
-                            name="description"
-                            rows={4}
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            placeholder={t('enter_description')}
-                            className="form-textarea"
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3">
-                        <Link href="/external-entertainment-companies" className="btn btn-outline-danger">
-                            {t('cancel')}
-                        </Link>
-                        <button type="submit" disabled={isLoading} className="btn btn-primary">
-                            {isLoading ? t('saving') : t('save_entertainment_company')}
-                        </button>
-                    </div>
-                </form>
-            </div>
+            {/* Tabbed Interface */}
+            <EntertainmentCompanyTabs companyId={companyId} companyData={companyData} onUpdate={handleCompanyUpdate} isServiceProvider={false} />
         </div>
     );
 }

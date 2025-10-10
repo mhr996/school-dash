@@ -7,7 +7,7 @@ import supabase from '@/lib/supabase';
 import { getCurrentUserWithRole } from '@/lib/auth';
 import { getAllServiceProvidersWithBalance, ServiceType, ServiceProviderBalance, calculateServiceProviderBalance } from '@/utils/service-balance-manager';
 import CustomSelect from '@/components/elements/custom-select';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconCheck from '@/components/icon/icon-check';
@@ -15,7 +15,7 @@ import IconUser from '@/components/icon/icon-user';
 import IconBuilding from '@/components/icon/icon-building';
 import { getTranslation } from '@/i18n';
 
-const SERVICE_TYPES: ServiceType[] = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies', 'travel_companies'];
+const SERVICE_TYPES: ServiceType[] = ['guides', 'paramedics', 'security_companies', 'external_entertainment_companies', 'travel_companies', 'education_programs'];
 
 const PAYMENT_METHODS = ['cash', 'bank_transfer', 'credit_card', 'check'];
 
@@ -177,7 +177,7 @@ export default function CreatePayoutPage() {
                         </button>
                         <div className="flex items-center gap-3 mb-2">
                             <div className="w-12 h-12 bg-white/20 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/30">
-                                <IconDollarSign className="w-6 h-6 text-white" />
+                                <IconShekelSign className="w-6 h-6 text-white" />
                             </div>
                             <h1 className="text-4xl font-bold text-white drop-shadow-lg">{t('create_payout')}</h1>
                         </div>

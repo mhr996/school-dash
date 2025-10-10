@@ -1,15 +1,20 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import supabase from '@/lib/supabase';
-import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
 import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 import IconMail from '@/components/icon/icon-mail';
 import IconEye from '@/components/icon/icon-eye';
+import IconPlus from '@/components/icon/icon-plus';
+import IconTrashLines from '@/components/icon/icon-trash-lines';
+import IconSave from '@/components/icon/icon-save';
+import IconStar from '@/components/icon/icon-star';
+import { Tab } from '@headlessui/react';
+import ImageUpload from '@/components/image-upload/image-upload';
 
 interface EntertainmentCompanyForm {
     name: string;
@@ -21,10 +26,17 @@ interface EntertainmentCompanyForm {
     user_password: string;
 }
 
+interface SubService {
+    service_label: string;
+    service_price: number;
+}
+
 export default function AddEntertainmentCompany() {
     const { t } = getTranslation();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+
     const [formData, setFormData] = useState<EntertainmentCompanyForm>({
         name: '',
         image: '',
@@ -35,53 +47,52 @@ export default function AddEntertainmentCompany() {
         user_password: '',
     });
 
+    const [subServices, setSubServices] = useState<SubService[]>([]);
+    const [roles, setRoles] = useState<any[]>([]);
+
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
         message: '',
         type: 'success',
     });
 
-    // Store the image file to upload after database creation
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    // Store the created company ID for image upload
-    const [createdCompanyId, setCreatedCompanyId] = useState<string | null>(null);
-
-    // User account creation state
-    const [showPassword, setShowPassword] = useState(false);
-    const [roles, setRoles] = useState<any[]>([]);
-
-    const statusOptions = [
-        { value: 'active', label: t('active') },
-        { value: 'inactive', label: t('inactive') },
-    ];
-
     // Fetch user roles on component mount
     useEffect(() => {
         async function fetchRoles() {
             try {
                 const { data: rolesData, error } = await supabase.from('user_roles').select('*').order('id');
-
                 if (error) {
                     console.error('Error fetching roles:', error);
                     return;
                 }
-
                 setRoles(rolesData || []);
             } catch (error) {
                 console.error('Error fetching roles:', error);
             }
         }
-
         fetchRoles();
     }, []);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
             ...prev,
             [name]: name === 'price' ? parseFloat(value) || 0 : value,
         }));
+    };
+
+    const handleAddService = () => {
+        setSubServices([...subServices, { service_label: '', service_price: 0 }]);
+    };
+
+    const handleServiceChange = (index: number, field: keyof SubService, value: any) => {
+        const updated = [...subServices];
+        updated[index] = { ...updated[index], [field]: value };
+        setSubServices(updated);
+    };
+
+    const handleDeleteService = (index: number) => {
+        setSubServices(subServices.filter((_, i) => i !== index));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -92,7 +103,6 @@ export default function AddEntertainmentCompany() {
             return;
         }
 
-        // Validate user account fields
         if (!formData.user_email.trim()) {
             setAlert({ visible: true, message: t('email_required'), type: 'danger' });
             return;
@@ -101,6 +111,19 @@ export default function AddEntertainmentCompany() {
         if (!formData.user_password.trim() || formData.user_password.length < 6) {
             setAlert({ visible: true, message: t('password_min_6_chars'), type: 'danger' });
             return;
+        }
+
+        // Validate sub-services if any
+        if (subServices.length > 0) {
+            const invalidServices = subServices.filter((s) => !s.service_label.trim() || s.service_price < 0);
+            if (invalidServices.length > 0) {
+                setAlert({
+                    visible: true,
+                    message: t('please_fill_all_service_fields') || 'נא למלא את כל שדות השירות',
+                    type: 'danger',
+                });
+                return;
+            }
         }
 
         setIsLoading(true);
@@ -118,23 +141,20 @@ export default function AddEntertainmentCompany() {
                 password: formData.user_password,
                 options: {
                     data: {
-                        full_name: formData.name.trim(), // Use entertainment company name as full name
+                        full_name: formData.name.trim(),
                     },
                 },
             });
 
             if (authError) throw authError;
+            if (!authData.user) throw new Error('Failed to create user account');
 
-            if (!authData.user) {
-                throw new Error('Failed to create user account');
-            }
-
-            // 3) Create user profile with entertainment_company role and get the user ID
+            // 3) Create user profile
             const { data: userData, error: profileError } = await supabase
                 .from('users')
                 .insert([
                     {
-                        full_name: formData.name.trim(), // Use entertainment company name as full name
+                        full_name: formData.name.trim(),
                         email: formData.user_email.trim(),
                         role_id: entertainmentCompanyRole.id,
                         auth_user_id: authData.user.id,
@@ -146,328 +166,361 @@ export default function AddEntertainmentCompany() {
                 .single();
 
             if (profileError) throw profileError;
+            if (!userData) throw new Error('User profile creation failed');
 
-            if (!userData) {
-                throw new Error('User profile creation failed - no user data returned');
-            }
-
-            // 4) Create entertainment company record and link to user
-            const basePayload = {
-                name: formData.name.trim(),
-                description: formData.description.trim() || null,
-                price: formData.price,
-                status: formData.status,
-                user_id: userData.id, // Link to public.users record
-            };
-
-            const { data: created, error: insertError } = await supabase.from('external_entertainment_companies').insert([basePayload]).select().single();
+            // 4) Create entertainment company
+            const { data: companyData, error: insertError } = await supabase
+                .from('external_entertainment_companies')
+                .insert([
+                    {
+                        name: formData.name.trim(),
+                        description: formData.description.trim() || null,
+                        price: formData.price,
+                        status: formData.status,
+                        image: formData.image || null,
+                        user_id: userData.id,
+                    },
+                ])
+                .select()
+                .single();
 
             if (insertError) throw insertError;
+            if (!companyData) throw new Error('Company creation failed');
 
-            const companyId = created.id as string;
-            setCreatedCompanyId(companyId);
+            // 5) Insert sub-services if any
+            if (subServices.length > 0) {
+                const { error: servicesError } = await supabase.from('entertainment_company_services').insert(
+                    subServices.map((s) => ({
+                        entertainment_company_id: companyData.id,
+                        service_label: s.service_label.trim(),
+                        service_price: s.service_price,
+                    })),
+                );
 
-            // 5) Upload image if any, then update the record
-            let imagePath: string | null = null;
-
-            if (imageFile) {
-                const ext = imageFile.name.split('.').pop()?.toLowerCase() || 'jpg';
-                const path = `${companyId}/avatar_${Date.now()}.${ext}`;
-
-                const { error: uploadError } = await supabase.storage.from('entertainment-companies').upload(path, imageFile, {
-                    cacheControl: '3600',
-                    upsert: true,
-                });
-
-                if (uploadError) throw uploadError;
-
-                // Get the public URL from Supabase storage
-                const {
-                    data: { publicUrl },
-                } = supabase.storage.from('entertainment-companies').getPublicUrl(path);
-
-                imagePath = publicUrl;
-
-                // Update the record with the image path
-                const { error: updateError } = await supabase.from('external_entertainment_companies').update({ image: imagePath }).eq('id', companyId);
-
-                if (updateError) throw updateError;
+                if (servicesError) throw servicesError;
             }
 
-            setAlert({ visible: true, message: t('entertainment_company_added_successfully'), type: 'success' });
+            setAlert({
+                visible: true,
+                message: t('entertainment_company_added_successfully'),
+                type: 'success',
+            });
 
-            // Redirect after a brief delay
+            // Redirect after success
             setTimeout(() => {
                 router.push('/external-entertainment-companies');
             }, 1500);
         } catch (error) {
             console.error('Error adding entertainment company:', error);
-            setAlert({ visible: true, message: t('error_adding_entertainment_company'), type: 'danger' });
+            setAlert({
+                visible: true,
+                message: t('error_adding_entertainment_company'),
+                type: 'danger',
+            });
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="container mx-auto p-6">
-            {/* Header */}
+        <div>
             <PageBreadcrumb
                 section="external-entertainment-companies"
                 backUrl="/external-entertainment-companies"
                 items={[{ label: t('home'), href: '/' }, { label: t('external_entertainment_companies'), href: '/external-entertainment-companies' }, { label: t('add_entertainment_company') }]}
             />
 
-            {/* Title */}
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold">{t('add_entertainment_company')}</h1>
-                <p className="text-gray-500 mt-2">{t('add_entertainment_company_description')}</p>
+            <div className="mb-5">
+                <h1 className="text-2xl font-bold">{t('add_entertainment_company')}</h1>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{t('add_entertainment_company_description')}</p>
             </div>
 
-            {/* Alerts */}
             {alert.visible && (
-                <div className="fixed top-4 right-4 z-50 min-w-80 max-w-md">
+                <div className="fixed top-20 ltr:right-4 rtl:left-4 z-50 min-w-80 max-w-md">
                     <Alert type={alert.type} title={alert.type === 'success' ? t('success') : t('error')} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />
                 </div>
             )}
 
-            <div className="panel">
-                <form onSubmit={handleSubmit} className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('name')} *
-                            </label>
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                value={formData.name}
-                                onChange={handleInputChange}
-                                placeholder={t('enter_entertainment_company_name')}
-                                className="form-input"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="image" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('image')}
-                            </label>
-
-                            <div className="mb-1 flex gap-4 w-full">
-                                {/* File Input */}
-                                <div className="relative w-[250px]">
-                                    <input
-                                        type="file"
-                                        id="image"
-                                        accept="image/*"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                setImageFile(file);
-
-                                                // Create preview
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => {
-                                                    setImagePreview(reader.result as string);
-                                                };
-                                                reader.readAsDataURL(file);
-                                            }
-                                        }}
-                                        className="sr-only"
-                                    />
-                                    <label
-                                        htmlFor="image"
-                                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-800"
-                                    >
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <svg className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                                <path
-                                                    stroke="currentColor"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth="2"
-                                                    d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                                                />
-                                            </svg>
-                                            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                                <span className="font-semibold">{t('click_to_upload')}</span>
-                                            </p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">PNG, JPG, GIF up to 10MB</p>
-                                        </div>
-                                    </label>
-                                </div>
-
-                                {/* Image Preview */}
-                                {imagePreview && (
-                                    <div className="mb-4">
-                                        <div className="relative inline-block">
-                                            <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover rounded-lg border border-gray-300 shadow-sm" />
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    setImageFile(null);
-                                                    setImagePreview(null);
-                                                    // Reset the file input
-                                                    const input = document.getElementById('image') as HTMLInputElement;
-                                                    if (input) input.value = '';
-                                                }}
-                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            {imageFile && (
-                                <div className="mt-2">
-                                    <p className="text-sm text-green-600">
-                                        ✓ {t('selected_file')}: {imageFile.name}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="price" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('price')} *
-                            </label>
-                            <input
-                                id="price"
-                                name="price"
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={formData.price}
-                                onChange={handleInputChange}
-                                placeholder={t('enter_price')}
-                                className="form-input"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                                {t('status')}
-                            </label>
-                            <CustomSelect
-                                options={statusOptions}
-                                value={formData.status}
-                                onChange={(value: any) => setFormData((prev) => ({ ...prev, status: value as string }))}
-                                placeholder={t('select_status')}
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-white mb-2">
-                            {t('description')}
-                        </label>
-                        <textarea
-                            id="description"
-                            name="description"
-                            rows={4}
-                            value={formData.description}
-                            onChange={handleInputChange}
-                            placeholder={t('enter_description')}
-                            className="form-textarea"
-                        />
-                    </div>
-
-                    {/* User Account Creation */}
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                        <h3 className="text-lg font-semibold mb-4">{t('user_account_creation')}</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">{t('user_account_description')}</p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* User Email */}
-                            <div className="space-y-2">
-                                <label htmlFor="user_email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconMail className="w-5 h-5 text-primary" />
-                                    {t('email')} <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="email"
-                                    id="user_email"
-                                    name="user_email"
-                                    value={formData.user_email}
-                                    onChange={handleInputChange}
-                                    className="form-input"
-                                    placeholder={t('enter_email')}
-                                    required
-                                />
-                            </div>
-
-                            {/* User Password */}
-                            <div className="space-y-2">
-                                <label htmlFor="user_password" className="text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('password')} <span className="text-red-500">*</span>
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        id="user_password"
-                                        name="user_password"
-                                        value={formData.user_password}
-                                        onChange={handleInputChange}
-                                        className="form-input pr-12"
-                                        placeholder={t('enter_password')}
-                                        minLength={6}
-                                        required
-                                    />
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="panel p-0">
+                    <Tab.Group>
+                        <Tab.List className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700 px-5 pt-5">
+                            <Tab as={Fragment}>
+                                {({ selected }) => (
                                     <button
                                         type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                                        className={`px-5 py-3 font-semibold transition-all -mb-px ${
+                                            selected ? 'border-b-2 border-primary text-primary' : 'text-gray-600 dark:text-gray-400 hover:text-primary'
+                                        }`}
                                     >
-                                        {showPassword ? (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M2 2L22 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                <path
-                                                    d="M6.71 6.71C4.33 8.26 2.67 10.94 2 12C2.67 13.06 4.33 15.74 6.71 17.29"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                                <path
-                                                    d="M10.59 10.59C10.21 11.37 10.21 12.63 10.59 13.41C10.97 14.19 11.81 14.81 12.59 14.59"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                                <path
-                                                    d="M17.29 17.29C19.67 15.74 21.33 13.06 22 12C21.33 10.94 19.67 8.26 17.29 6.71"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            </svg>
-                                        ) : (
-                                            <IconEye className="w-5 h-5" />
-                                        )}
+                                        {t('basic_information') || 'מידע בסיסי'}
                                     </button>
-                                </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-500">{t('password_min_6_chars')}</p>
-                            </div>
-                        </div>
-                    </div>
+                                )}
+                            </Tab>
+                            <Tab as={Fragment}>
+                                {({ selected }) => (
+                                    <button
+                                        type="button"
+                                        className={`px-5 py-3 font-semibold transition-all -mb-px ${
+                                            selected ? 'border-b-2 border-primary text-primary' : 'text-gray-600 dark:text-gray-400 hover:text-primary'
+                                        }`}
+                                    >
+                                        {t('services_provided') || 'שירותים מוצעים'}
+                                        {subServices.length > 0 && <span className="ltr:ml-2 rtl:mr-2 badge bg-primary text-white">{subServices.length}</span>}
+                                    </button>
+                                )}
+                            </Tab>
+                        </Tab.List>
 
-                    <div className="flex justify-end gap-3">
-                        <Link href="/external-entertainment-companies" className="btn btn-outline-danger">
-                            {t('cancel')}
-                        </Link>
-                        <button type="submit" disabled={isLoading} className="btn btn-primary">
-                            {isLoading ? t('saving') : t('save_entertainment_company')}
-                        </button>
-                    </div>
-                </form>
-            </div>
+                        <Tab.Panels>
+                            {/* Basic Information Tab */}
+                            <Tab.Panel>
+                                <div className="p-5">
+                                    <div className="space-y-5">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                            <div>
+                                                <label htmlFor="name" className="block text-sm font-medium mb-2">
+                                                    {t('company_name') || 'שם החברה'} <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    id="name"
+                                                    name="name"
+                                                    type="text"
+                                                    value={formData.name}
+                                                    onChange={handleInputChange}
+                                                    placeholder={t('enter_entertainment_company_name')}
+                                                    className="form-input"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="price" className="block text-sm font-medium mb-2">
+                                                    {t('base_price') || 'מחיר בסיס'} (₪)
+                                                </label>
+                                                <input
+                                                    id="price"
+                                                    name="price"
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    value={formData.price}
+                                                    onChange={handleInputChange}
+                                                    placeholder="0.00"
+                                                    className="form-input"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label htmlFor="description" className="block text-sm font-medium mb-2">
+                                                {t('description') || 'תיאור'}
+                                            </label>
+                                            <textarea
+                                                id="description"
+                                                name="description"
+                                                rows={4}
+                                                value={formData.description}
+                                                onChange={handleInputChange}
+                                                placeholder={t('enter_description')}
+                                                className="form-textarea"
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                            <div>
+                                                <label htmlFor="image" className="block text-sm font-medium mb-2">
+                                                    {t('image') || 'תמונה'}
+                                                </label>
+                                                <ImageUpload
+                                                    bucket="entertainment-companies"
+                                                    userId="temp"
+                                                    url={formData.image || null}
+                                                    onUploadComplete={(url) => setFormData((prev) => ({ ...prev, image: url }))}
+                                                    onError={(error) => setAlert({ visible: true, message: error, type: 'danger' })}
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label htmlFor="status" className="block text-sm font-medium mb-2">
+                                                    {t('status') || 'סטטוס'}
+                                                </label>
+                                                <select id="status" name="status" value={formData.status} onChange={handleInputChange} className="form-select">
+                                                    <option value="active">{t('active') || 'פעיל'}</option>
+                                                    <option value="inactive">{t('inactive') || 'לא פעיל'}</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="border-t border-gray-200 dark:border-gray-700 pt-5 mt-5">
+                                            <h3 className="text-base font-semibold mb-4 flex items-center gap-2 text-gray-800 dark:text-gray-100">
+                                                <IconMail className="w-5 h-5 text-primary" />
+                                                {t('user_account_details') || 'פרטי חשבון משתמש'}
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                                <div>
+                                                    <label htmlFor="user_email" className="block text-sm font-medium mb-2">
+                                                        {t('email') || 'אימייל'} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        id="user_email"
+                                                        name="user_email"
+                                                        type="email"
+                                                        value={formData.user_email}
+                                                        onChange={handleInputChange}
+                                                        placeholder={t('enter_email')}
+                                                        className="form-input"
+                                                        required
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label htmlFor="user_password" className="block text-sm font-medium mb-2">
+                                                        {t('password') || 'סיסמה'} <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <div className="relative">
+                                                        <input
+                                                            id="user_password"
+                                                            name="user_password"
+                                                            type={showPassword ? 'text' : 'password'}
+                                                            value={formData.user_password}
+                                                            onChange={handleInputChange}
+                                                            placeholder={t('enter_password')}
+                                                            className="form-input"
+                                                            required
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setShowPassword(!showPassword)}
+                                                            className="absolute top-1/2 -translate-y-1/2 ltr:right-3 rtl:left-3 text-gray-400 hover:text-gray-600"
+                                                        >
+                                                            {showPassword ? (
+                                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                                    <path d="M2 2L22 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                                    <path
+                                                                        d="M6.71 6.71C4.33 8.26 2.67 10.94 2 12C2.67 13.06 4.33 15.74 6.71 17.29"
+                                                                        stroke="currentColor"
+                                                                        strokeWidth="1.5"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                    />
+                                                                    <path
+                                                                        d="M9.88 9.88C9.33 10.43 9 11.17 9 12C9 13.66 10.34 15 12 15C12.83 15 13.57 14.67 14.12 14.12"
+                                                                        stroke="currentColor"
+                                                                        strokeWidth="1.5"
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                    />
+                                                                </svg>
+                                                            ) : (
+                                                                <IconEye className="w-5 h-5" />
+                                                            )}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Tab.Panel>
+
+                            {/* Services Tab */}
+                            <Tab.Panel>
+                                <div className="p-5">
+                                    <div className="mb-5 flex items-center justify-between flex-wrap gap-3">
+                                        <div>
+                                            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('services_provided') || 'שירותים מוצעים'}</h3>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('manage_sub_services_pricing') || 'נהל שירותי משנה ותמחור'}</p>
+                                        </div>
+                                        <button type="button" onClick={handleAddService} className="btn btn-primary gap-2">
+                                            <IconPlus className="w-5 h-5" />
+                                            {t('add_service') || 'הוסף שירות'}
+                                        </button>
+                                    </div>
+
+                                    {subServices.length === 0 ? (
+                                        <div className="text-center py-12">
+                                            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <IconStar className="w-8 h-8 text-primary" />
+                                            </div>
+                                            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">{t('no_services_yet') || 'אין שירותים עדיין'}</h3>
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('click_add_service_to_start') || 'לחץ על "הוסף שירות" כדי להתחיל'}</p>
+                                            <button type="button" onClick={handleAddService} className="btn btn-outline-primary gap-2">
+                                                <IconPlus className="w-4 h-4" />
+                                                {t('add_first_service') || 'הוסף שירות ראשון'}
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="table-auto w-full">
+                                                <thead>
+                                                    <tr className="bg-gray-50 dark:bg-gray-800">
+                                                        <th className="px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300">#</th>
+                                                        <th className="px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                                            {t('service_name') || 'שם השירות'} <span className="text-red-500">*</span>
+                                                        </th>
+                                                        <th className="px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                                            {t('price') || 'מחיר'} (₪) <span className="text-red-500">*</span>
+                                                        </th>
+                                                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300">{t('actions') || 'פעולות'}</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                                    {subServices.map((service, index) => (
+                                                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                                                            <td className="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400">{index + 1}</td>
+                                                            <td className="px-3 py-2.5">
+                                                                <input
+                                                                    type="text"
+                                                                    className="form-input w-full"
+                                                                    value={service.service_label}
+                                                                    onChange={(e) => handleServiceChange(index, 'service_label', e.target.value)}
+                                                                    placeholder={t('label')}
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-2.5">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0"
+                                                                    step="0.01"
+                                                                    className="form-input w-full max-w-[150px]"
+                                                                    value={service.service_price}
+                                                                    onChange={(e) => handleServiceChange(index, 'service_price', parseFloat(e.target.value) || 0)}
+                                                                    placeholder="0.00"
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-2.5 text-center">
+                                                                <button type="button" onClick={() => handleDeleteService(index)} className="btn btn-sm btn-outline-danger">
+                                                                    <IconTrashLines className="w-4 h-4" />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+
+                                            <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                                                {subServices.length} {subServices.length === 1 ? t('service') || 'שירות' : t('services') || 'שירותים'}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </Tab.Panel>
+                        </Tab.Panels>
+                    </Tab.Group>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex justify-end gap-3">
+                    <Link href="/external-entertainment-companies" className="btn btn-outline-danger">
+                        {t('cancel')}
+                    </Link>
+                    <button type="submit" disabled={isLoading} className="btn btn-primary gap-2">
+                        <IconSave className="w-5 h-5" />
+                        {isLoading ? t('saving') : t('save_entertainment_company')}
+                    </button>
+                </div>
+            </form>
         </div>
     );
 }

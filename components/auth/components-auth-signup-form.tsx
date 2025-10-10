@@ -37,6 +37,10 @@ interface FormErrors {
     travelCompanyEmail?: string;
     travelCompanyAddress?: string;
     travelCompanyDescription?: string;
+    educationProgramPhone?: string;
+    educationProgramEmail?: string;
+    educationProgramAddress?: string;
+    educationProgramDescription?: string;
 }
 
 interface UserRole {
@@ -97,6 +101,12 @@ const ComponentsAuthSignupForm = () => {
         travelCompanyEmail: '',
         travelCompanyAddress: '',
         travelCompanyDescription: '',
+
+        // Education program fields
+        educationProgramPhone: '',
+        educationProgramEmail: '',
+        educationProgramAddress: '',
+        educationProgramDescription: '',
     });
 
     // Data state
@@ -109,7 +119,7 @@ const ComponentsAuthSignupForm = () => {
     const requiresSchool = selectedRole === 'school_manager' || selectedRole === 'trip_planner';
 
     // Determine if service provider fields are required
-    const serviceProviderRoles = ['guide', 'paramedic', 'security_company', 'entertainment_company', 'travel_company'];
+    const serviceProviderRoles = ['guide', 'paramedic', 'security_company', 'entertainment_company', 'travel_company', 'education_program'];
     const isServiceProvider = serviceProviderRoles.includes(selectedRole);
 
     useEffect(() => {
@@ -130,7 +140,7 @@ const ComponentsAuthSignupForm = () => {
             const { data, error } = await supabase
                 .from('user_roles')
                 .select('*')
-                .in('name', ['employee', 'school_manager', 'trip_planner', 'guide', 'paramedic', 'security_company', 'entertainment_company', 'travel_company'])
+                .in('name', ['employee', 'school_manager', 'trip_planner', 'guide', 'paramedic', 'security_company', 'entertainment_company', 'travel_company', 'education_program'])
                 .order('name');
 
             if (error) throw error;
@@ -261,6 +271,17 @@ const ComponentsAuthSignupForm = () => {
                         newErrors.travelCompanyEmail = t('invalid_email');
                     }
                     break;
+
+                case 'education_program':
+                    if (!serviceData.educationProgramPhone.trim()) {
+                        newErrors.educationProgramPhone = t('phone_number_required');
+                    } else if (!/^\+?[\d\s\-\(\)]+$/.test(serviceData.educationProgramPhone)) {
+                        newErrors.educationProgramPhone = t('invalid_phone_number');
+                    }
+                    if (serviceData.educationProgramEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(serviceData.educationProgramEmail)) {
+                        newErrors.educationProgramEmail = t('invalid_email');
+                    }
+                    break;
             }
         }
 
@@ -380,6 +401,9 @@ const ComponentsAuthSignupForm = () => {
                     case 'travel_company':
                         phoneNumber = serviceData.travelCompanyPhone?.trim() || null;
                         break;
+                    case 'education_program':
+                        phoneNumber = serviceData.educationProgramPhone?.trim() || null;
+                        break;
                 }
             }
 
@@ -471,6 +495,20 @@ const ComponentsAuthSignupForm = () => {
                                 },
                             ]);
                             serviceError = travelError;
+                            break;
+
+                        case 'education_program':
+                            const { error: educationError } = await supabase.from('education_programs').insert([
+                                {
+                                    user_id: authData.user.id,
+                                    name: fullName.trim(),
+                                    phone: serviceData.educationProgramPhone,
+                                    email: serviceData.educationProgramEmail || null,
+                                    address: serviceData.educationProgramAddress || null,
+                                    description: serviceData.educationProgramDescription || null,
+                                },
+                            ]);
+                            serviceError = educationError;
                             break;
                     }
 
@@ -998,6 +1036,60 @@ const ComponentsAuthSignupForm = () => {
                                             className="form-textarea rounded-xl"
                                             value={serviceData.travelCompanyDescription}
                                             onChange={(e) => setServiceData((prev) => ({ ...prev, travelCompanyDescription: e.target.value }))}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Education Program Form */}
+                            {selectedRole === 'education_program' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label htmlFor="educationProgramPhone">
+                                            {t('phone_number')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            id="educationProgramPhone"
+                                            type="tel"
+                                            placeholder={t('enter_phone_number')}
+                                            className={`form-input rounded-xl py-2 ${errors.educationProgramPhone ? 'border-red-500' : ''}`}
+                                            value={serviceData.educationProgramPhone}
+                                            onChange={(e) => setServiceData((prev) => ({ ...prev, educationProgramPhone: e.target.value }))}
+                                        />
+                                        {errors.educationProgramPhone && <span className="text-red-500 text-sm mt-1">{errors.educationProgramPhone}</span>}
+                                    </div>
+                                    <div>
+                                        <label htmlFor="educationProgramEmail">{t('email')}</label>
+                                        <input
+                                            id="educationProgramEmail"
+                                            type="email"
+                                            placeholder={t('enter_email')}
+                                            className={`form-input rounded-xl py-2 ${errors.educationProgramEmail ? 'border-red-500' : ''}`}
+                                            value={serviceData.educationProgramEmail}
+                                            onChange={(e) => setServiceData((prev) => ({ ...prev, educationProgramEmail: e.target.value }))}
+                                        />
+                                        {errors.educationProgramEmail && <span className="text-red-500 text-sm mt-1">{errors.educationProgramEmail}</span>}
+                                    </div>
+                                    <div>
+                                        <label htmlFor="educationProgramAddress">{t('address')}</label>
+                                        <input
+                                            id="educationProgramAddress"
+                                            type="text"
+                                            placeholder={t('enter_address')}
+                                            className="form-input rounded-xl py-2"
+                                            value={serviceData.educationProgramAddress}
+                                            onChange={(e) => setServiceData((prev) => ({ ...prev, educationProgramAddress: e.target.value }))}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="educationProgramDescription">{t('description')}</label>
+                                        <textarea
+                                            id="educationProgramDescription"
+                                            rows={3}
+                                            placeholder={t('enter_program_description')}
+                                            className="form-textarea rounded-xl"
+                                            value={serviceData.educationProgramDescription}
+                                            onChange={(e) => setServiceData((prev) => ({ ...prev, educationProgramDescription: e.target.value }))}
                                         />
                                     </div>
                                 </div>

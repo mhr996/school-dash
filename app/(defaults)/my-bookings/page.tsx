@@ -18,6 +18,7 @@ import IconHeart from '@/components/icon/icon-heart';
 import IconLock from '@/components/icon/icon-lock';
 import IconPlay from '@/components/icon/icon-play-circle';
 import IconCar from '@/components/icon/icon-car';
+import IconBook from '@/components/icon/icon-book';
 import IconShoppingBag from '@/components/icon/icon-shopping-bag';
 import IconStar from '@/components/icon/icon-star';
 import IconCaretDown from '@/components/icon/icon-caret-down';
@@ -27,7 +28,7 @@ import IconBuilding from '@/components/icon/icon-building';
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'active' | 'inactive';
 type PaymentStatus = 'pending' | 'deposit_paid' | 'fully_paid' | 'cancelled' | 'paid';
-type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'transportation_only' | 'mixed_services';
+type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'education_only' | 'transportation_only';
 
 interface Booking {
     id: string;
@@ -95,19 +96,19 @@ const getBookingTypeConfigs = (t: any) => ({
         bgColor: 'bg-purple-50',
         borderColor: 'border-purple-200',
     },
+    education_only: {
+        title: t('education_only'),
+        icon: IconBook,
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+        borderColor: 'border-emerald-200',
+    },
     transportation_only: {
         title: t('transportation_only'),
         icon: IconCar,
         color: 'text-indigo-600',
         bgColor: 'bg-indigo-50',
         borderColor: 'border-indigo-200',
-    },
-    mixed_services: {
-        title: t('mixed_services'),
-        icon: IconShoppingBag,
-        color: 'text-teal-600',
-        bgColor: 'bg-teal-50',
-        borderColor: 'border-teal-200',
     },
 });
 
@@ -444,8 +445,8 @@ export default function MyBookingsPage() {
                                         { value: 'paramedics_only', label: t('paramedics_only'), icon: IconHeart },
                                         { value: 'security_only', label: t('security_only'), icon: IconLock },
                                         { value: 'entertainment_only', label: t('entertainment_only'), icon: IconPlay },
+                                        { value: 'education_only', label: t('education_only'), icon: IconBook },
                                         { value: 'transportation_only', label: t('transportation_only'), icon: IconCar },
-                                        { value: 'mixed_services', label: t('mixed_services'), icon: IconShoppingBag },
                                     ].map((option) => {
                                         const OptionIcon = option.icon;
                                         const isSelected = selectedBookingType === option.value;

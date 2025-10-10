@@ -1,6 +1,6 @@
 'use client';
 import CountrySelect from '@/components/country-select/country-select';
-import IconDollarSignCircle from '@/components/icon/icon-dollar-sign-circle';
+import IconShekelSignCircle from '@/components/icon/icon-shekel-sign-circle';
 import IconFacebook from '@/components/icon/icon-facebook';
 import IconGithub from '@/components/icon/icon-github';
 import IconHome from '@/components/icon/icon-home';

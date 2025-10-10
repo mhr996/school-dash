@@ -10,7 +10,7 @@ import IconSave from '@/components/icon/icon-save';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconReceipt from '@/components/icon/icon-receipt';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 
@@ -589,7 +589,7 @@ export default function EditReceiptPage() {
                             className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl p-6 shadow-lg border border-white/30 dark:border-slate-700/40"
                         >
                             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <IconDollarSign className="w-5 h-5 text-green-500" />
+                                <IconShekelSign className="w-5 h-5 text-green-500" />
                                 {t('payment_summary')}
                             </h2>
                             <div className="space-y-3">

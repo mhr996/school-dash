@@ -13,13 +13,14 @@ import IconMail from '@/components/icon/icon-mail';
 import IconPhone from '@/components/icon/icon-phone';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconSave from '@/components/icon/icon-save';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconOpenBook from '@/components/icon/icon-open-book';
 import IconHeart from '@/components/icon/icon-heart';
 import IconLock from '@/components/icon/icon-lock';
 import IconCar from '@/components/icon/icon-car';
 import IconStar from '@/components/icon/icon-star';
+import EntertainmentCompanyTabs from '@/components/entertainment/entertainment-company-tabs';
 
 interface User {
     id: string;
@@ -496,6 +497,39 @@ const ServiceProviderProfile = () => {
     const renderServiceSection = () => {
         const roleName = user?.user_roles?.name;
 
+        // For entertainment companies, show the tabbed interface instead
+        if (roleName === 'entertainment_company' && serviceData.id) {
+            return (
+                <div className="panel">
+                    <div className="mb-6">
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <IconStar className="w-5 h-5" />
+                            {t('service_information')}
+                        </h2>
+                        <p className="text-gray-600 dark:text-gray-400 mt-1">{t('service_info_description')}</p>
+                    </div>
+
+                    <EntertainmentCompanyTabs
+                        companyId={serviceData.id}
+                        companyData={{
+                            name: serviceData.name || '',
+                            description: serviceData.description || '',
+                            price: serviceData.price || 0,
+                            image: serviceData.image || '',
+                            status: serviceData.status || 'active',
+                        }}
+                        onUpdate={() => {
+                            // Re-fetch service data when updated
+                            if (user) {
+                                fetchServiceProviderData(user);
+                            }
+                        }}
+                        isServiceProvider={true}
+                    />
+                </div>
+            );
+        }
+
         return (
             <div className="panel">
                 <div className="mb-6">
@@ -595,7 +629,7 @@ const ServiceProviderProfile = () => {
                             <>
                                 <div>
                                     <label htmlFor="hourly_rate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        <IconDollarSign className="w-4 h-4 inline mr-2" />
+                                        <IconShekelSign className="w-4 h-4 inline mr-2" />
                                         {t('hourly_rate')}
                                     </label>
                                     <input
@@ -610,7 +644,7 @@ const ServiceProviderProfile = () => {
                                 </div>
                                 <div>
                                     <label htmlFor="daily_rate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        <IconDollarSign className="w-4 h-4 inline mr-2" />
+                                        <IconShekelSign className="w-4 h-4 inline mr-2" />
                                         {t('daily_rate')}
                                     </label>
                                     <input
@@ -657,39 +691,6 @@ const ServiceProviderProfile = () => {
                             </>
                         )}
 
-                        {/* Entertainment company description */}
-                        {roleName === 'entertainment_company' && (
-                            <>
-                                <div>
-                                    <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        {t('description')}
-                                    </label>
-                                    <textarea
-                                        id="description"
-                                        className="form-textarea"
-                                        rows={4}
-                                        value={serviceData.description || ''}
-                                        onChange={(e) => handleInputChange('description', e.target.value)}
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="price" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                        <IconDollarSign className="w-4 h-4 inline mr-2" />
-                                        {t('price')}
-                                    </label>
-                                    <input
-                                        id="price"
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        className="form-input"
-                                        value={serviceData.price || ''}
-                                        onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
-                                    />
-                                </div>
-                            </>
-                        )}
-
                         {/* Security company specific fields */}
                         {roleName === 'security_company' && (
                             <>
@@ -720,22 +721,27 @@ const ServiceProviderProfile = () => {
                             </>
                         )}
 
-                        {/* Notes field for all */}
-                        <div>
-                            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {t('notes')}
-                            </label>
-                            <textarea id="notes" className="form-textarea" rows={3} value={serviceData.notes || ''} onChange={(e) => handleInputChange('notes', e.target.value)} />
-                        </div>
+                        {/* Notes field for all (except entertainment companies) */}
+                        {roleName !== 'entertainment_company' && (
+                            <div>
+                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    {t('notes')}
+                                </label>
+                                <textarea id="notes" className="form-textarea" rows={3} value={serviceData.notes || ''} onChange={(e) => handleInputChange('notes', e.target.value)} />
+                            </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="mt-8 flex justify-end">
-                    <button type="button" onClick={handleSave} disabled={isSaving} className="btn btn-primary gap-2">
-                        <IconSave className="w-4 h-4" />
-                        {isSaving ? t('saving') : t('save_changes')}
-                    </button>
-                </div>
+                {/* Save button - only for non-entertainment companies */}
+                {roleName !== 'entertainment_company' && (
+                    <div className="mt-8 flex justify-end">
+                        <button type="button" onClick={handleSave} disabled={isSaving} className="btn btn-primary gap-2">
+                            <IconSave className="w-4 h-4" />
+                            {isSaving ? t('saving') : t('save_changes')}
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };

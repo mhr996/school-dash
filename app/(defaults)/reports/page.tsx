@@ -20,7 +20,7 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), {
 // Icons
 import IconTrendingUp from '@/components/icon/icon-trending-up';
 import IconTrendingDown from '@/components/icon/icon-trending-down';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconUsersGroup from '@/components/icon/icon-users-group';
 import IconCar from '@/components/icon/icon-car';
 import IconBuilding from '@/components/icon/icon-building';
@@ -612,7 +612,7 @@ const ReportsPage = () => {
                                     <div className="text-3xl font-bold mt-2">{formatCurrency(reportsData.totalRevenue)}</div>
                                 </div>
                                 <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center">
-                                    <IconDollarSign className="w-8 h-8" />
+                                    <IconShekelSign className="w-8 h-8" />
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">

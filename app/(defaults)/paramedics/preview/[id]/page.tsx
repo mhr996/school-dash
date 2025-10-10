@@ -13,7 +13,7 @@ import IconMail from '@/components/icon/icon-mail';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconClipboardText from '@/components/icon/icon-clipboard-text';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
 
@@ -213,7 +213,7 @@ const ParamedicPreview = () => {
                     <div className="panel">
                         <div className="mb-5">
                             <h3 className="text-lg font-semibold flex items-center gap-2">
-                                <IconDollarSign className="w-5 h-5 text-primary" />
+                                <IconShekelSign className="w-5 h-5 text-primary" />
                                 {t('pricing_information')}
                             </h3>
                         </div>

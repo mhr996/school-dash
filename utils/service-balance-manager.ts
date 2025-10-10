@@ -19,7 +19,8 @@ export type ServiceType =
     | 'paramedics' 
     | 'security_companies' 
     | 'external_entertainment_companies' 
-    | 'travel_companies';
+    | 'travel_companies'
+    | 'education_programs';
 
 // Service provider details with balance
 export interface ServiceProviderBalance {

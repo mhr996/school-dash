@@ -10,7 +10,7 @@ import supabase from '@/lib/supabase';
 // Icons
 import IconUser from '@/components/icon/icon-user';
 import IconCalendar from '@/components/icon/icon-calendar';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconEye from '@/components/icon/icon-eye';
 import IconEdit from '@/components/icon/icon-edit';
 import IconOpenBook from '@/components/icon/icon-open-book';
@@ -43,6 +43,17 @@ interface BookingSummary {
     total_earnings: number;
 }
 
+interface PendingAcceptance {
+    id: string;
+    booking_id: string;
+    booked_price: number;
+    quantity: number;
+    days: number;
+    booking_reference: string;
+    trip_date: string;
+    destination_name?: string;
+}
+
 const ServiceProviderDashboard = () => {
     const { t } = getTranslation();
     const router = useRouter();
@@ -55,6 +66,7 @@ const ServiceProviderDashboard = () => {
         total_earnings: 0,
     });
     const [recentBookings, setRecentBookings] = useState<any[]>([]);
+    const [pendingAcceptances, setPendingAcceptances] = useState<PendingAcceptance[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -80,6 +92,7 @@ const ServiceProviderDashboard = () => {
                 await fetchServiceProviderData(userData);
                 await fetchBookingSummary(userData);
                 await fetchRecentBookings(userData);
+                await fetchPendingAcceptances(userData);
             } catch (error) {
                 console.error('Error initializing dashboard:', error);
                 router.push('/auth/signin');
@@ -221,6 +234,74 @@ const ServiceProviderDashboard = () => {
         }
     };
 
+    const fetchPendingAcceptances = async (userData: User) => {
+        const roleName = userData.user_roles?.name;
+        let serviceType = '';
+
+        switch (roleName) {
+            case 'guide':
+                serviceType = 'guides';
+                break;
+            case 'paramedic':
+                serviceType = 'paramedics';
+                break;
+            case 'security_company':
+                serviceType = 'security_companies';
+                break;
+            case 'entertainment_company':
+                serviceType = 'external_entertainment_companies';
+                break;
+            default:
+                return;
+        }
+
+        try {
+            const { data: pendingServices, error } = await supabase
+                .from('booking_services')
+                .select(
+                    `
+                    id,
+                    booking_id,
+                    booked_price,
+                    quantity,
+                    days,
+                    bookings!inner(
+                        booking_reference,
+                        trip_date,
+                        destinations(name)
+                    )
+                `,
+                )
+                .eq('service_type', serviceType)
+                .eq('service_id', serviceData?.id || '')
+                .eq('acceptance_status', 'pending')
+                .order('created_at', { ascending: false });
+
+            if (!error && pendingServices) {
+                // Transform the data to match our interface
+                const transformed: PendingAcceptance[] = pendingServices.map((item: any) => ({
+                    id: item.id,
+                    booking_id: item.booking_id,
+                    booked_price: item.booked_price,
+                    quantity: item.quantity,
+                    days: item.days,
+                    booking_reference: Array.isArray(item.bookings) ? item.bookings[0]?.booking_reference : item.bookings?.booking_reference,
+                    trip_date: Array.isArray(item.bookings) ? item.bookings[0]?.trip_date : item.bookings?.trip_date,
+                    destination_name: Array.isArray(item.bookings)
+                        ? Array.isArray(item.bookings[0]?.destinations)
+                            ? item.bookings[0]?.destinations[0]?.name
+                            : item.bookings[0]?.destinations?.name
+                        : Array.isArray(item.bookings?.destinations)
+                          ? item.bookings?.destinations[0]?.name
+                          : item.bookings?.destinations?.name,
+                }));
+                setPendingAcceptances(transformed);
+            }
+        } catch (error) {
+            console.error('Error fetching pending acceptances:', error);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
@@ -283,6 +364,66 @@ const ServiceProviderDashboard = () => {
                 </div>
             </div>
 
+            {/* Pending Acceptances Alert */}
+            {pendingAcceptances.length > 0 && (
+                <div className="panel bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-2 border-orange-200 dark:border-orange-800">
+                    <div className="flex items-start gap-4">
+                        <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-2xl">🔔</span>
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-xl font-bold text-orange-700 dark:text-orange-400 mb-2">{t('pending_booking_acceptances') || 'הזמנות ממתינות לאישור'}</h3>
+                            <p className="text-gray-700 dark:text-gray-300 mb-4">
+                                {t('you_have_pending_bookings_text') || `יש לך ${pendingAcceptances.length} הזמנות חדשות שדורשות תשומת לב. אנא סקור ואשר או דחה כל הזמנה.`}
+                            </p>
+                            <div className="space-y-3">
+                                {pendingAcceptances.slice(0, 3).map((booking) => (
+                                    <Link
+                                        key={booking.id}
+                                        href={`/service/bookings/${booking.id}`}
+                                        className="block p-4 bg-white dark:bg-gray-800 rounded-lg hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                                        {t('booking')} #{booking.booking_reference}
+                                                    </span>
+                                                    <span className="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs rounded-full font-medium">
+                                                        ⏳ {t('pending') || 'ממתין'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                                    <span className="flex items-center gap-1">
+                                                        <IconCalendar className="w-4 h-4" />
+                                                        {new Date(booking.trip_date).toLocaleDateString('he-IL')}
+                                                    </span>
+                                                    {booking.destination_name && <span className="flex items-center gap-1">📍 {booking.destination_name}</span>}
+                                                    <span className="flex items-center gap-1 font-semibold text-green-600 dark:text-green-400">
+                                                        <IconShekelSign className="w-4 h-4" />
+                                                        {booking.booked_price.toLocaleString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <IconEye className="w-5 h-5 text-primary" />
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                            {pendingAcceptances.length > 3 && (
+                                <div className="mt-4 text-center">
+                                    <Link href="/service/bookings" className="text-primary hover:underline font-medium">
+                                        {t('view_all')} ({pendingAcceptances.length} {t('total')})
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="panel bg-gradient-to-r from-cyan-500 to-cyan-600">
@@ -328,7 +469,7 @@ const ServiceProviderDashboard = () => {
                             <div className="text-fuchsia-100">{t('total_earnings')}</div>
                         </div>
                         <div className="bg-fuchsia-400 rounded-full w-11 h-11 flex items-center justify-center">
-                            <IconDollarSign className="w-6 h-6 text-white" />
+                            <IconShekelSign className="w-6 h-6 text-white" />
                         </div>
                     </div>
                 </div>

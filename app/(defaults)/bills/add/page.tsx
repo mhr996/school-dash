@@ -10,7 +10,7 @@ import IconSave from '@/components/icon/icon-save';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconReceipt from '@/components/icon/icon-receipt';
-import IconDollarSign from '@/components/icon/icon-dollar-sign';
+import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import CustomSelect from '@/components/elements/custom-select';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 
@@ -713,7 +713,7 @@ export default function AddBill() {
                     <div className="panel">
                         <div className="mb-5">
                             <h3 className="text-lg font-semibold flex items-center gap-2">
-                                <IconDollarSign className="w-5 h-5 text-green-600" />
+                                <IconShekelSign className="w-5 h-5 text-green-600" />
                                 {t('receipt_summary')}
                             </h3>
                         </div>
