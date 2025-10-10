@@ -1560,7 +1560,7 @@ export default function TripPlannerDashboard() {
                                                                 </div>
                                                             </div>
                                                             <div className="text-center sm:text-right">
-                                                                <div className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">${trip.total_amount}</div>
+                                                                <div className="text-xl font-bold text-gray-800 dark:text-gray-200 mb-2">{trip.total_amount}</div>
                                                                 <span
                                                                     className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                                                                         trip.status === 'confirmed'
@@ -1628,7 +1628,7 @@ export default function TripPlannerDashboard() {
                                                             </span>
                                                         </div>
                                                         <div className="flex items-center justify-between">
-                                                            <div className="text-lg font-bold text-gray-800 dark:text-gray-200">${trip.total_amount}</div>
+                                                            <div className="text-lg font-bold text-gray-800 dark:text-gray-200">{trip.total_amount}</div>
                                                             <motion.button
                                                                 whileHover={{ scale: 1.05 }}
                                                                 whileTap={{ scale: 0.95 }}
@@ -1694,7 +1694,7 @@ export default function TripPlannerDashboard() {
                                                                             <div className="text-sm text-gray-500 dark:text-gray-400">{payment.bills?.bookings?.booking_reference}</div>
                                                                         </div>
                                                                     </td>
-                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300">${payment.amount}</td>
+                                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300">{payment.amount}</td>
                                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                                         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                                                                             {t(payment.payment_type)}
@@ -1724,7 +1724,7 @@ export default function TripPlannerDashboard() {
                                                                 <p className="text-sm text-gray-500 mt-1">{new Date(payment.payment_date).toLocaleDateString()}</p>
                                                             </div>
                                                             <div className="text-right ml-4">
-                                                                <div className="text-xl font-bold text-gray-800 dark:text-gray-200">${payment.amount}</div>
+                                                                <div className="text-xl font-bold text-gray-800 dark:text-gray-200">{payment.amount}</div>
                                                                 <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 mt-2">
                                                                     {t(payment.payment_type)}
                                                                 </span>
@@ -2386,10 +2386,10 @@ export default function TripPlannerDashboard() {
                                                                 </div>
                                                                 <div className="text-right">
                                                                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                        ${paramedic.daily_rate}/{t('day')}
+                                                                        {paramedic.daily_rate}/{t('day')}
                                                                     </p>
                                                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                        ${paramedic.hourly_rate}/{t('hr')}
+                                                                        {paramedic.hourly_rate}/{t('hr')}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -2433,10 +2433,10 @@ export default function TripPlannerDashboard() {
                                                                 </div>
                                                                 <div className="text-right">
                                                                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                        ${guide.daily_rate}/{t('day')}
+                                                                        {guide.daily_rate}/{t('day')}
                                                                     </p>
                                                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                        ${guide.hourly_rate}/{t('hr')}
+                                                                        {guide.hourly_rate}/{t('hr')}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -2480,10 +2480,10 @@ export default function TripPlannerDashboard() {
                                                                 </div>
                                                                 <div className="text-right">
                                                                     <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                        ${security.daily_rate}/{t('day')}
+                                                                        {security.daily_rate}/{t('day')}
                                                                     </p>
                                                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                        ${security.hourly_rate}/{t('hr')}
+                                                                        {security.hourly_rate}/{t('hr')}
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -2526,7 +2526,7 @@ export default function TripPlannerDashboard() {
                                                                     <p className="text-sm text-gray-600 dark:text-gray-300">{entertainment.description}</p>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">${entertainment.price}</p>
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{entertainment.price}</p>
                                                                     <p className="text-xs text-gray-500 dark:text-gray-400">{t('fixed_price')}</p>
                                                                 </div>
                                                             </div>
@@ -2569,7 +2569,7 @@ export default function TripPlannerDashboard() {
                                                                     <p className="text-sm text-gray-600 dark:text-gray-300">{travel.phone}</p>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">${travel.pricing_data?.default_price || 100}</p>
+                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{travel.pricing_data?.default_price || 100}</p>
                                                                     <p className="text-xs text-gray-500 dark:text-gray-400">{t('per_trip')}</p>
                                                                 </div>
                                                             </div>
@@ -2636,7 +2636,7 @@ export default function TripPlannerDashboard() {
                                                                     </p>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">${requirement.cost}</p>
+                                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">{requirement.cost}</p>
                                                                     <button onClick={() => removeRequirement(index)} className="text-red-500 hover:text-red-700 text-xs">
                                                                         {t('remove')}
                                                                     </button>
@@ -2651,7 +2651,7 @@ export default function TripPlannerDashboard() {
                                             <div className="border-t border-gray-200/30 dark:border-slate-700/50 mt-4 pt-4">
                                                 <div className="flex items-center justify-between text-lg font-bold text-gray-900 dark:text-white">
                                                     <span>{t('total')}</span>
-                                                    <span>${totalPrice}</span>
+                                                    <span>{totalPrice}</span>
                                                 </div>
                                             </div>
 
@@ -3100,7 +3100,7 @@ export default function TripPlannerDashboard() {
                                                         <div>
                                                             <p className="font-medium text-gray-900 dark:text-white">{guide.name}</p>
                                                             <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                ${guide.hourly_rate}/hr • ${guide.daily_rate}/day
+                                                                {guide.hourly_rate}/hr • {guide.daily_rate}/day
                                                             </p>
                                                         </div>
                                                         <button
@@ -3180,7 +3180,7 @@ export default function TripPlannerDashboard() {
                                                         <div>
                                                             <p className="font-medium text-gray-900 dark:text-white">{entertainment.name}</p>
                                                             <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                ${entertainment.price} {t('fixed_price')}
+                                                                {entertainment.price} {t('fixed_price')}
                                                             </p>
                                                             {entertainment.description && <p className="text-xs text-purple-600 dark:text-purple-400">{entertainment.description}</p>}
                                                         </div>
@@ -3223,7 +3223,7 @@ export default function TripPlannerDashboard() {
                                                         <div>
                                                             <p className="font-medium text-gray-900 dark:text-white">{travelCompany.name}</p>
                                                             <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                {travelCompany.pricing_data?.default_price ? `$${travelCompany.pricing_data.default_price}/day` : 'Contact for pricing'}
+                                                                {travelCompany.pricing_data?.default_price ? `${travelCompany.pricing_data.default_price}/day` : 'Contact for pricing'}
                                                             </p>
                                                             {travelCompany.phone && <p className="text-xs text-blue-600 dark:text-blue-400">{travelCompany.phone}</p>}
                                                         </div>
@@ -3291,7 +3291,7 @@ export default function TripPlannerDashboard() {
                                                                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${serviceInfo.color}`}>{serviceInfo.label}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold text-gray-900 dark:text-white">${(req.cost * req.quantity * (req.days || 1)).toFixed(2)}</span>
+                                                                    <span className="font-semibold text-gray-900 dark:text-white">{(req.cost * req.quantity * (req.days || 1)).toFixed(2)}</span>
                                                                     <button
                                                                         onClick={() => removeRequirement(idx)}
                                                                         className="text-red-400 hover:text-red-600 transition-colors duration-200 p-1"
@@ -3411,7 +3411,7 @@ export default function TripPlannerDashboard() {
                                             {selectedRequirements.map((req, idx) => (
                                                 <div key={idx} className="flex justify-between text-sm">
                                                     <span className="text-gray-600 dark:text-gray-400">{req.name}</span>
-                                                    <span className="text-gray-900 dark:text-white">${(req.cost * req.quantity * (req.days || 1)).toFixed(2)}</span>
+                                                    <span className="text-gray-900 dark:text-white">{(req.cost * req.quantity * (req.days || 1)).toFixed(2)}</span>
                                                 </div>
                                             ))}
                                             <div className="border-t dark:border-slate-700 pt-2 mt-3">
