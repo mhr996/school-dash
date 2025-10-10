@@ -945,12 +945,27 @@ export default function TripPlannerDashboard() {
                 customer_id = currentUser?.id;
             }
 
-            // Generate unique booking reference to prevent collisions (max 10 characters)
+            // Generate booking type prefix
+            const getBookingTypePrefix = (type: BookingType): string => {
+                const prefixMap: Record<BookingType, string> = {
+                    full_trip: 'FT',
+                    guides_only: 'GU',
+                    paramedics_only: 'PM',
+                    security_only: 'SC',
+                    entertainment_only: 'EN',
+                    transportation_only: 'TR',
+                    education_only: 'ED',
+                };
+                return prefixMap[type] || 'BK';
+            };
+
+            // Generate unique booking reference to prevent collisions
             const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
             const random = Math.floor(Math.random() * 100)
                 .toString()
                 .padStart(2, '0');
-            const uniqueBookingRef = `BK${timestamp}${random}`; // BK + 6 digits + 2 digits = 10 characters
+            const bookingTypePrefix = getBookingTypePrefix(selectedBookingType || 'full_trip');
+            const uniqueBookingRef = `${bookingTypePrefix}${timestamp}${random}`; // Prefix + 6 digits + 2 digits
             console.log('Generated booking reference:', uniqueBookingRef);
             console.log('Current user:', currentUser);
             console.log('School ID:', school_id);
