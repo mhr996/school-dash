@@ -168,6 +168,18 @@ const Sidebar = () => {
                                             </div>
                                         </Link>
                                     </li>
+
+                                    {/* Explore Page - Only for School Manager and Trip Planner */}
+                                    {!isServiceProvider && (userRole === 'trip_planner' || userRole === 'school_manager') && (
+                                        <li className="nav-item">
+                                            <Link href="/explore" className="group">
+                                                <div className="flex items-center">
+                                                    <IconStar className="shrink-0 group-hover:!text-primary" />
+                                                    <span className="text-black ltr:pl-3 rtl:pr-3 dark:text-[#506690] dark:group-hover:text-white-dark">{t('explore')}</span>
+                                                </div>
+                                            </Link>
+                                        </li>
+                                    )}
                                 </ul>
                             </li>
 

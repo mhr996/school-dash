@@ -133,8 +133,8 @@ export default function RouteGuard({ children }: RouteGuardProps) {
 
         // Trip planner access - home page and user-specific pages
         if (role === 'trip_planner') {
-            // Trip planners can access home page and their own pages
-            const allowedPaths = ['/', ...tripPlannerUserRoutes];
+            // Trip planners can access home page, explore page, and their own pages
+            const allowedPaths = ['/', '/explore', ...tripPlannerUserRoutes];
             if (!allowedPaths.includes(currentPath) && !publicRoutes.includes(currentPath)) {
                 router.push('/');
                 return false;
@@ -144,8 +144,8 @@ export default function RouteGuard({ children }: RouteGuardProps) {
 
         // School manager access - home page and user-specific pages
         if (role === 'school_manager') {
-            // School managers can access home page and their own pages
-            const allowedPaths = ['/', ...tripPlannerUserRoutes];
+            // School managers can access home page, explore page, and their own pages
+            const allowedPaths = ['/', '/explore', ...tripPlannerUserRoutes];
             if (!allowedPaths.includes(currentPath) && !publicRoutes.includes(currentPath)) {
                 router.push('/');
                 return false;

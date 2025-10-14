@@ -1979,5 +1979,17 @@
     "add_first_service": "הוסף שירות ראשון",
     "save_all_services": "שמור שירותים",
     "company_created_add_services": "החברה נוצרה בהצלחה! הוסף שירותים",
-    "back_to_list": "חזרה לרשימה"
+    "back_to_list": "חזרה לרשימה",
+    "explore": "סייר",
+    "explore_services": "סייר בשירותים",
+    "explore_services_description": "גלה את כל השירותים, היעדים והספקים הזמינים לצורכי תכנון הטיול שלך",
+    "all_services": "כל השירותים",
+    "search_services": "חפש שירותים, יעדים, ספקים...",
+    "no_services_found": "לא נמצאו שירותים",
+    "try_different_search": "נסה להתאים את חיפושך או קריטריוני הסינון",
+    "tour_guide": "מדריך טיולים",
+    "price_range": "טווח מחירים",
+    "min": "מינימום",
+    "max": "מקסימום",
+    "reset_filters": "אפס מסננים"
 }

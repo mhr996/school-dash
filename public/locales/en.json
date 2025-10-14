@@ -1949,5 +1949,17 @@
     "change": "Change",
     "reference_number_placeholder": "e.g., TXN-2024-001",
     "description_placeholder": "e.g., Payment for services in December 2024",
-    "notes_placeholder": "Additional notes or comments..."
+    "notes_placeholder": "Additional notes or comments...",
+    "explore": "Explore",
+    "explore_services": "Explore Services",
+    "explore_services_description": "Discover all available services, destinations, and providers for your trip planning needs",
+    "all_services": "All Services",
+    "search_services": "Search services, destinations, providers...",
+    "no_services_found": "No Services Found",
+    "try_different_search": "Try adjusting your search or filter criteria",
+    "tour_guide": "Tour Guide",
+    "price_range": "Price Range",
+    "min": "Min",
+    "max": "Max",
+    "reset_filters": "Reset Filters"
 }

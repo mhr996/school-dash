@@ -2329,5 +2329,17 @@
     "add_first_service": "إضافة أول خدمة",
     "save_all_services": "حفظ الخدمات",
     "company_created_add_services": "تم إنشاء الشركة بنجاح! إضافة خدمات",
-    "back_to_list": "العودة إلى القائمة"
+    "back_to_list": "العودة إلى القائمة",
+    "explore": "استكشف",
+    "explore_services": "استكشف الخدمات",
+    "explore_services_description": "اكتشف جميع الخدمات والوجهات ومقدمي الخدمات المتاحة لاحتياجات تخطيط رحلتك",
+    "all_services": "جميع الخدمات",
+    "search_services": "البحث عن الخدمات والوجهات ومقدمي الخدمات...",
+    "no_services_found": "لم يتم العثور على خدمات",
+    "try_different_search": "حاول تعديل معايير البحث أو التصفية",
+    "tour_guide": "مرشد سياحي",
+    "price_range": "نطاق السعر",
+    "min": "الأدنى",
+    "max": "الأقصى",
+    "reset_filters": "إعادة تعيين المرشحات"
 }
