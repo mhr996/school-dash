@@ -348,15 +348,16 @@ export default function ExplorePage() {
 
                                 {/* Dual Range Slider */}
                                 <div className="relative pt-2 pb-4">
-                                    {/* Track */}
-                                    <div className="absolute top-1/2 -translate-y-1/2 w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg"></div>
+                                    {/* Track - Inactive/Background */}
+                                    <div className="absolute top-1/2 -translate-y-1/2 w-full h-2 bg-gray-300 dark:bg-slate-600 rounded-lg"></div>
 
-                                    {/* Active Range */}
+                                    {/* Active Range - Blue Highlight */}
                                     <div
-                                        className="absolute top-1/2 -translate-y-1/2 h-2 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg pointer-events-none"
+                                        className="absolute top-1/2 -translate-y-1/2 h-2 opacity-1 bg-gradient-to-r from-blue-500 via-blue-600 to-blue-500 rounded-lg pointer-events-none shadow-md"
                                         style={{
                                             left: `${(tempPriceRange[0] / 10000) * 100}%`,
                                             right: `${100 - (tempPriceRange[1] / 10000) * 100}%`,
+                                            zIndex: 4
                                         }}
                                     ></div>
 
@@ -394,7 +395,7 @@ export default function ExplorePage() {
                                         }}
                                         onMouseUp={() => setPriceRange(tempPriceRange)}
                                         onTouchEnd={() => setPriceRange(tempPriceRange)}
-                                        style={{ zIndex: 4 }}
+                                        //  style={{ zIndex: 4 }}
                                         className="absolute w-full h-2 bg-transparent appearance-none cursor-pointer [&::-webkit-slider-thumb]:relative [&::-webkit-slider-thumb]:z-50 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-moz-range-thumb]:relative [&::-moz-range-thumb]:z-50 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-blue-600 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-lg [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white"
                                     />
                                 </div>
@@ -439,7 +440,7 @@ export default function ExplorePage() {
                                 setSelectedZones([]);
                                 setSearchQuery('');
                             }}
-                            className="w-full px-4 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors font-medium"
+                            className="w-full px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-500 dark:hover:bg-red-500 transition-colors font-medium"
                         >
                             {t('reset_filters')}
                         </button>
@@ -460,7 +461,12 @@ export default function ExplorePage() {
                                 <p className="text-gray-500 dark:text-gray-400">{t('try_different_search')}</p>
                             </motion.div>
                         ) : (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 1 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                            >
                                 {filteredServices.map((service, index) => {
                                     const Icon = getCategoryIcon(service.category);
                                     const colorClass = getCategoryColor(service.category);
