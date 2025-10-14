@@ -17,6 +17,8 @@ import IconHeart from '@/components/icon/icon-heart';
 import IconLock from '@/components/icon/icon-lock';
 import IconStar from '@/components/icon/icon-star';
 import IconEdit from '@/components/icon/icon-edit';
+import IconDownload from '@/components/icon/icon-download';
+import { BookingPDFGenerator } from '@/utils/booking-pdf-generator';
 
 interface BookingDetails {
     id: string;
@@ -77,7 +79,8 @@ export default function BookingDetailsPage() {
     >([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { t } = getTranslation();
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
+    const { t, i18n } = getTranslation();
     const params = useParams();
     const router = useRouter();
     const bookingId = params?.id as string;
@@ -241,6 +244,39 @@ export default function BookingDetailsPage() {
         return service.cost * service.quantity * service.days;
     };
 
+    const handleDownloadPDF = async () => {
+        if (!booking) return;
+
+        try {
+            setDownloadingPDF(true);
+
+            // Prepare booking data with services
+            const bookingData = {
+                ...booking,
+                services: services.map((service) => ({
+                    type: service.type,
+                    name: service.name,
+                    quantity: service.quantity,
+                    days: service.days,
+                    cost: service.cost,
+                })),
+            };
+
+            // Get current language
+            const currentLanguage = i18n.language || 'he';
+
+            // Generate PDF
+            await BookingPDFGenerator.generateFromBooking(bookingData, {
+                language: currentLanguage as 'en' | 'ae' | 'he',
+            });
+        } catch (error) {
+            console.error('Error generating booking PDF:', error);
+            alert(t('error_downloading_booking_pdf'));
+        } finally {
+            setDownloadingPDF(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900/20 dark:to-indigo-900/20 p-6">
@@ -296,10 +332,20 @@ export default function BookingDetailsPage() {
                                 <p className="text-gray-600 dark:text-gray-400 font-mono">{booking.booking_reference}</p>
                             </div>
                         </div>
-                        <Link href={`/bookings/edit/${booking.id}`} className="btn btn-primary flex items-center gap-2">
-                            <IconEdit className="w-4 h-4" />
-                            {t('edit_booking')}
-                        </Link>
+                        <div className="flex items-center gap-3">
+                            <Link href={`/bookings/edit/${booking.id}`} className="btn btn-primary flex items-center gap-2">
+                                <IconEdit className="w-4 h-4" />
+                                {t('edit_booking')}
+                            </Link>
+                            <button type="button" className="btn btn-secondary flex items-center gap-2" onClick={handleDownloadPDF} disabled={downloadingPDF}>
+                                {downloadingPDF ? (
+                                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-l-transparent"></span>
+                                ) : (
+                                    <IconDownload className="w-4 h-4" />
+                                )}
+                                {downloadingPDF ? t('downloading_booking_pdf') : t('download_booking_pdf')}
+                            </button>
+                        </div>
                     </div>
                     <div className="flex items-center gap-3">
                         {getStatusBadge(booking.status)}

@@ -10,8 +10,10 @@ import IconMapPin from '@/components/icon/icon-map-pin';
 import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import IconCheck from '@/components/icon/icon-check';
 import IconX from '@/components/icon/icon-x';
+import IconDownload from '@/components/icon/icon-download';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import { getTranslation } from '@/i18n';
+import { BookingPDFGenerator } from '@/utils/booking-pdf-generator';
 
 interface BookingServiceDetail {
     id: string;
@@ -43,13 +45,14 @@ export default function ServiceBookingDetailPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const supabase = createClientComponentClient();
-    const { t } = getTranslation();
+    const { t, i18n } = getTranslation();
 
     const bookingServiceId = params?.id as string;
 
     const [bookingService, setBookingService] = useState<BookingServiceDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [downloadingPDF, setDownloadingPDF] = useState(false);
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
         visible: false,
         message: '',
@@ -175,6 +178,81 @@ export default function ServiceBookingDetailPage() {
         }
     };
 
+    const handleDownloadPDF = async () => {
+        if (!bookingService) return;
+
+        try {
+            setDownloadingPDF(true);
+
+            // Fetch full booking details
+            const { data: fullBooking, error } = await supabase
+                .from('bookings')
+                .select(
+                    `
+                    *,
+                    customer:users!customer_id(full_name, email, phone),
+                    destination:destinations(name, address),
+                    school:schools(name)
+                `,
+                )
+                .eq('id', bookingService.booking_id)
+                .single();
+
+            if (error) throw error;
+
+            // Fetch all booking services
+            const { data: servicesData, error: servicesError } = await supabase.from('booking_services').select('*').eq('booking_id', bookingService.booking_id);
+
+            if (servicesError) {
+                console.error('Error fetching booking services:', servicesError);
+            }
+
+            // Enrich services with names
+            let enrichedServices: Array<any> = [];
+            if (servicesData && servicesData.length > 0) {
+                enrichedServices = await Promise.all(
+                    servicesData.map(async (service) => {
+                        let serviceName = '';
+                        try {
+                            const { data: serviceDetails } = await supabase.from(service.service_type).select('name').eq('id', service.service_id).single();
+                            serviceName = serviceDetails?.name || 'Unknown Service';
+                        } catch (e) {
+                            serviceName = 'Unknown Service';
+                        }
+                        return {
+                            type: service.service_type,
+                            name: serviceName,
+                            quantity: service.quantity,
+                            days: service.days,
+                            cost: service.booked_price,
+                        };
+                    }),
+                );
+            }
+
+            // Prepare booking data
+            const bookingData = {
+                ...fullBooking,
+                services: enrichedServices,
+            };
+
+            // Get current language
+            const currentLanguage = i18n.language || 'he';
+
+            // Generate PDF
+            await BookingPDFGenerator.generateFromBooking(bookingData, {
+                language: currentLanguage as 'en' | 'ae' | 'he',
+            });
+
+            setAlert({ visible: true, message: t('booking_pdf_downloaded'), type: 'success' });
+        } catch (error) {
+            console.error('Error generating booking PDF:', error);
+            setAlert({ visible: true, message: t('error_downloading_booking_pdf'), type: 'danger' });
+        } finally {
+            setDownloadingPDF(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -211,8 +289,8 @@ export default function ServiceBookingDetailPage() {
                         </p>
                     </div>
 
-                    {/* Status Badge */}
-                    <div>
+                    {/* Status Badge and Actions */}
+                    <div className="flex items-center gap-3">
                         {bookingService.acceptance_status === 'accepted' && (
                             <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-semibold">
                                 <IconCheck className="w-5 h-5" />
@@ -230,6 +308,15 @@ export default function ServiceBookingDetailPage() {
                                 ⏳ {t('pending_response') || 'ממתין לתגובה'}
                             </span>
                         )}
+
+                        <button type="button" className="btn btn-secondary flex items-center gap-2" onClick={handleDownloadPDF} disabled={downloadingPDF}>
+                            {downloadingPDF ? (
+                                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-l-transparent"></span>
+                            ) : (
+                                <IconDownload className="w-4 h-4" />
+                            )}
+                            {downloadingPDF ? t('downloading_booking_pdf') : t('download_booking_pdf')}
+                        </button>
                     </div>
                 </div>
             </div>

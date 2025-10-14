@@ -4,6 +4,7 @@ import IconEye from '@/components/icon/icon-eye';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconCalendar from '@/components/icon/icon-calendar';
 import IconSearch from '@/components/icon/icon-search';
+import IconDownload from '@/components/icon/icon-download';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
 import Link from 'next/link';
@@ -13,6 +14,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
+import { BookingPDFGenerator } from '@/utils/booking-pdf-generator';
 
 interface Booking {
     id: string;
@@ -45,10 +47,11 @@ interface Booking {
 }
 
 const BookingsList = () => {
-    const { t } = getTranslation();
+    const { t, i18n } = getTranslation();
     const router = useRouter();
     const [items, setItems] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
+    const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
 
     const [page, setPage] = useState(1);
     const PAGE_SIZES = [10, 20, 30, 50, 100];
@@ -229,6 +232,79 @@ const BookingsList = () => {
         setShowBulkDeleteModal(false);
     };
 
+    const handleDownloadPDF = async (booking: Booking) => {
+        try {
+            setDownloadingPDF(booking.id);
+
+            // Fetch full booking details including services
+            const { data: fullBooking, error } = await supabase
+                .from('bookings')
+                .select(
+                    `
+                    *,
+                    customer:users!customer_id(full_name, email, phone),
+                    destination:destinations(name, address),
+                    school:schools(name)
+                `,
+                )
+                .eq('id', booking.id)
+                .single();
+
+            if (error) throw error;
+
+            // Fetch booking services
+            const { data: servicesData, error: servicesError } = await supabase.from('booking_services').select('*').eq('booking_id', booking.id);
+
+            if (servicesError) {
+                console.error('Error fetching booking services:', servicesError);
+            }
+
+            // Enrich services with names
+            let enrichedServices: Array<any> = [];
+            if (servicesData && servicesData.length > 0) {
+                enrichedServices = await Promise.all(
+                    servicesData.map(async (service) => {
+                        let serviceName = '';
+                        try {
+                            const { data: serviceDetails } = await supabase.from(service.service_type).select('name').eq('id', service.service_id).single();
+                            serviceName = serviceDetails?.name || 'Unknown Service';
+                        } catch (e) {
+                            serviceName = 'Unknown Service';
+                        }
+                        return {
+                            type: service.service_type,
+                            name: serviceName,
+                            quantity: service.quantity,
+                            days: service.days,
+                            cost: service.booked_price,
+                        };
+                    }),
+                );
+            }
+
+            // Prepare booking data with services
+            const bookingData = {
+                ...fullBooking,
+                services: enrichedServices,
+            };
+
+            // Get current language
+            const currentLanguage = i18n.language || 'he';
+
+            // Generate PDF
+            await BookingPDFGenerator.generateFromBooking(bookingData, {
+                language: currentLanguage as 'en' | 'ae' | 'he',
+            });
+
+            setAlert({ visible: true, message: t('booking_pdf_downloaded'), type: 'success' });
+        } catch (error) {
+            console.error('Error generating booking PDF:', error);
+            setAlert({ visible: true, message: t('error_downloading_booking_pdf'), type: 'danger' });
+        } finally {
+            setDownloadingPDF(null);
+        }
+    };
+
     return (
         <div className="panel border-white-light px-0 dark:border-[#1b2e4b]">
             <h5 className="mb-5 px-5 text-lg font-semibold dark:text-white-light">{t('bookings')}</h5>
@@ -320,6 +396,19 @@ const BookingsList = () => {
                                     <Link href={`/bookings/edit/${booking.id}`} className="hover:text-success">
                                         <IconEdit />
                                     </Link>
+                                    <button
+                                        type="button"
+                                        className="hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                        onClick={() => handleDownloadPDF(booking)}
+                                        disabled={downloadingPDF === booking.id}
+                                        title={t('download_booking_pdf')}
+                                    >
+                                        {downloadingPDF === booking.id ? (
+                                            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-primary border-l-transparent"></span>
+                                        ) : (
+                                            <IconDownload />
+                                        )}
+                                    </button>
                                 </div>
                             ),
                         },

@@ -1961,5 +1961,9 @@
     "price_range": "Price Range",
     "min": "Min",
     "max": "Max",
-    "reset_filters": "Reset Filters"
+    "reset_filters": "Reset Filters",
+    "download_booking_pdf": "Download Booking PDF",
+    "downloading_booking_pdf": "Downloading Booking PDF...",
+    "booking_pdf_downloaded": "Booking PDF downloaded successfully",
+    "error_downloading_booking_pdf": "Error downloading booking PDF"
 }

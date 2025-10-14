@@ -2341,5 +2341,9 @@
     "price_range": "نطاق السعر",
     "min": "الأدنى",
     "max": "الأقصى",
-    "reset_filters": "إعادة تعيين المرشحات"
+    "reset_filters": "إعادة تعيين المرشحات",
+    "download_booking_pdf": "تنزيل ملف PDF للحجز",
+    "downloading_booking_pdf": "جاري تنزيل ملف PDF للحجز...",
+    "booking_pdf_downloaded": "تم تنزيل ملف PDF للحجز بنجاح",
+    "error_downloading_booking_pdf": "خطأ في تنزيل ملف PDF للحجز"
 }

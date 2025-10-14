@@ -1991,5 +1991,9 @@
     "price_range": "טווח מחירים",
     "min": "מינימום",
     "max": "מקסימום",
-    "reset_filters": "אפס מסננים"
+    "reset_filters": "אפס מסננים",
+    "download_booking_pdf": "הורד PDF של ההזמנה",
+    "downloading_booking_pdf": "מוריד PDF של ההזמנה...",
+    "booking_pdf_downloaded": "PDF של ההזמנה הורד בהצלחה",
+    "error_downloading_booking_pdf": "שגיאה בהורדת PDF של ההזמנה"
 }

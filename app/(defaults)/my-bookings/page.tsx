@@ -25,6 +25,7 @@ import IconCaretDown from '@/components/icon/icon-caret-down';
 import IconX from '@/components/icon/icon-x';
 import IconCheck from '@/components/icon/icon-check';
 import IconBuilding from '@/components/icon/icon-building';
+import { BookingPDFGenerator } from '@/utils/booking-pdf-generator';
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'active' | 'inactive';
 type PaymentStatus = 'pending' | 'deposit_paid' | 'fully_paid' | 'cancelled' | 'paid';
@@ -130,11 +131,12 @@ const paymentStatusColors = {
 };
 
 export default function MyBookingsPage() {
-    const { t } = getTranslation();
+    const { t, i18n } = getTranslation();
     const bookingTypeConfigs = getBookingTypeConfigs(t);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [loading, setLoading] = useState(true);
+    const [downloadingPDF, setDownloadingPDF] = useState<string | null>(null);
     const [selectedBookingType, setSelectedBookingType] = useState<BookingType | 'all'>('all');
     const [selectedStatus, setSelectedStatus] = useState<BookingStatus | 'all'>('all');
     const [selectedPaymentStatus, setSelectedPaymentStatus] = useState<PaymentStatus | 'all'>('all');
@@ -316,6 +318,77 @@ export default function MyBookingsPage() {
 
             return sortOrder === 'asc' ? comparison : -comparison;
         });
+
+    const handleDownloadPDF = async (booking: Booking) => {
+        try {
+            setDownloadingPDF(booking.id);
+
+            // Fetch full booking details
+            const { data: fullBooking, error } = await supabase
+                .from('bookings')
+                .select(
+                    `
+                    *,
+                    customer:users!customer_id(full_name, email, phone),
+                    destination:destinations(name, address),
+                    school:schools(name)
+                `,
+                )
+                .eq('id', booking.id)
+                .single();
+
+            if (error) throw error;
+
+            // Fetch booking services
+            const { data: servicesData, error: servicesError } = await supabase.from('booking_services').select('*').eq('booking_id', booking.id);
+
+            if (servicesError) {
+                console.error('Error fetching booking services:', servicesError);
+            }
+
+            // Enrich services with names
+            let enrichedServices: Array<any> = [];
+            if (servicesData && servicesData.length > 0) {
+                enrichedServices = await Promise.all(
+                    servicesData.map(async (service) => {
+                        let serviceName = '';
+                        try {
+                            const { data: serviceDetails } = await supabase.from(service.service_type).select('name').eq('id', service.service_id).single();
+                            serviceName = serviceDetails?.name || 'Unknown Service';
+                        } catch (e) {
+                            serviceName = 'Unknown Service';
+                        }
+                        return {
+                            type: service.service_type,
+                            name: serviceName,
+                            quantity: service.quantity,
+                            days: service.days,
+                            cost: service.booked_price,
+                        };
+                    }),
+                );
+            }
+
+            // Prepare booking data
+            const bookingData = {
+                ...fullBooking,
+                services: enrichedServices,
+            };
+
+            // Get current language
+            const currentLanguage = i18n.language || 'he';
+
+            // Generate PDF
+            await BookingPDFGenerator.generateFromBooking(bookingData, {
+                language: currentLanguage as 'en' | 'ae' | 'he',
+            });
+        } catch (error) {
+            console.error('Error generating booking PDF:', error);
+            alert(t('error_downloading_booking_pdf'));
+        } finally {
+            setDownloadingPDF(null);
+        }
+    };
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -780,11 +853,18 @@ export default function MyBookingsPage() {
                                                         <IconEye className="w-4 h-4" />
                                                         {t('view_details')}
                                                     </button>
-                                                    {booking.status === 'completed' && (
-                                                        <button className="p-3 border-2 border-purple-300 dark:border-purple-500/40 text-purple-700 dark:text-purple-300 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-500/20 transition-all transform hover:scale-105">
+                                                    <button
+                                                        onClick={() => handleDownloadPDF(booking)}
+                                                        disabled={downloadingPDF === booking.id}
+                                                        className="p-3 border-2 border-purple-300 dark:border-purple-500/40 text-purple-700 dark:text-purple-300 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-500/20 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        title={t('download_booking_pdf')}
+                                                    >
+                                                        {downloadingPDF === booking.id ? (
+                                                            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-purple-600 border-l-transparent"></span>
+                                                        ) : (
                                                             <IconDownload className="w-5 h-5" />
-                                                        </button>
-                                                    )}
+                                                        )}
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
