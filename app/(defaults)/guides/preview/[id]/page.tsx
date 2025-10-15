@@ -18,6 +18,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
 
 import { getTranslation } from '@/i18n';
+import { getServiceProfileUrl } from '@/utils/service-profile-upload';
 
 interface Guide {
     id: string;
@@ -33,6 +34,7 @@ interface Guide {
     overnight_rate: number;
     status: string;
     notes?: string;
+    profile_picture_url?: string | null;
 }
 
 const GuidePreview = () => {
@@ -273,6 +275,17 @@ const GuidePreview = () => {
 
                 {/* Sidebar */}
                 <div className="space-y-6">
+                    {/* Profile Picture */}
+                    <div className="panel">
+                        <div className="flex flex-col items-center">
+                            <div className="w-40 h-40 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-lg">
+                                <img src={getServiceProfileUrl(guide.profile_picture_url)} alt={guide.name} className="w-full h-full object-cover" />
+                            </div>
+                            <h2 className="mt-4 text-xl font-bold text-center">{guide.name}</h2>
+                            <p className="text-gray-500 dark:text-gray-400">{t('tour_guide')}</p>
+                        </div>
+                    </div>
+
                     {/* Metadata */}
                     <div className="panel">
                         <div className="mb-5">

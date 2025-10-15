@@ -12,11 +12,14 @@ import IconPhone from '@/components/icon/icon-phone';
 import IconMail from '@/components/icon/icon-mail';
 import IconCreditCard from '@/components/icon/icon-credit-card';
 import IconEye from '@/components/icon/icon-eye';
+import IconInfoCircle from '@/components/icon/icon-info-circle';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect from '@/components/elements/custom-select';
 import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
+import ServiceProfileUpload from '@/components/image-upload/service-profile-upload';
 
 import { getTranslation } from '@/i18n';
+import { uploadServiceProfilePicture } from '@/utils/service-profile-upload';
 
 interface SelectOption {
     value: string;
@@ -43,8 +46,11 @@ const AddParamedic = () => {
     const { t } = getTranslation();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState(0);
     const [showPassword, setShowPassword] = useState(false);
     const [roles, setRoles] = useState<any[]>([]);
+    const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+    const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
     const [formData, setFormData] = useState<ParamedicForm>({
         name: '',
         identity_number: '',
@@ -177,12 +183,16 @@ const AddParamedic = () => {
             // Prepare paramedic data (excluding user account fields) and link to user
             const { user_email, user_password, ...paramedicData } = formData;
 
-            const { error } = await supabase.from('paramedics').insert([
-                {
-                    ...paramedicData,
-                    user_id: userData.id, // Link to public.users record
-                },
-            ]);
+            const { data: paramedicInsertData, error } = await supabase
+                .from('paramedics')
+                .insert([
+                    {
+                        ...paramedicData,
+                        user_id: userData.id, // Link to public.users record
+                    },
+                ])
+                .select()
+                .single();
 
             if (error) {
                 if (error.code === '23505') {
@@ -191,6 +201,19 @@ const AddParamedic = () => {
                     return;
                 }
                 throw error;
+            }
+
+            // Upload profile picture if one was selected
+            if (profilePictureFile && paramedicInsertData) {
+                const uploadResult = await uploadServiceProfilePicture(profilePictureFile, 'paramedics', paramedicInsertData.id);
+
+                if ('error' in uploadResult) {
+                    console.error('Error uploading profile picture:', uploadResult.error);
+                    // Don't fail the whole operation, just log the error
+                } else {
+                    // Update paramedic with profile picture URL
+                    await supabase.from('paramedics').update({ profile_picture_url: uploadResult.path }).eq('id', paramedicInsertData.id);
+                }
             }
 
             setAlert({ message: t('paramedic_added_successfully'), type: 'success' });
@@ -229,245 +252,307 @@ const AddParamedic = () => {
             {/* Form Container */}
             <div className="panel">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Basic Information */}
-                    <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-                        <h3 className="text-lg font-semibold mb-4">{t('basic_information')}</h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Paramedic Name */}
-                            <div className="space-y-2">
-                                <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('paramedic_name')} <span className="text-red-500">*</span>
-                                </label>
-                                <input type="text" id="name" name="name" value={formData.name} onChange={handleInputChange} className="form-input" placeholder={t('enter_paramedic_name')} required />
-                            </div>
-
-                            {/* ID Number */}
-                            <div className="space-y-2">
-                                <label htmlFor="identity_number" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconCreditCard className="w-5 h-5 text-primary" />
-                                    {t('identity_number')} <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    id="identity_number"
-                                    name="identity_number"
-                                    value={formData.identity_number}
-                                    onChange={handleInputChange}
-                                    className="form-input"
-                                    placeholder={t('enter_identity_number')}
-                                    required
-                                />
-                            </div>
-
-                            {/* Status */}
-                            <div className="space-y-2">
-                                <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('status')}
-                                </label>
-                                <CustomSelect
-                                    options={statusOptions}
-                                    value={formData.status}
-                                    onChange={(value: string | string[]) => setFormData({ ...formData, status: Array.isArray(value) ? value[0] : value })}
-                                    placeholder={t('Select Status')}
-                                    clearable={false}
-                                    searchable={false}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-                        <h3 className="text-lg font-semibold mb-4">{t('contact_information')}</h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Phone */}
-                            <div className="space-y-2">
-                                <label htmlFor="phone" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconPhone className="w-5 h-5 text-primary" />
-                                    {t('phone')} <span className="text-red-500">*</span>
-                                </label>
-                                <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} className="form-input" placeholder={t('enter_phone')} required />
-                            </div>
-
-                            {/* Email */}
-                            <div className="space-y-2">
-                                <label htmlFor="email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconMail className="w-5 h-5 text-primary" />
-                                    {t('email')}
-                                </label>
-                                <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} className="form-input" placeholder={t('enter_email')} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pricing Information */}
-                    <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-                        <h3 className="text-lg font-semibold mb-4">{t('pricing_information')}</h3>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Hourly Rate */}
-                            <div className="space-y-2">
-                                <label htmlFor="hourly_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('hourly_rate')}
-                                </label>
-                                <input
-                                    type="number"
-                                    id="hourly_rate"
-                                    name="hourly_rate"
-                                    value={formData.hourly_rate}
-                                    onChange={handleInputChange}
-                                    className="form-input"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            {/* Daily Rate */}
-                            <div className="space-y-2">
-                                <label htmlFor="daily_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('daily_rate')}
-                                </label>
-                                <input
-                                    type="number"
-                                    id="daily_rate"
-                                    name="daily_rate"
-                                    value={formData.daily_rate}
-                                    onChange={handleInputChange}
-                                    className="form-input"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            {/* Regional Rate */}
-                            <div className="space-y-2">
-                                <label htmlFor="regional_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('regional_rate')}
-                                </label>
-                                <input
-                                    type="number"
-                                    id="regional_rate"
-                                    name="regional_rate"
-                                    value={formData.regional_rate}
-                                    onChange={handleInputChange}
-                                    className="form-input"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-
-                            {/* Overnight Rate */}
-                            <div className="space-y-2">
-                                <label htmlFor="overnight_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('overnight_rate')}
-                                </label>
-                                <input
-                                    type="number"
-                                    id="overnight_rate"
-                                    name="overnight_rate"
-                                    value={formData.overnight_rate}
-                                    onChange={handleInputChange}
-                                    className="form-input"
-                                    min="0"
-                                    step="0.01"
-                                    placeholder="0"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Notes */}
-                    <div className="space-y-2">
-                        <label htmlFor="notes" className="block text-sm font-bold text-gray-700 dark:text-white">
-                            {t('notes')}
-                        </label>
-                        <textarea id="notes" name="notes" value={formData.notes} onChange={handleInputChange} className="form-textarea" placeholder={t('enter_notes')} rows={4} />
-                    </div>
-
-                    {/* User Account Creation */}
-                    <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
-                        <h3 className="text-lg font-semibold mb-4">{t('user_account_creation')}</h3>
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">{t('user_account_description')}</p>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* User Email */}
-                            <div className="space-y-2">
-                                <label htmlFor="user_email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
-                                    <IconMail className="w-5 h-5 text-primary" />
-                                    {t('email')} <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="email"
-                                    id="user_email"
-                                    name="user_email"
-                                    value={formData.user_email}
-                                    onChange={handleInputChange}
-                                    className="form-input"
-                                    placeholder={t('enter_email')}
-                                    required
-                                />
-                            </div>
-
-                            {/* User Password */}
-                            <div className="space-y-2">
-                                <label htmlFor="user_password" className="text-sm font-bold text-gray-700 dark:text-white">
-                                    {t('password')} <span className="text-red-500">*</span>
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? 'text' : 'password'}
-                                        id="user_password"
-                                        name="user_password"
-                                        value={formData.user_password}
-                                        onChange={handleInputChange}
-                                        className="form-input pr-12"
-                                        placeholder={t('enter_password')}
-                                        minLength={6}
-                                        required
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
-                                    >
-                                        {showPassword ? (
-                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <path d="M2 2L22 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                <path
-                                                    d="M6.71 6.71C4.33 8.26 2.67 10.94 2 12C2.67 13.06 4.33 15.74 6.71 17.29"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                                <path
-                                                    d="M10.59 10.59C10.21 11.37 10.21 12.63 10.59 13.41C10.97 14.19 11.81 14.81 12.59 14.59"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                                <path
-                                                    d="M17.29 17.29C19.67 15.74 21.33 13.06 22 12C21.33 10.94 19.67 8.26 17.29 6.71"
-                                                    stroke="currentColor"
-                                                    strokeWidth="1.5"
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                />
-                                            </svg>
-                                        ) : (
-                                            <IconEye className="w-5 h-5" />
-                                        )}
-                                    </button>
+                    {/* Tab Navigation */}
+                    <div className="border-b border-gray-200 dark:border-gray-700">
+                        <nav className="flex gap-4 overflow-x-auto">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab(0)}
+                                className={`px-4 py-3 font-semibold transition-colors border-b-2 whitespace-nowrap ${
+                                    activeTab === 0 ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <IconInfoCircle className="w-5 h-5" />
+                                    {t('basic_information')}
                                 </div>
-                                <p className="text-xs text-gray-500 dark:text-gray-500">{t('password_min_6_chars')}</p>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab(1)}
+                                className={`px-4 py-3 font-semibold transition-colors border-b-2 whitespace-nowrap ${
+                                    activeTab === 1 ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <IconCreditCard className="w-5 h-5" />
+                                    {t('pricing_information')}
+                                </div>
+                            </button>
+                        </nav>
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="py-6">
+                        {/* Tab 0: Basic Information */}
+                        {activeTab === 0 && (
+                            <div className="space-y-6">
+                                {/* Profile Picture */}
+                                <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                                    <div className="flex justify-center">
+                                        <ServiceProfileUpload
+                                            serviceType="paramedics"
+                                            currentUrl={profilePicturePreview}
+                                            onUploadComplete={(url, fileName) => {
+                                                // For add page, url is base64 preview
+                                                setProfilePicturePreview(url);
+                                                // Extract file from the input
+                                                const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                                                if (fileInput?.files?.[0]) {
+                                                    setProfilePictureFile(fileInput.files[0]);
+                                                }
+                                            }}
+                                            onError={(error) => {
+                                                setAlert({ message: error, type: 'danger' });
+                                            }}
+                                            size="lg"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Basic Fields */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Paramedic Name */}
+                                    <div className="space-y-2">
+                                        <label htmlFor="name" className="text-sm font-bold text-gray-700 dark:text-white">
+                                            {t('paramedic_name')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="name"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleInputChange}
+                                            className="form-input"
+                                            placeholder={t('enter_paramedic_name')}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* ID Number */}
+                                    <div className="space-y-2">
+                                        <label htmlFor="identity_number" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                            <IconCreditCard className="w-5 h-5 text-primary" />
+                                            {t('identity_number')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="identity_number"
+                                            name="identity_number"
+                                            value={formData.identity_number}
+                                            onChange={handleInputChange}
+                                            className="form-input"
+                                            placeholder={t('enter_identity_number')}
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Status */}
+                                    <div className="space-y-2">
+                                        <label htmlFor="status" className="block text-sm font-bold text-gray-700 dark:text-white">
+                                            {t('status')}
+                                        </label>
+                                        <CustomSelect
+                                            options={statusOptions}
+                                            value={formData.status}
+                                            onChange={(value: string | string[]) => setFormData({ ...formData, status: Array.isArray(value) ? value[0] : value })}
+                                            placeholder={t('Select Status')}
+                                            clearable={false}
+                                            searchable={false}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Contact Information */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                                    {/* Phone */}
+                                    <div className="space-y-2">
+                                        <label htmlFor="phone" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                            <IconPhone className="w-5 h-5 text-primary" />
+                                            {t('phone')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleInputChange} className="form-input" placeholder={t('enter_phone')} required />
+                                    </div>
+
+                                    {/* Email */}
+                                    <div className="space-y-2">
+                                        <label htmlFor="email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                            <IconMail className="w-5 h-5 text-primary" />
+                                            {t('email')}
+                                        </label>
+                                        <input type="email" id="email" name="email" value={formData.email} onChange={handleInputChange} className="form-input" placeholder={t('enter_email')} />
+                                    </div>
+                                </div>
+
+                            
+
+                                {/* User Account Creation */}
+                                <div className="border-b border-gray-200 dark:border-gray-700 pb-6">
+                                    <h3 className="text-lg font-semibold mb-4">{t('user_account_creation')}</h3>
+                                    <p className="text-gray-600 dark:text-gray-400 mb-4">{t('user_account_description')}</p>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* User Email */}
+                                        <div className="space-y-2">
+                                            <label htmlFor="user_email" className="text-sm font-bold text-gray-700 dark:text-white flex items-center gap-2">
+                                                <IconMail className="w-5 h-5 text-primary" />
+                                                {t('email')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="email"
+                                                id="user_email"
+                                                name="user_email"
+                                                value={formData.user_email}
+                                                onChange={handleInputChange}
+                                                className="form-input"
+                                                placeholder={t('enter_email')}
+                                                required
+                                            />
+                                        </div>
+
+                                        {/* User Password */}
+                                        <div className="space-y-2">
+                                            <label htmlFor="user_password" className="text-sm font-bold text-gray-700 dark:text-white">
+                                                {t('password')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <input
+                                                    type={showPassword ? 'text' : 'password'}
+                                                    id="user_password"
+                                                    name="user_password"
+                                                    value={formData.user_password}
+                                                    onChange={handleInputChange}
+                                                    className="form-input pr-12"
+                                                    placeholder={t('enter_password')}
+                                                    minLength={6}
+                                                    required
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+                                                >
+                                                    {showPassword ? (
+                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M2 2L22 22" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                                                            <path
+                                                                d="M6.71 6.71C4.33 8.26 2.67 10.94 2 12C2.67 13.06 4.33 15.74 6.71 17.29"
+                                                                stroke="currentColor"
+                                                                strokeWidth="1.5"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                            />
+                                                            <path
+                                                                d="M10.59 10.59C10.21 11.37 10.21 12.63 10.59 13.41C10.97 14.19 11.81 14.81 12.59 14.59"
+                                                                stroke="currentColor"
+                                                                strokeWidth="1.5"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                            />
+                                                            <path
+                                                                d="M17.29 17.29C19.67 15.74 21.33 13.06 22 12C21.33 10.94 19.67 8.26 17.29 6.71"
+                                                                stroke="currentColor"
+                                                                strokeWidth="1.5"
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                            />
+                                                        </svg>
+                                                    ) : (
+                                                        <IconEye className="w-5 h-5" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                            <p className="text-xs text-gray-500 dark:text-gray-500">{t('password_min_6_chars')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Notes */}
+                                <div className="space-y-2 pt-6">
+                                    <label htmlFor="notes" className="block text-sm font-bold text-gray-700 dark:text-white">
+                                        {t('notes')}
+                                    </label>
+                                    <textarea id="notes" name="notes" value={formData.notes} onChange={handleInputChange} className="form-textarea" placeholder={t('enter_notes')} rows={4} />
+                                </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* Tab 1: Pricing Information */}
+                        {activeTab === 1 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Hourly Rate */}
+                                <div className="space-y-2">
+                                    <label htmlFor="hourly_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
+                                        {t('hourly_rate')}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="hourly_rate"
+                                        name="hourly_rate"
+                                        value={formData.hourly_rate}
+                                        onChange={handleInputChange}
+                                        className="form-input"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0"
+                                    />
+                                </div>
+
+                                {/* Daily Rate */}
+                                <div className="space-y-2">
+                                    <label htmlFor="daily_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
+                                        {t('daily_rate')}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="daily_rate"
+                                        name="daily_rate"
+                                        value={formData.daily_rate}
+                                        onChange={handleInputChange}
+                                        className="form-input"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0"
+                                    />
+                                </div>
+
+                                {/* Regional Rate */}
+                                <div className="space-y-2">
+                                    <label htmlFor="regional_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
+                                        {t('regional_rate')}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="regional_rate"
+                                        name="regional_rate"
+                                        value={formData.regional_rate}
+                                        onChange={handleInputChange}
+                                        className="form-input"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0"
+                                    />
+                                </div>
+
+                                {/* Overnight Rate */}
+                                <div className="space-y-2">
+                                    <label htmlFor="overnight_rate" className="block text-sm font-bold text-gray-700 dark:text-white">
+                                        {t('overnight_rate')}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        id="overnight_rate"
+                                        name="overnight_rate"
+                                        value={formData.overnight_rate}
+                                        onChange={handleInputChange}
+                                        className="form-input"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Submit Button */}

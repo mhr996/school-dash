@@ -169,8 +169,8 @@ const Sidebar = () => {
                                         </Link>
                                     </li>
 
-                                    {/* Explore Page - Only for School Manager and Trip Planner */}
-                                    {!isServiceProvider && (userRole === 'trip_planner' || userRole === 'school_manager') && (
+                                    {/* Explore Page - For Admin, School Manager and Trip Planner */}
+                                    {!isServiceProvider && (userRole === 'admin' || userRole === 'trip_planner' || userRole === 'school_manager') && (
                                         <li className="nav-item">
                                             <Link href="/explore" className="group">
                                                 <div className="flex items-center">

@@ -1995,5 +1995,9 @@
     "download_booking_pdf": "הורד PDF של ההזמנה",
     "downloading_booking_pdf": "מוריד PDF של ההזמנה...",
     "booking_pdf_downloaded": "PDF של ההזמנה הורד בהצלחה",
-    "error_downloading_booking_pdf": "שגיאה בהורדת PDF של ההזמנה"
+    "error_downloading_booking_pdf": "שגיאה בהורדת PDF של ההזמנה",
+    "profile_picture": "תמונת פרופיל",
+    "profile_picture_updated": "תמונת הפרופיל עודכנה בהצלחה",
+    "error_updating_profile_picture": "שגיאה בעדכון תמונת הפרופיל",
+    "security_pricing": "אבטחה ותמחור"
 }

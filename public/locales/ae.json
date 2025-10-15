@@ -2345,5 +2345,9 @@
     "download_booking_pdf": "تنزيل ملف PDF للحجز",
     "downloading_booking_pdf": "جاري تنزيل ملف PDF للحجز...",
     "booking_pdf_downloaded": "تم تنزيل ملف PDF للحجز بنجاح",
-    "error_downloading_booking_pdf": "خطأ في تنزيل ملف PDF للحجز"
+    "error_downloading_booking_pdf": "خطأ في تنزيل ملف PDF للحجز",
+    "profile_picture": "صورة الملف الشخصي",
+    "profile_picture_updated": "تم تحديث صورة الملف الشخصي بنجاح",
+    "error_updating_profile_picture": "خطأ في تحديث صورة الملف الشخصي",
+    "security_pricing": "الأمن والتسعير"
 }

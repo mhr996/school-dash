@@ -15,6 +15,7 @@ import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
 import { calculateServiceProviderBalance, ServiceProviderBalance } from '@/utils/service-balance-manager';
+import { getServiceProfileUrl } from '@/utils/service-profile-upload';
 
 interface Guide {
     id: string;
@@ -31,6 +32,7 @@ interface Guide {
     status?: string;
     notes?: string;
     balance?: number;
+    profile_picture_url?: string | null;
 }
 
 const GuidesList = () => {
@@ -236,6 +238,22 @@ const GuidesList = () => {
                     className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'} rtl-table-headers`}
                     records={records}
                     columns={[
+                        {
+                            accessor: 'profile_picture',
+                            title: t('profile_picture'),
+                            render: ({ profile_picture_url, name }) => (
+                                <div className="flex items-center justify-center">
+                                    <img
+                                        src={getServiceProfileUrl(profile_picture_url)}
+                                        alt={name}
+                                        className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                                        onError={(e) => {
+                                            e.currentTarget.src = '/assets/images/img-placeholder-fallback.webp';
+                                        }}
+                                    />
+                                </div>
+                            ),
+                        },
                         {
                             accessor: 'identity_number',
                             title: t('identity_number'),

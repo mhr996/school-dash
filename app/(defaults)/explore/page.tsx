@@ -58,6 +58,10 @@ export default function ExplorePage() {
     const [tempPriceRange, setTempPriceRange] = useState<[number, number]>([0, 10000]);
     const [selectedZones, setSelectedZones] = useState<string[]>([]);
     const [availableZones, setAvailableZones] = useState<string[]>([]);
+    const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
+    const [availableProperties, setAvailableProperties] = useState<string[]>([]);
+    const [selectedSuitableFor, setSelectedSuitableFor] = useState<string[]>([]);
+    const [availableSuitableFor, setAvailableSuitableFor] = useState<string[]>([]);
 
     const categories = [
         { id: 'all' as ServiceCategory, label: t('all_services'), icon: IconStar, color: 'from-blue-500 to-blue-600', count: 0 },
@@ -76,12 +80,34 @@ export default function ExplorePage() {
 
     useEffect(() => {
         filterServices();
-    }, [selectedCategory, searchQuery, services, priceRange, selectedZones]);
+    }, [selectedCategory, searchQuery, services, priceRange, selectedZones, selectedProperties, selectedSuitableFor]);
 
     useEffect(() => {
-        // Extract unique zones from services
+        // Extract unique zones, properties, and suitable_for from services
         const zones = Array.from(new Set(services.map((s) => s.zone).filter(Boolean) as string[]));
         setAvailableZones(zones);
+
+        // Extract unique properties from destinations
+        const properties = Array.from(
+            new Set(
+                services
+                    .filter((s) => s.category === 'destinations' && s.properties)
+                    .flatMap((s) => s.properties)
+                    .filter(Boolean) as string[],
+            ),
+        );
+        setAvailableProperties(properties);
+
+        // Extract unique suitable_for from destinations
+        const suitableFor = Array.from(
+            new Set(
+                services
+                    .filter((s) => s.category === 'destinations' && s.suitableFor)
+                    .flatMap((s) => s.suitableFor)
+                    .filter(Boolean) as string[],
+            ),
+        );
+        setAvailableSuitableFor(suitableFor);
     }, [services]);
 
     const loadAllServices = async () => {
@@ -228,6 +254,22 @@ export default function ExplorePage() {
             filtered = filtered.filter((s) => s.zone && selectedZones.includes(s.zone));
         }
 
+        // Filter by properties (for destinations)
+        if (selectedProperties.length > 0) {
+            filtered = filtered.filter((s) => {
+                if (s.category !== 'destinations' || !s.properties) return false;
+                return selectedProperties.some((prop) => (s.properties || []).includes(prop));
+            });
+        }
+
+        // Filter by suitable for (for destinations)
+        if (selectedSuitableFor.length > 0) {
+            filtered = filtered.filter((s) => {
+                if (s.category !== 'destinations' || !s.suitableFor) return false;
+                return selectedSuitableFor.some((suit) => (s.suitableFor || []).includes(suit));
+            });
+        }
+
         setFilteredServices(filtered);
     };
 
@@ -357,7 +399,7 @@ export default function ExplorePage() {
                                         style={{
                                             left: `${(tempPriceRange[0] / 10000) * 100}%`,
                                             right: `${100 - (tempPriceRange[1] / 10000) * 100}%`,
-                                            zIndex: 4
+                                            zIndex: 4,
                                         }}
                                     ></div>
 
@@ -431,6 +473,64 @@ export default function ExplorePage() {
                             </div>
                         )}
 
+                        {/* Properties Filter (for destinations) */}
+                        {availableProperties.length > 0 && (selectedCategory === 'all' || selectedCategory === 'destinations') && (
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <IconStar className="w-5 h-5" />
+                                    {t('destination_properties')}
+                                </h3>
+                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                    {availableProperties.map((property) => (
+                                        <label key={property} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedProperties.includes(property)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedProperties([...selectedProperties, property]);
+                                                    } else {
+                                                        setSelectedProperties(selectedProperties.filter((p) => p !== property));
+                                                    }
+                                                }}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">{t(`property_${property}`)}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Suitable For Filter (for destinations) */}
+                        {availableSuitableFor.length > 0 && (selectedCategory === 'all' || selectedCategory === 'destinations') && (
+                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                    <IconUsers className="w-5 h-5" />
+                                    {t('suitable_for')}
+                                </h3>
+                                <div className="space-y-2 max-h-64 overflow-y-auto">
+                                    {availableSuitableFor.map((suitable) => (
+                                        <label key={suitable} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedSuitableFor.includes(suitable)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedSuitableFor([...selectedSuitableFor, suitable]);
+                                                    } else {
+                                                        setSelectedSuitableFor(selectedSuitableFor.filter((s) => s !== suitable));
+                                                    }
+                                                }}
+                                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">{t(`suitable_${suitable}`)}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Reset Filters Button */}
                         <button
                             onClick={() => {
@@ -438,6 +538,8 @@ export default function ExplorePage() {
                                 setPriceRange([0, 10000]);
                                 setTempPriceRange([0, 10000]);
                                 setSelectedZones([]);
+                                setSelectedProperties([]);
+                                setSelectedSuitableFor([]);
                                 setSearchQuery('');
                             }}
                             className="w-full px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-500 dark:hover:bg-red-500 transition-colors font-medium"
@@ -521,7 +623,6 @@ export default function ExplorePage() {
 
                                                     {(service.price || service.dailyRate) && (
                                                         <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                                            <IconShekelSign className="w-4 h-4" />
                                                             <span>{service.price ? `₪${service.price}` : service.dailyRate ? `₪${service.dailyRate}/${t('day')}` : ''}</span>
                                                         </div>
                                                     )}

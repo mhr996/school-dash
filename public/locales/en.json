@@ -1965,5 +1965,10 @@
     "download_booking_pdf": "Download Booking PDF",
     "downloading_booking_pdf": "Downloading Booking PDF...",
     "booking_pdf_downloaded": "Booking PDF downloaded successfully",
-    "error_downloading_booking_pdf": "Error downloading booking PDF"
+    "error_downloading_booking_pdf": "Error downloading booking PDF",
+    "profile_picture": "Profile Picture",
+    "profile_picture_updated": "Profile picture updated successfully",
+    "error_updating_profile_picture": "Error updating profile picture",
+    "security_pricing": "Security & Pricing",
+    "pricing_information": "Pricing Information"
 }
