@@ -55,7 +55,7 @@ const EditTripPlan = ({ params }: { params: { id: string } }) => {
             try {
                 const [schoolsRes, destinationsRes, travelRes, paramedicsRes, guidesRes, securityRes, entertainmentRes, tripRes] = await Promise.all([
                     supabase.from('schools').select('id, name').order('name'),
-                    supabase.from('destinations').select('id, name, address, description').order('name'),
+                    supabase.from('destinations_with_details').select('id, name, address, description, properties_details, suitable_for_details').order('name'),
                     supabase.from('travel_companies').select('id, name, pricing_data').order('name'),
                     supabase.from('paramedics').select('id, name, hourly_rate, daily_rate, regional_rate, overnight_rate').order('name'),
                     supabase.from('guides').select('id, name, hourly_rate, daily_rate, regional_rate, overnight_rate').order('name'),

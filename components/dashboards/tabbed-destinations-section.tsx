@@ -21,9 +21,9 @@ type Destination = {
     zone_id: string | null;
     thumbnail_path: string | null;
     gallery_paths?: string[] | null;
-    properties: string[] | null;
+    properties_details: Array<{ value: string; icon: string | null }> | null;
+    suitable_for_details: Array<{ value: string; category: string }> | null;
     requirements: string[] | null;
-    suitable_for: string[] | null;
     pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
     created_at?: string | null;
     updated_at?: string | null;

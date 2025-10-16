@@ -39,7 +39,7 @@ interface ServiceItem {
     address?: string;
     status?: string;
     zone?: string;
-    properties?: string[];
+    properties?: Array<{ value: string; icon: string | null }>;
     suitableFor?: string[];
     rating?: number;
     [key: string]: any;
@@ -59,7 +59,7 @@ export default function ExplorePage() {
     const [selectedZones, setSelectedZones] = useState<string[]>([]);
     const [availableZones, setAvailableZones] = useState<string[]>([]);
     const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
-    const [availableProperties, setAvailableProperties] = useState<string[]>([]);
+    const [availableProperties, setAvailableProperties] = useState<Array<{ value: string; icon: string | null }>>([]);
     const [selectedSuitableFor, setSelectedSuitableFor] = useState<string[]>([]);
     const [availableSuitableFor, setAvailableSuitableFor] = useState<string[]>([]);
 
@@ -87,18 +87,21 @@ export default function ExplorePage() {
         const zones = Array.from(new Set(services.map((s) => s.zone).filter(Boolean) as string[]));
         setAvailableZones(zones);
 
-        // Extract unique properties from destinations
-        const properties = Array.from(
-            new Set(
-                services
-                    .filter((s) => s.category === 'destinations' && s.properties)
-                    .flatMap((s) => s.properties)
-                    .filter(Boolean) as string[],
-            ),
-        );
+        // Extract unique properties from destinations with icons
+        const propertiesMap = new Map<string, string | null>();
+        services
+            .filter((s) => s.category === 'destinations' && s.properties)
+            .forEach((s) => {
+                s.properties?.forEach((prop) => {
+                    if (!propertiesMap.has(prop.value)) {
+                        propertiesMap.set(prop.value, prop.icon);
+                    }
+                });
+            });
+        const properties = Array.from(propertiesMap.entries()).map(([value, icon]) => ({ value, icon }));
         setAvailableProperties(properties);
 
-        // Extract unique suitable_for from destinations
+        // Extract unique suitable_for from destinations (just values, no icons)
         const suitableFor = Array.from(
             new Set(
                 services
@@ -115,7 +118,7 @@ export default function ExplorePage() {
         try {
             const [{ data: destinations }, { data: guides }, { data: paramedics }, { data: security }, { data: entertainment }, { data: travel }, { data: education }, { data: zones }] =
                 await Promise.all([
-                    supabase.from('destinations').select('*').eq('is_active', true),
+                    supabase.from('destinations_with_details').select('*').eq('is_active', true),
                     supabase.from('guides').select('*').eq('status', 'active'),
                     supabase.from('paramedics').select('*').eq('status', 'active'),
                     supabase.from('security_companies').select('*').eq('status', 'active'),
@@ -138,8 +141,8 @@ export default function ExplorePage() {
                     address: d.address,
                     phone: d.phone,
                     zone: d.zone_id ? zoneMap.get(d.zone_id) : undefined,
-                    properties: d.properties || [],
-                    suitableFor: d.suitable_for || [],
+                    properties: Array.isArray(d.properties_details) ? d.properties_details.map((p: any) => ({ value: p.value, icon: p.icon })) : [],
+                    suitableFor: Array.isArray(d.suitable_for_details) ? d.suitable_for_details.map((s: any) => s.value) : [],
                     pricing: d.pricing,
                 })) || []),
                 ...(guides?.map((g) => ({
@@ -258,7 +261,7 @@ export default function ExplorePage() {
         if (selectedProperties.length > 0) {
             filtered = filtered.filter((s) => {
                 if (s.category !== 'destinations' || !s.properties) return false;
-                return selectedProperties.some((prop) => (s.properties || []).includes(prop));
+                return selectedProperties.some((prop) => s.properties?.some((p) => p.value === prop));
             });
         }
 
@@ -266,7 +269,7 @@ export default function ExplorePage() {
         if (selectedSuitableFor.length > 0) {
             filtered = filtered.filter((s) => {
                 if (s.category !== 'destinations' || !s.suitableFor) return false;
-                return selectedSuitableFor.some((suit) => (s.suitableFor || []).includes(suit));
+                return selectedSuitableFor.some((suit) => s.suitableFor?.includes(suit));
             });
         }
 
@@ -482,20 +485,25 @@ export default function ExplorePage() {
                                 </h3>
                                 <div className="space-y-2 max-h-64 overflow-y-auto">
                                     {availableProperties.map((property) => (
-                                        <label key={property} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
+                                        <label key={property.value} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
                                             <input
                                                 type="checkbox"
-                                                checked={selectedProperties.includes(property)}
+                                                checked={selectedProperties.includes(property.value)}
                                                 onChange={(e) => {
                                                     if (e.target.checked) {
-                                                        setSelectedProperties([...selectedProperties, property]);
+                                                        setSelectedProperties([...selectedProperties, property.value]);
                                                     } else {
-                                                        setSelectedProperties(selectedProperties.filter((p) => p !== property));
+                                                        setSelectedProperties(selectedProperties.filter((p) => p !== property.value));
                                                     }
                                                 }}
                                                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                             />
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">{t(`property_${property}`)}</span>
+                                            {property.icon ? (
+                                                <img src={getPublicUrlFromPath(property.icon)} alt={property.value} className="w-5 h-5 object-contain" />
+                                            ) : (
+                                                <img src="/assets/images/img-placeholder-fallback.webp" alt={property.value} className="w-5 h-5 object-contain" />
+                                            )}
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">{property.value.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -524,7 +532,10 @@ export default function ExplorePage() {
                                                 }}
                                                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                             />
-                                            <span className="text-sm text-gray-700 dark:text-gray-300">{t(`suitable_${suitable}`)}</span>
+                                            <div className="w-5 h-5 bg-gray-200 dark:bg-slate-600 rounded flex items-center justify-center">
+                                                <IconUsers className="w-3 h-3 text-gray-400" />
+                                            </div>
+                                            <span className="text-sm text-gray-700 dark:text-gray-300">{suitable.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -792,9 +803,17 @@ export default function ExplorePage() {
                                             <div>
                                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('properties')}</h3>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {selectedService.properties.map((prop: string) => (
-                                                        <span key={prop} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
-                                                            {t(`property_${prop}`)}
+                                                    {selectedService.properties.map((prop: { value: string; icon: string | null }) => (
+                                                        <span
+                                                            key={prop.value}
+                                                            className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium flex items-center gap-2"
+                                                        >
+                                                            {prop.icon ? (
+                                                                <img src={getPublicUrlFromPath(prop.icon)} alt={prop.value} className="w-4 h-4 object-contain" />
+                                                            ) : (
+                                                                <img src="/assets/images/img-placeholder-fallback.webp" alt={prop.value} className="w-4 h-4 object-contain" />
+                                                            )}
+                                                            {prop.value.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                                                         </span>
                                                     ))}
                                                 </div>
@@ -807,8 +826,14 @@ export default function ExplorePage() {
                                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('suitable_for')}</h3>
                                                 <div className="flex flex-wrap gap-2">
                                                     {selectedService.suitableFor.map((suitable: string) => (
-                                                        <span key={suitable} className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium">
-                                                            {t(`suitable_${suitable}`)}
+                                                        <span
+                                                            key={suitable}
+                                                            className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium flex items-center gap-2"
+                                                        >
+                                                            <div className="w-4 h-4 bg-green-200 dark:bg-green-800 rounded flex items-center justify-center">
+                                                                <IconUsers className="w-2.5 h-2.5 text-green-600 dark:text-green-400" />
+                                                            </div>
+                                                            {suitable.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
                                                         </span>
                                                     ))}
                                                 </div>

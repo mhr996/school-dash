@@ -61,7 +61,7 @@ const TripPlanPreview = ({ params }: { params: { id: string } }) => {
 
                 // Fetch destination details if destination_id exists
                 if (data.destination_id) {
-                    const { data: destinationData, error: destinationError } = await supabase.from('destinations').select('*').eq('id', data.destination_id).single();
+                    const { data: destinationData, error: destinationError } = await supabase.from('destinations_with_details').select('*').eq('id', data.destination_id).single();
 
                     if (!destinationError && destinationData) {
                         setDestination(destinationData as Destination);
@@ -188,7 +188,7 @@ const TripPlanPreview = ({ params }: { params: { id: string } }) => {
                                             {destination.properties.map((property, index) => (
                                                 <div key={index} className="flex items-center gap-2 text-sm">
                                                     <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0"></div>
-                                                    <span>{t(`property_${property}`)}</span>
+                                                    <span>{property}</span>
                                                 </div>
                                             ))}
                                         </div>

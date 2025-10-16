@@ -42,9 +42,9 @@ type Destination = {
     zone_id: string | null;
     thumbnail_path: string | null;
     gallery_paths?: string[] | null;
-    properties: string[] | null;
+    properties_details: Array<{ value: string; icon: string | null }> | null;
+    suitable_for_details: Array<{ value: string; category: string }> | null;
     requirements: string[] | null;
-    suitable_for: string[] | null;
     pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
 };
 
@@ -127,20 +127,13 @@ type RequirementSelection = {
     days?: number;
 };
 
-const PROPERTY_FILTERS = [
-    'indoor_activities',
-    'outdoor_activities',
-    'educational_value',
-    'entertainment_value',
-    'historical_significance',
-    'natural_beauty',
-    'accessibility',
-    'parking_available',
-    'restroom_facilities',
-    'food_services',
-];
-
-const SUITABLE_FOR_FILTERS = ['kindergarten', 'elementary', 'high_school', 'college', 'families', 'teachers'];
+// Helper function to format filter text (replace underscores with spaces and capitalize)
+const formatFilterText = (text: string) => {
+    return text
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};
 
 // Helper function to get icon for property
 const getPropertyIcon = (property: string) => {
@@ -180,6 +173,10 @@ export default function TripPlannerDashboard() {
     const [destinations, setDestinations] = useState<Destination[]>([]);
     const [zones, setZones] = useState<Zone[]>([]);
     const [loading, setLoading] = useState(false);
+
+    // Dynamic filter options from database
+    const [availableProperties, setAvailableProperties] = useState<Array<{ value: string; icon: string | null }>>([]);
+    const [availableSuitableFor, setAvailableSuitableFor] = useState<Array<{ value: string; category: string }>>([]);
 
     // New trip dropdown state
     const [showTripDropdown, setShowTripDropdown] = useState(false);
@@ -336,6 +333,24 @@ export default function TripPlannerDashboard() {
         };
     }, [showTripDropdown]);
 
+    // Fetch filter options from database
+    useEffect(() => {
+        const fetchFilterOptions = async () => {
+            try {
+                const [{ data: propertiesData }, { data: suitableForData }] = await Promise.all([
+                    supabase.from('destination_properties').select('value, icon').eq('is_active', true).order('display_order'),
+                    supabase.from('suitable_for_options').select('value, category').eq('is_active', true).order('display_order'),
+                ]);
+
+                setAvailableProperties(propertiesData || []);
+                setAvailableSuitableFor(suitableForData || []);
+            } catch (error) {
+                console.error('Error loading filter options:', error);
+            }
+        };
+        fetchFilterOptions();
+    }, []);
+
     // Fetch current user and check if admin
     useEffect(() => {
         const fetchUser = async () => {
@@ -386,11 +401,11 @@ export default function TripPlannerDashboard() {
         }
 
         if (selectedProperties.length > 0) {
-            filtered = filtered.filter((dest) => dest.properties?.some((prop) => selectedProperties.includes(prop)) ?? false);
+            filtered = filtered.filter((dest) => dest.properties_details?.some((prop) => selectedProperties.includes(prop.value)) ?? false);
         }
 
         if (selectedSuitableFor.length > 0) {
-            filtered = filtered.filter((dest) => dest.suitable_for?.some((suitable) => selectedSuitableFor.includes(suitable)) ?? false);
+            filtered = filtered.filter((dest) => dest.suitable_for_details?.some((suitable) => selectedSuitableFor.includes(suitable.value)) ?? false);
         }
 
         setFilteredDestinations(filtered);
@@ -400,7 +415,10 @@ export default function TripPlannerDashboard() {
         try {
             setLoading(true);
             const [{ data: destData, error: destError }, { data: zoneData, error: zoneError }] = await Promise.all([
-                supabase.from('destinations').select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties, requirements, suitable_for, pricing').order('name'),
+                supabase
+                    .from('destinations_with_details')
+                    .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties_details, suitable_for_details, requirements, pricing')
+                    .order('name'),
                 supabase.from('zones').select('id, name').eq('is_active', true),
             ]);
 
@@ -465,8 +483,8 @@ export default function TripPlannerDashboard() {
 
             // Load top destinations (most popular based on booking count)
             const { data: topDestData, error: topDestError } = await supabase
-                .from('destinations')
-                .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties, requirements, suitable_for, pricing')
+                .from('destinations_with_details')
+                .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties_details, suitable_for_details, requirements, pricing')
                 .eq('is_active', true)
                 .limit(6);
 
@@ -474,8 +492,8 @@ export default function TripPlannerDashboard() {
 
             // Load best deals (destinations with special pricing or featured)
             const { data: bestDealsData, error: bestDealsError } = await supabase
-                .from('destinations')
-                .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties, requirements, suitable_for, pricing')
+                .from('destinations_with_details')
+                .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties_details, suitable_for_details, requirements, pricing')
                 .eq('is_active', true)
                 .not('pricing', 'is', null)
                 .limit(6);
@@ -1950,21 +1968,26 @@ export default function TripPlannerDashboard() {
                                     {t('destination_properties')}
                                 </h3>
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                                    {PROPERTY_FILTERS.map((property, index) => (
+                                    {availableProperties.map((property, index) => (
                                         <motion.button
-                                            key={property}
+                                            key={property.value}
                                             initial={{ scale: 0, opacity: 0 }}
                                             animate={{ scale: 1, opacity: 1 }}
                                             transition={{ delay: index * 0.05 }}
-                                            onClick={() => togglePropertyFilter(property)}
-                                            className={`relative p-3 rounded-xl text-sm font-medium transition-all duration-300 border-2 ${
-                                                selectedProperties.includes(property)
+                                            onClick={() => togglePropertyFilter(property.value)}
+                                            className={`relative p-3 rounded-xl text-sm font-medium transition-all duration-300 border-2 flex items-center justify-center gap-2 ${
+                                                selectedProperties.includes(property.value)
                                                     ? 'bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/25'
                                                     : 'bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:border-blue-300 dark:hover:border-blue-500'
                                             }`}
                                         >
-                                            {t(`property_${property}`)}
-                                            {selectedProperties.includes(property) && (
+                                            {property.icon ? (
+                                                <img src={getPublicUrlFromPath(property.icon)} alt={property.value} className="w-4 h-4 object-contain" />
+                                            ) : (
+                                                <img src="/assets/images/img-placeholder-fallback.webp" alt={property.value} className="w-4 h-4 object-contain" />
+                                            )}
+                                            <span>{formatFilterText(property.value)}</span>
+                                            {selectedProperties.includes(property.value) && (
                                                 <motion.div
                                                     initial={{ scale: 0 }}
                                                     animate={{ scale: 1 }}
@@ -1993,21 +2016,24 @@ export default function TripPlannerDashboard() {
                                     {t('suitable_for')}
                                 </h3>
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                                    {SUITABLE_FOR_FILTERS.map((suitable, index) => (
+                                    {availableSuitableFor.map((suitable, index) => (
                                         <motion.button
-                                            key={suitable}
+                                            key={suitable.value}
                                             initial={{ scale: 0, opacity: 0 }}
                                             animate={{ scale: 1, opacity: 1 }}
                                             transition={{ delay: index * 0.05 }}
-                                            onClick={() => toggleSuitableForFilter(suitable)}
-                                            className={`relative p-3 rounded-xl text-sm font-medium transition-all duration-300 border-2 ${
-                                                selectedSuitableFor.includes(suitable)
+                                            onClick={() => toggleSuitableForFilter(suitable.value)}
+                                            className={`relative p-3 rounded-xl text-sm font-medium transition-all duration-300 border-2 flex items-center justify-center gap-2 ${
+                                                selectedSuitableFor.includes(suitable.value)
                                                     ? 'bg-green-500 text-white border-green-500 shadow-lg shadow-green-500/25'
                                                     : 'bg-gray-50 dark:bg-slate-800/60 text-gray-700 dark:text-slate-300 border-gray-200 dark:border-slate-600 hover:border-green-300 dark:hover:border-green-500'
                                             }`}
                                         >
-                                            {t(`suitable_${suitable}`)}
-                                            {selectedSuitableFor.includes(suitable) && (
+                                            <div className="w-4 h-4 bg-gray-300 dark:bg-slate-700 rounded flex items-center justify-center">
+                                                <IconUsers className="w-2.5 h-2.5 text-gray-500" />
+                                            </div>
+                                            <span>{formatFilterText(suitable.value)}</span>
+                                            {selectedSuitableFor.includes(suitable.value) && (
                                                 <motion.div
                                                     initial={{ scale: 0 }}
                                                     animate={{ scale: 1 }}

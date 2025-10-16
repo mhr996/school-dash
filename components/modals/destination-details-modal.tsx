@@ -33,9 +33,9 @@ type Destination = {
     zone_id: string | null;
     thumbnail_path: string | null;
     gallery_paths?: string[] | null;
-    properties: string[] | null;
+    properties_details: Array<{ value: string; icon: string | null }> | null;
+    suitable_for_details: Array<{ value: string; category: string }> | null;
     requirements: string[] | null;
-    suitable_for: string[] | null;
     pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
 };
 
@@ -280,7 +280,7 @@ const DestinationDetailsModal: React.FC<DestinationDetailsModalProps> = ({ desti
                                     )}
 
                                     {/* Properties */}
-                                    {destination.properties && destination.properties.length > 0 && (
+                                    {destination.properties_details && destination.properties_details.length > 0 && (
                                         <motion.div variants={itemVariants}>
                                             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                                                 <div className="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
@@ -289,8 +289,8 @@ const DestinationDetailsModal: React.FC<DestinationDetailsModalProps> = ({ desti
                                                 {t('destination_features')}
                                             </h3>
                                             <div className="grid grid-cols-2 gap-3">
-                                                {destination.properties.map((property, idx) => {
-                                                    const IconComponent = getPropertyIcon(property);
+                                                {destination.properties_details.map((property, idx) => {
+                                                    const IconComponent = getPropertyIcon(property.value);
                                                     return (
                                                         <motion.div
                                                             key={idx}
@@ -300,8 +300,14 @@ const DestinationDetailsModal: React.FC<DestinationDetailsModalProps> = ({ desti
                                                             animate={{ opacity: 1, x: 0 }}
                                                             transition={{ delay: idx * 0.05 }}
                                                         >
-                                                            <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{t(`property_${property}`)}</span>
+                                                            {property.icon ? (
+                                                                <img src={getPublicUrlFromPath(property.icon)} alt={property.value} className="w-5 h-5 object-contain" />
+                                                            ) : (
+                                                                <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                                            )}
+                                                            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                                                {property.value.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                            </span>
                                                         </motion.div>
                                                     );
                                                 })}
@@ -340,7 +346,7 @@ const DestinationDetailsModal: React.FC<DestinationDetailsModalProps> = ({ desti
                                     )}
 
                                     {/* Suitable For */}
-                                    {destination.suitable_for && destination.suitable_for.length > 0 && (
+                                    {destination.suitable_for_details && destination.suitable_for_details.length > 0 && (
                                         <motion.div variants={itemVariants}>
                                             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
                                                 <div className="w-6 h-6 bg-indigo-500 rounded-lg flex items-center justify-center">
@@ -349,16 +355,19 @@ const DestinationDetailsModal: React.FC<DestinationDetailsModalProps> = ({ desti
                                                 {t('suitable_for')}
                                             </h3>
                                             <div className="flex flex-wrap gap-3">
-                                                {destination.suitable_for.map((suitable, idx) => (
+                                                {destination.suitable_for_details.map((suitable, idx) => (
                                                     <motion.div
                                                         key={idx}
-                                                        className="px-4 py-2 bg-indigo-200/30 dark:bg-indigo-500/20 backdrop-blur-sm rounded-full border border-indigo-300/50 dark:border-indigo-500/30"
+                                                        className="px-4 py-2 bg-indigo-200/30 dark:bg-indigo-500/20 backdrop-blur-sm rounded-full border border-indigo-300/50 dark:border-indigo-500/30 flex items-center gap-2"
                                                         initial={{ opacity: 0, y: 20 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ delay: idx * 0.05 }}
                                                         whileHover={{ scale: 1.05 }}
                                                     >
-                                                        <span className="text-sm font-medium text-indigo-800 dark:text-indigo-200">{t(`suitable_${suitable}`)}</span>
+                                                        <IconUsersGroup className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                                        <span className="text-sm font-medium text-indigo-800 dark:text-indigo-200">
+                                                            {suitable.value.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                        </span>
                                                     </motion.div>
                                                 ))}
                                             </div>

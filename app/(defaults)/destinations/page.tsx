@@ -51,7 +51,10 @@ export default function DestinationsPage() {
             try {
                 setLoading(true);
                 const [{ data: dests, error: e1 }, { data: zones, error: e2 }] = await Promise.all([
-                    supabase.from('destinations').select('id, created_at, name, phone, address, zone_id, thumbnail_path').order('created_at', { ascending: false }),
+                    supabase
+                        .from('destinations_with_details')
+                        .select('id, created_at, name, phone, address, zone_id, thumbnail_path, properties_details, suitable_for_details')
+                        .order('created_at', { ascending: false }),
                     supabase.from('zones').select('id, name').eq('is_active', true),
                 ]);
                 if (e1) throw e1;

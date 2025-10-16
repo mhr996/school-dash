@@ -84,6 +84,34 @@ CREATE TABLE public.company_settings (
   email text,
   CONSTRAINT company_settings_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.destination_properties (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  value text NOT NULL UNIQUE,
+  icon text,
+  is_active boolean NOT NULL DEFAULT true,
+  display_order integer DEFAULT 0,
+  CONSTRAINT destination_properties_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.destination_properties_link (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  destination_id uuid NOT NULL,
+  property_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT destination_properties_link_pkey PRIMARY KEY (id),
+  CONSTRAINT destination_properties_link_destination_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT destination_properties_link_property_fkey FOREIGN KEY (property_id) REFERENCES public.destination_properties(id)
+);
+CREATE TABLE public.destination_suitable_for_link (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  destination_id uuid NOT NULL,
+  suitable_for_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT destination_suitable_for_link_pkey PRIMARY KEY (id),
+  CONSTRAINT destination_suitable_for_link_destination_fkey FOREIGN KEY (destination_id) REFERENCES public.destinations(id),
+  CONSTRAINT destination_suitable_for_link_suitable_for_fkey FOREIGN KEY (suitable_for_id) REFERENCES public.suitable_for_options(id)
+);
 CREATE TABLE public.destinations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -164,6 +192,7 @@ CREATE TABLE public.guides (
   updated_at timestamp with time zone DEFAULT now(),
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
+  profile_picture_url text,
   CONSTRAINT guides_pkey PRIMARY KEY (id),
   CONSTRAINT guides_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -182,6 +211,7 @@ CREATE TABLE public.paramedics (
   status text CHECK (status = ANY (ARRAY['active'::text, 'inactive'::text])),
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
+  profile_picture_url text,
   CONSTRAINT paramedics_pkey PRIMARY KEY (id),
   CONSTRAINT paramedics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -294,6 +324,16 @@ CREATE TABLE public.students (
   avatar_url text,
   notes text,
   CONSTRAINT students_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.suitable_for_options (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  value text NOT NULL UNIQUE,
+  icon text,
+  is_active boolean NOT NULL DEFAULT true,
+  display_order integer DEFAULT 0,
+  CONSTRAINT suitable_for_options_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.travel_companies (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

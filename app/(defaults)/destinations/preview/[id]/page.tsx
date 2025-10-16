@@ -236,7 +236,7 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                                             key={option.id}
                                             className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium shadow-lg hover:shadow-xl transition-shadow"
                                         >
-                                            {t(`suitable_${option.value}`)}
+                                            {option.value}
                                         </span>
                                     ))}
                                 </div>
@@ -388,7 +388,7 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                                     {suitableFor.map((option) => (
                                         <div key={option.id} className="flex items-center gap-2">
                                             <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0"></div>
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t(`suitable_${option.value}`)}</span>
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{option.value}</span>
                                         </div>
                                     ))}
                                 </div>

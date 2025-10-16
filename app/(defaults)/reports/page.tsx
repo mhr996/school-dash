@@ -219,7 +219,7 @@ const ReportsPage = () => {
                     supabase.from('travel_companies').select('*'),
 
                     // Popular destinations
-                    supabase.from('destinations').select('*'),
+                    supabase.from('destinations_with_details').select('*'),
 
                     // Upcoming trips
                     supabase
