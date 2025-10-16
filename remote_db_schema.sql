@@ -330,7 +330,6 @@ CREATE TABLE public.suitable_for_options (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   value text NOT NULL UNIQUE,
-  icon text,
   is_active boolean NOT NULL DEFAULT true,
   display_order integer DEFAULT 0,
   CONSTRAINT suitable_for_options_pkey PRIMARY KEY (id)

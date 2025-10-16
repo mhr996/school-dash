@@ -43,7 +43,7 @@ type Destination = {
     thumbnail_path: string | null;
     gallery_paths?: string[] | null;
     properties_details: Array<{ value: string; icon: string | null }> | null;
-    suitable_for_details: Array<{ value: string; category: string }> | null;
+    suitable_for_details: Array<{ value: string }> | null;
     requirements: string[] | null;
     pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
 };
@@ -176,7 +176,7 @@ export default function TripPlannerDashboard() {
 
     // Dynamic filter options from database
     const [availableProperties, setAvailableProperties] = useState<Array<{ value: string; icon: string | null }>>([]);
-    const [availableSuitableFor, setAvailableSuitableFor] = useState<Array<{ value: string; category: string }>>([]);
+    const [availableSuitableFor, setAvailableSuitableFor] = useState<Array<{ value: string }>>([]);
 
     // New trip dropdown state
     const [showTripDropdown, setShowTripDropdown] = useState(false);
@@ -339,7 +339,7 @@ export default function TripPlannerDashboard() {
             try {
                 const [{ data: propertiesData }, { data: suitableForData }] = await Promise.all([
                     supabase.from('destination_properties').select('value, icon').eq('is_active', true).order('display_order'),
-                    supabase.from('suitable_for_options').select('value, category').eq('is_active', true).order('display_order'),
+                    supabase.from('suitable_for_options').select('value').eq('is_active', true).order('display_order'),
                 ]);
 
                 setAvailableProperties(propertiesData || []);
@@ -378,6 +378,7 @@ export default function TripPlannerDashboard() {
     useEffect(() => {
         if (currentView === 'destinations') {
             loadDestinations();
+            loadZones(); // Load zones when switching to destinations view
         } else if (currentView === 'dashboard' && currentUser?.id) {
             loadDashboardData();
         } else if (currentView === 'service-booking') {
@@ -414,23 +415,30 @@ export default function TripPlannerDashboard() {
     const loadDestinations = async () => {
         try {
             setLoading(true);
-            const [{ data: destData, error: destError }, { data: zoneData, error: zoneError }] = await Promise.all([
-                supabase
-                    .from('destinations_with_details')
-                    .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties_details, suitable_for_details, requirements, pricing')
-                    .order('name'),
-                supabase.from('zones').select('id, name').eq('is_active', true),
-            ]);
+            const { data: destData, error: destError } = await supabase
+                .from('destinations_with_details')
+                .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties_details, suitable_for_details, requirements, pricing')
+                .order('name');
 
             if (destError) throw destError;
-            if (zoneError) throw zoneError;
 
             setDestinations(destData || []);
-            setZones(zoneData || []);
         } catch (error) {
             console.error('Error loading destinations:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadZones = async () => {
+        try {
+            const { data: zoneData, error: zoneError } = await supabase.from('zones').select('id, name').eq('is_active', true);
+
+            if (zoneError) throw zoneError;
+
+            setZones(zoneData || []);
+        } catch (error) {
+            console.error('Error loading zones:', error);
         }
     };
 
@@ -1495,7 +1503,7 @@ export default function TripPlannerDashboard() {
                                                             <img
                                                                 src={company.image ? company.image : '/assets/images/img-placeholder-fallback.webp'}
                                                                 alt={company.name}
-                                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                                className="w-full h-full object-cover aspect-square group-hover:scale-110 transition-transform duration-500"
                                                             />
                                                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
                                                         </div>

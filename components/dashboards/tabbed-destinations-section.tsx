@@ -22,7 +22,7 @@ type Destination = {
     thumbnail_path: string | null;
     gallery_paths?: string[] | null;
     properties_details: Array<{ value: string; icon: string | null }> | null;
-    suitable_for_details: Array<{ value: string; category: string }> | null;
+    suitable_for_details: Array<{ value: string }> | null;
     requirements: string[] | null;
     pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
     created_at?: string | null;
