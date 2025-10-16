@@ -22,10 +22,19 @@ type Destination = {
     zone_id: string | null;
     thumbnail_path: string | null;
     gallery_paths: string[] | null;
-    properties: string[] | { label: string; value: string }[] | null; // Support both old and new format
     requirements: string[] | { label: string; value: string }[] | null; // Support both old and new format
-    suitable_for: string[] | null;
     pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
+};
+
+type DestinationProperty = {
+    id: string;
+    value: string;
+    icon: string | null;
+};
+
+type SuitableForOption = {
+    id: string;
+    value: string;
 };
 
 export default function PreviewDestinationPage({ params }: { params: { id: string } }) {
@@ -34,6 +43,8 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
     const [item, setItem] = useState<Destination | null>(null);
     const [zoneName, setZoneName] = useState<string | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [properties, setProperties] = useState<DestinationProperty[]>([]);
+    const [suitableFor, setSuitableFor] = useState<SuitableForOption[]>([]);
 
     useEffect(() => {
         (async () => {
@@ -45,6 +56,42 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                 if (data.zone_id) {
                     const { data: z } = await supabase.from('zones').select('name').eq('id', data.zone_id).single();
                     setZoneName(z?.name || null);
+                }
+
+                // Load properties from junction table
+                const { data: propData, error: propError } = await supabase
+                    .from('destination_properties_link')
+                    .select(
+                        `
+                        destination_properties (
+                            id,
+                            value,
+                            icon
+                        )
+                    `,
+                    )
+                    .eq('destination_id', params.id);
+
+                if (!propError && propData) {
+                    setProperties(propData.map((item: any) => item.destination_properties).filter(Boolean));
+                }
+
+                // Load suitable-for from junction table
+                const { data: suitableData, error: suitableError } = await supabase
+                    .from('destination_suitable_for_link')
+                    .select(
+                        `
+                        suitable_for_options (
+                            id,
+                            value,
+                            icon
+                        )
+                    `,
+                    )
+                    .eq('destination_id', params.id);
+
+                if (!suitableError && suitableData) {
+                    setSuitableFor(suitableData.map((item: any) => item.suitable_for_options).filter(Boolean));
                 }
             } catch (e) {
                 console.error('Error loading destination', e);
@@ -108,8 +155,6 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Main Content */}
                     <div className="lg:col-span-3 space-y-6">
-
-
                         {/* Hero Section with Images */}
                         {allImages.length > 0 && (
                             <div className="panel p-0 overflow-hidden">
@@ -177,7 +222,7 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                         </div>
 
                         {/* Suitable For */}
-                        {(item.suitable_for?.length || 0) > 0 && (
+                        {suitableFor.length > 0 && (
                             <div className="panel">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
@@ -186,12 +231,12 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('suitable_for')}</h3>
                                 </div>
                                 <div className="flex flex-wrap gap-3">
-                                    {item.suitable_for!.map((key) => (
+                                    {suitableFor.map((option) => (
                                         <span
-                                            key={key}
+                                            key={option.id}
                                             className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full text-sm font-medium shadow-lg hover:shadow-xl transition-shadow"
                                         >
-                                            {t(`suitable_${key}`)}
+                                            {t(`suitable_${option.value}`)}
                                         </span>
                                     ))}
                                 </div>
@@ -199,27 +244,25 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                         )}
 
                         {/* Properties */}
-                        {(item.properties?.length || 0) > 0 && (
+                        {properties.length > 0 && (
                             <div className="panel">
                                 <h3 className="text-lg font-semibold mb-6 text-gray-900 dark:text-white">{t('destination_properties')}</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {item.properties!.map((property, idx) => {
-                                        // Handle both old format {label, value} and new format (string)
-                                        const isOldFormat = typeof property === 'object' && 'label' in property;
-                                        const label = isOldFormat ? property.label : property;
-                                        const displayLabel = isOldFormat ? property.label : t(`property_${property}`);
-                                        const value = isOldFormat ? property.value : '';
-
-                                        return (
-                                            <div
-                                                key={idx}
-                                                className="group p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary/50 hover:shadow-md transition-all duration-200 bg-white dark:bg-gray-800"
-                                            >
-                                                <div className="text-sm font-medium text-primary mb-1">{displayLabel}</div>
-                                                {isOldFormat && value && <div className="font-semibold text-gray-900 dark:text-white">{value}</div>}
-                                            </div>
-                                        );
-                                    })}
+                                    {properties.map((property) => (
+                                        <div
+                                            key={property.id}
+                                            className="group p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-primary/50 hover:shadow-md transition-all duration-200 bg-white dark:bg-gray-800 flex items-center gap-3"
+                                        >
+                                            {property.icon && (
+                                                <img
+                                                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/destinations-properties/${property.icon}`}
+                                                    alt=""
+                                                    className="w-8 h-8 object-cover rounded"
+                                                />
+                                            )}
+                                            <div className="text-sm font-medium text-primary">{t(`property_${property.value}`)}</div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -326,7 +369,7 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                         </div>
 
                         {/* Suitable For Quick Info */}
-                        {(item.suitable_for?.length || 0) > 0 && (
+                        {suitableFor.length > 0 && (
                             <div className="panel bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
@@ -342,10 +385,10 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('suitable_for')}</h3>
                                 </div>
                                 <div className="space-y-2">
-                                    {item.suitable_for!.map((suitable, index) => (
-                                        <div key={index} className="flex items-center gap-2">
+                                    {suitableFor.map((option) => (
+                                        <div key={option.id} className="flex items-center gap-2">
                                             <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0"></div>
-                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t(suitable)}</span>
+                                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t(`suitable_${option.value}`)}</span>
                                         </div>
                                     ))}
                                 </div>
