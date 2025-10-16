@@ -260,7 +260,7 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                                                     className="w-8 h-8 object-cover rounded"
                                                 />
                                             )}
-                                            <div className="text-sm font-medium text-primary">{t(`property_${property.value}`)}</div>
+                                            <div className="text-sm font-medium text-primary">{property.value}</div>
                                         </div>
                                     ))}
                                 </div>

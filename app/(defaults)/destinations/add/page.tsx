@@ -145,15 +145,40 @@ export default function AddDestinationPage() {
         try {
             setSavingNewOption(true);
 
+            // Check if property value already exists
+            const { data: existingProperty, error: checkError } = await supabase.from('destination_properties').select('id, value').eq('value', newPropertyValue.trim().toLowerCase()).maybeSingle();
+
+            if (checkError) throw checkError;
+
+            if (existingProperty) {
+                setAlert({
+                    message: t('property_already_exists') || `Property "${newPropertyValue.trim()}" already exists. Please use a different value.`,
+                    type: 'danger',
+                });
+                setSavingNewOption(false);
+                return;
+            }
+
             // Create the property first to get the ID
             const maxOrder = availableProperties.length > 0 ? Math.max(...availableProperties.map((p) => p.display_order)) : 0;
             const { data: newProp, error: insertError } = await supabase
                 .from('destination_properties')
-                .insert([{ value: newPropertyValue.trim(), display_order: maxOrder + 1 }])
+                .insert([{ value: newPropertyValue.trim().toLowerCase(), display_order: maxOrder + 1 }])
                 .select()
                 .single();
 
-            if (insertError) throw insertError;
+            if (insertError) {
+                // Handle duplicate key error specifically
+                if (insertError.code === '23505') {
+                    setAlert({
+                        message: t('property_already_exists') || `Property "${newPropertyValue.trim()}" already exists. Please use a different value.`,
+                        type: 'danger',
+                    });
+                    setSavingNewOption(false);
+                    return;
+                }
+                throw insertError;
+            }
 
             // Upload icon if provided
             let iconPath: string | null = null;
@@ -203,15 +228,40 @@ export default function AddDestinationPage() {
         try {
             setSavingNewOption(true);
 
+            // Check if suitable-for value already exists
+            const { data: existingOption, error: checkError } = await supabase.from('suitable_for_options').select('id, value').eq('value', newSuitableForValue.trim().toLowerCase()).maybeSingle();
+
+            if (checkError) throw checkError;
+
+            if (existingOption) {
+                setAlert({
+                    message: t('suitable_for_already_exists') || `Suitable-for option "${newSuitableForValue.trim()}" already exists. Please use a different value.`,
+                    type: 'danger',
+                });
+                setSavingNewOption(false);
+                return;
+            }
+
             // Create the option
             const maxOrder = availableSuitableFor.length > 0 ? Math.max(...availableSuitableFor.map((s) => s.display_order)) : 0;
             const { data: newOption, error: insertError } = await supabase
                 .from('suitable_for_options')
-                .insert([{ value: newSuitableForValue.trim(), display_order: maxOrder + 1 }])
+                .insert([{ value: newSuitableForValue.trim().toLowerCase(), display_order: maxOrder + 1 }])
                 .select()
                 .single();
 
-            if (insertError) throw insertError;
+            if (insertError) {
+                // Handle duplicate key error specifically
+                if (insertError.code === '23505') {
+                    setAlert({
+                        message: t('suitable_for_already_exists') || `Suitable-for option "${newSuitableForValue.trim()}" already exists. Please use a different value.`,
+                        type: 'danger',
+                    });
+                    setSavingNewOption(false);
+                    return;
+                }
+                throw insertError;
+            }
 
             // Add to local state
             const optionToAdd: SuitableForOption = {
@@ -237,13 +287,13 @@ export default function AddDestinationPage() {
     const handleDeleteProperty = async (propertyId: string) => {
         const property = availableProperties.find((p) => p.id === propertyId);
         if (!property) return;
-        setDeleteConfirmModal({ type: 'property', id: propertyId, name: t(`property_${property.value}`) });
+        setDeleteConfirmModal({ type: 'property', id: propertyId, name: property.value });
     };
 
     const handleDeleteSuitableFor = async (optionId: string) => {
         const option = availableSuitableFor.find((s) => s.id === optionId);
         if (!option) return;
-        setDeleteConfirmModal({ type: 'suitable', id: optionId, name: t(`suitable_${option.value}`) });
+        setDeleteConfirmModal({ type: 'suitable', id: optionId, name: option.value });
     };
 
     const confirmDelete = async () => {
@@ -540,7 +590,7 @@ export default function AddDestinationPage() {
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
-                                <span className="truncate">{t(`property_${property.value}`)}</span>
+                                <span className="truncate">{property.value}</span>
                             </label>
                             <button
                                 type="button"
@@ -623,7 +673,7 @@ export default function AddDestinationPage() {
                                 className="form-checkbox rounded h-5 w-5 text-emerald-500 flex-shrink-0 cursor-pointer"
                             />
                             <label htmlFor={`suitable-${option.id}`} className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 leading-5 mb-0 flex-1">
-                                {t(`suitable_${option.value}`)}
+                                {option.value}
                             </label>
                             <button
                                 type="button"
