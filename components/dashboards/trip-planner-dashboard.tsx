@@ -34,6 +34,7 @@ import IconPlayCircle from '@/components/icon/icon-play-circle';
 import DestinationDetailsModal from '@/components/modals/destination-details-modal';
 import TabbedDestinationsSection from '@/components/dashboards/tabbed-destinations-section';
 import CustomSelect from '@/components/elements/custom-select';
+import { calculateBookingPrice, getServiceRate, type ServiceSelection, type RateType } from '@/utils/pricing';
 
 type Destination = {
     id: string;
@@ -45,7 +46,7 @@ type Destination = {
     properties_details: Array<{ value: string; icon: string | null }> | null;
     suitable_for_details: Array<{ value: string }> | null;
     requirements: string[] | null;
-    pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
+    pricing: { student?: number; crew?: number } | null;
 };
 
 type Zone = {
@@ -121,7 +122,7 @@ type RequirementSelection = {
     name: string;
     type: 'paramedics' | 'guides' | 'security_companies' | 'external_entertainment_companies' | 'travel_companies';
     quantity: number;
-    rate_type: 'hourly' | 'daily' | 'fixed';
+    rate_type: 'hourly' | 'daily' | 'regional' | 'overnight' | 'fixed';
     cost: number;
     hours?: number;
     days?: number;
@@ -614,62 +615,69 @@ export default function TripPlannerDashboard() {
     };
 
     const calculateTotalPrice = (requirements: RequirementSelection[]) => {
-        let total = 0;
-
-        requirements.forEach((req) => {
-            let itemPrice = 0;
+        // Convert requirements to ServiceSelection format for the pricing utility
+        const serviceSelections: ServiceSelection[] = requirements.map((req) => {
+            let service: any = null;
+            let unitPrice = 0;
 
             switch (req.type) {
                 case 'paramedics':
-                    const paramedic = paramedics.find((p) => p.id === req.id);
-                    if (paramedic) {
-                        if (req.rate_type === 'hourly') {
-                            itemPrice = paramedic.hourly_rate * (req.hours || 1) * req.quantity;
-                        } else {
-                            itemPrice = paramedic.daily_rate * (req.days || 1) * req.quantity;
-                        }
+                    service = paramedics.find((p) => p.id === req.id);
+                    if (service) {
+                        unitPrice = getServiceRate(service, req.rate_type as RateType);
                     }
                     break;
                 case 'guides':
-                    const guide = guides.find((g) => g.id === req.id);
-                    if (guide) {
-                        if (req.rate_type === 'hourly') {
-                            itemPrice = guide.hourly_rate * (req.hours || 1) * req.quantity;
-                        } else {
-                            itemPrice = guide.daily_rate * (req.days || 1) * req.quantity;
-                        }
+                    service = guides.find((g) => g.id === req.id);
+                    if (service) {
+                        unitPrice = getServiceRate(service, req.rate_type as RateType);
                     }
                     break;
                 case 'security_companies':
-                    const security = securityCompanies.find((s) => s.id === req.id);
-                    if (security) {
-                        if (req.rate_type === 'hourly') {
-                            itemPrice = security.hourly_rate * (req.hours || 1) * req.quantity;
-                        } else {
-                            itemPrice = security.daily_rate * (req.days || 1) * req.quantity;
-                        }
+                    service = securityCompanies.find((s) => s.id === req.id);
+                    if (service) {
+                        unitPrice = getServiceRate(service, req.rate_type as RateType);
                     }
                     break;
                 case 'external_entertainment_companies':
-                    const entertainment = entertainmentCompanies.find((e) => e.id === req.id);
-                    if (entertainment) {
-                        itemPrice = entertainment.price * req.quantity;
+                    service = entertainmentCompanies.find((e) => e.id === req.id);
+                    if (service) {
+                        unitPrice = service.price;
                     }
                     break;
                 case 'travel_companies':
-                    const travelCompany = travelCompanies.find((t) => t.id === req.id);
-                    if (travelCompany && travelCompany.pricing_data) {
-                        // For now, use a default price from pricing_data or fallback to 100
-                        const defaultPrice = travelCompany.pricing_data?.default_price || 100;
-                        itemPrice = defaultPrice * req.quantity;
+                    service = travelCompanies.find((t) => t.id === req.id);
+                    if (service && service.pricing_data) {
+                        unitPrice = service.pricing_data?.default_price || 100;
                     }
                     break;
             }
 
-            total += itemPrice;
+            return {
+                id: req.id,
+                name: req.name,
+                type: req.type,
+                quantity: req.quantity,
+                days: req.rate_type === 'hourly' ? 0 : req.days || 1,
+                hours: req.rate_type === 'hourly' ? req.hours || 1 : 0,
+                unitPrice: unitPrice,
+                rateType: req.rate_type as RateType,
+                subServices: [], // Sub-services will be handled separately
+            };
         });
 
-        return total;
+        // Use the new pricing utility
+        // Convert pricing to match DestinationPricing type
+        const destinationPricing = selectedForPlanning?.pricing
+            ? {
+                  student: selectedForPlanning.pricing.student || 0,
+                  crew: selectedForPlanning.pricing.crew || 0,
+              }
+            : null;
+
+        const result = calculateBookingPrice(destinationPricing, numberOfStudents || 0, numberOfCrew || 0, serviceSelections);
+
+        return result.totalPrice;
     };
 
     // Handle requirements selection
@@ -786,6 +794,47 @@ export default function TripPlannerDashboard() {
         return selectedRequirements.some((req) => req.type === type && req.id === id);
     };
 
+    // Update requirement rate type
+    const updateRequirementRateType = (index: number, rateType: 'hourly' | 'daily' | 'regional' | 'overnight' | 'fixed') => {
+        setSelectedRequirements((prev) =>
+            prev.map((req, i) => {
+                if (i !== index) return req;
+
+                // Update rate type and cost based on the service
+                let newCost = req.cost;
+
+                // Find the service and get the appropriate rate
+                if (req.type === 'paramedics') {
+                    const paramedic = paramedics.find((p) => p.id === req.id);
+                    if (paramedic) {
+                        if (rateType === 'hourly') newCost = paramedic.hourly_rate;
+                        else if (rateType === 'daily') newCost = paramedic.daily_rate;
+                        else if (rateType === 'regional') newCost = paramedic.daily_rate * 1.5;
+                        else if (rateType === 'overnight') newCost = paramedic.daily_rate * 2;
+                    }
+                } else if (req.type === 'guides') {
+                    const guide = guides.find((g) => g.id === req.id);
+                    if (guide) {
+                        if (rateType === 'hourly') newCost = guide.hourly_rate;
+                        else if (rateType === 'daily') newCost = guide.daily_rate;
+                        else if (rateType === 'regional') newCost = guide.daily_rate * 1.5;
+                        else if (rateType === 'overnight') newCost = guide.daily_rate * 2;
+                    }
+                } else if (req.type === 'security_companies') {
+                    const security = securityCompanies.find((s) => s.id === req.id);
+                    if (security) {
+                        if (rateType === 'hourly') newCost = security.hourly_rate;
+                        else if (rateType === 'daily') newCost = security.daily_rate;
+                        else if (rateType === 'regional') newCost = security.daily_rate * 1.5;
+                        else if (rateType === 'overnight') newCost = security.daily_rate * 2;
+                    }
+                }
+
+                return { ...req, rate_type: rateType, cost: newCost };
+            }),
+        );
+    };
+
     // Validation function to check if all required services are selected
     const validateRequiredServices = () => {
         const missingServices: string[] = [];
@@ -797,10 +846,6 @@ export default function TripPlannerDashboard() {
             }
             if (numberOfCrew === 0) {
                 missingServices.push(t('number_of_crew'));
-            }
-            // Check buses only if destination requires travel company
-            if (selectedForPlanning?.requirements?.includes('travel_companies') && numberOfBuses === 0) {
-                missingServices.push(t('number_of_buses'));
             }
         }
 
@@ -1017,7 +1062,6 @@ export default function TripPlannerDashboard() {
                 notes: `Booking created via trip planner - Type: ${selectedBookingType || 'full_trip'}`,
                 number_of_students: numberOfStudents || null,
                 number_of_crew: numberOfCrew || null,
-                number_of_buses: numberOfBuses || null,
             };
 
             console.log('Creating booking with data:', bookingData);
@@ -1123,7 +1167,7 @@ export default function TripPlannerDashboard() {
     useEffect(() => {
         const newTotal = calculateTotalPrice(selectedRequirements);
         setTotalPrice(newTotal);
-    }, [selectedRequirements, paramedics, guides, securityCompanies, entertainmentCompanies]);
+    }, [selectedRequirements, paramedics, guides, securityCompanies, entertainmentCompanies, travelCompanies, numberOfStudents, numberOfCrew, selectedForPlanning]);
 
     const togglePropertyFilter = (property: string) => {
         setSelectedProperties((prev) => (prev.includes(property) ? prev.filter((p) => p !== property) : [...prev, property]));
@@ -2187,8 +2231,8 @@ export default function TripPlannerDashboard() {
 
                                                 {/* Pricing and Action Button */}
                                                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10 dark:border-slate-700/30 mt-auto">
-                                                    {destination.pricing && destination.pricing.child && (
-                                                        <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm leading-none">₪{destination.pricing.child}</div>
+                                                    {destination.pricing && destination.pricing.student && (
+                                                        <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm leading-none">₪{destination.pricing.student}</div>
                                                     )}
                                                     <motion.button
                                                         whileHover={{ scale: 1.05 }}
@@ -2401,34 +2445,75 @@ export default function TripPlannerDashboard() {
                                                     {t('paramedics')}
                                                 </h3>
                                                 <div className="grid grid-cols-1 gap-3">
-                                                    {paramedics.map((paramedic) => (
-                                                        <motion.div
-                                                            key={paramedic.id}
-                                                            whileHover={{ scale: 1.02 }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            onClick={() => selectParamedic(paramedic)}
-                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                isSelected('paramedics', paramedic.id)
-                                                                    ? 'border-red-500 bg-red-50/10 dark:bg-red-900/10'
-                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-red-300 dark:hover:border-red-600'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{paramedic.name}</h4>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{paramedic.phone}</p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                        {paramedic.daily_rate}/{t('day')}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                        {paramedic.hourly_rate}/{t('hr')}
-                                                                    </p>
-                                                                </div>
+                                                    {paramedics.map((paramedic) => {
+                                                        const selected = isSelected('paramedics', paramedic.id);
+                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'paramedics' && req.id === paramedic.id);
+
+                                                        return (
+                                                            <div key={paramedic.id} className="space-y-2">
+                                                                <motion.div
+                                                                    whileHover={{ scale: 1.02 }}
+                                                                    whileTap={{ scale: 0.98 }}
+                                                                    onClick={() => selectParamedic(paramedic)}
+                                                                    className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                        selected
+                                                                            ? 'border-red-500 bg-red-50/10 dark:bg-red-900/10'
+                                                                            : 'border-gray-200/50 dark:border-slate-700/50 hover:border-red-300 dark:hover:border-red-600'
+                                                                    }`}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div>
+                                                                            <h4 className="font-semibold text-gray-900 dark:text-white">{paramedic.name}</h4>
+                                                                            <p className="text-sm text-gray-600 dark:text-gray-300">{paramedic.phone}</p>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                                ₪{paramedic.daily_rate}/{t('day')}
+                                                                            </p>
+                                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                                ₪{paramedic.hourly_rate}/{t('hr')}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </motion.div>
+
+                                                                {/* Rate Type Selection Buttons - Show when selected */}
+                                                                {selected && (
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, height: 0 }}
+                                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                                        exit={{ opacity: 0, height: 0 }}
+                                                                        className="grid grid-cols-4 gap-2 px-3"
+                                                                    >
+                                                                        {[
+                                                                            { value: 'hourly', label: t('hourly'), rate: paramedic.hourly_rate },
+                                                                            { value: 'daily', label: t('daily'), rate: paramedic.daily_rate },
+                                                                            { value: 'regional', label: t('regional'), rate: paramedic.daily_rate * 1.5 },
+                                                                            { value: 'overnight', label: t('overnight'), rate: paramedic.daily_rate * 2 },
+                                                                        ].map((rateOption) => (
+                                                                            <button
+                                                                                key={rateOption.value}
+                                                                                onClick={() =>
+                                                                                    updateRequirementRateType(
+                                                                                        selectedRequirements.findIndex((r) => r.type === 'paramedics' && r.id === paramedic.id),
+                                                                                        rateOption.value as any,
+                                                                                    )
+                                                                                }
+                                                                                className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                    selectedReq?.rate_type === rateOption.value
+                                                                                        ? 'bg-red-500 text-white shadow-lg'
+                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/20'
+                                                                                }`}
+                                                                            >
+                                                                                <div>{rateOption.label}</div>
+                                                                                <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
                                                             </div>
-                                                        </motion.div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </motion.div>
                                         )}
@@ -2448,34 +2533,75 @@ export default function TripPlannerDashboard() {
                                                     {t('guides')}
                                                 </h3>
                                                 <div className="grid grid-cols-1 gap-3">
-                                                    {guides.map((guide) => (
-                                                        <motion.div
-                                                            key={guide.id}
-                                                            whileHover={{ scale: 1.02 }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            onClick={() => selectGuide(guide)}
-                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                isSelected('guides', guide.id)
-                                                                    ? 'border-green-500 bg-green-50/10 dark:bg-green-900/10'
-                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-600'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{guide.name}</h4>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{guide.phone}</p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                        {guide.daily_rate}/{t('day')}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                        {guide.hourly_rate}/{t('hr')}
-                                                                    </p>
-                                                                </div>
+                                                    {guides.map((guide) => {
+                                                        const selected = isSelected('guides', guide.id);
+                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'guides' && req.id === guide.id);
+
+                                                        return (
+                                                            <div key={guide.id} className="space-y-2">
+                                                                <motion.div
+                                                                    whileHover={{ scale: 1.02 }}
+                                                                    whileTap={{ scale: 0.98 }}
+                                                                    onClick={() => selectGuide(guide)}
+                                                                    className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                        selected
+                                                                            ? 'border-green-500 bg-green-50/10 dark:bg-green-900/10'
+                                                                            : 'border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-600'
+                                                                    }`}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div>
+                                                                            <h4 className="font-semibold text-gray-900 dark:text-white">{guide.name}</h4>
+                                                                            <p className="text-sm text-gray-600 dark:text-gray-300">{guide.phone}</p>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                                ₪{guide.daily_rate}/{t('day')}
+                                                                            </p>
+                                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                                ₪{guide.hourly_rate}/{t('hr')}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </motion.div>
+
+                                                                {/* Rate Type Selection Buttons - Show when selected */}
+                                                                {selected && (
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, height: 0 }}
+                                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                                        exit={{ opacity: 0, height: 0 }}
+                                                                        className="grid grid-cols-4 gap-2 px-3"
+                                                                    >
+                                                                        {[
+                                                                            { value: 'hourly', label: t('hourly'), rate: guide.hourly_rate },
+                                                                            { value: 'daily', label: t('daily'), rate: guide.daily_rate },
+                                                                            { value: 'regional', label: t('regional'), rate: guide.daily_rate * 1.5 },
+                                                                            { value: 'overnight', label: t('overnight'), rate: guide.daily_rate * 2 },
+                                                                        ].map((rateOption) => (
+                                                                            <button
+                                                                                key={rateOption.value}
+                                                                                onClick={() =>
+                                                                                    updateRequirementRateType(
+                                                                                        selectedRequirements.findIndex((r) => r.type === 'guides' && r.id === guide.id),
+                                                                                        rateOption.value as any,
+                                                                                    )
+                                                                                }
+                                                                                className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                    selectedReq?.rate_type === rateOption.value
+                                                                                        ? 'bg-green-500 text-white shadow-lg'
+                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/20'
+                                                                                }`}
+                                                                            >
+                                                                                <div>{rateOption.label}</div>
+                                                                                <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
                                                             </div>
-                                                        </motion.div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </motion.div>
                                         )}
@@ -2495,34 +2621,75 @@ export default function TripPlannerDashboard() {
                                                     {t('security')}
                                                 </h3>
                                                 <div className="grid grid-cols-1 gap-3">
-                                                    {securityCompanies.map((security) => (
-                                                        <motion.div
-                                                            key={security.id}
-                                                            whileHover={{ scale: 1.02 }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            onClick={() => selectSecurity(security)}
-                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                isSelected('security_companies', security.id)
-                                                                    ? 'border-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10'
-                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-yellow-300 dark:hover:border-yellow-600'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{security.name}</h4>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{security.phone}</p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                        {security.daily_rate}/{t('day')}
-                                                                    </p>
-                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                        {security.hourly_rate}/{t('hr')}
-                                                                    </p>
-                                                                </div>
+                                                    {securityCompanies.map((security) => {
+                                                        const selected = isSelected('security_companies', security.id);
+                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'security_companies' && req.id === security.id);
+
+                                                        return (
+                                                            <div key={security.id} className="space-y-2">
+                                                                <motion.div
+                                                                    whileHover={{ scale: 1.02 }}
+                                                                    whileTap={{ scale: 0.98 }}
+                                                                    onClick={() => selectSecurity(security)}
+                                                                    className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                        selected
+                                                                            ? 'border-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10'
+                                                                            : 'border-gray-200/50 dark:border-slate-700/50 hover:border-yellow-300 dark:hover:border-yellow-600'
+                                                                    }`}
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div>
+                                                                            <h4 className="font-semibold text-gray-900 dark:text-white">{security.name}</h4>
+                                                                            <p className="text-sm text-gray-600 dark:text-gray-300">{security.phone}</p>
+                                                                        </div>
+                                                                        <div className="text-right">
+                                                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                                ₪{security.daily_rate}/{t('day')}
+                                                                            </p>
+                                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                                ₪{security.hourly_rate}/{t('hr')}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </motion.div>
+
+                                                                {/* Rate Type Selection Buttons - Show when selected */}
+                                                                {selected && (
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, height: 0 }}
+                                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                                        exit={{ opacity: 0, height: 0 }}
+                                                                        className="grid grid-cols-4 gap-2 px-3"
+                                                                    >
+                                                                        {[
+                                                                            { value: 'hourly', label: t('hourly'), rate: security.hourly_rate },
+                                                                            { value: 'daily', label: t('daily'), rate: security.daily_rate },
+                                                                            { value: 'regional', label: t('regional'), rate: security.daily_rate * 1.5 },
+                                                                            { value: 'overnight', label: t('overnight'), rate: security.daily_rate * 2 },
+                                                                        ].map((rateOption) => (
+                                                                            <button
+                                                                                key={rateOption.value}
+                                                                                onClick={() =>
+                                                                                    updateRequirementRateType(
+                                                                                        selectedRequirements.findIndex((r) => r.type === 'security_companies' && r.id === security.id),
+                                                                                        rateOption.value as any,
+                                                                                    )
+                                                                                }
+                                                                                className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                    selectedReq?.rate_type === rateOption.value
+                                                                                        ? 'bg-yellow-500 text-white shadow-lg'
+                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
+                                                                                }`}
+                                                                            >
+                                                                                <div>{rateOption.label}</div>
+                                                                                <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
                                                             </div>
-                                                        </motion.div>
-                                                    ))}
+                                                        );
+                                                    })}
                                                 </div>
                                             </motion.div>
                                         )}
@@ -2664,13 +2831,10 @@ export default function TripPlannerDashboard() {
                                                                         <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{requirement.name}</h4>
                                                                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${serviceInfo.color}`}>{serviceInfo.label}</span>
                                                                     </div>
-                                                                    <p className="text-xs text-gray-600 dark:text-gray-300">
-                                                                        {requirement.quantity}x{' '}
-                                                                        {requirement.rate_type === 'daily' ? t('daily') : requirement.rate_type === 'hourly' ? t('hourly') : t('fixed')}
-                                                                    </p>
+                                                                    <p className="text-xs text-gray-600 dark:text-gray-300 capitalize">{requirement.rate_type}</p>
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">{requirement.cost}</p>
+                                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">₪{requirement.cost}</p>
                                                                     <button onClick={() => removeRequirement(index)} className="text-red-500 hover:text-red-700 text-xs">
                                                                         {t('remove')}
                                                                     </button>
@@ -3001,26 +3165,6 @@ export default function TripPlannerDashboard() {
                                                 className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-purple-500/30 dark:focus:ring-purple-400/30 focus:border-purple-500 dark:focus:border-purple-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
                                             />
                                         </div>
-
-                                        {/* Number of Buses - Only show if destination requires travel company */}
-                                        {selectedForPlanning?.requirements?.includes('travel_companies') && (
-                                            <div className="space-y-2">
-                                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                                                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                                                        <IconCar className="h-4 w-4 text-white" />
-                                                    </div>
-                                                    {t('number_of_buses')} <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={numberOfBuses}
-                                                    onChange={(e) => setNumberOfBuses(parseInt(e.target.value) || 0)}
-                                                    placeholder="0"
-                                                    className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-green-500/30 dark:focus:ring-green-400/30 focus:border-green-500 dark:focus:border-green-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
-                                                />
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* Summary Info */}
@@ -3035,16 +3179,6 @@ export default function TripPlannerDashboard() {
                                                     <span className="text-gray-600 dark:text-gray-400">{t('total_participants')}:</span>
                                                     <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{(numberOfStudents || 0) + (numberOfCrew || 0)}</span>
                                                 </div>
-                                                {selectedForPlanning?.requirements?.includes('travel_companies') && (numberOfBuses || 0) > 0 && (
-                                                    <>
-                                                        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
-                                                        <div className="flex items-center gap-2">
-                                                            <IconCar className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                                            <span className="text-gray-600 dark:text-gray-400">{t('buses')}:</span>
-                                                            <span className="font-bold text-green-600 dark:text-green-400 text-lg">{numberOfBuses || 0}</span>
-                                                        </div>
-                                                    </>
-                                                )}
                                             </div>
                                         </motion.div>
                                     )}
@@ -3086,27 +3220,66 @@ export default function TripPlannerDashboard() {
                                                 {t('paramedics')}
                                             </h3>
                                             <div className="space-y-3">
-                                                {paramedics.map((paramedic) => (
-                                                    <div
-                                                        key={paramedic.id}
-                                                        className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
-                                                    >
-                                                        <div>
-                                                            <p className="font-medium text-gray-900 dark:text-white">{paramedic.name}</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                {paramedic.hourly_rate}₪/hr • {paramedic.daily_rate}₪/day
-                                                            </p>
+                                                {paramedics.map((paramedic) => {
+                                                    const selected = isSelected('paramedics', paramedic.id);
+                                                    const selectedReq = selectedRequirements.find((req) => req.type === 'paramedics' && req.id === paramedic.id);
+
+                                                    return (
+                                                        <div key={paramedic.id} className="space-y-2">
+                                                            <div className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                <div>
+                                                                    <p className="font-medium text-gray-900 dark:text-white">{paramedic.name}</p>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                                        {paramedic.hourly_rate}₪/hr • {paramedic.daily_rate}₪/day
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => selectParamedic(paramedic)}
+                                                                    className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                        selected ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                                                                    }`}
+                                                                >
+                                                                    {selected ? t('selected') : t('select')}
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Rate Selection Buttons */}
+                                                            {selected && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, height: 0 }}
+                                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                                    exit={{ opacity: 0, height: 0 }}
+                                                                    className="grid grid-cols-4 gap-2 px-3"
+                                                                >
+                                                                    {[
+                                                                        { value: 'hourly', label: t('hourly'), rate: paramedic.hourly_rate },
+                                                                        { value: 'daily', label: t('daily'), rate: paramedic.daily_rate },
+                                                                        { value: 'regional', label: t('regional'), rate: Math.round(paramedic.daily_rate * 1.5) },
+                                                                        { value: 'overnight', label: t('overnight'), rate: paramedic.daily_rate * 2 },
+                                                                    ].map((rateOption) => (
+                                                                        <button
+                                                                            key={rateOption.value}
+                                                                            onClick={() => {
+                                                                                const reqIndex = selectedRequirements.findIndex((r) => r.type === 'paramedics' && r.id === paramedic.id);
+                                                                                if (reqIndex !== -1) {
+                                                                                    updateRequirementRateType(reqIndex, rateOption.value as any);
+                                                                                }
+                                                                            }}
+                                                                            className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                selectedReq?.rate_type === rateOption.value
+                                                                                    ? 'bg-red-500 text-white shadow-md'
+                                                                                    : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
+                                                                            }`}
+                                                                        >
+                                                                            <div className="font-semibold">{rateOption.label}</div>
+                                                                            <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
+                                                                        </button>
+                                                                    ))}
+                                                                </motion.div>
+                                                            )}
                                                         </div>
-                                                        <button
-                                                            onClick={() => selectParamedic(paramedic)}
-                                                            className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                isSelected('paramedics', paramedic.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-                                                            }`}
-                                                        >
-                                                            {isSelected('paramedics', paramedic.id) ? t('selected') : t('select')}
-                                                        </button>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </motion.div>
                                     )}
@@ -3126,27 +3299,66 @@ export default function TripPlannerDashboard() {
                                                 {t('guides')}
                                             </h3>
                                             <div className="space-y-3">
-                                                {guides.map((guide) => (
-                                                    <div
-                                                        key={guide.id}
-                                                        className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
-                                                    >
-                                                        <div>
-                                                            <p className="font-medium text-gray-900 dark:text-white">{guide.name}</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                {guide.hourly_rate}/hr • {guide.daily_rate}/day
-                                                            </p>
+                                                {guides.map((guide) => {
+                                                    const selected = isSelected('guides', guide.id);
+                                                    const selectedReq = selectedRequirements.find((req) => req.type === 'guides' && req.id === guide.id);
+
+                                                    return (
+                                                        <div key={guide.id} className="space-y-2">
+                                                            <div className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                <div>
+                                                                    <p className="font-medium text-gray-900 dark:text-white">{guide.name}</p>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                                        {guide.hourly_rate}₪/hr • {guide.daily_rate}₪/day
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => selectGuide(guide)}
+                                                                    className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                        selected ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
+                                                                    }`}
+                                                                >
+                                                                    {selected ? t('selected') : t('select')}
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Rate Selection Buttons */}
+                                                            {selected && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, height: 0 }}
+                                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                                    exit={{ opacity: 0, height: 0 }}
+                                                                    className="grid grid-cols-4 gap-2 px-3"
+                                                                >
+                                                                    {[
+                                                                        { value: 'hourly', label: t('hourly'), rate: guide.hourly_rate },
+                                                                        { value: 'daily', label: t('daily'), rate: guide.daily_rate },
+                                                                        { value: 'regional', label: t('regional'), rate: Math.round(guide.daily_rate * 1.5) },
+                                                                        { value: 'overnight', label: t('overnight'), rate: guide.daily_rate * 2 },
+                                                                    ].map((rateOption) => (
+                                                                        <button
+                                                                            key={rateOption.value}
+                                                                            onClick={() => {
+                                                                                const reqIndex = selectedRequirements.findIndex((r) => r.type === 'guides' && r.id === guide.id);
+                                                                                if (reqIndex !== -1) {
+                                                                                    updateRequirementRateType(reqIndex, rateOption.value as any);
+                                                                                }
+                                                                            }}
+                                                                            className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                selectedReq?.rate_type === rateOption.value
+                                                                                    ? 'bg-green-500 text-white shadow-md'
+                                                                                    : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
+                                                                            }`}
+                                                                        >
+                                                                            <div className="font-semibold">{rateOption.label}</div>
+                                                                            <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
+                                                                        </button>
+                                                                    ))}
+                                                                </motion.div>
+                                                            )}
                                                         </div>
-                                                        <button
-                                                            onClick={() => selectGuide(guide)}
-                                                            className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                isSelected('guides', guide.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
-                                                            }`}
-                                                        >
-                                                            {isSelected('guides', guide.id) ? t('selected') : t('select')}
-                                                        </button>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </motion.div>
                                     )}
@@ -3166,27 +3378,66 @@ export default function TripPlannerDashboard() {
                                                 {t('security')}
                                             </h3>
                                             <div className="space-y-3">
-                                                {securityCompanies.map((security) => (
-                                                    <div
-                                                        key={security.id}
-                                                        className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
-                                                    >
-                                                        <div>
-                                                            <p className="font-medium text-gray-900 dark:text-white">{security.name}</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                {security.hourly_rate}₪/hr • {security.daily_rate}₪/day
-                                                            </p>
+                                                {securityCompanies.map((security) => {
+                                                    const selected = isSelected('security_companies', security.id);
+                                                    const selectedReq = selectedRequirements.find((req) => req.type === 'security_companies' && req.id === security.id);
+
+                                                    return (
+                                                        <div key={security.id} className="space-y-2">
+                                                            <div className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                <div>
+                                                                    <p className="font-medium text-gray-900 dark:text-white">{security.name}</p>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                                        {security.hourly_rate}₪/hr • {security.daily_rate}₪/day
+                                                                    </p>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => selectSecurity(security)}
+                                                                    className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                        selected ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'
+                                                                    }`}
+                                                                >
+                                                                    {selected ? t('selected') : t('select')}
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Rate Selection Buttons */}
+                                                            {selected && (
+                                                                <motion.div
+                                                                    initial={{ opacity: 0, height: 0 }}
+                                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                                    exit={{ opacity: 0, height: 0 }}
+                                                                    className="grid grid-cols-4 gap-2 px-3"
+                                                                >
+                                                                    {[
+                                                                        { value: 'hourly', label: t('hourly'), rate: security.hourly_rate },
+                                                                        { value: 'daily', label: t('daily'), rate: security.daily_rate },
+                                                                        { value: 'regional', label: t('regional'), rate: Math.round(security.daily_rate * 1.5) },
+                                                                        { value: 'overnight', label: t('overnight'), rate: security.daily_rate * 2 },
+                                                                    ].map((rateOption) => (
+                                                                        <button
+                                                                            key={rateOption.value}
+                                                                            onClick={() => {
+                                                                                const reqIndex = selectedRequirements.findIndex((r) => r.type === 'security_companies' && r.id === security.id);
+                                                                                if (reqIndex !== -1) {
+                                                                                    updateRequirementRateType(reqIndex, rateOption.value as any);
+                                                                                }
+                                                                            }}
+                                                                            className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                selectedReq?.rate_type === rateOption.value
+                                                                                    ? 'bg-yellow-500 text-white shadow-md'
+                                                                                    : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
+                                                                            }`}
+                                                                        >
+                                                                            <div className="font-semibold">{rateOption.label}</div>
+                                                                            <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
+                                                                        </button>
+                                                                    ))}
+                                                                </motion.div>
+                                                            )}
                                                         </div>
-                                                        <button
-                                                            onClick={() => selectSecurity(security)}
-                                                            className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                isSelected('security_companies', security.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'
-                                                            }`}
-                                                        >
-                                                            {isSelected('security_companies', security.id) ? t('selected') : t('select')}
-                                                        </button>
-                                                    </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </motion.div>
                                     )}
@@ -3325,7 +3576,7 @@ export default function TripPlannerDashboard() {
                                                                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${serviceInfo.color}`}>{serviceInfo.label}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-2">
-                                                                    <span className="font-semibold text-gray-900 dark:text-white">{(req.cost * req.quantity * (req.days || 1)).toFixed(2)}</span>
+                                                                    <span className="font-semibold text-gray-900 dark:text-white">₪{req.cost}</span>
                                                                     <button
                                                                         onClick={() => removeRequirement(idx)}
                                                                         className="text-red-400 hover:text-red-600 transition-colors duration-200 p-1"
@@ -3342,6 +3593,7 @@ export default function TripPlannerDashboard() {
                                                                     </button>
                                                                 </div>
                                                             </div>
+                                                            <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{req.rate_type}</p>
                                                         </div>
                                                     );
                                                 })}

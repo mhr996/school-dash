@@ -36,7 +36,7 @@ type Destination = {
     properties_details: Array<{ value: string; icon: string | null }> | null;
     suitable_for_details: Array<{ value: string }> | null;
     requirements: string[] | null;
-    pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
+    pricing: { student?: number; crew?: number } | null;
 };
 
 type Zone = {
@@ -420,44 +420,24 @@ const DestinationDetailsModal: React.FC<DestinationDetailsModalProps> = ({ desti
                                             </h3>
                                             <div className="bg-gradient-to-r from-emerald-100/40 to-blue-100/40 dark:from-emerald-800/30 dark:to-blue-800/30 backdrop-blur-md rounded-xl p-6 border border-emerald-200/50 dark:border-emerald-700/40 shadow-lg">
                                                 <div className="grid grid-cols-2 gap-4 mb-4">
-                                                    {destination.pricing.child && (
+                                                    {destination.pricing.student && (
                                                         <motion.div
                                                             className="text-center p-3 bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm rounded-lg border border-white/50 dark:border-slate-600/50"
                                                             whileHover={{ scale: 1.05 }}
                                                         >
                                                             <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-2"></div>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('child_price')}</p>
-                                                            <p className="text-xl font-bold text-green-600 dark:text-green-400">${destination.pricing.child}</p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('pricing_student')}</p>
+                                                            <p className="text-xl font-bold text-green-600 dark:text-green-400">₪{destination.pricing.student}</p>
                                                         </motion.div>
                                                     )}
-                                                    {destination.pricing.teen && (
+                                                    {destination.pricing.crew && (
                                                         <motion.div
                                                             className="text-center p-3 bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm rounded-lg border border-white/50 dark:border-slate-600/50"
                                                             whileHover={{ scale: 1.05 }}
                                                         >
                                                             <div className="w-4 h-4 bg-blue-500 rounded-full mx-auto mb-2"></div>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('teen_price')}</p>
-                                                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">${destination.pricing.teen}</p>
-                                                        </motion.div>
-                                                    )}
-                                                    {destination.pricing.adult && (
-                                                        <motion.div
-                                                            className="text-center p-3 bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm rounded-lg border border-white/50 dark:border-slate-600/50"
-                                                            whileHover={{ scale: 1.05 }}
-                                                        >
-                                                            <div className="w-4 h-4 bg-purple-500 rounded-full mx-auto mb-2"></div>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('adult_price')}</p>
-                                                            <p className="text-xl font-bold text-purple-600 dark:text-purple-400">${destination.pricing.adult}</p>
-                                                        </motion.div>
-                                                    )}
-                                                    {destination.pricing.guide && (
-                                                        <motion.div
-                                                            className="text-center p-3 bg-white/40 dark:bg-slate-700/40 backdrop-blur-sm rounded-lg border border-white/50 dark:border-slate-600/50"
-                                                            whileHover={{ scale: 1.05 }}
-                                                        >
-                                                            <div className="w-4 h-4 bg-orange-500 rounded-full mx-auto mb-2"></div>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('guide_price')}</p>
-                                                            <p className="text-xl font-bold text-orange-600 dark:text-orange-400">${destination.pricing.guide}</p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400">{t('pricing_crew')}</p>
+                                                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">₪{destination.pricing.crew}</p>
                                                         </motion.div>
                                                     )}
                                                 </div>
@@ -468,7 +448,7 @@ const DestinationDetailsModal: React.FC<DestinationDetailsModalProps> = ({ desti
                                                     whileHover={{ scale: 1.02 }}
                                                 >
                                                     <p className="text-sm font-medium text-white/90 mb-1">{t('trip_starting_from')}</p>
-                                                    <p className="text-2xl font-bold text-white">${Math.min(...Object.values(destination.pricing).filter((price) => price != null))}</p>
+                                                    <p className="text-2xl font-bold text-white">₪{Math.min(...Object.values(destination.pricing).filter((price) => price != null))}</p>
                                                 </motion.div>
                                             </div>
                                         </motion.div>

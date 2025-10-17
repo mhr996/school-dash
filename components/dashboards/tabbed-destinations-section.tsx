@@ -24,7 +24,7 @@ type Destination = {
     properties_details: Array<{ value: string; icon: string | null }> | null;
     suitable_for_details: Array<{ value: string }> | null;
     requirements: string[] | null;
-    pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
+    pricing: { student?: number; crew?: number } | null;
     created_at?: string | null;
     updated_at?: string | null;
 };
@@ -326,13 +326,16 @@ export default function TabbedDestinationsSection({
                                         {destination.pricing && (
                                             <div className="flex flex-col">
                                                 <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm leading-none">
-                                                    {destination.pricing?.child ? `₪${destination.pricing.child}` : t('contact_for_price')}
+                                                    {destination.pricing?.student ? `₪${destination.pricing.student}` : t('contact_for_price')}
                                                 </div>
-                                                {activeTab === 'best_deals' && destination.pricing?.adult && destination.pricing?.child && destination.pricing.adult !== destination.pricing.child && (
-                                                    <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
-                                                        {Math.round(((destination.pricing.adult - destination.pricing.child) / destination.pricing.adult) * 100)}% {t('off')}
-                                                    </div>
-                                                )}
+                                                {activeTab === 'best_deals' &&
+                                                    destination.pricing?.crew &&
+                                                    destination.pricing?.student &&
+                                                    destination.pricing.crew !== destination.pricing.student && (
+                                                        <div className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">
+                                                            {Math.round(((destination.pricing.crew - destination.pricing.student) / destination.pricing.crew) * 100)}% {t('off')}
+                                                        </div>
+                                                    )}
                                             </div>
                                         )}
                                         <motion.button

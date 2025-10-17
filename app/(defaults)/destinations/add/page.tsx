@@ -15,7 +15,7 @@ type Zone = { id: string; name: string; is_active: boolean };
 
 type KV = { label: string; value: string };
 
-type Pricing = { child?: number; teen?: number; adult?: number; guide?: number };
+type Pricing = { student?: number; crew?: number };
 
 type DestinationProperty = {
     id: string;
@@ -401,10 +401,8 @@ export default function AddDestinationPage() {
                 description: description.trim() || null,
                 requirements: requirements,
                 pricing: {
-                    child: pricing.child || 0,
-                    teen: pricing.teen || 0,
-                    adult: pricing.adult || 0,
-                    guide: pricing.guide || 0,
+                    student: pricing.student || 0,
+                    crew: pricing.crew || 0,
                 },
             };
 
@@ -697,42 +695,29 @@ export default function AddDestinationPage() {
 
     const renderPricing = () => (
         <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-2">{t('pricing_child')}</label>
+                    <label className="block text-sm font-medium mb-2">{t('pricing_student')}</label>
                     <input
                         type="number"
                         min="0"
                         step="0.01"
                         className="form-input"
-                        value={pricing.child ?? ''}
-                        onChange={(e) => setPricing((p) => ({ ...p, child: parseFloat(e.target.value) || 0 }))}
+                        value={pricing.student ?? ''}
+                        onChange={(e) => setPricing((p) => ({ ...p, student: parseFloat(e.target.value) || 0 }))}
+                        placeholder="Price per student"
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-2">{t('pricing_teen')}</label>
-                    <input type="number" min="0" step="0.01" className="form-input" value={pricing.teen ?? ''} onChange={(e) => setPricing((p) => ({ ...p, teen: parseFloat(e.target.value) || 0 }))} />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium mb-2">{t('pricing_adult')}</label>
+                    <label className="block text-sm font-medium mb-2">{t('pricing_crew')}</label>
                     <input
                         type="number"
                         min="0"
                         step="0.01"
                         className="form-input"
-                        value={pricing.adult ?? ''}
-                        onChange={(e) => setPricing((p) => ({ ...p, adult: parseFloat(e.target.value) || 0 }))}
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium mb-2">{t('pricing_guide')}</label>
-                    <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className="form-input"
-                        value={pricing.guide ?? ''}
-                        onChange={(e) => setPricing((p) => ({ ...p, guide: parseFloat(e.target.value) || 0 }))}
+                        value={pricing.crew ?? ''}
+                        onChange={(e) => setPricing((p) => ({ ...p, crew: parseFloat(e.target.value) || 0 }))}
+                        placeholder="Price per crew member"
                     />
                 </div>
             </div>

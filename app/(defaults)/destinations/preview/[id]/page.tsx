@@ -23,7 +23,7 @@ type Destination = {
     thumbnail_path: string | null;
     gallery_paths: string[] | null;
     requirements: string[] | { label: string; value: string }[] | null; // Support both old and new format
-    pricing: { child?: number; teen?: number; adult?: number; guide?: number } | null;
+    pricing: { student?: number; crew?: number } | null;
 };
 
 type DestinationProperty = {
@@ -352,17 +352,15 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                             </div>
                             <div className="space-y-3">
                                 {[
-                                    { key: 'child', label: t('pricing_child'), value: pricing.child, color: 'from-blue-500 to-cyan-500' },
-                                    { key: 'teen', label: t('pricing_teen'), value: pricing.teen, color: 'from-green-500 to-emerald-500' },
-                                    { key: 'adult', label: t('pricing_adult'), value: pricing.adult, color: 'from-orange-500 to-red-500' },
-                                    { key: 'guide', label: t('pricing_guide'), value: pricing.guide, color: 'from-purple-500 to-pink-500' },
+                                    { key: 'student', label: t('pricing_student'), value: pricing.student, color: 'from-blue-500 to-cyan-500' },
+                                    { key: 'crew', label: t('pricing_crew'), value: pricing.crew, color: 'from-purple-500 to-pink-500' },
                                 ].map((price) => (
                                     <div key={price.key} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${price.color}`}></div>
                                             <span className="font-medium text-gray-700 dark:text-gray-300">{price.label}</span>
                                         </div>
-                                        <span className="font-bold text-gray-900 dark:text-white">{price.value ? `$${price.value}` : '-'}</span>
+                                        <span className="font-bold text-gray-900 dark:text-white">{price.value ? `₪${price.value}` : '-'}</span>
                                     </div>
                                 ))}
                             </div>
