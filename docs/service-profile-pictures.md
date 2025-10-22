@@ -35,10 +35,10 @@ services/
 ## Utilities API (utils/service-profile-picture.ts)
 
 - `uploadServiceProfilePicture(serviceType, serviceId, file)`
-  - Validates file (type: jpg/png/webp/gif, size <= 5MB)
-  - Deletes old file if present
-  - Uploads to `services/{type}/{id}/profile.{ext}`
-  - Updates `{table}.profile_picture_path`
+    - Validates file (type: jpg/png/webp/gif, size <= 5MB)
+    - Deletes old file if present
+    - Uploads to `services/{type}/{id}/profile.{ext}`
+    - Updates `{table}.profile_picture_path`
 - `removeServiceProfilePicture(serviceType, serviceId)` – delete picture and null DB field
 - `deleteServiceFolder(serviceType, serviceId)` – remove entire folder on hard delete
 - `getServiceProfilePictureUrlWithFallback(path, serviceType)` – returns public URL or a type-specific fallback icon
@@ -66,23 +66,19 @@ Edit/Add page:
 
 ```tsx
 <ServiceProfilePictureUpload
-  serviceType="guides"
-  serviceId={id}
-  currentPicturePath={entity.profile_picture_path}
-  onUploadSuccess={(path) => setEntity(prev => ({ ...prev, profile_picture_path: path }))}
-  size="lg"
-  label={t('profile_picture')}
+    serviceType="guides"
+    serviceId={id}
+    currentPicturePath={entity.profile_picture_path}
+    onUploadSuccess={(path) => setEntity((prev) => ({ ...prev, profile_picture_path: path }))}
+    size="lg"
+    label={t('profile_picture')}
 />
 ```
 
 List/Preview:
 
 ```tsx
-<img
-  src={getServiceProfilePictureUrlWithFallback(item.profile_picture_path, 'guides')}
-  alt={item.name}
-  className="w-16 h-16 rounded-full object-cover"
-/> 
+<img src={getServiceProfilePictureUrlWithFallback(item.profile_picture_path, 'guides')} alt={item.name} className="w-16 h-16 rounded-full object-cover" />
 ```
 
 Hard delete cleanup:

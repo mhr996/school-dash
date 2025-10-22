@@ -46,10 +46,10 @@ Use the archived PDFs docs for step-by-step setup and troubleshooting.
 
 ## Quick start checklist
 
-1) Identify booking type and compose pricing inputs
-2) Use pricing utilities to compute totals and line items
-3) Render UI and (optionally) generate PDF summary
-4) Persist references using the agreed reference format
+1. Identify booking type and compose pricing inputs
+2. Use pricing utilities to compute totals and line items
+3. Render UI and (optionally) generate PDF summary
+4. Persist references using the agreed reference format
 
 ## Troubleshooting
 

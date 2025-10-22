@@ -26,21 +26,21 @@ URL params:
 
 Category → booking mapping:
 
-| Category      | bookingType             | serviceType                         |
-|---------------|-------------------------|-------------------------------------|
-| Destinations  | full_trip               | —                                   |
-| Guides        | guides_only             | guides                              |
-| Paramedics    | paramedics_only         | paramedics                          |
-| Security      | security_only           | security_companies                  |
-| Entertainment | entertainment           | external_entertainment_companies    |
-| Travel        | transportation_only     | travel_companies                    |
-| Education     | education_only          | education_programs                  |
+| Category      | bookingType         | serviceType                      |
+| ------------- | ------------------- | -------------------------------- |
+| Destinations  | full_trip           | —                                |
+| Guides        | guides_only         | guides                           |
+| Paramedics    | paramedics_only     | paramedics                       |
+| Security      | security_only       | security_companies               |
+| Entertainment | entertainment       | external_entertainment_companies |
+| Travel        | transportation_only | travel_companies                 |
+| Education     | education_only      | education_programs               |
 
 Flow:
 
-1) Explore → Build URL → Navigate to `/`
-2) Home detects params → switches to Trip Planner tab
-3) Trip Planner reads params → loads data → pre-selects item → switches to service booking view → clears URL
+1. Explore → Build URL → Navigate to `/`
+2. Home detects params → switches to Trip Planner tab
+3. Trip Planner reads params → loads data → pre-selects item → switches to service booking view → clears URL
 
 Duplicate prevention: a `useRef` guard ensures URL params are processed once and form renders only once.
 
