@@ -15,6 +15,8 @@ import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
 import { calculateServiceProviderBalance, ServiceProviderBalance } from '@/utils/service-balance-manager';
+import { getServiceProfilePictureUrlWithFallback, deleteServiceFolder } from '@/utils/service-profile-picture';
+import Image from 'next/image';
 
 interface SecurityCompany {
     id: string;
@@ -30,6 +32,7 @@ interface SecurityCompany {
     status?: string;
     notes?: string;
     balance?: number;
+    profile_picture_path?: string | null;
 }
 
 const SecurityCompaniesList = () => {
@@ -140,6 +143,9 @@ const SecurityCompaniesList = () => {
 
             if (error) throw error;
 
+            // Delete profile picture folder from storage
+            await deleteServiceFolder('security_companies', company.id);
+
             // If there's a linked user account, delete it from public.users and auth.users
             if (companyData?.user_id) {
                 // Get the auth_user_id from public.users
@@ -168,6 +174,9 @@ const SecurityCompaniesList = () => {
             const { error } = await supabase.from('security_companies').delete().in('id', ids);
 
             if (error) throw error;
+
+            // Delete profile picture folders from storage for all deleted companies
+            await Promise.all(ids.map((id) => deleteServiceFolder('security_companies', id)));
 
             setItems((prevItems) => prevItems.filter((item) => !ids.includes(item.id)));
             setSelectedRecords([]);
@@ -238,6 +247,21 @@ const SecurityCompaniesList = () => {
                     className={`${loading ? 'filter blur-sm pointer-events-none' : 'table-hover whitespace-nowrap'} rtl-table-headers`}
                     records={records}
                     columns={[
+                        {
+                            accessor: 'profile_picture',
+                            title: t('picture'),
+                            render: ({ profile_picture_path, name }) => (
+                                <div className="flex items-center justify-center">
+                                    <Image
+                                        src={getServiceProfilePictureUrlWithFallback(profile_picture_path, 'security_companies')}
+                                        alt={name}
+                                        width={40}
+                                        height={40}
+                                        className="rounded-full object-cover"
+                                    />
+                                </div>
+                            ),
+                        },
                         {
                             accessor: 'name',
                             title: t('security_company_name'),

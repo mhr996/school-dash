@@ -17,6 +17,7 @@ import IconUser from '@/components/icon/icon-user';
 import IconInfoCircle from '@/components/icon/icon-info-circle';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect from '@/components/elements/custom-select';
+import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePictureUpload';
 
 import { getTranslation } from '@/i18n';
 
@@ -50,6 +51,7 @@ const EditSecurityCompany = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState(0);
+    const [profilePicturePath, setProfilePicturePath] = useState<string | null>(null);
     const [formData, setFormData] = useState<SecurityCompanyForm>({
         name: '',
         tax_number: '',
@@ -109,6 +111,7 @@ const EditSecurityCompany = () => {
                         regional_rate: data.regional_rate || 600,
                         overnight_rate: data.overnight_rate || 500,
                     });
+                    setProfilePicturePath(data.profile_picture_path || null);
                 }
             } catch (error) {
                 console.error('Error fetching security company:', error);
@@ -272,6 +275,30 @@ const EditSecurityCompany = () => {
                         {/* Tab 0: Basic Information */}
                         {activeTab === 0 && (
                             <div className="space-y-6">
+                                {/* Profile Picture - At the top */}
+                                <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                                    <div className="flex justify-center">
+                                        <ServiceProfilePictureUpload
+                                            serviceType="security_companies"
+                                            serviceId={companyId}
+                                            currentPicturePath={profilePicturePath}
+                                            onUploadSuccess={(path) => {
+                                                setProfilePicturePath(path);
+                                                setAlert({ message: t('profile_picture_updated'), type: 'success' });
+                                            }}
+                                            onUploadError={(error) => {
+                                                setAlert({ message: error, type: 'danger' });
+                                            }}
+                                            onRemoveSuccess={() => {
+                                                setProfilePicturePath(null);
+                                                setAlert({ message: t('profile_picture_removed'), type: 'success' });
+                                            }}
+                                            size="lg"
+                                            label={t('profile_picture')}
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Company Name */}
                                     <div className="space-y-2">

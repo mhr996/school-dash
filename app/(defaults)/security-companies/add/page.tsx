@@ -19,6 +19,8 @@ import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect from '@/components/elements/custom-select';
 import { getTranslation } from '@/i18n';
+import ServiceProfileUpload from '@/components/image-upload/service-profile-upload';
+import { uploadServiceProfilePicture } from '@/utils/service-profile-upload';
 
 interface SelectOption {
     value: string;
@@ -51,6 +53,8 @@ const AddSecurityCompany = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [roles, setRoles] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState(0);
+    const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+    const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
     const [formData, setFormData] = useState<SecurityCompanyForm>({
         name: '',
         tax_number: '',
@@ -181,15 +185,32 @@ const AddSecurityCompany = () => {
             // Prepare security company data (excluding user account fields) and link to user
             const { user_email, user_password, ...securityCompanyData } = formData;
 
-            const { error } = await supabase.from('security_companies').insert([
-                {
-                    ...securityCompanyData,
-                    user_id: userData.id, // Link to public.users record
-                },
-            ]);
+            const { data, error } = await supabase
+                .from('security_companies')
+                .insert([
+                    {
+                        ...securityCompanyData,
+                        user_id: userData.id, // Link to public.users record
+                    },
+                ])
+                .select()
+                .single();
 
             if (error) {
                 throw error;
+            }
+
+            // Upload profile picture if one was selected
+            if (profilePictureFile && data) {
+                const uploadResult = await uploadServiceProfilePicture(profilePictureFile, 'security_companies', data.id);
+
+                if ('error' in uploadResult) {
+                    console.error('Error uploading profile picture:', uploadResult.error);
+                    // Don't fail the whole operation, just log the error
+                } else {
+                    // Update security company with profile picture path
+                    await supabase.from('security_companies').update({ profile_picture_path: uploadResult.path }).eq('id', data.id);
+                }
             }
 
             setAlert({ message: t('security_company_added_successfully'), type: 'success' });
@@ -349,6 +370,29 @@ const AddSecurityCompany = () => {
                                         {t('notes')}
                                     </label>
                                     <textarea id="notes" name="notes" value={formData.notes} onChange={handleInputChange} className="form-textarea" placeholder={t('enter_notes')} rows={4} />
+                                </div>
+
+                                {/* Profile Picture */}
+                                <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                                    <div className="flex justify-center">
+                                        <ServiceProfileUpload
+                                            serviceType="security_companies"
+                                            currentUrl={profilePicturePreview}
+                                            onUploadComplete={(url, fileName) => {
+                                                // For add page, url is base64 preview
+                                                setProfilePicturePreview(url);
+                                                // Extract file from the input
+                                                const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                                                if (fileInput?.files?.[0]) {
+                                                    setProfilePictureFile(fileInput.files[0]);
+                                                }
+                                            }}
+                                            onError={(error) => {
+                                                setAlert({ message: error, type: 'danger' });
+                                            }}
+                                            size="lg"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         )}

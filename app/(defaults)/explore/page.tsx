@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
 import { getPublicUrlFromPath } from '@/utils/file-upload';
@@ -47,6 +48,7 @@ interface ServiceItem {
 
 export default function ExplorePage() {
     const { t } = getTranslation();
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<ServiceCategory>('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -314,6 +316,42 @@ export default function ExplorePage() {
         return iconMap[category] || null;
     };
 
+    const handleBookNow = (service: ServiceItem, e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevent opening the modal
+
+        // Map service category to booking type and service type
+        const categoryToBookingType: { [key: string]: string } = {
+            destinations: 'full_trip',
+            guides: 'guides_only',
+            paramedics: 'paramedics_only',
+            security: 'security_only',
+            entertainment: 'entertainment',
+            travel: 'transportation_only',
+            education: 'education_only',
+        };
+
+        const categoryToServiceType: { [key: string]: string } = {
+            guides: 'guides',
+            paramedics: 'paramedics',
+            security: 'security_companies',
+            entertainment: 'external_entertainment_companies',
+            travel: 'travel_companies',
+            education: 'education_programs',
+        };
+
+        const bookingType = categoryToBookingType[service.category] || 'full_trip';
+        const serviceType = categoryToServiceType[service.category];
+
+        // Build URL with parameters
+        const params = new URLSearchParams({
+            bookingType,
+            ...(service.category === 'destinations' && { destinationId: service.id }),
+            ...(serviceType && { serviceType, serviceId: service.id }),
+        });
+
+        router.push(`/?${params.toString()}`);
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-blue-900/20 dark:to-indigo-900/20" dir={t('direction') || 'rtl'}>
             {/* Header */}
@@ -340,43 +378,82 @@ export default function ExplorePage() {
                     </div>
                 </motion.div>
 
+                {/* Categories Filter - Horizontal */}
+                <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="mb-8">
+                    <div className="bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-slate-700">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <IconStar className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('categories')}</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{t('select_category_to_filter')}</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-4">
+                            {categories.map((category, index) => {
+                                const Icon = category.icon;
+                                const count = getCategoryCount(category.id);
+                                const isSelected = selectedCategory === category.id;
+                                return (
+                                    <motion.button
+                                        key={category.id}
+                                        onClick={() => setSelectedCategory(category.id)}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.05 }}
+                                        whileHover={{ y: -5, scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        className={`relative flex flex-col items-center justify-center px-4 py-5 rounded-2xl transition-all duration-300 group overflow-hidden ${
+                                            isSelected
+                                                ? `bg-gradient-to-br ${category.color} text-white shadow-2xl ring-4 ring-white/50 dark:ring-slate-900/50`
+                                                : 'bg-white dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 shadow-md hover:shadow-xl border border-gray-100 dark:border-slate-600'
+                                        }`}
+                                    >
+                                        {/* Animated Background */}
+                                        {!isSelected && (
+                                            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-blue-50/0 to-purple-50/0 group-hover:via-blue-50/50 group-hover:to-purple-50/50 dark:group-hover:via-blue-900/20 dark:group-hover:to-purple-900/20 transition-all duration-300"></div>
+                                        )}
+
+                                        {/* Icon with animated glow */}
+                                        <div className={`relative mb-3 ${isSelected ? 'animate-pulse' : ''}`}>
+                                            <div className={`absolute inset-0 blur-xl opacity-50 ${isSelected ? 'bg-white' : 'bg-transparent'}`}></div>
+                                            <Icon className={`relative w-8 h-8 transition-transform duration-300 ${isSelected ? 'scale-110' : 'group-hover:scale-110'}`} />
+                                        </div>
+
+                                        {/* Label */}
+                                        <span className={`relative font-semibold text-xs text-center leading-tight mb-2 ${isSelected ? 'text-white' : ''}`}>{category.label}</span>
+
+                                        {/* Count Badge */}
+                                        <span
+                                            className={`relative px-3 py-1 rounded-full text-xs font-bold transition-all duration-300 ${
+                                                isSelected
+                                                    ? 'bg-white/30 text-white backdrop-blur-sm shadow-lg'
+                                                    : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md group-hover:shadow-lg'
+                                            }`}
+                                        >
+                                            {count}
+                                        </span>
+
+                                        {/* Selected Indicator */}
+                                        {isSelected && (
+                                            <motion.div
+                                                layoutId="selectedCategory"
+                                                className="absolute inset-0 border-2 border-white/50 rounded-2xl pointer-events-none"
+                                                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                                            />
+                                        )}
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </motion.div>
+
                 {/* Main Layout: Sidebar + Content */}
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Sidebar Filters */}
-                    <motion.aside initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="w-full lg:w-80 space-y-6">
-                        {/* Category Filter */}
-                        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <IconStar className="w-5 h-5" />
-                                {t('categories')}
-                            </h3>
-                            <div className="space-y-2">
-                                {categories.map((category) => {
-                                    const Icon = category.icon;
-                                    const count = getCategoryCount(category.id);
-                                    return (
-                                        <button
-                                            key={category.id}
-                                            onClick={() => setSelectedCategory(category.id)}
-                                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 ${
-                                                selectedCategory === category.id
-                                                    ? `bg-gradient-to-r ${category.color} text-white shadow-md`
-                                                    : 'bg-gray-50 dark:bg-slate-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Icon className="w-5 h-5" />
-                                                <span className="font-medium">{category.label}</span>
-                                            </div>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${selectedCategory === category.id ? 'bg-white/20' : 'bg-white dark:bg-slate-800'}`}>
-                                                {count}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
+                    <motion.aside initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="w-full lg:w-80 space-y-6">
                         {/* Price Range Filter */}
                         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -590,8 +667,7 @@ export default function ExplorePage() {
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.05 }}
                                             whileHover={{ y: -10, scale: 1.02 }}
-                                            onClick={() => openServiceDetails(service)}
-                                            className="group cursor-pointer bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 dark:border-slate-700"
+                                            className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 dark:border-slate-700"
                                         >
                                             {/* Service Image or Icon */}
                                             <div className={`relative h-48 bg-gradient-to-br ${colorClass} flex items-center justify-center overflow-hidden`}>
@@ -639,9 +715,20 @@ export default function ExplorePage() {
                                                     )}
                                                 </div>
 
-                                                <button className="mt-4 w-full py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform group-hover:scale-105">
-                                                    {t('view_details')}
-                                                </button>
+                                                <div className="flex flex-col gap-2 mt-4">
+                                                    <button
+                                                        onClick={() => openServiceDetails(service)}
+                                                        className="w-full py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform group-hover:scale-105"
+                                                    >
+                                                        {t('view_details')}
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => handleBookNow(service, e)}
+                                                        className="w-full py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform group-hover:scale-105"
+                                                    >
+                                                        {t('book_now')}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </motion.div>
                                     );

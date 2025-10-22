@@ -1,5 +1,6 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import { getCurrentUserWithRole } from '@/lib/auth';
 import TripPlannerDashboard from '@/components/dashboards/trip-planner-dashboard';
@@ -7,9 +8,20 @@ import AdminDashboard from '@/components/dashboards/admin-dashboard';
 
 const HomePage = () => {
     const { t } = getTranslation();
+    const searchParams = useSearchParams();
     const [dashboardView, setDashboardView] = useState<'admin' | 'trip-planner'>('admin');
     const [isAdminUser, setIsAdminUser] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    // Check for URL parameters and switch to trip planner view if booking parameters are present
+    useEffect(() => {
+        if (searchParams) {
+            const bookingType = searchParams.get('bookingType');
+            if (bookingType) {
+                setDashboardView('trip-planner');
+            }
+        }
+    }, [searchParams]);
 
     // Check if user is admin
     useEffect(() => {

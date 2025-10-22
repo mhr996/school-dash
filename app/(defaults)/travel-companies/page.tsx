@@ -15,6 +15,8 @@ import ConfirmModal from '@/components/modals/confirm-modal';
 import { getTranslation } from '@/i18n';
 import { useRouter } from 'next/navigation';
 import { calculateServiceProviderBalance, ServiceProviderBalance } from '@/utils/service-balance-manager';
+import { getServiceProfilePictureUrlWithFallback, deleteServiceFolder } from '@/utils/service-profile-picture';
+import Image from 'next/image';
 
 interface TravelCompany {
     id: string;
@@ -34,6 +36,7 @@ interface TravelCompany {
     status: string;
     notes?: string;
     balance?: number;
+    profile_picture_path?: string | null;
 }
 
 const TravelCompaniesList = () => {
@@ -141,6 +144,9 @@ const TravelCompaniesList = () => {
 
             if (error) throw error;
 
+            // Delete profile picture folder from storage
+            await deleteServiceFolder('travel_companies', id);
+
             // If there's a linked user account, delete it from public.users and auth.users
             if (companyData?.user_id) {
                 // Get the auth_user_id from public.users
@@ -184,6 +190,9 @@ const TravelCompaniesList = () => {
             const { error } = await supabase.from('travel_companies').delete().in('id', idsToDelete);
 
             if (error) throw error;
+
+            // Delete profile picture folders from storage for all deleted companies
+            await Promise.all(idsToDelete.map((id) => deleteServiceFolder('travel_companies', id)));
 
             setAlert({
                 message: t('travel_companies_deleted_successfully') || 'Travel companies deleted successfully',
@@ -248,6 +257,21 @@ const TravelCompaniesList = () => {
                         className="table-hover whitespace-nowrap rtl-table-headers"
                         records={records}
                         columns={[
+                            {
+                                accessor: 'profile_picture',
+                                title: t('picture'),
+                                render: ({ profile_picture_path, name }) => (
+                                    <div className="flex items-center justify-center">
+                                        <Image
+                                            src={getServiceProfilePictureUrlWithFallback(profile_picture_path, 'travel_companies')}
+                                            alt={name}
+                                            width={40}
+                                            height={40}
+                                            className="rounded-full object-cover"
+                                        />
+                                    </div>
+                                ),
+                            },
                             {
                                 accessor: 'name',
                                 title: t('travel_company_name'),

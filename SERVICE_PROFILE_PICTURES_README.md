@@ -1,177 +1,385 @@
-# Service Provider Profile Pictures Implementation
+# Service Profile Pictures - Unified Implementation
 
 ## Overview
 
-This document describes the implementation of profile picture functionality for guides and paramedics service providers.
+This document describes the **unified approach** for managing profile pictures across **ALL service types** in the application. Every service now uses a consistent field name (`profile_picture_path`) and organized storage structure.
 
 ## Database Changes
 
 ### Migration File
 
-- **File**: `supabase_migration_add_profile_pictures.sql`
+- **File**: `supabase_migration_unify_service_profile_pictures.sql`
 - **Changes**:
-    - Added `profile_picture_url` column to `guides` table
-    - Added `profile_picture_url` column to `paramedics` table
-    - Both columns store the storage path to the profile picture
+    - ✅ Added `profile_picture_path` to `security_companies`
+    - ✅ Added `profile_picture_path` to `travel_companies`
+    - ✅ Renamed `image` → `profile_picture_path` in `education_programs`
+    - ✅ Renamed `image` → `profile_picture_path` in `external_entertainment_companies`
+    - ✅ Renamed `profile_picture_url` → `profile_picture_path` in `guides`
+    - ✅ Renamed `profile_picture_url` → `profile_picture_path` in `paramedics`
+
+### Unified Field Name
+
+**All services now use:** `profile_picture_path TEXT`
+
+| Service Type  | Table Name                         | Field Name             |
+| ------------- | ---------------------------------- | ---------------------- |
+| Guides        | `guides`                           | `profile_picture_path` |
+| Paramedics    | `paramedics`                       | `profile_picture_path` |
+| Security      | `security_companies`               | `profile_picture_path` |
+| Entertainment | `external_entertainment_companies` | `profile_picture_path` |
+| Travel        | `travel_companies`                 | `profile_picture_path` |
+| Education     | `education_programs`               | `profile_picture_path` |
 
 ### Storage Structure
 
-Profile pictures are stored in the `services` bucket with the following structure:
+Profile pictures are stored in the `services` bucket:
 
 ```
 services/
   ├── guides/
-  │   └── {guide_id}/
-  │       └── profile-{timestamp}.{ext}
-  └── paramedics/
-      └── {paramedic_id}/
-          └── profile-{timestamp}.{ext}
+  │   └── {service_id}/
+  │       └── profile.{ext}
+  ├── paramedics/
+  │   └── {service_id}/
+  │       └── profile.{ext}
+  ├── security_companies/
+  │   └── {service_id}/
+  │       └── profile.{ext}
+  ├── entertainment/
+  │   └── {service_id}/
+  │       └── profile.{ext}
+  ├── travel_companies/
+  │   └── {service_id}/
+  │       └── profile.{ext}
+  └── education_programs/
+      └── {service_id}/
+          └── profile.{ext}
 ```
 
-## New Utilities
+**Benefits:**
 
-### Service Profile Upload Utility (`utils/service-profile-upload.ts`)
+- 🗂️ Organized by service type
+- 🗑️ Easy cleanup (delete folder = delete all files)
+- 📍 Predictable paths
+- 🔄 Consistent naming
 
-Provides functions for managing service provider profile pictures:
+## Core Utilities
 
-#### Functions:
+### Service Profile Picture Utility (`utils/service-profile-picture.ts`)
 
-1. **`uploadServiceProfilePicture(file, serviceType, serviceId, existingUrl?)`**
+Comprehensive utility for managing profile pictures across all services.
 
-    - Uploads a profile picture to the correct storage path
-    - Automatically deletes old profile picture if one exists
-    - Returns public URL and storage path
+#### Key Functions:
 
-2. **`deleteServiceProfilePicture(serviceType, serviceId)`**
+1. **`uploadServiceProfilePicture(serviceType, serviceId, file)`**
 
-    - Deletes all files in a service provider's storage folder
-    - Used when updating or removing profile pictures
+    - Validates file (type, size)
+    - Deletes old picture automatically
+    - Uploads to correct path: `services/{type}/{id}/profile.{ext}`
+    - Updates database with new path
+    - Returns: `{ success, path, publicUrl, error }`
+
+2. **`removeServiceProfilePicture(serviceType, serviceId)`**
+
+    - Deletes picture from storage
+    - Updates database (sets path to null)
+    - Returns: `boolean`
 
 3. **`deleteServiceFolder(serviceType, serviceId)`**
 
-    - Deletes entire service folder when service is deleted
-    - Keeps storage clean
+    - Deletes entire service folder
+    - Use when deleting a service completely
+    - Returns: `boolean`
 
-4. **`getServiceProfileUrl(path)`**
-    - Converts storage path to public URL
-    - Returns default avatar if no picture exists
+4. **`getServiceProfilePictureUrlWithFallback(path, serviceType)`**
 
-## New Components
+    - Returns public URL if path exists
+    - Returns default icon if no picture
+    - Fallback icons for each service type
 
-### ServiceProfileUpload (`components/image-upload/service-profile-upload.tsx`)
+5. **`generateServiceProfilePath(serviceType, serviceId, fileName)`**
 
-Specialized component for uploading service provider profile pictures.
+    - Generates storage path
+    - Returns: `"{service_type}/{id}/profile.{ext}"`
+
+6. **`validateProfilePicture(file)`**
+    - Validates file type (jpg, png, webp, gif)
+    - Validates file size (max 5MB)
+    - Returns: `error string | null`
+
+## React Component
+
+### ServiceProfilePictureUpload (`components/services/ServiceProfilePictureUpload.tsx`)
+
+Beautiful, reusable component for all service types.
 
 #### Props:
 
-- `serviceType`: 'guides' | 'paramedics'
-- `serviceId`: Optional (for add page vs edit page)
-- `currentUrl`: Current profile picture URL
-- `onUploadComplete`: Callback when upload completes
-- `onError`: Error handler
-- `size`: 'sm' | 'md' | 'lg'
-- `showButton`: Display as button instead of circular avatar
-- `disabled`: Disable upload functionality
+| Prop                 | Type                   | Required | Default | Description                                  |
+| -------------------- | ---------------------- | -------- | ------- | -------------------------------------------- |
+| `serviceType`        | `ServiceType`          | ✅       | -       | guides, paramedics, security_companies, etc. |
+| `serviceId`          | `string`               | ✅       | -       | Service UUID                                 |
+| `currentPicturePath` | `string \| null`       | ❌       | `null`  | Current picture path from DB                 |
+| `onUploadSuccess`    | `(path, url) => void`  | ❌       | -       | Success callback                             |
+| `onUploadError`      | `(error) => void`      | ❌       | -       | Error callback                               |
+| `onRemoveSuccess`    | `() => void`           | ❌       | -       | Remove callback                              |
+| `className`          | `string`               | ❌       | `''`    | Additional CSS classes                       |
+| `size`               | `'sm' \| 'md' \| 'lg'` | ❌       | `'md'`  | Component size                               |
+| `editable`           | `boolean`              | ❌       | `true`  | Allow editing                                |
+| `label`              | `string`               | ❌       | -       | Label text                                   |
 
 #### Features:
 
-- Image preview before upload
-- File type validation (JPG, PNG, GIF, WEBP)
-- File size validation (max 5MB)
-- Automatic cleanup of old images
-- Support for both add and edit modes
+- ✅ **Drag & drop** support
+- ✅ **Image preview** before upload
+- ✅ **Progress indicator** during upload
+- ✅ **File validation** (type + size)
+- ✅ **Remove button** with confirmation
+- ✅ **Hover effects** and smooth animations
+- ✅ **Fallback icons** for each service type
+- ✅ **Responsive** design
+- ✅ **Dark mode** support
+- ✅ **Auto-cleanup** of old pictures
 
-## Updated Pages
+## Usage Examples
 
-### Guides
+### Basic Upload (Service Edit Page)
 
-#### Add Page (`app/(defaults)/guides/add/page.tsx`)
+```tsx
+import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePictureUpload';
 
-- **Changes**:
-    - Added profile picture upload section
-    - Profile picture uploaded after guide creation
-    - Stores file temporarily until guide is saved
+<ServiceProfilePictureUpload
+    serviceType="guides"
+    serviceId={guide.id}
+    currentPicturePath={guide.profile_picture_path}
+    onUploadSuccess={(path, url) => {
+        // Update your state
+        setGuide({ ...guide, profile_picture_path: path });
+        toast.success('Photo updated!');
+    }}
+    size="lg"
+    label="Guide Photo"
+/>;
+```
 
-#### Edit Page (`app/(defaults)/guides/edit/[id]/page.tsx`)
+### Display Only (No Editing)
 
-- **Changes**:
-    - Added profile picture upload section
-    - Immediate upload on file selection
-    - Database updated automatically
+```tsx
+<ServiceProfilePictureUpload serviceType="paramedics" serviceId={paramedic.id} currentPicturePath={paramedic.profile_picture_path} size="md" editable={false} />
+```
 
-#### Preview Page (`app/(defaults)/guides/preview/[id]/page.tsx`)
+### With Custom Callbacks
 
-- **Changes**:
-    - Added profile picture display in sidebar
-    - Shows default avatar if no picture exists
-    - Large circular display with name and role
+```tsx
+<ServiceProfilePictureUpload
+    serviceType="security_companies"
+    serviceId={security.id}
+    currentPicturePath={security.profile_picture_path}
+    onUploadSuccess={(path, url) => {
+        // Refresh data from server
+        mutate(`/api/security/${security.id}`);
+    }}
+    onUploadError={(error) => {
+        console.error(error);
+        toast.error(error);
+    }}
+    onRemoveSuccess={() => {
+        toast.success('Picture removed');
+    }}
+/>
+```
 
-### Paramedics
+### Display with Fallback
 
-#### Add Page (`app/(defaults)/paramedics/add/page.tsx`)
+```tsx
+import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
-- **Changes**: Same as guides add page
+// In your component
+<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_path, 'guides')} alt={service.name} className="w-20 h-20 rounded-full object-cover" />;
+```
 
-#### Edit Page (`app/(defaults)/paramedics/edit/[id]/page.tsx`)
+## Integration Guide
 
-- **Changes**: Same as guides edit page
+### Step 1: Run Database Migration
 
-#### Preview Page (`app/(defaults)/paramedics/preview/[id]/page.tsx`)
+```bash
+# Execute the migration
+psql -U your_user -d your_database -f supabase_migration_unify_service_profile_pictures.sql
 
-- **Changes**: Same as guides preview page
+# Or via Supabase dashboard: SQL Editor → paste migration → Run
+```
 
-## Features
+### Step 2: Add Component to Edit Pages
 
-### Add/Edit Pages
+For each service type, add the upload component:
 
-1. **Profile Picture Upload**:
+```tsx
+// Example: guides/edit/[id]/page.tsx
+import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePictureUpload';
 
-    - Large circular upload area
-    - Click to upload
-    - Preview before save
-    - Modern UI with hover effects
+// In your form
+<div className="space-y-6">
+    <ServiceProfilePictureUpload
+        serviceType="guides"
+        serviceId={guide.id}
+        currentPicturePath={guide.profile_picture_path}
+        onUploadSuccess={() => {
+            // Refresh or update state
+            router.refresh();
+        }}
+        size="lg"
+        label="Profile Photo"
+    />
 
-2. **Validation**:
+    {/* Rest of form fields */}
+</div>;
+```
 
-    - Only image files accepted
-    - Maximum 5MB file size
-    - Clear error messages
+### Step 3: Update Display Components
 
-3. **User Experience**:
-    - Loading states during upload
-    - Success/error notifications
-    - Instant preview
+Update list/card views to show pictures:
 
-### Preview Pages
+```tsx
+import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
-1. **Profile Picture Display**:
-    - Large (160x160px) circular avatar
-    - Shown in sidebar
-    - Includes name and role label
-    - Default avatar for missing pictures
+{
+    services.map((service) => (
+        <div key={service.id}>
+            <img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_path, serviceType)} alt={service.name} className="w-16 h-16 rounded-full" />
+        </div>
+    ));
+}
+```
 
-## Storage Management
+### Step 4: Handle Service Deletion
 
-### Automatic Cleanup
+Add cleanup when deleting services:
 
-- Old profile pictures are deleted when:
-    - New picture is uploaded
-    - Service is deleted (to be implemented)
+```tsx
+import { deleteServiceFolder } from '@/utils/service-profile-picture';
 
-### File Organization
+const handleDelete = async (serviceId: string) => {
+    // 1. Delete from database
+    await supabase.from('guides').delete().eq('id', serviceId);
 
-- Each service has its own folder
-- Files named with timestamp to avoid conflicts
-- Easy to identify and manage
+    // 2. Clean up storage folder
+    await deleteServiceFolder('guides', serviceId);
+};
+```
 
-## Security Considerations
+## Validation Rules
 
-1. **File Type Validation**: Only image files allowed
-2. **File Size Limit**: 5MB maximum
-3. **Storage Path**: Uses service ID to prevent conflicts
-4. **Access Control**: Should be configured in Supabase storage policies
+### File Types
 
-## Next Steps
+- ✅ JPEG (.jpg, .jpeg)
+- ✅ PNG (.png)
+- ✅ WEBP (.webp)
+- ✅ GIF (.gif)
+- ❌ All other types rejected
+
+### File Size
+
+- Maximum: **5MB**
+- Larger files are rejected with error message
+
+### Automatic Validation
+
+````tsx
+import { validateProfilePicture } from '@/utils/service-profile-picture';
+
+const error = validateProfilePicture(file);
+if (error) {
+    alert(error); // "Invalid file type..." or "File size exceeds..."
+}
+
+## Storage Policies
+
+Ensure your Supabase storage has proper policies:
+
+```sql
+-- Allow authenticated users to upload
+CREATE POLICY "Authenticated users can upload service pictures"
+ON storage.objects FOR INSERT
+TO authenticated
+WITH CHECK (bucket_id = 'services');
+
+-- Allow authenticated users to update
+CREATE POLICY "Users can update service pictures"
+ON storage.objects FOR UPDATE
+TO authenticated
+USING (bucket_id = 'services');
+
+-- Allow authenticated users to delete
+CREATE POLICY "Users can delete service pictures"
+ON storage.objects FOR DELETE
+TO authenticated
+USING (bucket_id = 'services');
+
+-- Allow public read access
+CREATE POLICY "Public can view service pictures"
+ON storage.objects FOR SELECT
+TO public
+USING (bucket_id = 'services');
+````
+
+## Troubleshooting
+
+### Image Not Displaying
+
+1. ✅ Check if `profile_picture_path` is stored in database
+2. ✅ Verify file exists in storage bucket
+3. ✅ Check storage policies allow public read
+4. ✅ Inspect network tab for image URL errors
+5. ✅ Verify using correct service type
+
+### Upload Failing
+
+1. ✅ Check file size (< 5MB)
+2. ✅ Check file type (jpg, png, webp, gif only)
+3. ✅ Verify user is authenticated
+4. ✅ Check storage bucket write policies
+5. ✅ Check browser console for errors
+
+### Old Pictures Not Deleting
+
+1. ✅ Verify upload function is called correctly
+2. ✅ Check if old path exists in database
+3. ✅ Verify delete permissions in storage
+
+## Best Practices
+
+### ✅ DO
+
+- Use utility functions for all operations
+- Handle upload success/error callbacks
+- Update local state after successful upload
+- Delete storage folder when deleting service
+- Use fallback images for better UX
+- Validate files before upload
+
+### ❌ DON'T
+
+- Manually construct storage paths
+- Forget to clean up storage on service deletion
+- Skip file validation
+- Hard-code service types
+- Ignore error handling
+
+## Summary
+
+This unified implementation provides:
+
+- ✅ **Consistency**: Same field name across all 6 service types
+- ✅ **Organization**: Clean folder structure by service type
+- ✅ **Ease of Use**: Simple React component + utilities
+- ✅ **Type Safety**: Full TypeScript support
+- ✅ **Validation**: Built-in file validation
+- ✅ **Cleanup**: Automatic deletion of old pictures
+- ✅ **Fallbacks**: Default icons for each service
+- ✅ **Scalability**: Easy to extend
+- ✅ **Beautiful UI**: Drag & drop, animations, responsive
+
+**All services can now manage profile pictures in a clean, consistent way!** 🎨✨
 
 ### Pending Implementation:
 

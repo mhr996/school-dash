@@ -14,6 +14,8 @@ import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
+import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
+import Image from 'next/image';
 
 interface TravelCompany {
     id: string;
@@ -31,6 +33,7 @@ interface TravelCompany {
     notes: string;
     created_at: string;
     updated_at: string;
+    profile_picture_path?: string | null;
 }
 
 const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
@@ -170,6 +173,22 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
             )}
 
             <div className="space-y-6">
+                {/* Profile Picture */}
+                <div className="panel">
+                    <div className="flex items-center gap-3 mb-5">
+                        <h5 className="text-lg font-semibold dark:text-white-light">{t('profile_picture')}</h5>
+                    </div>
+                    <div className="flex justify-center">
+                        <Image
+                            src={getServiceProfilePictureUrlWithFallback(travelCompany.profile_picture_path, 'travel_companies')}
+                            alt={travelCompany.name}
+                            width={200}
+                            height={200}
+                            className="rounded-lg object-cover"
+                        />
+                    </div>
+                </div>
+
                 {/* Basic Information */}
                 <div className="panel">
                     <div className="flex items-center gap-3 mb-5">

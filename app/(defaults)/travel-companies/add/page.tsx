@@ -13,6 +13,8 @@ import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
 import PageBreadcrumb from '@/components/layouts/page-breadcrumb';
+import ServiceProfileUpload from '@/components/image-upload/service-profile-upload';
+import { uploadServiceProfilePicture } from '@/utils/service-profile-upload';
 
 interface FormData {
     name: string;
@@ -43,6 +45,8 @@ const AddTravelCompany = () => {
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState(0);
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'danger' } | null>(null);
+    const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
+    const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
 
     const [formData, setFormData] = useState<FormData>({
         name: '',
@@ -262,6 +266,19 @@ const AddTravelCompany = () => {
                 throw error;
             }
 
+            // Upload profile picture if one was selected
+            if (profilePictureFile && data) {
+                const uploadResult = await uploadServiceProfilePicture(profilePictureFile, 'travel_companies', data.id);
+
+                if ('error' in uploadResult) {
+                    console.error('Error uploading profile picture:', uploadResult.error);
+                    // Don't fail the whole operation, just log the error
+                } else {
+                    // Update travel company with profile picture path
+                    await supabase.from('travel_companies').update({ profile_picture_path: uploadResult.path }).eq('id', data.id);
+                }
+            }
+
             setAlert({
                 message: t('travel_company_created_successfully'),
                 type: 'success',
@@ -466,6 +483,29 @@ const AddTravelCompany = () => {
                                 className="form-textarea"
                                 rows={3}
                                 placeholder={t('enter_notes')}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Profile Picture */}
+                    <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex justify-center">
+                            <ServiceProfileUpload
+                                serviceType="travel_companies"
+                                currentUrl={profilePicturePreview}
+                                onUploadComplete={(url, fileName) => {
+                                    // For add page, url is base64 preview
+                                    setProfilePicturePreview(url);
+                                    // Extract file from the input
+                                    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+                                    if (fileInput?.files?.[0]) {
+                                        setProfilePictureFile(fileInput.files[0]);
+                                    }
+                                }}
+                                onError={(error) => {
+                                    setAlert({ message: error, type: 'danger' });
+                                }}
+                                size="lg"
                             />
                         </div>
                     </div>

@@ -1,7 +1,7 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
 import { getPublicUrlFromPath } from '@/utils/file-upload';
@@ -120,7 +120,7 @@ type BookingTypeConfig = {
 type RequirementSelection = {
     id: string;
     name: string;
-    type: 'paramedics' | 'guides' | 'security_companies' | 'external_entertainment_companies' | 'travel_companies';
+    type: 'paramedics' | 'guides' | 'security_companies' | 'external_entertainment_companies' | 'travel_companies' | 'education_programs';
     quantity: number;
     rate_type: 'hourly' | 'daily' | 'regional' | 'overnight' | 'fixed';
     cost: number;
@@ -167,6 +167,7 @@ const getRequirementIcon = (requirement: string) => {
 export default function TripPlannerDashboard() {
     const { t } = getTranslation();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [isAdminUser, setIsAdminUser] = useState(false); // Track if user is admin (for admin override features)
     const [currentView, setCurrentView] = useState<'dashboard' | 'destinations' | 'service-booking'>('dashboard');
@@ -235,6 +236,9 @@ export default function TripPlannerDashboard() {
     const [numberOfStudents, setNumberOfStudents] = useState<number>();
     const [numberOfCrew, setNumberOfCrew] = useState<number>();
     const [numberOfBuses, setNumberOfBuses] = useState<number>();
+
+    // Track if URL parameters have been processed to prevent duplicate execution
+    const urlParamsProcessed = useRef(false);
 
     // Booking type configurations
     const bookingTypeConfigs: BookingTypeConfig[] = [
@@ -351,6 +355,121 @@ export default function TripPlannerDashboard() {
         };
         fetchFilterOptions();
     }, []);
+
+    // Handle URL parameters for pre-selecting services from explore page
+    useEffect(() => {
+        const handleUrlParams = async () => {
+            if (!searchParams || urlParamsProcessed.current) return;
+
+            const bookingType = searchParams.get('bookingType');
+            const destinationId = searchParams.get('destinationId');
+            const serviceType = searchParams.get('serviceType');
+            const serviceId = searchParams.get('serviceId');
+
+            if (!bookingType) return;
+
+            // Mark as processed to prevent duplicate execution
+            urlParamsProcessed.current = true;
+
+            // Set booking type
+            setSelectedBookingType(bookingType as BookingType);
+
+            // If destination booking, load and select destination
+            if (destinationId && bookingType === 'full_trip') {
+                try {
+                    const { data: destination, error } = await supabase
+                        .from('destinations_with_details')
+                        .select('id, name, address, zone_id, thumbnail_path, gallery_paths, properties_details, suitable_for_details, requirements, pricing')
+                        .eq('id', destinationId)
+                        .single();
+
+                    if (!error && destination) {
+                        setSelectedForPlanning(destination);
+                        setShowRequirementsSection(true);
+                        // Set view to service-booking - this will trigger loadRequirementsData() via useEffect
+                        setCurrentView('service-booking');
+
+                        // Clear URL parameters after processing
+                        router.replace('/', { scroll: false });
+                    }
+                } catch (error) {
+                    console.error('Error loading destination from URL:', error);
+                }
+            }
+            // If service-only booking, load and pre-select the service
+            else if (serviceType && serviceId) {
+                setShowRequirementsSection(true);
+                // Set view to service-booking - this will trigger loadRequirementsData() via useEffect
+                setCurrentView('service-booking');
+
+                // Pre-select the service after services are loaded
+                // We need to wait for loadRequirementsData to complete
+                setTimeout(async () => {
+                    try {
+                        let tableName = '';
+                        let serviceTypeName: 'guides' | 'paramedics' | 'security_companies' | 'external_entertainment_companies' | 'travel_companies' | 'education_programs' | '' = '';
+
+                        // Map service type to table name and type
+                        switch (serviceType) {
+                            case 'guides':
+                                tableName = 'guides';
+                                serviceTypeName = 'guides';
+                                break;
+                            case 'paramedics':
+                                tableName = 'paramedics';
+                                serviceTypeName = 'paramedics';
+                                break;
+                            case 'security_companies':
+                                tableName = 'security_companies';
+                                serviceTypeName = 'security_companies';
+                                break;
+                            case 'external_entertainment_companies':
+                                tableName = 'external_entertainment_companies';
+                                serviceTypeName = 'external_entertainment_companies';
+                                break;
+                            case 'travel_companies':
+                                tableName = 'travel_companies';
+                                serviceTypeName = 'travel_companies';
+                                break;
+                            case 'education_programs':
+                                tableName = 'education_programs';
+                                serviceTypeName = 'education_programs';
+                                break;
+                        }
+
+                        if (tableName && serviceTypeName) {
+                            const { data, error } = await supabase.from(tableName).select('*').eq('id', serviceId).single();
+
+                            if (!error && data) {
+                                // Auto-select the service with default values
+                                const rateType: RateType = data.daily_rate ? 'daily' : data.hourly_rate ? 'hourly' : 'fixed';
+                                const cost = data.daily_rate || data.hourly_rate || data.fixed_rate || 0;
+
+                                setSelectedRequirements([
+                                    {
+                                        type: serviceTypeName,
+                                        id: data.id,
+                                        name: data.name,
+                                        quantity: 1,
+                                        rate_type: rateType,
+                                        cost: cost,
+                                        days: 1,
+                                    },
+                                ]);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error pre-selecting service:', error);
+                    }
+
+                    // Clear URL parameters after processing
+                    router.replace('/', { scroll: false });
+                }, 1000); // Increased timeout to ensure data is loaded
+            }
+        };
+
+        handleUrlParams();
+    }, [searchParams]);
 
     // Fetch current user and check if admin
     useEffect(() => {
@@ -2322,571 +2441,576 @@ export default function TripPlannerDashboard() {
                         </motion.div>
 
                         {/* Service Selection Section */}
-                        <motion.div
-                            initial={{ y: 30, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                            className="bg-white/10 dark:bg-slate-900/20 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-slate-700/30 shadow-2xl overflow-hidden"
-                        >
-                            {/* Header */}
-                            <div className="relative bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-md p-6">
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-white mb-2">{t('select_services')}</h2>
-                                        <p className="text-blue-100">{t('choose_from_available_services_below')}</p>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        {/* Trip Date Selector */}
-                                        <div className="bg-white/20 backdrop-blur-md rounded-xl p-3 border border-white/30">
-                                            <label className="block text-xs text-blue-100 mb-1">{t('trip_date')}</label>
-                                            <input
-                                                type="date"
-                                                value={selectedDate?.toISOString().split('T')[0] || ''}
-                                                onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
-                                                className="bg-transparent text-white text-sm border-none outline-none"
-                                                min={new Date().toISOString().split('T')[0]}
-                                            />
+                        {!showRequirementsSection && (
+                            <motion.div
+                                initial={{ y: 30, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                transition={{ delay: 0.2 }}
+                                className="bg-white/10 dark:bg-slate-900/20 backdrop-blur-2xl rounded-3xl border border-white/20 dark:border-slate-700/30 shadow-2xl overflow-hidden"
+                            >
+                                {/* Header */}
+                                <div className="relative bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-md p-6">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-white mb-2">{t('select_services')}</h2>
+                                            <p className="text-blue-100">{t('choose_from_available_services_below')}</p>
+                                        </div>
+                                        <div className="flex items-center gap-4">
+                                            {/* Trip Date Selector */}
+                                            <div className="bg-white/20 backdrop-blur-md rounded-xl p-3 border border-white/30">
+                                                <label className="block text-xs text-blue-100 mb-1">{t('trip_date')}</label>
+                                                <input
+                                                    type="date"
+                                                    value={selectedDate?.toISOString().split('T')[0] || ''}
+                                                    onChange={(e) => setSelectedDate(e.target.value ? new Date(e.target.value) : null)}
+                                                    className="bg-transparent text-white text-sm border-none outline-none"
+                                                    min={new Date().toISOString().split('T')[0]}
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Admin Override Section - School and User Selection */}
-                            {isAdminUser && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.25 }}
-                                    className="relative z-30 bg-gradient-to-br from-amber-50/90 via-orange-50/80 to-yellow-50/70 dark:from-amber-900/20 dark:via-orange-900/15 dark:to-yellow-900/10 backdrop-blur-xl border-y border-amber-200/50 dark:border-amber-700/30 shadow-lg"
-                                >
-                                    <div className="px-6 py-6">
-                                        <div className="max-w-4xl relative z-30">
-                                            <div className="flex items-center gap-3 mb-4">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-                                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth={2}
-                                                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                                                        />
-                                                    </svg>
+                                {/* Admin Override Section - School and User Selection */}
+                                {isAdminUser && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.25 }}
+                                        className="relative z-30 bg-gradient-to-br from-amber-50/90 via-orange-50/80 to-yellow-50/70 dark:from-amber-900/20 dark:via-orange-900/15 dark:to-yellow-900/10 backdrop-blur-xl border-y border-amber-200/50 dark:border-amber-700/30 shadow-lg"
+                                    >
+                                        <div className="px-6 py-6">
+                                            <div className="max-w-4xl relative z-30">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth={2}
+                                                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100">{t('admin_override')}</h3>
+                                                        <p className="text-sm text-amber-700 dark:text-amber-300">{t('select_school_and_user')}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100">{t('admin_override')}</h3>
-                                                    <p className="text-sm text-amber-700 dark:text-amber-300">{t('select_school_and_user')}</p>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                {/* School Selection */}
-                                                <div className="space-y-2">
-                                                    <label className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
-                                                        <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-orange-600 rounded-lg flex items-center justify-center shadow">
-                                                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                                <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
-                                                            </svg>
-                                                        </div>
-                                                        {t('select_school')} <span className="text-red-500">*</span>
-                                                    </label>
-                                                    <CustomSelect
-                                                        options={allSchools.map((school) => ({
-                                                            value: school.id,
-                                                            label: school.name,
-                                                        }))}
-                                                        value={selectedSchoolId || ''}
-                                                        onChange={(value) => setSelectedSchoolId(Array.isArray(value) ? value[0] : value)}
-                                                        placeholder={t('select_school')}
-                                                    />
-                                                </div>
-
-                                                {/* User Selection */}
-                                                <div className="space-y-2">
-                                                    <label className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
-                                                        <div className="w-8 h-8 bg-gradient-to-br from-orange-600 to-red-600 rounded-lg flex items-center justify-center shadow">
-                                                            <IconUser className="h-4 w-4 text-white" />
-                                                        </div>
-                                                        {t('select_user')} <span className="text-red-500">*</span>
-                                                    </label>
-                                                    <CustomSelect
-                                                        options={allUsers
-                                                            .filter((user) => !selectedSchoolId || user.school_id === selectedSchoolId)
-                                                            .map((user) => ({
-                                                                value: user.id,
-                                                                label: user.full_name,
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {/* School Selection */}
+                                                    <div className="space-y-2">
+                                                        <label className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                                            <div className="w-8 h-8 bg-gradient-to-br from-amber-600 to-orange-600 rounded-lg flex items-center justify-center shadow">
+                                                                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                                                                </svg>
+                                                            </div>
+                                                            {t('select_school')} <span className="text-red-500">*</span>
+                                                        </label>
+                                                        <CustomSelect
+                                                            options={allSchools.map((school) => ({
+                                                                value: school.id,
+                                                                label: school.name,
                                                             }))}
-                                                        value={selectedUserId || ''}
-                                                        onChange={(value) => setSelectedUserId(Array.isArray(value) ? value[0] : value)}
-                                                        placeholder={t('select_user')}
-                                                        disabled={!selectedSchoolId}
-                                                    />
+                                                            value={selectedSchoolId || ''}
+                                                            onChange={(value) => setSelectedSchoolId(Array.isArray(value) ? value[0] : value)}
+                                                            placeholder={t('select_school')}
+                                                        />
+                                                    </div>
+
+                                                    {/* User Selection */}
+                                                    <div className="space-y-2">
+                                                        <label className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                                            <div className="w-8 h-8 bg-gradient-to-br from-orange-600 to-red-600 rounded-lg flex items-center justify-center shadow">
+                                                                <IconUser className="h-4 w-4 text-white" />
+                                                            </div>
+                                                            {t('select_user')} <span className="text-red-500">*</span>
+                                                        </label>
+                                                        <CustomSelect
+                                                            options={allUsers
+                                                                .filter((user) => !selectedSchoolId || user.school_id === selectedSchoolId)
+                                                                .map((user) => ({
+                                                                    value: user.id,
+                                                                    label: user.full_name,
+                                                                }))}
+                                                            value={selectedUserId || ''}
+                                                            onChange={(value) => setSelectedUserId(Array.isArray(value) ? value[0] : value)}
+                                                            placeholder={t('select_user')}
+                                                            disabled={!selectedSchoolId}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </motion.div>
-                            )}
+                                    </motion.div>
+                                )}
 
-                            {/* Content */}
-                            <div className="p-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                    {/* Left Column - Services Selection */}
-                                    <div className="space-y-6">
-                                        {/* Paramedics */}
-                                        {shouldShowServiceType('paramedics') && paramedics.length > 0 && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                            >
-                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                    <div className="w-6 h-6 bg-red-500 rounded-lg flex items-center justify-center">
-                                                        <IconHeart className="w-4 h-4 text-white" />
-                                                    </div>
-                                                    {t('paramedics')}
-                                                </h3>
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {paramedics.map((paramedic) => {
-                                                        const selected = isSelected('paramedics', paramedic.id);
-                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'paramedics' && req.id === paramedic.id);
+                                {/* Content */}
+                                <div className="p-6">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        {/* Left Column - Services Selection */}
+                                        <div className="space-y-6">
+                                            {/* Paramedics */}
+                                            {shouldShowServiceType('paramedics') && paramedics.length > 0 && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                                >
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                        <div className="w-6 h-6 bg-red-500 rounded-lg flex items-center justify-center">
+                                                            <IconHeart className="w-4 h-4 text-white" />
+                                                        </div>
+                                                        {t('paramedics')}
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {paramedics.map((paramedic) => {
+                                                            const selected = isSelected('paramedics', paramedic.id);
+                                                            const selectedReq = selectedRequirements.find((req) => req.type === 'paramedics' && req.id === paramedic.id);
 
-                                                        return (
-                                                            <div key={paramedic.id} className="space-y-2">
-                                                                <motion.div
-                                                                    whileHover={{ scale: 1.02 }}
-                                                                    whileTap={{ scale: 0.98 }}
-                                                                    onClick={() => selectParamedic(paramedic)}
-                                                                    className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                        selected
-                                                                            ? 'border-red-500 bg-red-50/10 dark:bg-red-900/10'
-                                                                            : 'border-gray-200/50 dark:border-slate-700/50 hover:border-red-300 dark:hover:border-red-600'
-                                                                    }`}
-                                                                >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div>
-                                                                            <h4 className="font-semibold text-gray-900 dark:text-white">{paramedic.name}</h4>
-                                                                            <p className="text-sm text-gray-600 dark:text-gray-300">{paramedic.phone}</p>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                                ₪{paramedic.daily_rate}/{t('day')}
-                                                                            </p>
-                                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                                ₪{paramedic.hourly_rate}/{t('hr')}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </motion.div>
-
-                                                                {/* Rate Type Selection Buttons - Show when selected */}
-                                                                {selected && (
+                                                            return (
+                                                                <div key={paramedic.id} className="space-y-2">
                                                                     <motion.div
-                                                                        initial={{ opacity: 0, height: 0 }}
-                                                                        animate={{ opacity: 1, height: 'auto' }}
-                                                                        exit={{ opacity: 0, height: 0 }}
-                                                                        className="grid grid-cols-4 gap-2 px-3"
+                                                                        whileHover={{ scale: 1.02 }}
+                                                                        whileTap={{ scale: 0.98 }}
+                                                                        onClick={() => selectParamedic(paramedic)}
+                                                                        className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                            selected
+                                                                                ? 'border-red-500 bg-red-50/10 dark:bg-red-900/10'
+                                                                                : 'border-gray-200/50 dark:border-slate-700/50 hover:border-red-300 dark:hover:border-red-600'
+                                                                        }`}
                                                                     >
-                                                                        {[
-                                                                            { value: 'hourly', label: t('hourly'), rate: paramedic.hourly_rate },
-                                                                            { value: 'daily', label: t('daily'), rate: paramedic.daily_rate },
-                                                                            { value: 'regional', label: t('regional'), rate: paramedic.daily_rate * 1.5 },
-                                                                            { value: 'overnight', label: t('overnight'), rate: paramedic.daily_rate * 2 },
-                                                                        ].map((rateOption) => (
-                                                                            <button
-                                                                                key={rateOption.value}
-                                                                                onClick={() =>
-                                                                                    updateRequirementRateType(
-                                                                                        selectedRequirements.findIndex((r) => r.type === 'paramedics' && r.id === paramedic.id),
-                                                                                        rateOption.value as any,
-                                                                                    )
-                                                                                }
-                                                                                className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                                                                    selectedReq?.rate_type === rateOption.value
-                                                                                        ? 'bg-red-500 text-white shadow-lg'
-                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/20'
-                                                                                }`}
-                                                                            >
-                                                                                <div>{rateOption.label}</div>
-                                                                                <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
-                                                                            </button>
-                                                                        ))}
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div>
+                                                                                <h4 className="font-semibold text-gray-900 dark:text-white">{paramedic.name}</h4>
+                                                                                <p className="text-sm text-gray-600 dark:text-gray-300">{paramedic.phone}</p>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                                    ₪{paramedic.daily_rate}/{t('day')}
+                                                                                </p>
+                                                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                                    ₪{paramedic.hourly_rate}/{t('hr')}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
                                                                     </motion.div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </motion.div>
-                                        )}
 
-                                        {/* Guides */}
-                                        {shouldShowServiceType('guides') && guides.length > 0 && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: 0.1 }}
-                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                            >
-                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                    <div className="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
-                                                        <IconUsers className="w-4 h-4 text-white" />
+                                                                    {/* Rate Type Selection Buttons - Show when selected */}
+                                                                    {selected && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, height: 0 }}
+                                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                                            exit={{ opacity: 0, height: 0 }}
+                                                                            className="grid grid-cols-4 gap-2 px-3"
+                                                                        >
+                                                                            {[
+                                                                                { value: 'hourly', label: t('hourly'), rate: paramedic.hourly_rate },
+                                                                                { value: 'daily', label: t('daily'), rate: paramedic.daily_rate },
+                                                                                { value: 'regional', label: t('regional'), rate: paramedic.daily_rate * 1.5 },
+                                                                                { value: 'overnight', label: t('overnight'), rate: paramedic.daily_rate * 2 },
+                                                                            ].map((rateOption) => (
+                                                                                <button
+                                                                                    key={rateOption.value}
+                                                                                    onClick={() =>
+                                                                                        updateRequirementRateType(
+                                                                                            selectedRequirements.findIndex((r) => r.type === 'paramedics' && r.id === paramedic.id),
+                                                                                            rateOption.value as any,
+                                                                                        )
+                                                                                    }
+                                                                                    className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                        selectedReq?.rate_type === rateOption.value
+                                                                                            ? 'bg-red-500 text-white shadow-lg'
+                                                                                            : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/20'
+                                                                                    }`}
+                                                                                >
+                                                                                    <div>{rateOption.label}</div>
+                                                                                    <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
+                                                                                </button>
+                                                                            ))}
+                                                                        </motion.div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                    {t('guides')}
-                                                </h3>
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {guides.map((guide) => {
-                                                        const selected = isSelected('guides', guide.id);
-                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'guides' && req.id === guide.id);
-
-                                                        return (
-                                                            <div key={guide.id} className="space-y-2">
-                                                                <motion.div
-                                                                    whileHover={{ scale: 1.02 }}
-                                                                    whileTap={{ scale: 0.98 }}
-                                                                    onClick={() => selectGuide(guide)}
-                                                                    className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                        selected
-                                                                            ? 'border-green-500 bg-green-50/10 dark:bg-green-900/10'
-                                                                            : 'border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-600'
-                                                                    }`}
-                                                                >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div>
-                                                                            <h4 className="font-semibold text-gray-900 dark:text-white">{guide.name}</h4>
-                                                                            <p className="text-sm text-gray-600 dark:text-gray-300">{guide.phone}</p>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                                ₪{guide.daily_rate}/{t('day')}
-                                                                            </p>
-                                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                                ₪{guide.hourly_rate}/{t('hr')}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </motion.div>
-
-                                                                {/* Rate Type Selection Buttons - Show when selected */}
-                                                                {selected && (
-                                                                    <motion.div
-                                                                        initial={{ opacity: 0, height: 0 }}
-                                                                        animate={{ opacity: 1, height: 'auto' }}
-                                                                        exit={{ opacity: 0, height: 0 }}
-                                                                        className="grid grid-cols-4 gap-2 px-3"
-                                                                    >
-                                                                        {[
-                                                                            { value: 'hourly', label: t('hourly'), rate: guide.hourly_rate },
-                                                                            { value: 'daily', label: t('daily'), rate: guide.daily_rate },
-                                                                            { value: 'regional', label: t('regional'), rate: guide.daily_rate * 1.5 },
-                                                                            { value: 'overnight', label: t('overnight'), rate: guide.daily_rate * 2 },
-                                                                        ].map((rateOption) => (
-                                                                            <button
-                                                                                key={rateOption.value}
-                                                                                onClick={() =>
-                                                                                    updateRequirementRateType(
-                                                                                        selectedRequirements.findIndex((r) => r.type === 'guides' && r.id === guide.id),
-                                                                                        rateOption.value as any,
-                                                                                    )
-                                                                                }
-                                                                                className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                                                                    selectedReq?.rate_type === rateOption.value
-                                                                                        ? 'bg-green-500 text-white shadow-lg'
-                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/20'
-                                                                                }`}
-                                                                            >
-                                                                                <div>{rateOption.label}</div>
-                                                                                <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
-                                                                            </button>
-                                                                        ))}
-                                                                    </motion.div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </motion.div>
-                                        )}
-
-                                        {/* Security Companies */}
-                                        {shouldShowServiceType('security_companies') && securityCompanies.length > 0 && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: 0.2 }}
-                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                            >
-                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                    <div className="w-6 h-6 bg-yellow-500 rounded-lg flex items-center justify-center">
-                                                        <IconLock className="w-4 h-4 text-white" />
-                                                    </div>
-                                                    {t('security')}
-                                                </h3>
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {securityCompanies.map((security) => {
-                                                        const selected = isSelected('security_companies', security.id);
-                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'security_companies' && req.id === security.id);
-
-                                                        return (
-                                                            <div key={security.id} className="space-y-2">
-                                                                <motion.div
-                                                                    whileHover={{ scale: 1.02 }}
-                                                                    whileTap={{ scale: 0.98 }}
-                                                                    onClick={() => selectSecurity(security)}
-                                                                    className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                        selected
-                                                                            ? 'border-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10'
-                                                                            : 'border-gray-200/50 dark:border-slate-700/50 hover:border-yellow-300 dark:hover:border-yellow-600'
-                                                                    }`}
-                                                                >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div>
-                                                                            <h4 className="font-semibold text-gray-900 dark:text-white">{security.name}</h4>
-                                                                            <p className="text-sm text-gray-600 dark:text-gray-300">{security.phone}</p>
-                                                                        </div>
-                                                                        <div className="text-right">
-                                                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                                                ₪{security.daily_rate}/{t('day')}
-                                                                            </p>
-                                                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                                                ₪{security.hourly_rate}/{t('hr')}
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                </motion.div>
-
-                                                                {/* Rate Type Selection Buttons - Show when selected */}
-                                                                {selected && (
-                                                                    <motion.div
-                                                                        initial={{ opacity: 0, height: 0 }}
-                                                                        animate={{ opacity: 1, height: 'auto' }}
-                                                                        exit={{ opacity: 0, height: 0 }}
-                                                                        className="grid grid-cols-4 gap-2 px-3"
-                                                                    >
-                                                                        {[
-                                                                            { value: 'hourly', label: t('hourly'), rate: security.hourly_rate },
-                                                                            { value: 'daily', label: t('daily'), rate: security.daily_rate },
-                                                                            { value: 'regional', label: t('regional'), rate: security.daily_rate * 1.5 },
-                                                                            { value: 'overnight', label: t('overnight'), rate: security.daily_rate * 2 },
-                                                                        ].map((rateOption) => (
-                                                                            <button
-                                                                                key={rateOption.value}
-                                                                                onClick={() =>
-                                                                                    updateRequirementRateType(
-                                                                                        selectedRequirements.findIndex((r) => r.type === 'security_companies' && r.id === security.id),
-                                                                                        rateOption.value as any,
-                                                                                    )
-                                                                                }
-                                                                                className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                                                                    selectedReq?.rate_type === rateOption.value
-                                                                                        ? 'bg-yellow-500 text-white shadow-lg'
-                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
-                                                                                }`}
-                                                                            >
-                                                                                <div>{rateOption.label}</div>
-                                                                                <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
-                                                                            </button>
-                                                                        ))}
-                                                                    </motion.div>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </motion.div>
-                                        )}
-
-                                        {/* Entertainment Companies */}
-                                        {shouldShowServiceType('external_entertainment_companies') && entertainmentCompanies.length > 0 && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: 0.3 }}
-                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                            >
-                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                    <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
-                                                        <IconPlayCircle className="w-4 h-4 text-white" />
-                                                    </div>
-                                                    {t('entertainment')}
-                                                </h3>
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {entertainmentCompanies.map((entertainment) => (
-                                                        <motion.div
-                                                            key={entertainment.id}
-                                                            whileHover={{ scale: 1.02 }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            onClick={() => selectEntertainment(entertainment)}
-                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                isSelected('external_entertainment_companies', entertainment.id)
-                                                                    ? 'border-purple-500 bg-purple-50/10 dark:bg-purple-900/10'
-                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-600'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{entertainment.name}</h4>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{entertainment.description}</p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{entertainment.price}</p>
-                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('fixed_price')}</p>
-                                                                </div>
-                                                            </div>
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-                                            </motion.div>
-                                        )}
-
-                                        {/* Travel Companies */}
-                                        {shouldShowServiceType('travel_companies') && (
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: 0.4 }}
-                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                            >
-                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
-                                                        <IconCar className="w-4 h-4 text-white" />
-                                                    </div>
-                                                    {t('travel_companies')}
-                                                </h3>
-                                                <div className="grid grid-cols-1 gap-3">
-                                                    {travelCompanies.map((travel) => (
-                                                        <motion.div
-                                                            key={travel.id}
-                                                            whileHover={{ scale: 1.02 }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            onClick={() => selectTravelCompany(travel)}
-                                                            className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                isSelected('travel_companies', travel.id)
-                                                                    ? 'border-blue-500 bg-blue-50/10 dark:bg-blue-900/10'
-                                                                    : 'border-gray-200/50 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-600'
-                                                            }`}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <div>
-                                                                    <h4 className="font-semibold text-gray-900 dark:text-white">{travel.name}</h4>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">{travel.phone}</p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{travel.pricing_data?.default_price || 100}</p>
-                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('per_trip')}</p>
-                                                                </div>
-                                                            </div>
-                                                        </motion.div>
-                                                    ))}
-                                                </div>
-                                            </motion.div>
-                                        )}
-                                    </div>
-
-                                    {/* Right Column - Summary and Checkout */}
-                                    <div className="space-y-6">
-                                        {/* Selected Services Summary */}
-                                        <div className="bg-white/20 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-white/30 dark:border-slate-700/40 sticky top-6 self-start overflow-y-auto">
-                                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
-                                                    <IconShoppingBag className="w-4 h-4 text-white" />
-                                                </div>
-                                                {t('booking_summary')}
-                                            </h3>
-
-                                            {selectedRequirements.length === 0 ? (
-                                                <div className="text-center py-8">
-                                                    <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                        <IconShoppingBag className="w-8 h-8 text-gray-400" />
-                                                    </div>
-                                                    <p className="text-gray-500 dark:text-gray-400 text-sm">{t('no_services_selected')}</p>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {selectedRequirements.map((requirement, index) => {
-                                                        // Get the service type label and color (matching the service icon colors)
-                                                        const getServiceTypeInfo = (type: string) => {
-                                                            const typeMap: { [key: string]: { label: string; color: string } } = {
-                                                                paramedics: { label: t('paramedics') || 'Paramedics', color: 'bg-red-500/20 text-red-600 dark:text-red-400' },
-                                                                guides: { label: t('guides') || 'Guides', color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
-                                                                security_companies: { label: t('security_companies') || 'Security', color: 'bg-orange-500/20 text-orange-600 dark:text-orange-400' },
-                                                                external_entertainment_companies: {
-                                                                    label: t('external_entertainment_companies') || 'Entertainment',
-                                                                    color: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
-                                                                },
-                                                                travel_companies: { label: t('travel_companies') || 'Transportation', color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
-                                                            };
-                                                            return typeMap[type] || { label: type, color: 'bg-gray-500/20 text-gray-600 dark:text-gray-400' };
-                                                        };
-
-                                                        const serviceInfo = getServiceTypeInfo(requirement.type);
-
-                                                        return (
-                                                            <motion.div
-                                                                key={index}
-                                                                initial={{ opacity: 0, x: 20 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                className="flex items-center justify-between p-3 bg-white/10 dark:bg-slate-700/20 rounded-lg"
-                                                            >
-                                                                <div className="flex-1">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{requirement.name}</h4>
-                                                                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${serviceInfo.color}`}>{serviceInfo.label}</span>
-                                                                    </div>
-                                                                    <p className="text-xs text-gray-600 dark:text-gray-300 capitalize">{requirement.rate_type}</p>
-                                                                </div>
-                                                                <div className="text-right">
-                                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm">₪{requirement.cost}</p>
-                                                                    <button onClick={() => removeRequirement(index)} className="text-red-500 hover:text-red-700 text-xs">
-                                                                        {t('remove')}
-                                                                    </button>
-                                                                </div>
-                                                            </motion.div>
-                                                        );
-                                                    })}
-                                                </div>
+                                                </motion.div>
                                             )}
 
-                                            {/* Total */}
-                                            <div className="border-t border-gray-200/30 dark:border-slate-700/50 mt-4 pt-4">
-                                                <div className="flex items-center justify-between text-lg font-bold text-gray-900 dark:text-white">
-                                                    <span>{t('total')}</span>
-                                                    <span>{totalPrice}</span>
-                                                </div>
-                                            </div>
+                                            {/* Guides */}
+                                            {shouldShowServiceType('guides') && guides.length > 0 && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: 0.1 }}
+                                                    className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                                >
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                        <div className="w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center">
+                                                            <IconUsers className="w-4 h-4 text-white" />
+                                                        </div>
+                                                        {t('guides')}
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {guides.map((guide) => {
+                                                            const selected = isSelected('guides', guide.id);
+                                                            const selectedReq = selectedRequirements.find((req) => req.type === 'guides' && req.id === guide.id);
 
-                                            {/* Validation Errors */}
-                                            {(() => {
-                                                const validation = getValidationErrors();
-                                                return !validation.isValid ? (
-                                                    <div className="mt-4 p-3 bg-red-50/10 dark:bg-red-900/10 border border-red-200/30 dark:border-red-700/30 rounded-lg">
-                                                        <p className="text-red-600 dark:text-red-400 text-sm font-medium mb-2">{t('missing_required')}:</p>
-                                                        <ul className="text-red-600 dark:text-red-400 text-sm space-y-1">
-                                                            {validation.errors.map((error, idx) => (
-                                                                <li key={idx}>• {error}</li>
-                                                            ))}
-                                                        </ul>
+                                                            return (
+                                                                <div key={guide.id} className="space-y-2">
+                                                                    <motion.div
+                                                                        whileHover={{ scale: 1.02 }}
+                                                                        whileTap={{ scale: 0.98 }}
+                                                                        onClick={() => selectGuide(guide)}
+                                                                        className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                            selected
+                                                                                ? 'border-green-500 bg-green-50/10 dark:bg-green-900/10'
+                                                                                : 'border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-600'
+                                                                        }`}
+                                                                    >
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div>
+                                                                                <h4 className="font-semibold text-gray-900 dark:text-white">{guide.name}</h4>
+                                                                                <p className="text-sm text-gray-600 dark:text-gray-300">{guide.phone}</p>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                                    ₪{guide.daily_rate}/{t('day')}
+                                                                                </p>
+                                                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                                    ₪{guide.hourly_rate}/{t('hr')}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </motion.div>
+
+                                                                    {/* Rate Type Selection Buttons - Show when selected */}
+                                                                    {selected && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, height: 0 }}
+                                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                                            exit={{ opacity: 0, height: 0 }}
+                                                                            className="grid grid-cols-4 gap-2 px-3"
+                                                                        >
+                                                                            {[
+                                                                                { value: 'hourly', label: t('hourly'), rate: guide.hourly_rate },
+                                                                                { value: 'daily', label: t('daily'), rate: guide.daily_rate },
+                                                                                { value: 'regional', label: t('regional'), rate: guide.daily_rate * 1.5 },
+                                                                                { value: 'overnight', label: t('overnight'), rate: guide.daily_rate * 2 },
+                                                                            ].map((rateOption) => (
+                                                                                <button
+                                                                                    key={rateOption.value}
+                                                                                    onClick={() =>
+                                                                                        updateRequirementRateType(
+                                                                                            selectedRequirements.findIndex((r) => r.type === 'guides' && r.id === guide.id),
+                                                                                            rateOption.value as any,
+                                                                                        )
+                                                                                    }
+                                                                                    className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                        selectedReq?.rate_type === rateOption.value
+                                                                                            ? 'bg-green-500 text-white shadow-lg'
+                                                                                            : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-green-100 dark:hover:bg-green-900/20'
+                                                                                    }`}
+                                                                                >
+                                                                                    <div>{rateOption.label}</div>
+                                                                                    <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
+                                                                                </button>
+                                                                            ))}
+                                                                        </motion.div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                ) : null;
-                                            })()}
+                                                </motion.div>
+                                            )}
 
-                                            {/* Checkout Button */}
-                                            <motion.button
-                                                whileHover={getValidationErrors().isValid ? { scale: 1.02 } : {}}
-                                                whileTap={getValidationErrors().isValid ? { scale: 0.98 } : {}}
-                                                onClick={openCheckout}
-                                                disabled={!getValidationErrors().isValid}
-                                                className={`w-full mt-6 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                                                    getValidationErrors().isValid
-                                                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer shadow-lg hover:shadow-emerald-500/25'
-                                                        : 'bg-red-500 text-white cursor-not-allowed opacity-75'
-                                                }`}
-                                            >
-                                                {getValidationErrors().isValid ? t('proceed_to_booking') : t('select_required_services_first')}
-                                            </motion.button>
+                                            {/* Security Companies */}
+                                            {shouldShowServiceType('security_companies') && securityCompanies.length > 0 && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: 0.2 }}
+                                                    className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                                >
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                        <div className="w-6 h-6 bg-yellow-500 rounded-lg flex items-center justify-center">
+                                                            <IconLock className="w-4 h-4 text-white" />
+                                                        </div>
+                                                        {t('security')}
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {securityCompanies.map((security) => {
+                                                            const selected = isSelected('security_companies', security.id);
+                                                            const selectedReq = selectedRequirements.find((req) => req.type === 'security_companies' && req.id === security.id);
+
+                                                            return (
+                                                                <div key={security.id} className="space-y-2">
+                                                                    <motion.div
+                                                                        whileHover={{ scale: 1.02 }}
+                                                                        whileTap={{ scale: 0.98 }}
+                                                                        onClick={() => selectSecurity(security)}
+                                                                        className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                            selected
+                                                                                ? 'border-yellow-500 bg-yellow-50/10 dark:bg-yellow-900/10'
+                                                                                : 'border-gray-200/50 dark:border-slate-700/50 hover:border-yellow-300 dark:hover:border-yellow-600'
+                                                                        }`}
+                                                                    >
+                                                                        <div className="flex items-center justify-between">
+                                                                            <div>
+                                                                                <h4 className="font-semibold text-gray-900 dark:text-white">{security.name}</h4>
+                                                                                <p className="text-sm text-gray-600 dark:text-gray-300">{security.phone}</p>
+                                                                            </div>
+                                                                            <div className="text-right">
+                                                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                                                    ₪{security.daily_rate}/{t('day')}
+                                                                                </p>
+                                                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                                                    ₪{security.hourly_rate}/{t('hr')}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                    </motion.div>
+
+                                                                    {/* Rate Type Selection Buttons - Show when selected */}
+                                                                    {selected && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, height: 0 }}
+                                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                                            exit={{ opacity: 0, height: 0 }}
+                                                                            className="grid grid-cols-4 gap-2 px-3"
+                                                                        >
+                                                                            {[
+                                                                                { value: 'hourly', label: t('hourly'), rate: security.hourly_rate },
+                                                                                { value: 'daily', label: t('daily'), rate: security.daily_rate },
+                                                                                { value: 'regional', label: t('regional'), rate: security.daily_rate * 1.5 },
+                                                                                { value: 'overnight', label: t('overnight'), rate: security.daily_rate * 2 },
+                                                                            ].map((rateOption) => (
+                                                                                <button
+                                                                                    key={rateOption.value}
+                                                                                    onClick={() =>
+                                                                                        updateRequirementRateType(
+                                                                                            selectedRequirements.findIndex((r) => r.type === 'security_companies' && r.id === security.id),
+                                                                                            rateOption.value as any,
+                                                                                        )
+                                                                                    }
+                                                                                    className={`py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                        selectedReq?.rate_type === rateOption.value
+                                                                                            ? 'bg-yellow-500 text-white shadow-lg'
+                                                                                            : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-yellow-100 dark:hover:bg-yellow-900/20'
+                                                                                    }`}
+                                                                                >
+                                                                                    <div>{rateOption.label}</div>
+                                                                                    <div className="text-[10px] opacity-75">₪{rateOption.rate}</div>
+                                                                                </button>
+                                                                            ))}
+                                                                        </motion.div>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {/* Entertainment Companies */}
+                                            {shouldShowServiceType('external_entertainment_companies') && entertainmentCompanies.length > 0 && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: 0.3 }}
+                                                    className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                                >
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                        <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
+                                                            <IconPlayCircle className="w-4 h-4 text-white" />
+                                                        </div>
+                                                        {t('entertainment')}
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {entertainmentCompanies.map((entertainment) => (
+                                                            <motion.div
+                                                                key={entertainment.id}
+                                                                whileHover={{ scale: 1.02 }}
+                                                                whileTap={{ scale: 0.98 }}
+                                                                onClick={() => selectEntertainment(entertainment)}
+                                                                className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                    isSelected('external_entertainment_companies', entertainment.id)
+                                                                        ? 'border-purple-500 bg-purple-50/10 dark:bg-purple-900/10'
+                                                                        : 'border-gray-200/50 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-600'
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <div>
+                                                                        <h4 className="font-semibold text-gray-900 dark:text-white">{entertainment.name}</h4>
+                                                                        <p className="text-sm text-gray-600 dark:text-gray-300">{entertainment.description}</p>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{entertainment.price}</p>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('fixed_price')}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {/* Travel Companies */}
+                                            {shouldShowServiceType('travel_companies') && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: 0.4 }}
+                                                    className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                                >
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                        <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                                                            <IconCar className="w-4 h-4 text-white" />
+                                                        </div>
+                                                        {t('travel_companies')}
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {travelCompanies.map((travel) => (
+                                                            <motion.div
+                                                                key={travel.id}
+                                                                whileHover={{ scale: 1.02 }}
+                                                                whileTap={{ scale: 0.98 }}
+                                                                onClick={() => selectTravelCompany(travel)}
+                                                                className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                    isSelected('travel_companies', travel.id)
+                                                                        ? 'border-blue-500 bg-blue-50/10 dark:bg-blue-900/10'
+                                                                        : 'border-gray-200/50 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-600'
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <div>
+                                                                        <h4 className="font-semibold text-gray-900 dark:text-white">{travel.name}</h4>
+                                                                        <p className="text-sm text-gray-600 dark:text-gray-300">{travel.phone}</p>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{travel.pricing_data?.default_price || 100}</p>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('per_trip')}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </div>
+
+                                        {/* Right Column - Summary and Checkout */}
+                                        <div className="space-y-6">
+                                            {/* Selected Services Summary */}
+                                            <div className="bg-white/20 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl p-6 border border-white/30 dark:border-slate-700/40 sticky top-6 self-start overflow-y-auto">
+                                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                                                        <IconShoppingBag className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('booking_summary')}
+                                                </h3>
+
+                                                {selectedRequirements.length === 0 ? (
+                                                    <div className="text-center py-8">
+                                                        <div className="w-16 h-16 bg-gray-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                            <IconShoppingBag className="w-8 h-8 text-gray-400" />
+                                                        </div>
+                                                        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('no_services_selected')}</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        {selectedRequirements.map((requirement, index) => {
+                                                            // Get the service type label and color (matching the service icon colors)
+                                                            const getServiceTypeInfo = (type: string) => {
+                                                                const typeMap: { [key: string]: { label: string; color: string } } = {
+                                                                    paramedics: { label: t('paramedics') || 'Paramedics', color: 'bg-red-500/20 text-red-600 dark:text-red-400' },
+                                                                    guides: { label: t('guides') || 'Guides', color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
+                                                                    security_companies: {
+                                                                        label: t('security_companies') || 'Security',
+                                                                        color: 'bg-orange-500/20 text-orange-600 dark:text-orange-400',
+                                                                    },
+                                                                    external_entertainment_companies: {
+                                                                        label: t('external_entertainment_companies') || 'Entertainment',
+                                                                        color: 'bg-purple-500/20 text-purple-600 dark:text-purple-400',
+                                                                    },
+                                                                    travel_companies: { label: t('travel_companies') || 'Transportation', color: 'bg-blue-500/20 text-blue-600 dark:text-blue-400' },
+                                                                };
+                                                                return typeMap[type] || { label: type, color: 'bg-gray-500/20 text-gray-600 dark:text-gray-400' };
+                                                            };
+
+                                                            const serviceInfo = getServiceTypeInfo(requirement.type);
+
+                                                            return (
+                                                                <motion.div
+                                                                    key={index}
+                                                                    initial={{ opacity: 0, x: 20 }}
+                                                                    animate={{ opacity: 1, x: 0 }}
+                                                                    className="flex items-center justify-between p-3 bg-white/10 dark:bg-slate-700/20 rounded-lg"
+                                                                >
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center gap-2 mb-1">
+                                                                            <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{requirement.name}</h4>
+                                                                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${serviceInfo.color}`}>{serviceInfo.label}</span>
+                                                                        </div>
+                                                                        <p className="text-xs text-gray-600 dark:text-gray-300 capitalize">{requirement.rate_type}</p>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="font-semibold text-gray-900 dark:text-white text-sm">₪{requirement.cost}</p>
+                                                                        <button onClick={() => removeRequirement(index)} className="text-red-500 hover:text-red-700 text-xs">
+                                                                            {t('remove')}
+                                                                        </button>
+                                                                    </div>
+                                                                </motion.div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+
+                                                {/* Total */}
+                                                <div className="border-t border-gray-200/30 dark:border-slate-700/50 mt-4 pt-4">
+                                                    <div className="flex items-center justify-between text-lg font-bold text-gray-900 dark:text-white">
+                                                        <span>{t('total')}</span>
+                                                        <span>{totalPrice}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Validation Errors */}
+                                                {(() => {
+                                                    const validation = getValidationErrors();
+                                                    return !validation.isValid ? (
+                                                        <div className="mt-4 p-3 bg-red-50/10 dark:bg-red-900/10 border border-red-200/30 dark:border-red-700/30 rounded-lg">
+                                                            <p className="text-red-600 dark:text-red-400 text-sm font-medium mb-2">{t('missing_required')}:</p>
+                                                            <ul className="text-red-600 dark:text-red-400 text-sm space-y-1">
+                                                                {validation.errors.map((error, idx) => (
+                                                                    <li key={idx}>• {error}</li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    ) : null;
+                                                })()}
+
+                                                {/* Checkout Button */}
+                                                <motion.button
+                                                    whileHover={getValidationErrors().isValid ? { scale: 1.02 } : {}}
+                                                    whileTap={getValidationErrors().isValid ? { scale: 0.98 } : {}}
+                                                    onClick={openCheckout}
+                                                    disabled={!getValidationErrors().isValid}
+                                                    className={`w-full mt-6 px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                                                        getValidationErrors().isValid
+                                                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer shadow-lg hover:shadow-emerald-500/25'
+                                                            : 'bg-red-500 text-white cursor-not-allowed opacity-75'
+                                                    }`}
+                                                >
+                                                    {getValidationErrors().isValid ? t('proceed_to_booking') : t('select_required_services_first')}
+                                                </motion.button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </motion.div>
+                            </motion.div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>

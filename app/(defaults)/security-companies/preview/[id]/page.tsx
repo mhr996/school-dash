@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import Image from 'next/image';
 
 // Components
 import IconArrowLeft from '@/components/icon/icon-arrow-left';
@@ -17,6 +18,7 @@ import IconCalendar from '@/components/icon/icon-calendar';
 import IconClipboardText from '@/components/icon/icon-clipboard-text';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
+import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
 import { getTranslation } from '@/i18n';
 
@@ -33,6 +35,7 @@ interface SecurityCompany {
     weapon_types?: string;
     status?: string;
     notes?: string;
+    profile_picture_path?: string | null;
 }
 
 const SecurityCompanyPreview = () => {
@@ -278,6 +281,22 @@ const SecurityCompanyPreview = () => {
 
                 {/* Sidebar */}
                 <div className="space-y-6">
+                    {/* Profile Picture */}
+                    <div className="panel">
+                        <div className="mb-5">
+                            <h3 className="text-lg font-semibold">{t('profile_picture')}</h3>
+                        </div>
+                        <div className="flex justify-center">
+                            <Image
+                                src={getServiceProfilePictureUrlWithFallback(company.profile_picture_path, 'security_companies')}
+                                alt={company.name}
+                                width={200}
+                                height={200}
+                                className="rounded-lg object-cover"
+                            />
+                        </div>
+                    </div>
+
                     {/* Metadata */}
                     <div className="panel">
                         <div className="mb-5">

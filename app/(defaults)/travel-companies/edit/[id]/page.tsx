@@ -13,6 +13,7 @@ import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import CustomSelect, { SelectOption } from '@/components/elements/custom-select';
+import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePictureUpload';
 
 interface PricingData {
     [vehicleType: string]: {
@@ -42,6 +43,7 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
     const [activeTab, setActiveTab] = useState(0);
+    const [profilePicturePath, setProfilePicturePath] = useState<string | null>(null);
     const [formData, setFormData] = useState<TravelCompanyForm>({
         name: '',
         code: '',
@@ -135,6 +137,8 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
                     status: data.status || 'active',
                     notes: data.notes || '',
                 });
+
+                setProfilePicturePath(data.profile_picture_path || null);
 
                 // Set pricing data
                 if (data.pricing_data) {
@@ -288,6 +292,30 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
         if (activeTab === 0) {
             return (
                 <div className="space-y-6">
+                    {/* Profile Picture - At the top */}
+                    <div className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex justify-center">
+                            <ServiceProfilePictureUpload
+                                serviceType="travel_companies"
+                                serviceId={params.id}
+                                currentPicturePath={profilePicturePath}
+                                onUploadSuccess={(path) => {
+                                    setProfilePicturePath(path);
+                                    setAlert({ message: t('profile_picture_updated'), type: 'success' });
+                                }}
+                                onUploadError={(error) => {
+                                    setAlert({ message: error, type: 'danger' });
+                                }}
+                                onRemoveSuccess={() => {
+                                    setProfilePicturePath(null);
+                                    setAlert({ message: t('profile_picture_removed'), type: 'success' });
+                                }}
+                                size="lg"
+                                label={t('profile_picture')}
+                            />
+                        </div>
+                    </div>
+
                     {/* Company Information */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -443,7 +471,10 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('status')}</label>
                             <CustomSelect value={formData.status} onChange={(value) => handleInputChange('status', value)} options={statusOptions} placeholder={t('select_status')} />
                         </div>
+                    </div>
 
+                    {/* Notes */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 {t('notes')}

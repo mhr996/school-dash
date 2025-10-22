@@ -87,7 +87,7 @@ const ServiceProfileUpload: React.FC<ServiceProfileUploadProps> = ({
         }
     };
 
-    const displayUrl = previewUrl || (currentUrl ? getServiceProfileUrl(currentUrl) : null);
+    const displayUrl = previewUrl || (currentUrl ? getServiceProfileUrl(currentUrl) : '/assets/images/img-placeholder-fallback.webp');
 
     return (
         <div className="flex flex-col items-center gap-4">
@@ -96,7 +96,7 @@ const ServiceProfileUpload: React.FC<ServiceProfileUploadProps> = ({
                     <div
                         className={`${sizeClasses[size]} rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center border-4 border-white dark:border-gray-800 shadow-lg`}
                     >
-                        {displayUrl ? <img src={displayUrl} alt="Profile" className="w-full h-full object-cover" /> : <IconUser className="w-1/2 h-1/2 text-gray-400" />}
+                        <img src={displayUrl} alt="Profile" className="w-full h-full object-cover" />
                     </div>
 
                     {/* Overlay */}

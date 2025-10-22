@@ -1,6 +1,6 @@
 import supabase from '@/lib/supabase';
 
-export type ServiceType = 'guides' | 'paramedics';
+export type ServiceType = 'guides' | 'paramedics' | 'security_companies' | 'travel_companies' | 'entertainment' | 'education_programs';
 
 /**
  * Upload a profile picture for a service provider (guide or paramedic)
