@@ -13,6 +13,7 @@ import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import { generateTaxInvoiceForBooking, checkExistingTaxInvoice } from '@/utils/bill-generator';
+import { createBookingPayoutRecords, checkBookingHasPayouts } from '@/utils/payout-manager';
 
 interface BookingEditData {
     id: string;
@@ -37,7 +38,7 @@ interface BookingEditData {
     created_at: string;
     updated_at: string;
     services: Array<{
-        type: 'paramedics' | 'guides' | 'security_companies' | 'external_entertainment_companies';
+        type: 'paramedics' | 'guides' | 'security_companies' | 'external_entertainment_companies' | 'travel_companies' | 'education_programs';
         id: string | number;
         name: string;
         quantity: number;
@@ -65,6 +66,8 @@ interface ServiceData {
     guides: ServiceOption[];
     security_companies: ServiceOption[];
     external_entertainment_companies: ServiceOption[];
+    travel_companies: ServiceOption[];
+    education_programs: ServiceOption[];
 }
 
 export default function EditBooking() {
@@ -83,6 +86,8 @@ export default function EditBooking() {
         guides: [],
         security_companies: [],
         external_entertainment_companies: [],
+        travel_companies: [],
+        education_programs: [],
     });
 
     const [alert, setAlert] = useState<{
@@ -187,11 +192,13 @@ export default function EditBooking() {
                 });
 
                 // Fetch all service options for the dropdowns
-                const [paramedicsData, guidesData, securityData, entertainmentData] = await Promise.all([
+                const [paramedicsData, guidesData, securityData, entertainmentData, travelData, educationData] = await Promise.all([
                     supabase.from('paramedics').select('id, name, hourly_rate, daily_rate'),
                     supabase.from('guides').select('id, name, hourly_rate, daily_rate'),
                     supabase.from('security_companies').select('id, name'),
                     supabase.from('external_entertainment_companies').select('id, name, price'),
+                    supabase.from('travel_companies').select('id, name'),
+                    supabase.from('education_programs').select('id, name, price'),
                 ]);
 
                 setServiceData({
@@ -199,6 +206,8 @@ export default function EditBooking() {
                     guides: guidesData.data || [],
                     security_companies: securityData.data || [],
                     external_entertainment_companies: entertainmentData.data || [],
+                    travel_companies: travelData.data || [],
+                    education_programs: educationData.data || [],
                 });
 
                 // For each service in the booking, fetch the current details
@@ -223,6 +232,14 @@ export default function EditBooking() {
                                 case 'external_entertainment_companies':
                                     const { data: entertainmentData } = await supabase.from('external_entertainment_companies').select('id, name, price').eq('id', service.id).single();
                                     currentServiceData = entertainmentData;
+                                    break;
+                                case 'travel_companies':
+                                    const { data: travelData } = await supabase.from('travel_companies').select('id, name').eq('id', service.id).single();
+                                    currentServiceData = travelData;
+                                    break;
+                                case 'education_programs':
+                                    const { data: educationData } = await supabase.from('education_programs').select('id, name, price').eq('id', service.id).single();
+                                    currentServiceData = educationData;
                                     break;
                             }
                         } catch (error) {
@@ -258,11 +275,20 @@ export default function EditBooking() {
                     guides: [...(guidesData.data || [])],
                     security_companies: [...(securityData.data || [])],
                     external_entertainment_companies: [...(entertainmentData.data || [])],
+                    travel_companies: [...(travelData.data || [])],
+                    education_programs: [...(educationData.data || [])],
                 };
 
                 // Add currently selected services to the dropdown options if they're not already there
                 enrichedServices.forEach((service: any) => {
                     const serviceArray = enrichedServiceData[service.type as keyof typeof enrichedServiceData];
+
+                    // Skip if service type is not recognized
+                    if (!serviceArray) {
+                        console.warn(`Unknown service type: ${service.type}`);
+                        return;
+                    }
+
                     const existsInOptions = serviceArray.some((option: any) => String(option.id) === String(service.id));
 
                     console.log(`Checking service ${service.name} (ID: ${service.id}) of type ${service.type}:`, {
@@ -480,7 +506,7 @@ export default function EditBooking() {
                 }
             }
 
-            // Auto-generate tax invoice when booking is confirmed
+            // Auto-generate tax invoice and payout records when booking is confirmed
             console.log('Debug info:', {
                 isConfirming,
                 calculatedTotal,
@@ -502,6 +528,10 @@ export default function EditBooking() {
                     services: booking.services,
                 });
 
+                let alertMessages: string[] = [];
+                let hasErrors = false;
+
+                // Generate tax invoice
                 const { exists } = await checkExistingTaxInvoice(bookingId);
                 console.log('Existing tax invoice check result:', exists);
 
@@ -522,27 +552,57 @@ export default function EditBooking() {
 
                     if (taxInvoiceResult.success) {
                         console.log('✅ Tax invoice generated successfully:', taxInvoiceResult.bill?.bill_number);
-                        setAlert({
-                            visible: true,
-                            message: `${t('booking_updated_successfully')} ${t('tax_invoice_generated')}: ${taxInvoiceResult.bill?.bill_number}`,
-                            type: 'success',
-                        });
+                        alertMessages.push(`${t('tax_invoice_generated')}: ${taxInvoiceResult.bill?.bill_number}`);
                     } else {
                         console.error('❌ Failed to generate tax invoice:', taxInvoiceResult.error);
-                        setAlert({
-                            visible: true,
-                            message: `${t('booking_updated_successfully')} ${t('tax_invoice_generation_failed')}: ${taxInvoiceResult.error}`,
-                            type: 'success', // Still success for the booking update
-                        });
+                        alertMessages.push(`${t('tax_invoice_generation_failed')}: ${taxInvoiceResult.error}`);
+                        hasErrors = true;
                     }
                 } else {
                     console.log('ℹ️ Tax invoice already exists for this booking');
-                    setAlert({
-                        visible: true,
-                        message: t('booking_updated_successfully'),
-                        type: 'success',
-                    });
                 }
+
+                // Create payout records for service providers
+                console.log('🚀 Creating payout records for service providers...');
+
+                // Get current user ID
+                const {
+                    data: { user },
+                } = await supabase.auth.getUser();
+                const currentUserId = user?.id;
+
+                if (currentUserId) {
+                    const { data: userData } = await supabase.from('users').select('id').eq('auth_user_id', currentUserId).single();
+
+                    if (userData) {
+                        const payoutResult = await createBookingPayoutRecords(bookingId, booking.booking_reference, userData.id);
+
+                        console.log('Payout records creation result:', payoutResult);
+
+                        if (payoutResult.success) {
+                            const recordCount = payoutResult.records?.length || 0;
+                            if (recordCount > 0) {
+                                console.log(`✅ Created ${recordCount} payout records for service providers`);
+                                alertMessages.push(`Created ${recordCount} payout record(s) for service providers`);
+                            } else {
+                                console.log('ℹ️ No new payout records created (may already exist)');
+                            }
+                        } else {
+                            console.error('❌ Failed to create payout records:', payoutResult.error);
+                            alertMessages.push(`Warning: Payout records creation failed - ${payoutResult.error}`);
+                            hasErrors = true;
+                        }
+                    }
+                }
+
+                // Show consolidated alert message
+                const message = alertMessages.length > 0 ? `${t('booking_updated_successfully')}. ${alertMessages.join('. ')}` : t('booking_updated_successfully');
+
+                setAlert({
+                    visible: true,
+                    message,
+                    type: 'success',
+                });
             } else {
                 console.log('❌ Tax invoice generation skipped:', {
                     bookingStatus: booking.status,
