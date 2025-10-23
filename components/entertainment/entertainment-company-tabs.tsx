@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { Tab } from '@headlessui/react';
+import { useState, useEffect, Fragment } from 'react';
+import { Tab, Transition } from '@headlessui/react';
 import supabase from '@/lib/supabase';
 import { getTranslation } from '@/i18n';
 import IconPlus from '@/components/icon/icon-plus';
@@ -8,13 +8,18 @@ import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconSave from '@/components/icon/icon-save';
 import IconEdit from '@/components/icon/icon-edit';
 import IconStar from '@/components/icon/icon-star';
-import { Alert } from '@/components/elements/alerts/elements-alerts-default';
+import IconX from '@/components/icon/icon-x';
 import ImageUpload from '@/components/image-upload/image-upload';
+import ConfirmModal from '@/components/modals/confirm-modal';
+import { uploadSubServiceIcon, deleteSubServiceIcon, getSubServiceIconUrl } from '@/utils/sub-service-icon-upload';
 
 interface EntertainmentCompanyService {
     id?: string;
     service_label: string;
     service_price: number;
+    icon_path?: string | null;
+    pendingIconFile?: File | null; // Temporary storage for new service icons
+    pendingIconPreview?: string | null; // Preview URL for pending icons
 }
 
 interface EntertainmentCompanyTabsProps {
@@ -35,11 +40,23 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
     const [services, setServices] = useState<EntertainmentCompanyService[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
-        visible: false,
-        message: '',
-        type: 'success',
-    });
+
+    // Toast notification state
+    const [showAlert, setShowAlert] = useState(false);
+    const [alertMessage, setAlertMessage] = useState('');
+    const [alertType, setAlertType] = useState<'success' | 'error'>('success');
+
+    // Confirm modal state
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
+
+    // Helper function to show alert
+    const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
+        setAlertMessage(message);
+        setAlertType(type);
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
+    };
 
     // Basic info state
     const [basicInfo, setBasicInfo] = useState({
@@ -63,11 +80,7 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
             setServices(data || []);
         } catch (error) {
             console.error('Error fetching services:', error);
-            setAlert({
-                visible: true,
-                message: t('error_loading_services') || 'שגיאה בטעינת שירותים',
-                type: 'danger',
-            });
+            showNotification(t('error_loading_services') || 'Error loading services', 'error');
         } finally {
             setLoading(false);
         }
@@ -79,6 +92,7 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
             {
                 service_label: '',
                 service_price: 0,
+                icon_path: null,
             },
         ]);
     };
@@ -92,35 +106,142 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
         setServices(updatedServices);
     };
 
-    const handleDeleteService = async (index: number) => {
+    const handleServiceIconUpload = async (index: number, file: File) => {
         const service = services[index];
 
+        // If service is not yet saved, store the file temporarily
+        if (!service.id) {
+            const previewUrl = URL.createObjectURL(file);
+            const updatedServices = [...services];
+            updatedServices[index] = {
+                ...updatedServices[index],
+                pendingIconFile: file,
+                pendingIconPreview: previewUrl,
+            };
+            setServices(updatedServices);
+
+            showNotification(t('icon_will_be_uploaded_on_save') || 'Icon will be uploaded when you save the service', 'success');
+            return;
+        }
+
+        // For existing services, upload immediately
+        try {
+            const result = await uploadSubServiceIcon({
+                serviceType: 'entertainment_company_services',
+                parentServiceId: companyId,
+                subServiceId: service.id,
+                file,
+            });
+
+            if (result.success && result.path) {
+                // Update the service in state
+                const updatedServices = [...services];
+                updatedServices[index] = {
+                    ...updatedServices[index],
+                    icon_path: result.path,
+                };
+                setServices(updatedServices);
+
+                showNotification(t('icon_uploaded_successfully') || 'Icon uploaded successfully', 'success');
+
+                // Refresh services to get updated data
+                await fetchServices();
+            } else {
+                throw new Error(result.error || 'Upload failed');
+            }
+        } catch (error) {
+            console.error('Error uploading icon:', error);
+            showNotification(error instanceof Error ? error.message : t('error_uploading_icon') || 'Error uploading icon', 'error');
+        }
+    };
+
+    const handleServiceIconDelete = async (index: number) => {
+        const service = services[index];
+
+        // If it's a pending icon (not yet saved), just remove it from state
+        if (!service.id && service.pendingIconPreview) {
+            URL.revokeObjectURL(service.pendingIconPreview);
+            const updatedServices = [...services];
+            updatedServices[index] = {
+                ...updatedServices[index],
+                pendingIconFile: null,
+                pendingIconPreview: null,
+            };
+            setServices(updatedServices);
+            return;
+        }
+
+        if (!service.id || !service.icon_path) return;
+
+        try {
+            const result = await deleteSubServiceIcon('entertainment_company_services', companyId, service.id);
+
+            if (result.success) {
+                // Update the service in state
+                const updatedServices = [...services];
+                updatedServices[index] = {
+                    ...updatedServices[index],
+                    icon_path: null,
+                };
+                setServices(updatedServices);
+
+                showNotification(t('icon_deleted_successfully') || 'Icon deleted successfully', 'success');
+            } else {
+                throw new Error(result.error || 'Delete failed');
+            }
+        } catch (error) {
+            console.error('Error deleting icon:', error);
+            showNotification(error instanceof Error ? error.message : t('error_deleting_icon') || 'Error deleting icon', 'error');
+        }
+    };
+
+    const handleDeleteService = async (index: number) => {
+        setServiceToDelete(index);
+        setShowConfirmModal(true);
+    };
+
+    const confirmDeleteService = async () => {
+        if (serviceToDelete === null) return;
+
+        const service = services[serviceToDelete];
+
+        // Clean up preview URL if exists
+        if (service.pendingIconPreview) {
+            URL.revokeObjectURL(service.pendingIconPreview);
+        }
+
         if (service.id) {
+            // Delete icon from storage if exists
+            if (service.icon_path) {
+                try {
+                    await deleteSubServiceIcon('entertainment_company_services', companyId, service.id);
+                } catch (error) {
+                    console.error('Error deleting service icon:', error);
+                }
+            }
+
             // Delete from database
             try {
                 const { error } = await supabase.from('entertainment_company_services').delete().eq('id', service.id);
 
                 if (error) throw error;
 
-                setAlert({
-                    visible: true,
-                    message: t('service_deleted_successfully') || 'השירות נמחק בהצלחה',
-                    type: 'success',
-                });
+                showNotification(t('service_deleted_successfully') || 'Service deleted successfully', 'success');
             } catch (error) {
                 console.error('Error deleting service:', error);
-                setAlert({
-                    visible: true,
-                    message: t('error_deleting_service') || 'שגיאה במחיקת שירות',
-                    type: 'danger',
-                });
+                showNotification(t('error_deleting_service') || 'Error deleting service', 'error');
+                setShowConfirmModal(false);
+                setServiceToDelete(null);
                 return;
             }
         }
 
         // Remove from state
-        const updatedServices = services.filter((_, i) => i !== index);
+        const updatedServices = services.filter((_, i) => i !== serviceToDelete);
         setServices(updatedServices);
+
+        setShowConfirmModal(false);
+        setServiceToDelete(null);
     };
 
     const handleSaveBasicInfo = async () => {
@@ -140,20 +261,12 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
 
             if (error) throw error;
 
-            setAlert({
-                visible: true,
-                message: t('basic_info_updated_successfully') || 'המידע הבסיסי עודכן בהצלחה',
-                type: 'success',
-            });
+            showNotification(t('basic_info_updated_successfully') || 'Basic information updated successfully', 'success');
 
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error('Error updating basic info:', error);
-            setAlert({
-                visible: true,
-                message: t('error_updating_basic_info') || 'שגיאה בעדכון מידע בסיסי',
-                type: 'danger',
-            });
+            showNotification(t('error_updating_basic_info') || 'Error updating basic information', 'error');
         } finally {
             setSaving(false);
         }
@@ -167,11 +280,7 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
             const invalidServices = services.filter((s) => !s.service_label || s.service_label.trim() === '' || s.service_price < 0);
 
             if (invalidServices.length > 0) {
-                setAlert({
-                    visible: true,
-                    message: t('please_fill_all_service_fields') || 'אנא מלא את כל שדות השירות',
-                    type: 'danger',
-                });
+                showNotification(t('please_fill_all_service_fields') || 'Please fill all service fields', 'error');
                 setSaving(false);
                 return;
             }
@@ -180,17 +289,47 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
             const newServices = services.filter((s) => !s.id);
             const existingServices = services.filter((s) => s.id);
 
-            // Insert new services
+            // Insert new services and get their IDs
+            let insertedServices: any[] = [];
             if (newServices.length > 0) {
-                const { error: insertError } = await supabase.from('entertainment_company_services').insert(
-                    newServices.map((s) => ({
-                        entertainment_company_id: companyId,
-                        service_label: s.service_label,
-                        service_price: s.service_price,
-                    })),
-                );
+                const { data: inserted, error: insertError } = await supabase
+                    .from('entertainment_company_services')
+                    .insert(
+                        newServices.map((s) => ({
+                            entertainment_company_id: companyId,
+                            service_label: s.service_label,
+                            service_price: s.service_price,
+                        })),
+                    )
+                    .select();
 
                 if (insertError) throw insertError;
+                insertedServices = inserted || [];
+
+                // Upload pending icons for newly inserted services
+                for (let i = 0; i < newServices.length; i++) {
+                    const newService = newServices[i];
+                    const insertedService = insertedServices[i];
+
+                    if (newService.pendingIconFile && insertedService?.id) {
+                        try {
+                            await uploadSubServiceIcon({
+                                serviceType: 'entertainment_company_services',
+                                parentServiceId: companyId,
+                                subServiceId: insertedService.id,
+                                file: newService.pendingIconFile,
+                            });
+
+                            // Clean up preview URL
+                            if (newService.pendingIconPreview) {
+                                URL.revokeObjectURL(newService.pendingIconPreview);
+                            }
+                        } catch (iconError) {
+                            console.error('Error uploading pending icon:', iconError);
+                            // Continue with other icons even if one fails
+                        }
+                    }
+                }
             }
 
             // Update existing services
@@ -206,21 +345,13 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
                 if (updateError) throw updateError;
             }
 
-            setAlert({
-                visible: true,
-                message: t('services_saved_successfully') || 'השירותים נשמרו בהצלחה',
-                type: 'success',
-            });
+            showNotification(t('services_saved_successfully') || 'Services saved successfully', 'success');
 
             // Refresh services
             await fetchServices();
         } catch (error) {
             console.error('Error saving services:', error);
-            setAlert({
-                visible: true,
-                message: t('error_saving_services') || 'שגיאה בשמירת שירותים',
-                type: 'danger',
-            });
+            showNotification(t('error_saving_services') || 'Error saving services', 'error');
         } finally {
             setSaving(false);
         }
@@ -228,12 +359,7 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
 
     return (
         <div>
-            {alert.visible && (
-                <div className="mb-4">
-                    <Alert type={alert.type} message={alert.message} onClose={() => setAlert({ ...alert, visible: false })} />
-                </div>
-            )}
-
+            {' '}
             <Tab.Group>
                 <Tab.List className="flex space-x-1 rtl:space-x-reverse rounded-xl bg-blue-900/20 p-1 mb-6">
                     <Tab
@@ -350,20 +476,12 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
                                                     url={basicInfo.image || null}
                                                     onUploadComplete={(url) => {
                                                         setBasicInfo({ ...basicInfo, image: url });
-                                                        setAlert({
-                                                            visible: true,
-                                                            message: t('image_uploaded_successfully') || 'התמונה הועלתה בהצלחה',
-                                                            type: 'success',
-                                                        });
+                                                        showNotification(t('image_uploaded_successfully') || 'Image uploaded successfully', 'success');
                                                     }}
                                                     onError={(error) => {
-                                                        setAlert({
-                                                            visible: true,
-                                                            message: error,
-                                                            type: 'danger',
-                                                        });
+                                                        showNotification(error, 'error');
                                                     }}
-                                                    buttonLabel={t('upload_image') || 'העלה תמונה'}
+                                                    buttonLabel={t('upload_image') || 'Upload Image'}
                                                 />
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">{t('supported_formats') || 'פורמטים נתמכים'}: JPG, PNG, GIF</p>
                                             </div>
@@ -430,6 +548,7 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
                                             <thead>
                                                 <tr className="bg-gray-50 dark:bg-gray-800">
                                                     <th className="px-4 py-3  text-sm font-semibold text-gray-700 dark:text-gray-300">#</th>
+                                                    <th className="px-4 py-3  text-sm font-semibold text-gray-700 dark:text-gray-300">{t('icon') || 'אייקון'}</th>
                                                     <th className="px-4 py-3  text-sm font-semibold text-gray-700 dark:text-gray-300">
                                                         {t('service_name') || 'שם השירות'} <span className="text-red-500">*</span>
                                                     </th>
@@ -443,6 +562,54 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
                                                 {services.map((service, index) => (
                                                     <tr key={service.id || `new-${index}`} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                                                         <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{index + 1}</td>
+                                                        <td className="px-4 py-3">
+                                                            <div className="flex items-center gap-2">
+                                                                {service.icon_path || service.pendingIconPreview ? (
+                                                                    <div className="relative group">
+                                                                        <img
+                                                                            src={service.pendingIconPreview || getSubServiceIconUrl('entertainment_company_services', service.icon_path || null) || ''}
+                                                                            alt={service.service_label}
+                                                                            className="w-12 h-12 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                                                                            onError={(e) => {
+                                                                                e.currentTarget.src = '/assets/images/img-placeholder-fallback.webp';
+                                                                            }}
+                                                                        />
+                                                                        {service.pendingIconPreview && (
+                                                                            <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full text-[10px]">
+                                                                                {t('pending') || 'ממתין'}
+                                                                            </div>
+                                                                        )}
+                                                                        <button
+                                                                            onClick={() => handleServiceIconDelete(index)}
+                                                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                            title={t('delete_icon') || 'מחק אייקון'}
+                                                                        >
+                                                                            ×
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                                                                        <IconStar className="w-6 h-6 text-gray-400" />
+                                                                    </div>
+                                                                )}
+                                                                <label className="cursor-pointer">
+                                                                    <input
+                                                                        type="file"
+                                                                        accept="image/*"
+                                                                        className="hidden"
+                                                                        onChange={(e) => {
+                                                                            const file = e.target.files?.[0];
+                                                                            if (file) {
+                                                                                handleServiceIconUpload(index, file);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <span className="btn btn-sm btn-outline-primary">
+                                                                        {service.icon_path || service.pendingIconPreview ? t('change') : t('upload')}
+                                                                    </span>
+                                                                </label>
+                                                            </div>
+                                                        </td>
                                                         <td className="px-4 py-3">
                                                             <input
                                                                 type="text"
@@ -489,6 +656,41 @@ export default function EntertainmentCompanyTabs({ companyId, companyData, onUpd
                     </Tab.Panel>
                 </Tab.Panels>
             </Tab.Group>
+            {/* Confirm Delete Modal */}
+            <ConfirmModal
+                isOpen={showConfirmModal}
+                title={t('confirm_delete') || 'Confirm Delete'}
+                message={t('confirm_delete_service_message') || 'Are you sure you want to delete this service? This action cannot be undone.'}
+                onCancel={() => {
+                    setShowConfirmModal(false);
+                    setServiceToDelete(null);
+                }}
+                onConfirm={confirmDeleteService}
+                confirmLabel={t('delete') || 'Delete'}
+                cancelLabel={t('cancel') || 'Cancel'}
+            />
+            {/* Toast Notification */}
+            <Transition
+                show={showAlert}
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4"
+                enterTo="opacity-100 translate-y-0"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0"
+                leaveTo="opacity-0 translate-y-4"
+            >
+                <div className="fixed top-20 right-5 z-[9999] max-w-md">
+                    <div className={`rounded-lg p-4 shadow-lg ${alertType === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                        <div className="flex items-center gap-3">
+                            <div className="flex-1">{alertMessage}</div>
+                            <button type="button" onClick={() => setShowAlert(false)} className="hover:opacity-80">
+                                <IconX className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
         </div>
     );
 }

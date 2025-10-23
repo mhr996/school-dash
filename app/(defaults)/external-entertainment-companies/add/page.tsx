@@ -26,11 +26,6 @@ interface EntertainmentCompanyForm {
     user_password: string;
 }
 
-interface SubService {
-    service_label: string;
-    service_price: number;
-}
-
 export default function AddEntertainmentCompany() {
     const { t } = getTranslation();
     const router = useRouter();
@@ -47,7 +42,6 @@ export default function AddEntertainmentCompany() {
         user_password: '',
     });
 
-    const [subServices, setSubServices] = useState<SubService[]>([]);
     const [roles, setRoles] = useState<any[]>([]);
 
     const [alert, setAlert] = useState<{ visible: boolean; message: string; type: 'success' | 'danger' }>({
@@ -81,20 +75,6 @@ export default function AddEntertainmentCompany() {
         }));
     };
 
-    const handleAddService = () => {
-        setSubServices([...subServices, { service_label: '', service_price: 0 }]);
-    };
-
-    const handleServiceChange = (index: number, field: keyof SubService, value: any) => {
-        const updated = [...subServices];
-        updated[index] = { ...updated[index], [field]: value };
-        setSubServices(updated);
-    };
-
-    const handleDeleteService = (index: number) => {
-        setSubServices(subServices.filter((_, i) => i !== index));
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -111,19 +91,6 @@ export default function AddEntertainmentCompany() {
         if (!formData.user_password.trim() || formData.user_password.length < 6) {
             setAlert({ visible: true, message: t('password_min_6_chars'), type: 'danger' });
             return;
-        }
-
-        // Validate sub-services if any
-        if (subServices.length > 0) {
-            const invalidServices = subServices.filter((s) => !s.service_label.trim() || s.service_price < 0);
-            if (invalidServices.length > 0) {
-                setAlert({
-                    visible: true,
-                    message: t('please_fill_all_service_fields') || 'נא למלא את כל שדות השירות',
-                    type: 'danger',
-                });
-                return;
-            }
         }
 
         setIsLoading(true);
@@ -187,28 +154,15 @@ export default function AddEntertainmentCompany() {
             if (insertError) throw insertError;
             if (!companyData) throw new Error('Company creation failed');
 
-            // 5) Insert sub-services if any
-            if (subServices.length > 0) {
-                const { error: servicesError } = await supabase.from('entertainment_company_services').insert(
-                    subServices.map((s) => ({
-                        entertainment_company_id: companyData.id,
-                        service_label: s.service_label.trim(),
-                        service_price: s.service_price,
-                    })),
-                );
-
-                if (servicesError) throw servicesError;
-            }
-
             setAlert({
                 visible: true,
                 message: t('entertainment_company_added_successfully'),
                 type: 'success',
             });
 
-            // Redirect after success
+            // Redirect to edit page to add sub-services
             setTimeout(() => {
-                router.push('/external-entertainment-companies');
+                router.push(`/external-entertainment-companies/edit/${companyData.id}`);
             }, 1500);
         } catch (error) {
             console.error('Error adding entertainment company:', error);
@@ -266,7 +220,6 @@ export default function AddEntertainmentCompany() {
                                         }`}
                                     >
                                         {t('services_provided') || 'שירותים מוצעים'}
-                                        {subServices.length > 0 && <span className="ltr:ml-2 rtl:mr-2 badge bg-primary text-white">{subServices.length}</span>}
                                     </button>
                                 )}
                             </Tab>
@@ -427,83 +380,26 @@ export default function AddEntertainmentCompany() {
                             {/* Services Tab */}
                             <Tab.Panel>
                                 <div className="p-5">
-                                    <div className="mb-5 flex items-center justify-between flex-wrap gap-3">
-                                        <div>
-                                            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">{t('services_provided') || 'שירותים מוצעים'}</h3>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('manage_sub_services_pricing') || 'נהל שירותי משנה ותמחור'}</p>
+                                    <div className="flex items-center justify-center py-16">
+                                        <div className="text-center max-w-md">
+                                            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-info/10 flex items-center justify-center">
+                                                <IconStar className="w-10 h-10 text-info" />
+                                            </div>
+                                            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-2">
+                                                {t('services_available_after_creation') || 'Sub-Services Available After Creation'}
+                                            </h3>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                                {t('services_available_after_creation_desc') ||
+                                                    'You will be able to add sub-services and their icons after creating the entertainment company. Click "Save" below to create the company first.'}
+                                            </p>
+                                            <div className="inline-flex items-center gap-2 px-4 py-2 bg-info/10 text-info rounded-lg text-sm">
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                <span>{t('redirected_after_save') || 'You will be redirected to the edit page after saving'}</span>
+                                            </div>
                                         </div>
-                                        <button type="button" onClick={handleAddService} className="btn btn-primary gap-2">
-                                            <IconPlus className="w-5 h-5" />
-                                            {t('add_service') || 'הוסף שירות'}
-                                        </button>
                                     </div>
-
-                                    {subServices.length === 0 ? (
-                                        <div className="text-center py-12">
-                                            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
-                                                <IconStar className="w-8 h-8 text-primary" />
-                                            </div>
-                                            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-1">{t('no_services_yet') || 'אין שירותים עדיין'}</h3>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{t('click_add_service_to_start') || 'לחץ על "הוסף שירות" כדי להתחיל'}</p>
-                                            <button type="button" onClick={handleAddService} className="btn btn-outline-primary gap-2">
-                                                <IconPlus className="w-4 h-4" />
-                                                {t('add_first_service') || 'הוסף שירות ראשון'}
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="overflow-x-auto">
-                                            <table className="table-auto w-full">
-                                                <thead>
-                                                    <tr className="bg-gray-50 dark:bg-gray-800">
-                                                        <th className="px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300">#</th>
-                                                        <th className="px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                                            {t('service_name') || 'שם השירות'} <span className="text-red-500">*</span>
-                                                        </th>
-                                                        <th className="px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300">
-                                                            {t('price') || 'מחיר'} (₪) <span className="text-red-500">*</span>
-                                                        </th>
-                                                        <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-700 dark:text-gray-300">{t('actions') || 'פעולות'}</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                                    {subServices.map((service, index) => (
-                                                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                                                            <td className="px-3 py-2.5 text-sm text-gray-600 dark:text-gray-400">{index + 1}</td>
-                                                            <td className="px-3 py-2.5">
-                                                                <input
-                                                                    type="text"
-                                                                    className="form-input w-full"
-                                                                    value={service.service_label}
-                                                                    onChange={(e) => handleServiceChange(index, 'service_label', e.target.value)}
-                                                                    placeholder={t('label')}
-                                                                />
-                                                            </td>
-                                                            <td className="px-3 py-2.5">
-                                                                <input
-                                                                    type="number"
-                                                                    min="0"
-                                                                    step="0.01"
-                                                                    className="form-input w-full max-w-[150px]"
-                                                                    value={service.service_price}
-                                                                    onChange={(e) => handleServiceChange(index, 'service_price', parseFloat(e.target.value) || 0)}
-                                                                    placeholder="0.00"
-                                                                />
-                                                            </td>
-                                                            <td className="px-3 py-2.5 text-center">
-                                                                <button type="button" onClick={() => handleDeleteService(index)} className="btn btn-sm btn-outline-danger">
-                                                                    <IconTrashLines className="w-4 h-4" />
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-
-                                            <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
-                                                {subServices.length} {subServices.length === 1 ? t('service') || 'שירות' : t('services') || 'שירותים'}
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </Tab.Panel>
                         </Tab.Panels>

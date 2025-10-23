@@ -131,17 +131,12 @@ CREATE TABLE public.destinations (
   CONSTRAINT destinations_pkey PRIMARY KEY (id),
   CONSTRAINT destinations_zone_id_fkey FOREIGN KEY (zone_id) REFERENCES public.zones(id)
 );
-CREATE TABLE public.destinations_pricing_backup (
-  id uuid,
-  name text,
-  pricing jsonb,
-  created_at timestamp with time zone
-);
 CREATE TABLE public.education_program_services (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   education_program_id uuid NOT NULL,
   service_label character varying NOT NULL,
   service_price numeric NOT NULL DEFAULT 0,
+  icon_path text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   CONSTRAINT education_program_services_pkey PRIMARY KEY (id),
@@ -165,6 +160,7 @@ CREATE TABLE public.entertainment_company_services (
   entertainment_company_id uuid NOT NULL,
   service_label character varying NOT NULL,
   service_price numeric NOT NULL DEFAULT 0 CHECK (service_price >= 0::numeric),
+  icon_path text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT entertainment_company_services_pkey PRIMARY KEY (id),
@@ -244,7 +240,6 @@ CREATE TABLE public.payments (
 );
 CREATE TABLE public.payouts (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  type character varying NOT NULL DEFAULT 'payment'::character varying CHECK (type::text = ANY (ARRAY['booking'::character varying::text, 'payment'::character varying::text])),
   service_type character varying NOT NULL CHECK (service_type::text = ANY (ARRAY['guides'::character varying::text, 'paramedics'::character varying::text, 'security_companies'::character varying::text, 'external_entertainment_companies'::character varying::text, 'travel_companies'::character varying::text, 'education_programs'::character varying::text])),
   service_id uuid NOT NULL,
   user_id uuid NOT NULL,
@@ -261,12 +256,13 @@ CREATE TABLE public.payouts (
   check_bank_name character varying,
   description text,
   notes text,
-  booking_service_id uuid,
-  booking_record_id uuid,
-  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text])),
   created_by uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  type character varying NOT NULL DEFAULT 'payment'::character varying CHECK (type::text = ANY (ARRAY['booking'::character varying::text, 'payment'::character varying::text])),
+  booking_service_id uuid,
+  booking_record_id uuid,
+  status character varying DEFAULT 'pending'::character varying CHECK (status::text = ANY (ARRAY['pending'::character varying::text, 'paid'::character varying::text, 'cancelled'::character varying::text])),
   CONSTRAINT payouts_pkey PRIMARY KEY (id),
   CONSTRAINT payouts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT payouts_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id),
