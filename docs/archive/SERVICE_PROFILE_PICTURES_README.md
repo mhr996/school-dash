@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the **unified approach** for managing profile pictures across **ALL service types** in the application. Every service now uses a consistent field name (`profile_picture_path`) and organized storage structure.
+This document describes the **unified approach** for managing profile pictures across **ALL service types** in the application. Every service now uses a consistent field name (`profile_picture_url`) and organized storage structure.
 
 ## Database Changes
 
@@ -10,25 +10,25 @@ This document describes the **unified approach** for managing profile pictures a
 
 - **File**: `supabase_migration_unify_service_profile_pictures.sql`
 - **Changes**:
-    - ✅ Added `profile_picture_path` to `security_companies`
-    - ✅ Added `profile_picture_path` to `travel_companies`
-    - ✅ Renamed `image` → `profile_picture_path` in `education_programs`
-    - ✅ Renamed `image` → `profile_picture_path` in `external_entertainment_companies`
-    - ✅ Renamed `profile_picture_url` → `profile_picture_path` in `guides`
-    - ✅ Renamed `profile_picture_url` → `profile_picture_path` in `paramedics`
+    - ✅ Added `profile_picture_url` to `security_companies`
+    - ✅ Added `profile_picture_url` to `travel_companies`
+    - ✅ Renamed `image` → `profile_picture_url` in `education_programs`
+    - ✅ Renamed `image` → `profile_picture_url` in `external_entertainment_companies`
+    - ✅ Renamed `profile_picture_url` → `profile_picture_url` in `guides`
+    - ✅ Renamed `profile_picture_url` → `profile_picture_url` in `paramedics`
 
 ### Unified Field Name
 
-**All services now use:** `profile_picture_path TEXT`
+**All services now use:** `profile_picture_url TEXT`
 
-| Service Type  | Table Name                         | Field Name             |
-| ------------- | ---------------------------------- | ---------------------- |
-| Guides        | `guides`                           | `profile_picture_path` |
-| Paramedics    | `paramedics`                       | `profile_picture_path` |
-| Security      | `security_companies`               | `profile_picture_path` |
-| Entertainment | `external_entertainment_companies` | `profile_picture_path` |
-| Travel        | `travel_companies`                 | `profile_picture_path` |
-| Education     | `education_programs`               | `profile_picture_path` |
+| Service Type  | Table Name                         | Field Name            |
+| ------------- | ---------------------------------- | --------------------- |
+| Guides        | `guides`                           | `profile_picture_url` |
+| Paramedics    | `paramedics`                       | `profile_picture_url` |
+| Security      | `security_companies`               | `profile_picture_url` |
+| Entertainment | `external_entertainment_companies` | `profile_picture_url` |
+| Travel        | `travel_companies`                 | `profile_picture_url` |
+| Education     | `education_programs`               | `profile_picture_url` |
 
 ### Storage Structure
 
@@ -151,10 +151,10 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
 <ServiceProfilePictureUpload
     serviceType="guides"
     serviceId={guide.id}
-    currentPicturePath={guide.profile_picture_path}
+    currentPicturePath={guide.profile_picture_url}
     onUploadSuccess={(path, url) => {
         // Update your state
-        setGuide({ ...guide, profile_picture_path: path });
+        setGuide({ ...guide, profile_picture_url: path });
         toast.success('Photo updated!');
     }}
     size="lg"
@@ -165,7 +165,7 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
 ### Display Only (No Editing)
 
 ```tsx
-<ServiceProfilePictureUpload serviceType="paramedics" serviceId={paramedic.id} currentPicturePath={paramedic.profile_picture_path} size="md" editable={false} />
+<ServiceProfilePictureUpload serviceType="paramedics" serviceId={paramedic.id} currentPicturePath={paramedic.profile_picture_url} size="md" editable={false} />
 ```
 
 ### With Custom Callbacks
@@ -174,7 +174,7 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
 <ServiceProfilePictureUpload
     serviceType="security_companies"
     serviceId={security.id}
-    currentPicturePath={security.profile_picture_path}
+    currentPicturePath={security.profile_picture_url}
     onUploadSuccess={(path, url) => {
         // Refresh data from server
         mutate(`/api/security/${security.id}`);
@@ -195,7 +195,7 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
 import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
 // In your component
-<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_path, 'guides')} alt={service.name} className="w-20 h-20 rounded-full object-cover" />;
+<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_url, 'guides')} alt={service.name} className="w-20 h-20 rounded-full object-cover" />;
 ```
 
 ## Integration Guide
@@ -222,7 +222,7 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
     <ServiceProfilePictureUpload
         serviceType="guides"
         serviceId={guide.id}
-        currentPicturePath={guide.profile_picture_path}
+        currentPicturePath={guide.profile_picture_url}
         onUploadSuccess={() => {
             // Refresh or update state
             router.refresh();
@@ -245,7 +245,7 @@ import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile
 {
     services.map((service) => (
         <div key={service.id}>
-            <img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_path, serviceType)} alt={service.name} className="w-16 h-16 rounded-full" />
+            <img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_url, serviceType)} alt={service.name} className="w-16 h-16 rounded-full" />
         </div>
     ));
 }
@@ -326,7 +326,7 @@ USING (bucket_id = 'services');
 
 ### Image Not Displaying
 
-1. ✅ Check if `profile_picture_path` is stored in database
+1. ✅ Check if `profile_picture_url` is stored in database
 2. ✅ Verify file exists in storage bucket
 3. ✅ Check storage policies allow public read
 4. ✅ Inspect network tab for image URL errors

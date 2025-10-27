@@ -209,7 +209,7 @@ const AddSecurityCompany = () => {
                     // Don't fail the whole operation, just log the error
                 } else {
                     // Update security company with profile picture path
-                    await supabase.from('security_companies').update({ profile_picture_path: uploadResult.path }).eq('id', data.id);
+                    await supabase.from('security_companies').update({ profile_picture_url: uploadResult.path }).eq('id', data.id);
                 }
             }
 

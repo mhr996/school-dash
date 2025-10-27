@@ -275,7 +275,7 @@ const AddTravelCompany = () => {
                     // Don't fail the whole operation, just log the error
                 } else {
                     // Update travel company with profile picture path
-                    await supabase.from('travel_companies').update({ profile_picture_path: uploadResult.path }).eq('id', data.id);
+                    await supabase.from('travel_companies').update({ profile_picture_url: uploadResult.path }).eq('id', data.id);
                 }
             }
 

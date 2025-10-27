@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
 import { getPublicUrlFromPath } from '@/utils/file-upload';
+import { getServiceProfileUrl } from '@/utils/service-profile-upload';
 import IconX from '@/components/icon/icon-x';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconPhone from '@/components/icon/icon-phone';
@@ -43,6 +44,11 @@ interface ServiceItem {
     properties?: Array<{ value: string; icon: string | null }>;
     suitableFor?: string[];
     rating?: number;
+    // Sub-service specific fields
+    isSubService?: boolean;
+    parentServiceId?: string;
+    parentServiceName?: string;
+    subServiceType?: 'entertainment_company_services' | 'education_program_services';
     [key: string]: any;
 }
 
@@ -118,17 +124,32 @@ export default function ExplorePage() {
     const loadAllServices = async () => {
         setLoading(true);
         try {
-            const [{ data: destinations }, { data: guides }, { data: paramedics }, { data: security }, { data: entertainment }, { data: travel }, { data: education }, { data: zones }] =
-                await Promise.all([
-                    supabase.from('destinations_with_details').select('*').eq('is_active', true),
-                    supabase.from('guides').select('*').eq('status', 'active'),
-                    supabase.from('paramedics').select('*').eq('status', 'active'),
-                    supabase.from('security_companies').select('*').eq('status', 'active'),
-                    supabase.from('external_entertainment_companies').select('*').eq('status', 'active'),
-                    supabase.from('travel_companies').select('*').eq('status', 'active'),
-                    supabase.from('education_programs').select('*').eq('status', 'active'),
-                    supabase.from('zones').select('id, name'),
-                ]);
+            const [
+                { data: destinations },
+                { data: guides },
+                { data: paramedics },
+                { data: security },
+                { data: travel },
+                { data: zones },
+                { data: entertainmentServices },
+                { data: educationServices },
+            ] = await Promise.all([
+                supabase.from('destinations_with_details').select('*').eq('is_active', true),
+                supabase.from('guides').select('*').eq('status', 'active'),
+                supabase.from('paramedics').select('*').eq('status', 'active'),
+                supabase.from('security_companies').select('*').eq('status', 'active'),
+                supabase.from('travel_companies').select('*').eq('status', 'active'),
+                supabase.from('zones').select('id, name'),
+                // Fetch sub-services with parent info (parent services themselves are not shown)
+                supabase
+                    .from('entertainment_company_services')
+                    .select('*, entertainment_company:external_entertainment_companies!entertainment_company_services_entertainment_company_id_fkey(id, name, status)')
+                    .eq('entertainment_company.status', 'active'),
+                supabase
+                    .from('education_program_services')
+                    .select('*, education_program:education_programs!education_program_services_education_program_id_fkey(id, name, status)')
+                    .eq('education_program.status', 'active'),
+            ]);
 
             const zoneMap = new Map(zones?.map((z) => [z.id, z.name]) || []);
 
@@ -152,6 +173,7 @@ export default function ExplorePage() {
                     name: g.name,
                     category: 'guides' as ServiceCategory,
                     type: t('tour_guide'),
+                    image: g.profile_picture_url ? getServiceProfileUrl(g.profile_picture_url) : undefined,
                     phone: g.phone,
                     email: g.email,
                     hourlyRate: g.hourly_rate,
@@ -166,6 +188,7 @@ export default function ExplorePage() {
                     name: p.name,
                     category: 'paramedics' as ServiceCategory,
                     type: t('paramedic'),
+                    image: p.profile_picture_url ? getServiceProfileUrl(p.profile_picture_url) : undefined,
                     phone: p.phone,
                     email: p.email,
                     hourlyRate: p.hourly_rate,
@@ -180,6 +203,7 @@ export default function ExplorePage() {
                     name: s.name,
                     category: 'security' as ServiceCategory,
                     type: t('security_company'),
+                    image: s.profile_picture_url ? getServiceProfileUrl(s.profile_picture_url) : undefined,
                     phone: s.phone,
                     email: s.email,
                     address: s.address,
@@ -192,20 +216,22 @@ export default function ExplorePage() {
                     weaponTypes: s.weapon_types,
                     notes: s.notes,
                 })) || []),
-                ...(entertainment?.map((e) => ({
-                    id: e.id,
-                    name: e.name,
-                    category: 'entertainment' as ServiceCategory,
-                    type: t('entertainment_company'),
-                    description: e.description,
-                    image: e.image,
-                    price: e.price,
-                })) || []),
+                // NOTE: Parent entertainment companies are NOT shown - only sub-services below
+                // ...(entertainment?.map((e) => ({
+                //     id: e.id,
+                //     name: e.name,
+                //     category: 'entertainment' as ServiceCategory,
+                //     type: t('entertainment_company'),
+                //     description: e.description,
+                //     image: e.image,
+                //     price: e.price,
+                // })) || []),
                 ...(travel?.map((tr) => ({
                     id: tr.id,
                     name: tr.name,
                     category: 'travel' as ServiceCategory,
                     type: t('travel_company'),
+                    image: tr.profile_picture_url ? getServiceProfileUrl(tr.profile_picture_url) : undefined,
                     phone: tr.phone,
                     email: tr.email,
                     address: tr.address,
@@ -215,15 +241,46 @@ export default function ExplorePage() {
                     pricingData: tr.pricing_data,
                     notes: tr.notes,
                 })) || []),
-                ...(education?.map((ed) => ({
-                    id: ed.id,
-                    name: ed.name,
-                    category: 'education' as ServiceCategory,
-                    type: t('education_program'),
-                    description: ed.description,
-                    image: ed.image,
-                    price: ed.price,
-                })) || []),
+                // NOTE: Parent education programs are NOT shown - only sub-services below
+                // ...(education?.map((ed) => ({
+                //     id: ed.id,
+                //     name: ed.name,
+                //     category: 'education' as ServiceCategory,
+                //     type: t('education_program'),
+                //     description: ed.description,
+                //     image: ed.image,
+                //     price: ed.price,
+                // })) || []),
+                // Add entertainment sub-services as individual bookable items
+                ...(entertainmentServices
+                    ?.filter((es: any) => es.entertainment_company)
+                    .map((es: any) => ({
+                        id: es.id,
+                        name: es.service_label,
+                        category: 'entertainment' as ServiceCategory,
+                        type: t('entertainment_service') || 'Entertainment Service',
+                        parentServiceId: es.entertainment_company_id,
+                        parentServiceName: es.entertainment_company.name,
+                        price: es.service_price,
+                        image: es.icon_path ? getPublicUrlFromPath(es.icon_path) : undefined,
+                        isSubService: true,
+                        subServiceType: 'entertainment_company_services' as const,
+                    })) || []),
+                // Add education sub-services as individual bookable items
+                ...(educationServices
+                    ?.filter((eds: any) => eds.education_program)
+                    .map((eds: any) => ({
+                        id: eds.id,
+                        name: eds.service_label,
+                        category: 'education' as ServiceCategory,
+                        type: t('education_service') || 'Education Service',
+                        parentServiceId: eds.education_program_id,
+                        parentServiceName: eds.education_program.name,
+                        price: eds.service_price,
+                        image: eds.icon_path ? getPublicUrlFromPath(eds.icon_path) : undefined,
+                        isSubService: true,
+                        subServiceType: 'education_program_services' as const,
+                    })) || []),
             ];
 
             setServices(allServices);
@@ -346,7 +403,13 @@ export default function ExplorePage() {
         const params = new URLSearchParams({
             bookingType,
             ...(service.category === 'destinations' && { destinationId: service.id }),
-            ...(serviceType && { serviceType, serviceId: service.id }),
+            ...(serviceType && {
+                serviceType,
+                // If it's a sub-service, use the parent service ID
+                serviceId: service.isSubService ? service.parentServiceId! : service.id,
+                // Add sub-service ID if applicable
+                ...(service.isSubService && { subServiceId: service.id }),
+            }),
         });
 
         router.push(`/?${params.toString()}`);
@@ -691,6 +754,13 @@ export default function ExplorePage() {
                                             <div className="p-5">
                                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-1">{service.name}</h3>
 
+                                                {/* Show parent service name for sub-services */}
+                                                {service.isSubService && service.parentServiceName && (
+                                                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-2">
+                                                        {t('provider') || 'Provider'}: {service.parentServiceName}
+                                                    </p>
+                                                )}
+
                                                 {service.description && <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{service.description}</p>}
 
                                                 <div className="space-y-2">
@@ -793,6 +863,14 @@ export default function ExplorePage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Left Column */}
                                     <div className="space-y-4">
+                                        {/* Show parent service for sub-services */}
+                                        {selectedService.isSubService && selectedService.parentServiceName && (
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('provider') || 'Provider'}</h3>
+                                                <p className="text-blue-600 dark:text-blue-400 font-medium">{selectedService.parentServiceName}</p>
+                                            </div>
+                                        )}
+
                                         {selectedService.description && (
                                             <div>
                                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('description')}</h3>

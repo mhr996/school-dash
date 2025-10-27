@@ -58,7 +58,7 @@
 │  │       └── profile.ext   │  │  • education_programs        │
 │  ├── security_companies/    │  │                              │
 │  │   └── {id}/             │  │  All have:                   │
-│  │       └── profile.ext   │  │  profile_picture_path TEXT   │
+│  │       └── profile.ext   │  │  profile_picture_url TEXT   │
 │  ├── entertainment/         │  │                              │
 │  │   └── {id}/             │  │                              │
 │  │       └── profile.ext   │  │                              │
@@ -108,7 +108,7 @@ User selects file
          │
          ↓
 ┌─────────────────┐
-│  Update         │ ← Update profile_picture_path in DB
+│  Update         │ ← Update profile_picture_url in DB
 │  Database       │
 └────────┬────────┘
          │
@@ -159,33 +159,33 @@ User deletes service
 │  ├── email                ├── email                    │
 │  ├── hourly_rate          ├── hourly_rate              │
 │  ├── daily_rate           ├── daily_rate               │
-│  └── profile_picture_path └── profile_picture_path     │
+│  └── profile_picture_url └── profile_picture_url     │
 │                                                         │
 │  paramedics               entertainment                 │
 │  ├── id (uuid)            ├── id (uuid)                │
 │  ├── name                 ├── name                     │
 │  ├── phone                ├── description              │
 │  ├── email                ├── price                    │
-│  ├── hourly_rate          └── profile_picture_path     │
+│  ├── hourly_rate          └── profile_picture_url     │
 │  ├── daily_rate                                        │
-│  └── profile_picture_path travel_companies             │
+│  └── profile_picture_url travel_companies             │
 │                           ├── id (uuid)                │
 │                           ├── name                     │
 │                           ├── code                     │
 │                           ├── email                    │
 │                           ├── phone                    │
-│                           └── profile_picture_path     │
+│                           └── profile_picture_url     │
 │                                                         │
 │                           education_programs            │
 │                           ├── id (uuid)                │
 │                           ├── name                     │
 │                           ├── description              │
 │                           ├── price                    │
-│                           └── profile_picture_path     │
+│                           └── profile_picture_url     │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 
-Key: profile_picture_path (TEXT) - Unified across all tables
+Key: profile_picture_url (TEXT) - Unified across all tables
 ```
 
 ## 🎯 Integration Points

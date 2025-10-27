@@ -36,7 +36,7 @@ interface TravelCompany {
     status: string;
     notes?: string;
     balance?: number;
-    profile_picture_path?: string | null;
+    profile_picture_url?: string | null;
 }
 
 const TravelCompaniesList = () => {
@@ -260,10 +260,10 @@ const TravelCompaniesList = () => {
                             {
                                 accessor: 'profile_picture',
                                 title: t('picture'),
-                                render: ({ profile_picture_path, name }) => (
+                                render: ({ profile_picture_url, name }) => (
                                     <div className="flex items-center justify-center">
                                         <Image
-                                            src={getServiceProfilePictureUrlWithFallback(profile_picture_path, 'travel_companies')}
+                                            src={getServiceProfilePictureUrlWithFallback(profile_picture_url, 'travel_companies')}
                                             alt={name}
                                             width={40}
                                             height={40}

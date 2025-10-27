@@ -85,10 +85,11 @@ export async function uploadSubServiceIcon({
             data: { publicUrl },
         } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
-        // Update the database with the icon path
+        // Update the database with the icon path (include bucket name for clarity)
         const table = serviceType === 'entertainment_company_services' ? 'entertainment_company_services' : 'education_program_services';
+        const fullPath = `${bucket}/${filePath}`; // Include bucket name in path
 
-        const { error: updateError } = await supabase.from(table).update({ icon_path: filePath }).eq('id', subServiceId);
+        const { error: updateError } = await supabase.from(table).update({ icon_path: fullPath }).eq('id', subServiceId);
 
         if (updateError) {
             console.error('Database update error:', updateError);
@@ -181,11 +182,26 @@ export async function deleteSubServiceIcon(serviceType: SubServiceType, parentSe
 export function getSubServiceIconUrl(serviceType: SubServiceType, iconPath: string | null): string | null {
     if (!iconPath) return null;
 
-    const bucket = serviceType === 'entertainment_company_services' ? 'entertainment-companies' : 'destinations-properties';
+    // Check if the path already includes the bucket name
+    const bucketForType = serviceType === 'entertainment_company_services' ? 'entertainment-companies' : 'destinations-properties';
+    
+    let bucket: string;
+    let filePath: string;
+    
+    if (iconPath.startsWith('entertainment-companies/') || iconPath.startsWith('destinations-properties/')) {
+        // New format: bucket is included in the path
+        const pathParts = iconPath.split('/');
+        bucket = pathParts[0];
+        filePath = pathParts.slice(1).join('/');
+    } else {
+        // Old format: bucket is not included
+        bucket = bucketForType;
+        filePath = iconPath;
+    }
 
     const {
         data: { publicUrl },
-    } = supabase.storage.from(bucket).getPublicUrl(iconPath);
+    } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
     return publicUrl;
 }

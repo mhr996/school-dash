@@ -35,7 +35,7 @@ interface SecurityCompany {
     weapon_types?: string;
     status?: string;
     notes?: string;
-    profile_picture_path?: string | null;
+    profile_picture_url?: string | null;
 }
 
 const SecurityCompanyPreview = () => {
@@ -288,7 +288,7 @@ const SecurityCompanyPreview = () => {
                         </div>
                         <div className="flex justify-center">
                             <Image
-                                src={getServiceProfilePictureUrlWithFallback(company.profile_picture_path, 'security_companies')}
+                                src={getServiceProfilePictureUrlWithFallback(company.profile_picture_url, 'security_companies')}
                                 alt={company.name}
                                 width={200}
                                 height={200}

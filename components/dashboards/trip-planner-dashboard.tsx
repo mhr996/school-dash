@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { getTranslation } from '@/i18n';
 import supabase from '@/lib/supabase';
 import { getPublicUrlFromPath } from '@/utils/file-upload';
+import { getServiceProfileUrl } from '@/utils/service-profile-upload';
+import { getSubServiceIconUrl } from '@/utils/sub-service-icon-upload';
 import IconMapPin from '@/components/icon/icon-map-pin';
 import IconPlus from '@/components/icon/icon-plus';
 import IconEye from '@/components/icon/icon-eye';
@@ -62,6 +64,7 @@ type Paramedic = {
     hourly_rate: number;
     daily_rate: number;
     status: string;
+    profile_picture_url?: string | null;
 };
 
 type Guide = {
@@ -72,6 +75,7 @@ type Guide = {
     hourly_rate: number;
     daily_rate: number;
     status: string;
+    profile_picture_url?: string | null;
 };
 
 type SecurityCompany = {
@@ -82,6 +86,7 @@ type SecurityCompany = {
     hourly_rate: number;
     daily_rate: number;
     status: string;
+    profile_picture_url?: string | null;
 };
 
 type ExternalEntertainmentCompany = {
@@ -91,6 +96,7 @@ type ExternalEntertainmentCompany = {
     description?: string | null;
     image?: string | null;
     status: string;
+    profile_picture_url?: string | null;
 };
 
 type TravelCompany = {
@@ -100,6 +106,33 @@ type TravelCompany = {
     email?: string | null;
     pricing_data?: any;
     status: string;
+    profile_picture_url?: string | null;
+};
+
+type EntertainmentSubService = {
+    id: string;
+    service_label: string;
+    service_price: number;
+    icon_path?: string | null;
+    entertainment_company_id: string;
+    entertainment_company?: {
+        id: string;
+        name: string;
+        status: string;
+    };
+};
+
+type EducationSubService = {
+    id: string;
+    service_label: string;
+    service_price: number;
+    icon_path?: string | null;
+    education_program_id: string;
+    education_program?: {
+        id: string;
+        name: string;
+        status: string;
+    };
 };
 
 // Booking types
@@ -126,6 +159,7 @@ type RequirementSelection = {
     cost: number;
     hours?: number;
     days?: number;
+    sub_service_id?: string; // Optional sub-service ID for entertainment/education sub-services
 };
 
 // Helper function to format filter text (replace underscores with spaces and capitalize)
@@ -200,6 +234,8 @@ export default function TripPlannerDashboard() {
     const [guides, setGuides] = useState<Guide[]>([]);
     const [securityCompanies, setSecurityCompanies] = useState<SecurityCompany[]>([]);
     const [entertainmentCompanies, setEntertainmentCompanies] = useState<ExternalEntertainmentCompany[]>([]);
+    const [entertainmentSubServices, setEntertainmentSubServices] = useState<EntertainmentSubService[]>([]);
+    const [educationSubServices, setEducationSubServices] = useState<EducationSubService[]>([]);
     const [travelCompanies, setTravelCompanies] = useState<TravelCompany[]>([]);
     const [selectedRequirements, setSelectedRequirements] = useState<RequirementSelection[]>([]);
     const [totalPrice, setTotalPrice] = useState<number>(0);
@@ -298,6 +334,17 @@ export default function TripPlannerDashboard() {
             requiresDestination: false,
         },
         {
+            id: 'education_only',
+            title: t('education_only'),
+            description: t('education_programs_only'),
+            icon: IconBook,
+            color: 'from-orange-500 to-orange-600',
+            shadowColor: 'shadow-orange-500/25',
+            requiredServices: ['education_programs'],
+            allowsDestination: false,
+            requiresDestination: false,
+        },
+        {
             id: 'transportation_only',
             title: t('transportation_only'),
             description: t('travel_and_transportation_only'),
@@ -305,17 +352,6 @@ export default function TripPlannerDashboard() {
             color: 'from-indigo-500 to-indigo-600',
             shadowColor: 'shadow-indigo-500/25',
             requiredServices: ['travel_companies'],
-            allowsDestination: false,
-            requiresDestination: false,
-        },
-        {
-            id: 'education_only',
-            title: t('education_only'),
-            description: t('education_programs_only'),
-            icon: IconBook,
-            color: 'from-emerald-500 to-emerald-600',
-            shadowColor: 'shadow-emerald-500/25',
-            requiredServices: ['education_programs'],
             allowsDestination: false,
             requiresDestination: false,
         },
@@ -365,6 +401,7 @@ export default function TripPlannerDashboard() {
             const destinationId = searchParams.get('destinationId');
             const serviceType = searchParams.get('serviceType');
             const serviceId = searchParams.get('serviceId');
+            const subServiceId = searchParams.get('subServiceId'); // NEW: Get sub-service ID
 
             if (!bookingType) return;
 
@@ -441,19 +478,35 @@ export default function TripPlannerDashboard() {
                             const { data, error } = await supabase.from(tableName).select('*').eq('id', serviceId).single();
 
                             if (!error && data) {
-                                // Auto-select the service with default values
-                                const rateType: RateType = data.daily_rate ? 'daily' : data.hourly_rate ? 'hourly' : 'fixed';
-                                const cost = data.daily_rate || data.hourly_rate || data.fixed_rate || 0;
+                                // If sub-service is specified, fetch sub-service details
+                                let serviceName = data.name;
+                                let serviceCost = data.daily_rate || data.hourly_rate || data.price || 0;
+                                let rateType: RateType = data.daily_rate ? 'daily' : data.hourly_rate ? 'hourly' : 'fixed';
 
+                                if (subServiceId) {
+                                    // Fetch sub-service details
+                                    const subServiceTable = serviceType === 'external_entertainment_companies' ? 'entertainment_company_services' : 'education_program_services';
+
+                                    const { data: subServiceData, error: subServiceError } = await supabase.from(subServiceTable).select('*').eq('id', subServiceId).single();
+
+                                    if (!subServiceError && subServiceData) {
+                                        serviceName = `${subServiceData.service_label} (${data.name})`;
+                                        serviceCost = subServiceData.service_price;
+                                        rateType = 'fixed'; // Sub-services typically have fixed pricing
+                                    }
+                                }
+
+                                // Auto-select the service with default values
                                 setSelectedRequirements([
                                     {
                                         type: serviceTypeName,
                                         id: data.id,
-                                        name: data.name,
+                                        name: serviceName,
                                         quantity: 1,
                                         rate_type: rateType,
-                                        cost: cost,
+                                        cost: serviceCost,
                                         days: 1,
+                                        sub_service_id: subServiceId || undefined, // Store sub-service ID if present
                                     },
                                 ]);
                             }
@@ -569,30 +622,61 @@ export default function TripPlannerDashboard() {
                 { data: guidesData, error: guidesError },
                 { data: securityData, error: securityError },
                 { data: entertainmentData, error: entertainmentError },
+                { data: entertainmentSubServicesData, error: entertainmentSubServicesError },
+                { data: educationSubServicesData, error: educationSubServicesError },
                 { data: travelData, error: travelError },
             ] = await Promise.all([
-                // Paramedics: id, name, phone, email, hourly_rate, daily_rate, status
-                supabase.from('paramedics').select('id, name, phone, email, hourly_rate, daily_rate, status').eq('status', 'active'),
-                // Guides: id, name, phone, email, hourly_rate, daily_rate, status
-                supabase.from('guides').select('id, name, phone, email, hourly_rate, daily_rate, status').eq('status', 'active'),
-                // Security companies: id, name, phone, email, hourly_rate, daily_rate, status
-                supabase.from('security_companies').select('id, name, phone, email, hourly_rate, daily_rate, status').eq('status', 'active'),
-                // Entertainment companies: id, name, price, description, status
-                supabase.from('external_entertainment_companies').select('id, name, price, description, status').eq('status', 'active'),
-                // Travel companies: id, name, phone, email, pricing_data, status
-                supabase.from('travel_companies').select('id, name, phone, email, pricing_data, status').eq('status', 'active'),
+                // Paramedics: id, name, phone, email, hourly_rate, daily_rate, status, profile_picture_url
+                supabase.from('paramedics').select('id, name, phone, email, hourly_rate, daily_rate, status, profile_picture_url').eq('status', 'active'),
+                // Guides: id, name, phone, email, hourly_rate, daily_rate, status, profile_picture_url
+                supabase.from('guides').select('id, name, phone, email, hourly_rate, daily_rate, status, profile_picture_url').eq('status', 'active'),
+                // Security companies: id, name, phone, email, hourly_rate, daily_rate, status, profile_picture_url
+                supabase.from('security_companies').select('id, name, phone, email, hourly_rate, daily_rate, status, profile_picture_url').eq('status', 'active'),
+                // Entertainment companies: id, name, price, description, status, profile_picture_url
+                supabase.from('external_entertainment_companies').select('id, name, price, description, status, profile_picture_url').eq('status', 'active'),
+                // Entertainment sub-services with parent company info
+                supabase
+                    .from('entertainment_company_services')
+                    .select(
+                        'id, service_label, service_price, icon_path, entertainment_company_id, entertainment_company:external_entertainment_companies!entertainment_company_services_entertainment_company_id_fkey(id, name, status)',
+                    )
+                    .eq('entertainment_company.status', 'active'),
+                // Education sub-services with parent program info
+                supabase
+                    .from('education_program_services')
+                    .select(
+                        'id, service_label, service_price, icon_path, education_program_id, education_program:education_programs!education_program_services_education_program_id_fkey(id, name, status)',
+                    )
+                    .eq('education_program.status', 'active'),
+                // Travel companies: id, name, phone, email, pricing_data, status, profile_picture_url
+                supabase.from('travel_companies').select('id, name, phone, email, pricing_data, status, profile_picture_url').eq('status', 'active'),
             ]);
 
             if (paramedicsError) throw paramedicsError;
             if (guidesError) throw guidesError;
             if (securityError) throw securityError;
             if (entertainmentError) throw entertainmentError;
+            if (entertainmentSubServicesError) throw entertainmentSubServicesError;
+            if (educationSubServicesError) throw educationSubServicesError;
             if (travelError) throw travelError;
 
             setParamedics(paramedicsData || []);
             setGuides(guidesData || []);
             setSecurityCompanies(securityData || []);
             setEntertainmentCompanies(entertainmentData || []);
+            // Process sub-services to flatten the parent object
+            setEntertainmentSubServices(
+                (entertainmentSubServicesData || []).map((item: any) => ({
+                    ...item,
+                    entertainment_company: Array.isArray(item.entertainment_company) ? item.entertainment_company[0] : item.entertainment_company,
+                })),
+            );
+            setEducationSubServices(
+                (educationSubServicesData || []).map((item: any) => ({
+                    ...item,
+                    education_program: Array.isArray(item.education_program) ? item.education_program[0] : item.education_program,
+                })),
+            );
             setTravelCompanies(travelData || []);
         } catch (error) {
             console.error('Error loading requirements data:', error);
@@ -885,21 +969,43 @@ export default function TripPlannerDashboard() {
         }
     };
 
-    const selectEntertainment = (entertainment: ExternalEntertainmentCompany) => {
-        if (isSelected('external_entertainment_companies', entertainment.id)) {
+    const selectEntertainment = (subService: EntertainmentSubService) => {
+        if (isSelected('external_entertainment_companies', subService.id)) {
             // Remove if already selected
-            setSelectedRequirements((prev) => prev.filter((req) => !(req.type === 'external_entertainment_companies' && req.id === entertainment.id)));
+            setSelectedRequirements((prev) => prev.filter((req) => !(req.type === 'external_entertainment_companies' && req.id === subService.id)));
         } else {
-            // Add new selection
+            // Add new selection with sub_service_id
             setSelectedRequirements((prev) => [
                 ...prev,
                 {
                     type: 'external_entertainment_companies',
-                    id: entertainment.id,
-                    name: entertainment.name,
+                    id: subService.id,
+                    name: subService.service_label,
                     quantity: 1,
                     rate_type: 'fixed',
-                    cost: entertainment.price,
+                    cost: subService.service_price,
+                    sub_service_id: subService.id, // Store sub-service ID for booking
+                },
+            ]);
+        }
+    };
+
+    const selectEducation = (subService: EducationSubService) => {
+        if (isSelected('education_programs', subService.id)) {
+            // Remove if already selected
+            setSelectedRequirements((prev) => prev.filter((req) => !(req.type === 'education_programs' && req.id === subService.id)));
+        } else {
+            // Add new selection with sub_service_id
+            setSelectedRequirements((prev) => [
+                ...prev,
+                {
+                    type: 'education_programs',
+                    id: subService.id,
+                    name: subService.service_label,
+                    quantity: 1,
+                    rate_type: 'fixed',
+                    cost: subService.service_price,
+                    sub_service_id: subService.id, // Store sub-service ID for booking
                 },
             ]);
         }
@@ -1208,6 +1314,7 @@ export default function TripPlannerDashboard() {
                         days: requirement.days || 1,
                         booked_price: requirement.cost,
                         rate_type: requirement.rate_type || 'fixed',
+                        sub_service_id: requirement.sub_service_id || null, // Include sub-service ID if present
                     }));
 
                 if (validServiceRecords.length > 0) {
@@ -1374,6 +1481,18 @@ export default function TripPlannerDashboard() {
             color: 'from-purple-500 to-purple-600',
             onClick: () => {
                 setSelectedBookingType('entertainment_only');
+                setCurrentView('service-booking');
+                setShowTripDropdown(false);
+            },
+        },
+        {
+            id: 'education-programs',
+            title: t('education_programs'),
+            description: t('education_programs_only'),
+            icon: IconBook,
+            color: 'from-orange-500 to-orange-600',
+            onClick: () => {
+                setSelectedBookingType('education_only');
                 setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
@@ -1614,12 +1733,12 @@ export default function TripPlannerDashboard() {
                                     getPublicUrlFromPath={getPublicUrlFromPath}
                                 />
 
-                                {/* Entertainment Companies Section */}
+                                {/* Entertainment Sub-Services Section */}
                                 <motion.div variants={itemVariants} className="mb-16">
                                     <div className="relative -mx-6 mb-8 overflow-hidden">
                                         <div className="relative px-6 py-4 w-[96%] mx-auto rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 opacity-90">
                                             <div className="flex items-center justify-between">
-                                                <h2 className="text-3xl font-bold text-white drop-shadow-lg">{t('entertainment_companies')}</h2>
+                                                <h2 className="text-3xl font-bold text-white drop-shadow-lg">{t('entertainment')}</h2>
                                                 <motion.button
                                                     whileHover={{ scale: 1.05 }}
                                                     whileTap={{ scale: 0.95 }}
@@ -1635,11 +1754,11 @@ export default function TripPlannerDashboard() {
                                         </div>
                                     </div>
 
-                                    {entertainmentCompanies.length > 0 ? (
+                                    {entertainmentSubServices.length > 0 ? (
                                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                                            {entertainmentCompanies.slice(0, 10).map((company, index) => (
+                                            {entertainmentSubServices.slice(0, 10).map((subService, index) => (
                                                 <motion.div
-                                                    key={company.id}
+                                                    key={subService.id}
                                                     initial={{ scale: 0, opacity: 0 }}
                                                     animate={{ scale: 1, opacity: 1 }}
                                                     transition={{
@@ -1657,15 +1776,19 @@ export default function TripPlannerDashboard() {
                                                     onClick={() => {
                                                         setSelectedBookingType('entertainment_only');
                                                         setCurrentView('service-booking');
-                                                        selectEntertainment(company);
+                                                        selectEntertainment(subService);
                                                     }}
                                                 >
                                                     <div className="relative bg-white/20 dark:bg-slate-900/30 backdrop-blur-xl rounded-2xl overflow-visible shadow-xl hover:shadow-2xl border border-white/30 dark:border-slate-700/40 transition-all duration-500 hover:bg-white/30 dark:hover:bg-slate-900/40 hover:border-white/50 dark:hover:border-slate-600/60 flex flex-col w-full">
                                                         {/* Image */}
                                                         <div className="relative h-32 overflow-hidden rounded-t-2xl">
                                                             <img
-                                                                src={company.image ? company.image : '/assets/images/img-placeholder-fallback.webp'}
-                                                                alt={company.name}
+                                                                src={
+                                                                    subService.icon_path
+                                                                        ? getSubServiceIconUrl('entertainment_company_services', subService.icon_path) || '/assets/images/img-placeholder-fallback.webp'
+                                                                        : '/assets/images/img-placeholder-fallback.webp'
+                                                                }
+                                                                alt={subService.service_label}
                                                                 className="w-full h-full object-cover aspect-square group-hover:scale-110 transition-transform duration-500"
                                                             />
                                                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
@@ -1674,15 +1797,15 @@ export default function TripPlannerDashboard() {
                                                         {/* Content */}
                                                         <div className="p-3 bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm flex flex-col flex-grow">
                                                             <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1.5 line-clamp-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors duration-300 drop-shadow-sm leading-tight">
-                                                                {company.name}
+                                                                {subService.service_label}
                                                             </h3>
-                                                            {company.description && <p className="text-[10px] text-gray-600 dark:text-gray-400 mb-2.5 line-clamp-2">{company.description}</p>}
+                                                            <p className="text-[10px] text-purple-600 dark:text-purple-400 mb-2.5 line-clamp-1">
+                                                                {t('provider')}: {subService.entertainment_company?.name || 'Unknown'}
+                                                            </p>
 
                                                             {/* Price and Action Button */}
                                                             <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10 dark:border-slate-700/30 mt-auto">
-                                                                {company.price && (
-                                                                    <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm leading-none">₪{company.price}</div>
-                                                                )}
+                                                                <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 drop-shadow-sm leading-none">₪{subService.service_price}</div>
                                                                 <motion.button
                                                                     whileHover={{ scale: 1.05 }}
                                                                     whileTap={{ scale: 0.95 }}
@@ -1690,7 +1813,7 @@ export default function TripPlannerDashboard() {
                                                                         e.stopPropagation();
                                                                         setSelectedBookingType('entertainment_only');
                                                                         setCurrentView('service-booking');
-                                                                        selectEntertainment(company);
+                                                                        selectEntertainment(subService);
                                                                     }}
                                                                     className="bg-gradient-to-r from-orange-500/80 to-amber-600/80 hover:from-orange-600/90 hover:to-amber-700/90 backdrop-blur-md text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl border border-orange-400/30 whitespace-nowrap"
                                                                 >
@@ -2581,12 +2704,26 @@ export default function TripPlannerDashboard() {
                                                                                 : 'border-gray-200/50 dark:border-slate-700/50 hover:border-red-300 dark:hover:border-red-600'
                                                                         }`}
                                                                     >
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div>
-                                                                                <h4 className="font-semibold text-gray-900 dark:text-white">{paramedic.name}</h4>
-                                                                                <p className="text-sm text-gray-600 dark:text-gray-300">{paramedic.phone}</p>
+                                                                        <div className="flex items-center gap-3">
+                                                                            {/* Profile Picture */}
+                                                                            <div className="flex-shrink-0">
+                                                                                {paramedic.profile_picture_url ? (
+                                                                                    <img
+                                                                                        src={getServiceProfileUrl(paramedic.profile_picture_url)}
+                                                                                        alt={paramedic.name}
+                                                                                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                                                                        <IconHeart className="w-6 h-6 text-red-500" />
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                            <div className="text-right">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <h4 className="font-semibold text-gray-900 dark:text-white truncate">{paramedic.name}</h4>
+                                                                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{paramedic.phone}</p>
+                                                                            </div>
+                                                                            <div className="text-right flex-shrink-0">
                                                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
                                                                                     ₪{paramedic.daily_rate}/{t('day')}
                                                                                 </p>
@@ -2669,12 +2806,26 @@ export default function TripPlannerDashboard() {
                                                                                 : 'border-gray-200/50 dark:border-slate-700/50 hover:border-green-300 dark:hover:border-green-600'
                                                                         }`}
                                                                     >
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div>
-                                                                                <h4 className="font-semibold text-gray-900 dark:text-white">{guide.name}</h4>
-                                                                                <p className="text-sm text-gray-600 dark:text-gray-300">{guide.phone}</p>
+                                                                        <div className="flex items-center gap-3">
+                                                                            {/* Profile Picture */}
+                                                                            <div className="flex-shrink-0">
+                                                                                {guide.profile_picture_url ? (
+                                                                                    <img
+                                                                                        src={getServiceProfileUrl(guide.profile_picture_url)}
+                                                                                        alt={guide.name}
+                                                                                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                                                                        <IconUsers className="w-6 h-6 text-green-500" />
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                            <div className="text-right">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <h4 className="font-semibold text-gray-900 dark:text-white truncate">{guide.name}</h4>
+                                                                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{guide.phone}</p>
+                                                                            </div>
+                                                                            <div className="text-right flex-shrink-0">
                                                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
                                                                                     ₪{guide.daily_rate}/{t('day')}
                                                                                 </p>
@@ -2757,12 +2908,26 @@ export default function TripPlannerDashboard() {
                                                                                 : 'border-gray-200/50 dark:border-slate-700/50 hover:border-yellow-300 dark:hover:border-yellow-600'
                                                                         }`}
                                                                     >
-                                                                        <div className="flex items-center justify-between">
-                                                                            <div>
-                                                                                <h4 className="font-semibold text-gray-900 dark:text-white">{security.name}</h4>
-                                                                                <p className="text-sm text-gray-600 dark:text-gray-300">{security.phone}</p>
+                                                                        <div className="flex items-center gap-3">
+                                                                            {/* Profile Picture */}
+                                                                            <div className="flex-shrink-0">
+                                                                                {security.profile_picture_url ? (
+                                                                                    <img
+                                                                                        src={getServiceProfileUrl(security.profile_picture_url)}
+                                                                                        alt={security.name}
+                                                                                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                                                                                        <IconLock className="w-6 h-6 text-yellow-500" />
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
-                                                                            <div className="text-right">
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <h4 className="font-semibold text-gray-900 dark:text-white truncate">{security.name}</h4>
+                                                                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{security.phone}</p>
+                                                                            </div>
+                                                                            <div className="text-right flex-shrink-0">
                                                                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">
                                                                                     ₪{security.daily_rate}/{t('day')}
                                                                                 </p>
@@ -2814,8 +2979,8 @@ export default function TripPlannerDashboard() {
                                                 </motion.div>
                                             )}
 
-                                            {/* Entertainment Companies */}
-                                            {shouldShowServiceType('external_entertainment_companies') && entertainmentCompanies.length > 0 && (
+                                            {/* Entertainment Sub-Services */}
+                                            {shouldShowServiceType('external_entertainment_companies') && entertainmentSubServices.length > 0 && (
                                                 <motion.div
                                                     initial={{ opacity: 0, y: 20 }}
                                                     animate={{ opacity: 1, y: 0 }}
@@ -2829,25 +2994,100 @@ export default function TripPlannerDashboard() {
                                                         {t('entertainment')}
                                                     </h3>
                                                     <div className="grid grid-cols-1 gap-3">
-                                                        {entertainmentCompanies.map((entertainment) => (
+                                                        {entertainmentSubServices.map((subService) => (
                                                             <motion.div
-                                                                key={entertainment.id}
+                                                                key={subService.id}
                                                                 whileHover={{ scale: 1.02 }}
                                                                 whileTap={{ scale: 0.98 }}
-                                                                onClick={() => selectEntertainment(entertainment)}
+                                                                onClick={() => selectEntertainment(subService)}
                                                                 className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
-                                                                    isSelected('external_entertainment_companies', entertainment.id)
+                                                                    isSelected('external_entertainment_companies', subService.id)
                                                                         ? 'border-purple-500 bg-purple-50/10 dark:bg-purple-900/10'
                                                                         : 'border-gray-200/50 dark:border-slate-700/50 hover:border-purple-300 dark:hover:border-purple-600'
                                                                 }`}
                                                             >
-                                                                <div className="flex items-center justify-between">
-                                                                    <div>
-                                                                        <h4 className="font-semibold text-gray-900 dark:text-white">{entertainment.name}</h4>
-                                                                        <p className="text-sm text-gray-600 dark:text-gray-300">{entertainment.description}</p>
+                                                                <div className="flex items-center gap-3">
+                                                                    {/* Icon */}
+                                                                    <div className="flex-shrink-0">
+                                                                        {subService.icon_path ? (
+                                                                            <img
+                                                                                src={getSubServiceIconUrl('entertainment_company_services', subService.icon_path) || ''}
+                                                                                alt={subService.service_label}
+                                                                                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                                                                <IconPlayCircle className="w-6 h-6 text-purple-500" />
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                    <div className="text-right">
-                                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{entertainment.price}</p>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <h4 className="font-semibold text-gray-900 dark:text-white truncate">{subService.service_label}</h4>
+                                                                        <p className="text-xs text-purple-600 dark:text-purple-400 truncate">
+                                                                            {t('provider')}: {subService.entertainment_company?.name || 'Unknown'}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="text-right flex-shrink-0">
+                                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">₪{subService.service_price}</p>
+                                                                        <p className="text-xs text-gray-500 dark:text-gray-400">{t('fixed_price')}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </motion.div>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {/* Education Sub-Services */}
+                                            {shouldShowServiceType('education_programs') && educationSubServices.length > 0 && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: 0.4 }}
+                                                    className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                                >
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                        <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center">
+                                                            <IconBook className="w-4 h-4 text-white" />
+                                                        </div>
+                                                        {t('education_programs')}
+                                                    </h3>
+                                                    <div className="grid grid-cols-1 gap-3">
+                                                        {educationSubServices.map((subService) => (
+                                                            <motion.div
+                                                                key={subService.id}
+                                                                whileHover={{ scale: 1.02 }}
+                                                                whileTap={{ scale: 0.98 }}
+                                                                onClick={() => selectEducation(subService)}
+                                                                className={`p-3 rounded-lg border-2 transition-all duration-300 cursor-pointer ${
+                                                                    isSelected('education_programs', subService.id)
+                                                                        ? 'border-emerald-500 bg-emerald-50/10 dark:bg-emerald-900/10'
+                                                                        : 'border-gray-200/50 dark:border-slate-700/50 hover:border-emerald-300 dark:hover:border-emerald-600'
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center gap-3">
+                                                                    {/* Icon */}
+                                                                    <div className="flex-shrink-0">
+                                                                        {subService.icon_path ? (
+                                                                            <img
+                                                                                src={getSubServiceIconUrl('education_program_services', subService.icon_path) || ''}
+                                                                                alt={subService.service_label}
+                                                                                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                                                                <IconBook className="w-6 h-6 text-emerald-500" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <h4 className="font-semibold text-gray-900 dark:text-white truncate">{subService.service_label}</h4>
+                                                                        <p className="text-xs text-emerald-600 dark:text-emerald-400 truncate">
+                                                                            {t('provider')}: {subService.education_program?.name || 'Unknown'}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="text-right flex-shrink-0">
+                                                                        <p className="text-sm font-semibold text-gray-900 dark:text-white">₪{subService.service_price}</p>
                                                                         <p className="text-xs text-gray-500 dark:text-gray-400">{t('fixed_price')}</p>
                                                                     </div>
                                                                 </div>
@@ -2884,12 +3124,26 @@ export default function TripPlannerDashboard() {
                                                                         : 'border-gray-200/50 dark:border-slate-700/50 hover:border-blue-300 dark:hover:border-blue-600'
                                                                 }`}
                                                             >
-                                                                <div className="flex items-center justify-between">
-                                                                    <div>
-                                                                        <h4 className="font-semibold text-gray-900 dark:text-white">{travel.name}</h4>
-                                                                        <p className="text-sm text-gray-600 dark:text-gray-300">{travel.phone}</p>
+                                                                <div className="flex items-center gap-3">
+                                                                    {/* Profile Picture */}
+                                                                    <div className="flex-shrink-0">
+                                                                        {travel.profile_picture_url ? (
+                                                                            <img
+                                                                                src={getServiceProfileUrl(travel.profile_picture_url)}
+                                                                                alt={travel.name}
+                                                                                className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                                                                <IconCar className="w-6 h-6 text-blue-500" />
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                    <div className="text-right">
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <h4 className="font-semibold text-gray-900 dark:text-white truncate">{travel.name}</h4>
+                                                                        <p className="text-sm text-gray-600 dark:text-gray-300 truncate">{travel.phone}</p>
+                                                                    </div>
+                                                                    <div className="text-right flex-shrink-0">
                                                                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{travel.pricing_data?.default_price || 100}</p>
                                                                         <p className="text-xs text-gray-500 dark:text-gray-400">{t('per_trip')}</p>
                                                                     </div>
@@ -3350,16 +3604,30 @@ export default function TripPlannerDashboard() {
 
                                                     return (
                                                         <div key={paramedic.id} className="space-y-2">
-                                                            <div className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
-                                                                <div>
-                                                                    <p className="font-medium text-gray-900 dark:text-white">{paramedic.name}</p>
+                                                            <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                {/* Profile Picture */}
+                                                                <div className="flex-shrink-0">
+                                                                    {paramedic.profile_picture_url ? (
+                                                                        <img
+                                                                            src={getServiceProfileUrl(paramedic.profile_picture_url)}
+                                                                            alt={paramedic.name}
+                                                                            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                                                            <IconHeart className="w-5 h-5 text-red-500" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-gray-900 dark:text-white truncate">{paramedic.name}</p>
                                                                     <p className="text-sm text-gray-600 dark:text-gray-300">
                                                                         {paramedic.hourly_rate}₪/hr • {paramedic.daily_rate}₪/day
                                                                     </p>
                                                                 </div>
                                                                 <button
                                                                     onClick={() => selectParamedic(paramedic)}
-                                                                    className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                    className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 flex-shrink-0 ${
                                                                         selected ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
                                                                     }`}
                                                                 >
@@ -3429,16 +3697,29 @@ export default function TripPlannerDashboard() {
 
                                                     return (
                                                         <div key={guide.id} className="space-y-2">
-                                                            <div className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
-                                                                <div>
-                                                                    <p className="font-medium text-gray-900 dark:text-white">{guide.name}</p>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                            <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                <div className="flex-shrink-0">
+                                                                    {guide.profile_picture_url ? (
+                                                                        <img
+                                                                            src={getServiceProfileUrl(guide.profile_picture_url)}
+                                                                            alt={guide.name}
+                                                                            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                                                            <IconUsers className="w-5 h-5 text-green-500" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-gray-900 dark:text-white truncate">{guide.name}</p>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                                                                         {guide.hourly_rate}₪/hr • {guide.daily_rate}₪/day
                                                                     </p>
                                                                 </div>
                                                                 <button
                                                                     onClick={() => selectGuide(guide)}
-                                                                    className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                    className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
                                                                         selected ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
                                                                     }`}
                                                                 >
@@ -3508,16 +3789,29 @@ export default function TripPlannerDashboard() {
 
                                                     return (
                                                         <div key={security.id} className="space-y-2">
-                                                            <div className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
-                                                                <div>
-                                                                    <p className="font-medium text-gray-900 dark:text-white">{security.name}</p>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                            <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                <div className="flex-shrink-0">
+                                                                    {security.profile_picture_url ? (
+                                                                        <img
+                                                                            src={getServiceProfileUrl(security.profile_picture_url)}
+                                                                            alt={security.name}
+                                                                            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                                                                            <IconLock className="w-5 h-5 text-yellow-500" />
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="font-medium text-gray-900 dark:text-white truncate">{security.name}</p>
+                                                                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                                                                         {security.hourly_rate}₪/hr • {security.daily_rate}₪/day
                                                                     </p>
                                                                 </div>
                                                                 <button
                                                                     onClick={() => selectSecurity(security)}
-                                                                    className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                    className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
                                                                         selected ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'
                                                                     }`}
                                                                 >
@@ -3566,8 +3860,8 @@ export default function TripPlannerDashboard() {
                                         </motion.div>
                                     )}
 
-                                    {/* Entertainment Companies */}
-                                    {shouldShowServiceType('external_entertainment_companies') && entertainmentCompanies.length > 0 && (
+                                    {/* Entertainment Sub-Services */}
+                                    {shouldShowServiceType('external_entertainment_companies') && entertainmentSubServices.length > 0 && (
                                         <motion.div
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
@@ -3581,27 +3875,92 @@ export default function TripPlannerDashboard() {
                                                 {t('entertainment')}
                                             </h3>
                                             <div className="space-y-3">
-                                                {entertainmentCompanies.map((entertainment) => (
+                                                {entertainmentSubServices.map((subService) => (
                                                     <div
-                                                        key={entertainment.id}
-                                                        className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
+                                                        key={subService.id}
+                                                        className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
                                                     >
-                                                        <div>
-                                                            <p className="font-medium text-gray-900 dark:text-white">{entertainment.name}</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                {entertainment.price} {t('fixed_price')}
+                                                        <div className="flex-shrink-0">
+                                                            {subService.icon_path ? (
+                                                                <img
+                                                                    src={getSubServiceIconUrl('entertainment_company_services', subService.icon_path) || ''}
+                                                                    alt={subService.service_label}
+                                                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                                                    <IconPlayCircle className="w-5 h-5 text-purple-500" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-gray-900 dark:text-white truncate">{subService.service_label}</p>
+                                                            <p className="text-xs text-purple-600 dark:text-purple-400 truncate">
+                                                                {t('provider')}: {subService.entertainment_company?.name || 'Unknown'}
                                                             </p>
-                                                            {entertainment.description && <p className="text-xs text-purple-600 dark:text-purple-400">{entertainment.description}</p>}
+                                                            <p className="text-sm text-gray-600 dark:text-gray-300 truncate">₪{subService.service_price}</p>
                                                         </div>
                                                         <button
-                                                            onClick={() => selectEntertainment(entertainment)}
-                                                            className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                isSelected('external_entertainment_companies', entertainment.id)
-                                                                    ? 'bg-green-500 hover:bg-green-600'
-                                                                    : 'bg-purple-500 hover:bg-purple-600'
+                                                            onClick={() => selectEntertainment(subService)}
+                                                            className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                isSelected('external_entertainment_companies', subService.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-purple-500 hover:bg-purple-600'
                                                             }`}
                                                         >
-                                                            {isSelected('external_entertainment_companies', entertainment.id) ? t('selected') : t('select')}
+                                                            {isSelected('external_entertainment_companies', subService.id) ? t('selected') : t('select')}
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </motion.div>
+                                    )}
+
+                                    {/* Education Sub-Services */}
+                                    {shouldShowServiceType('education_programs') && educationSubServices.length > 0 && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: 0.35 }}
+                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                        >
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center">
+                                                    <IconBook className="w-4 h-4 text-white" />
+                                                </div>
+                                                {t('education_programs')}
+                                            </h3>
+                                            <div className="space-y-3">
+                                                {educationSubServices.map((subService) => (
+                                                    <div
+                                                        key={subService.id}
+                                                        className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
+                                                    >
+                                                        <div className="flex-shrink-0">
+                                                            {subService.icon_path ? (
+                                                                <img
+                                                                    src={getSubServiceIconUrl('education_program_services', subService.icon_path) || ''}
+                                                                    alt={subService.service_label}
+                                                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                                                    <IconBook className="w-5 h-5 text-emerald-500" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-gray-900 dark:text-white truncate">{subService.service_label}</p>
+                                                            <p className="text-xs text-emerald-600 dark:text-emerald-400 truncate">
+                                                                {t('provider')}: {subService.education_program?.name || 'Unknown'}
+                                                            </p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-300 truncate">₪{subService.service_price}</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => selectEducation(subService)}
+                                                            className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                isSelected('education_programs', subService.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-emerald-500 hover:bg-emerald-600'
+                                                            }`}
+                                                        >
+                                                            {isSelected('education_programs', subService.id) ? t('selected') : t('select')}
                                                         </button>
                                                     </div>
                                                 ))}
@@ -3627,18 +3986,31 @@ export default function TripPlannerDashboard() {
                                                 {travelCompanies.map((travelCompany) => (
                                                     <div
                                                         key={travelCompany.id}
-                                                        className="flex items-center justify-between p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
+                                                        className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
                                                     >
-                                                        <div>
-                                                            <p className="font-medium text-gray-900 dark:text-white">{travelCompany.name}</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                        <div className="flex-shrink-0">
+                                                            {travelCompany.profile_picture_url ? (
+                                                                <img
+                                                                    src={getServiceProfileUrl(travelCompany.profile_picture_url)}
+                                                                    alt={travelCompany.name}
+                                                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                                                    <IconCar className="w-5 h-5 text-blue-500" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-gray-900 dark:text-white truncate">{travelCompany.name}</p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
                                                                 {travelCompany.pricing_data?.default_price ? `${travelCompany.pricing_data.default_price}/day` : 'Contact for pricing'}
                                                             </p>
-                                                            {travelCompany.phone && <p className="text-xs text-blue-600 dark:text-blue-400">{travelCompany.phone}</p>}
+                                                            {travelCompany.phone && <p className="text-xs text-blue-600 dark:text-blue-400 truncate">{travelCompany.phone}</p>}
                                                         </div>
                                                         <button
                                                             onClick={() => selectTravelCompany(travelCompany)}
-                                                            className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                            className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
                                                                 isSelected('travel_companies', travelCompany.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
                                                             }`}
                                                         >

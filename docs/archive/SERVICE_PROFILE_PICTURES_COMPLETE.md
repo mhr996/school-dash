@@ -10,20 +10,20 @@
 
 **File:** `supabase_migration_unify_service_profile_pictures.sql`
 
-- ✅ Unified all 6 service types to use `profile_picture_path`
+- ✅ Unified all 6 service types to use `profile_picture_url`
 - ✅ Added missing columns (security_companies, travel_companies)
-- ✅ Renamed inconsistent fields (image → profile_picture_path)
+- ✅ Renamed inconsistent fields (image → profile_picture_url)
 - ✅ All services now have the SAME field name
 
 **Services Updated:**
 
 ```
-✅ guides.profile_picture_path
-✅ paramedics.profile_picture_path
-✅ security_companies.profile_picture_path (NEW)
-✅ external_entertainment_companies.profile_picture_path
-✅ travel_companies.profile_picture_path (NEW)
-✅ education_programs.profile_picture_path
+✅ guides.profile_picture_url
+✅ paramedics.profile_picture_url
+✅ security_companies.profile_picture_url (NEW)
+✅ external_entertainment_companies.profile_picture_url
+✅ travel_companies.profile_picture_url (NEW)
+✅ education_programs.profile_picture_url
 ```
 
 ### 2. **Storage Structure** 📁
@@ -104,7 +104,7 @@ A beautiful, reusable upload component:
 <ServiceProfilePictureUpload
     serviceType="guides"
     serviceId={guide.id}
-    currentPicturePath={guide.profile_picture_path}
+    currentPicturePath={guide.profile_picture_url}
     onUploadSuccess={(path, url) => {
         // Your callback
     }}
@@ -155,7 +155,7 @@ Three comprehensive docs created:
 
 ### Consistency
 
-- ✅ **One field name** across all services: `profile_picture_path`
+- ✅ **One field name** across all services: `profile_picture_url`
 - ✅ **One utility file** for all operations
 - ✅ **One component** for all service types
 - ✅ **One storage structure** for all files
@@ -205,7 +205,7 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
 <ServiceProfilePictureUpload
     serviceType="guides" // or any service type
     serviceId={service.id}
-    currentPicturePath={service.profile_picture_path}
+    currentPicturePath={service.profile_picture_url}
     onUploadSuccess={(path) => {
         // Update state or refresh
         router.refresh();
@@ -219,7 +219,7 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
 ```tsx
 import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
-<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_path, 'guides')} alt={service.name} className="w-16 h-16 rounded-full" />;
+<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_url, 'guides')} alt={service.name} className="w-16 h-16 rounded-full" />;
 ```
 
 ### Step 4: Clean Up on Deletion
@@ -273,19 +273,19 @@ Each service type has a default icon:
 
 ## 📊 Summary
 
-| Feature               | Status      | Details                                 |
-| --------------------- | ----------- | --------------------------------------- |
-| **Unified Field**     | ✅ Complete | All services use `profile_picture_path` |
-| **Storage Structure** | ✅ Complete | `services/{type}/{id}/profile.{ext}`    |
-| **Utilities**         | ✅ Complete | Full CRUD operations                    |
-| **Component**         | ✅ Complete | Beautiful, reusable UI                  |
-| **Documentation**     | ✅ Complete | 3 comprehensive docs                    |
-| **Type Safety**       | ✅ Complete | Full TypeScript support                 |
-| **Validation**        | ✅ Complete | File type + size checks                 |
-| **Auto Cleanup**      | ✅ Complete | Old files deleted automatically         |
-| **Fallbacks**         | ✅ Complete | Default icons per service               |
-| **Admin Support**     | ✅ Complete | Works for admin pages                   |
-| **Provider Support**  | ✅ Complete | Works for service providers             |
+| Feature               | Status      | Details                                |
+| --------------------- | ----------- | -------------------------------------- |
+| **Unified Field**     | ✅ Complete | All services use `profile_picture_url` |
+| **Storage Structure** | ✅ Complete | `services/{type}/{id}/profile.{ext}`   |
+| **Utilities**         | ✅ Complete | Full CRUD operations                   |
+| **Component**         | ✅ Complete | Beautiful, reusable UI                 |
+| **Documentation**     | ✅ Complete | 3 comprehensive docs                   |
+| **Type Safety**       | ✅ Complete | Full TypeScript support                |
+| **Validation**        | ✅ Complete | File type + size checks                |
+| **Auto Cleanup**      | ✅ Complete | Old files deleted automatically        |
+| **Fallbacks**         | ✅ Complete | Default icons per service              |
+| **Admin Support**     | ✅ Complete | Works for admin pages                  |
+| **Provider Support**  | ✅ Complete | Works for service providers            |
 
 ## 🎉 Result
 

@@ -6,9 +6,9 @@
 
 **File:** `supabase_migration_unify_service_profile_pictures.sql`
 
-- Unified all services to use `profile_picture_path` field
+- Unified all services to use `profile_picture_url` field
 - Added missing columns to security_companies and travel_companies
-- Renamed inconsistent fields (image → profile_picture_path)
+- Renamed inconsistent fields (image → profile_picture_url)
 - Added documentation comments for each table
 
 ### 2. Utility Library
@@ -74,10 +74,10 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
 <ServiceProfilePictureUpload
     serviceType="guides"
     serviceId={guide.id}
-    currentPicturePath={guide.profile_picture_path}
+    currentPicturePath={guide.profile_picture_url}
     onUploadSuccess={(path, url) => {
         // Update state
-        setGuide({ ...guide, profile_picture_path: path });
+        setGuide({ ...guide, profile_picture_url: path });
     }}
     size="lg"
     label="Profile Photo"
@@ -89,7 +89,7 @@ import ServiceProfilePictureUpload from '@/components/services/ServiceProfilePic
 ```tsx
 import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
-<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_path, 'guides')} alt={service.name} className="w-16 h-16 rounded-full object-cover" />;
+<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_url, 'guides')} alt={service.name} className="w-16 h-16 rounded-full object-cover" />;
 ```
 
 ### 4. Handle Deletion

@@ -143,13 +143,13 @@ export async function uploadServiceProfilePicture(
         // Get current profile picture path to delete old one
         const { data: currentData } = await supabase
             .from(serviceType as ServiceTableName)
-            .select('profile_picture_path')
+            .select('profile_picture_url')
             .eq('id', serviceId)
             .single();
 
         // Delete old profile picture if exists
-        if (currentData?.profile_picture_path) {
-            await deleteServiceProfilePicture(serviceType, serviceId, currentData.profile_picture_path);
+        if (currentData?.profile_picture_url) {
+            await deleteServiceProfilePicture(serviceType, serviceId, currentData.profile_picture_url);
         }
 
         // Generate new path
@@ -172,7 +172,7 @@ export async function uploadServiceProfilePicture(
         const { error: updateError } = await supabase
             .from(serviceType as ServiceTableName)
             .update({ 
-                profile_picture_path: storagePath,
+                profile_picture_url: storagePath,
                 updated_at: new Date().toISOString()
             })
             .eq('id', serviceId);
@@ -295,22 +295,22 @@ export async function removeServiceProfilePicture(
         // Get current picture path
         const { data: currentData } = await supabase
             .from(serviceType as ServiceTableName)
-            .select('profile_picture_path')
+            .select('profile_picture_url')
             .eq('id', serviceId)
             .single();
 
-        if (!currentData?.profile_picture_path) {
+        if (!currentData?.profile_picture_url) {
             return true; // No picture to remove
         }
 
         // Delete from storage
-        await deleteServiceProfilePicture(serviceType, serviceId, currentData.profile_picture_path);
+        await deleteServiceProfilePicture(serviceType, serviceId, currentData.profile_picture_url);
 
         // Update database
         const { error: updateError } = await supabase
             .from(serviceType as ServiceTableName)
             .update({ 
-                profile_picture_path: null,
+                profile_picture_url: null,
                 updated_at: new Date().toISOString()
             })
             .eq('id', serviceId);
@@ -391,3 +391,4 @@ export async function migrateServiceProfilePictures(
     
     return result;
 }
+

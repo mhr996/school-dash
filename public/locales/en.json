@@ -1776,6 +1776,8 @@
     "security_service": "Security Service",
     "travel_company_service": "Travel Company Service",
     "entertainment_service": "Entertainment Service",
+    "education_service": "Education Service",
+    "provider": "Provider",
     "service_provider_portal": "Service Provider Portal",
     "account_management": "Account Management",
     "service_performance": "Service Performance",

@@ -22,6 +22,7 @@ export interface Paramedic {
     notes?: string;
     created_at: string;
     updated_at: string;
+    profile_picture_url?: string | null;
 }
 
 export interface Log {

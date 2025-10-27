@@ -44,6 +44,7 @@ CREATE TABLE public.booking_services (
   rejected_at timestamp with time zone,
   rejection_reason text,
   responded_by uuid,
+  sub_service_id uuid,
   CONSTRAINT booking_services_pkey PRIMARY KEY (id),
   CONSTRAINT booking_services_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id),
   CONSTRAINT booking_services_responded_by_fkey FOREIGN KEY (responded_by) REFERENCES public.users(id)
@@ -136,9 +137,9 @@ CREATE TABLE public.education_program_services (
   education_program_id uuid NOT NULL,
   service_label character varying NOT NULL,
   service_price numeric NOT NULL DEFAULT 0,
-  icon_path text,
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  icon_path text,
   CONSTRAINT education_program_services_pkey PRIMARY KEY (id),
   CONSTRAINT education_program_services_education_program_id_fkey FOREIGN KEY (education_program_id) REFERENCES public.education_programs(id)
 );
@@ -147,7 +148,7 @@ CREATE TABLE public.education_programs (
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   name character varying NOT NULL,
-  profile_picture_path text,
+  profile_picture_url text,
   description text,
   price numeric,
   status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying::text, 'inactive'::character varying::text])),
@@ -160,9 +161,9 @@ CREATE TABLE public.entertainment_company_services (
   entertainment_company_id uuid NOT NULL,
   service_label character varying NOT NULL,
   service_price numeric NOT NULL DEFAULT 0 CHECK (service_price >= 0::numeric),
-  icon_path text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
+  icon_path text,
   CONSTRAINT entertainment_company_services_pkey PRIMARY KEY (id),
   CONSTRAINT entertainment_company_services_entertainment_company_id_fkey FOREIGN KEY (entertainment_company_id) REFERENCES public.external_entertainment_companies(id)
 );
@@ -171,7 +172,7 @@ CREATE TABLE public.external_entertainment_companies (
   created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
   name character varying NOT NULL,
-  profile_picture_path text,
+  profile_picture_url text,
   description text,
   price numeric,
   status character varying DEFAULT 'active'::character varying CHECK (status::text = ANY (ARRAY['active'::character varying, 'inactive'::character varying]::text[])),
@@ -194,7 +195,7 @@ CREATE TABLE public.guides (
   updated_at timestamp with time zone DEFAULT now(),
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
-  profile_picture_path text,
+  profile_picture_url text,
   CONSTRAINT guides_pkey PRIMARY KEY (id),
   CONSTRAINT guides_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -213,7 +214,7 @@ CREATE TABLE public.paramedics (
   status text CHECK (status = ANY (ARRAY['active'::text, 'inactive'::text])),
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   user_id uuid,
-  profile_picture_path text,
+  profile_picture_url text,
   CONSTRAINT paramedics_pkey PRIMARY KEY (id),
   CONSTRAINT paramedics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -305,7 +306,7 @@ CREATE TABLE public.security_companies (
   regional_rate numeric DEFAULT 600.00,
   overnight_rate numeric DEFAULT 500.00,
   user_id uuid,
-  profile_picture_path text,
+  profile_picture_url text,
   CONSTRAINT security_companies_pkey PRIMARY KEY (id),
   CONSTRAINT security_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
@@ -360,7 +361,7 @@ CREATE TABLE public.travel_companies (
   updated_at timestamp with time zone DEFAULT now(),
   pricing_data jsonb,
   user_id uuid,
-  profile_picture_path text,
+  profile_picture_url text,
   CONSTRAINT travel_companies_pkey PRIMARY KEY (id),
   CONSTRAINT travel_companies_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );

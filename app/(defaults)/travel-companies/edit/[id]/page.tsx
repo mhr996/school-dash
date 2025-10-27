@@ -138,7 +138,7 @@ const EditTravelCompany = ({ params }: { params: { id: string } }) => {
                     notes: data.notes || '',
                 });
 
-                setProfilePicturePath(data.profile_picture_path || null);
+                setProfilePicturePath(data.profile_picture_url || null);
 
                 // Set pricing data
                 if (data.pricing_data) {

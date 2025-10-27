@@ -33,7 +33,7 @@ interface TravelCompany {
     notes: string;
     created_at: string;
     updated_at: string;
-    profile_picture_path?: string | null;
+    profile_picture_url?: string | null;
 }
 
 const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
@@ -180,7 +180,7 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
                     </div>
                     <div className="flex justify-center">
                         <Image
-                            src={getServiceProfilePictureUrlWithFallback(travelCompany.profile_picture_path, 'travel_companies')}
+                            src={getServiceProfilePictureUrlWithFallback(travelCompany.profile_picture_url, 'travel_companies')}
                             alt={travelCompany.name}
                             width={200}
                             height={200}

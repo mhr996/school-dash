@@ -4,7 +4,7 @@ This is the canonical guide for the unified profile picture system across all se
 
 ## Why
 
-- One DB field across all services: `profile_picture_path`
+- One DB field across all services: `profile_picture_url`
 - One storage layout: `services/{service_type}/{service_id}/profile.{ext}`
 - One utility module and one reusable React component
 - Predictable paths, easy cleanup, consistent UX
@@ -18,7 +18,7 @@ This is the canonical guide for the unified profile picture system across all se
 
 ## Database and Storage
 
-All service tables include a `TEXT` column named `profile_picture_path`.
+All service tables include a `TEXT` column named `profile_picture_url`.
 
 Storage structure:
 
@@ -38,7 +38,7 @@ services/
     - Validates file (type: jpg/png/webp/gif, size <= 5MB)
     - Deletes old file if present
     - Uploads to `services/{type}/{id}/profile.{ext}`
-    - Updates `{table}.profile_picture_path`
+    - Updates `{table}.profile_picture_url`
 - `removeServiceProfilePicture(serviceType, serviceId)` – delete picture and null DB field
 - `deleteServiceFolder(serviceType, serviceId)` – remove entire folder on hard delete
 - `getServiceProfilePictureUrlWithFallback(path, serviceType)` – returns public URL or a type-specific fallback icon
@@ -68,8 +68,8 @@ Edit/Add page:
 <ServiceProfilePictureUpload
     serviceType="guides"
     serviceId={id}
-    currentPicturePath={entity.profile_picture_path}
-    onUploadSuccess={(path) => setEntity((prev) => ({ ...prev, profile_picture_path: path }))}
+    currentPicturePath={entity.profile_picture_url}
+    onUploadSuccess={(path) => setEntity((prev) => ({ ...prev, profile_picture_url: path }))}
     size="lg"
     label={t('profile_picture')}
 />
@@ -78,7 +78,7 @@ Edit/Add page:
 List/Preview:
 
 ```tsx
-<img src={getServiceProfilePictureUrlWithFallback(item.profile_picture_path, 'guides')} alt={item.name} className="w-16 h-16 rounded-full object-cover" />
+<img src={getServiceProfilePictureUrlWithFallback(item.profile_picture_url, 'guides')} alt={item.name} className="w-16 h-16 rounded-full object-cover" />
 ```
 
 Hard delete cleanup:
@@ -106,7 +106,7 @@ FOR SELECT TO public USING (bucket_id = 'services');
 
 ## Troubleshooting
 
-- Blank image: check DB `profile_picture_path`, storage object exists, and public read policy
+- Blank image: check DB `profile_picture_url`, storage object exists, and public read policy
 - Upload fails: enforce type/size, user auth, bucket write policy
 - Old pictures persist: ensure upload path/cleanup logic is called
 

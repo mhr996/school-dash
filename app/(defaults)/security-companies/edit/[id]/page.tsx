@@ -111,7 +111,7 @@ const EditSecurityCompany = () => {
                         regional_rate: data.regional_rate || 600,
                         overnight_rate: data.overnight_rate || 500,
                     });
-                    setProfilePicturePath(data.profile_picture_path || null);
+                    setProfilePicturePath(data.profile_picture_url || null);
                 }
             } catch (error) {
                 console.error('Error fetching security company:', error);

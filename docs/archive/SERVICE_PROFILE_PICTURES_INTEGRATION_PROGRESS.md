@@ -5,14 +5,14 @@
 ### Edit Page (`app/(defaults)/guides/edit/[id]/page.tsx`)
 
 - ✅ Updated imports to use new component
-- ✅ Changed `profile_picture_url` → `profile_picture_path`
+- ✅ Changed `profile_picture_url` → `profile_picture_url`
 - ✅ Updated ServiceProfilePictureUpload component with new props
 - ✅ Added onRemoveSuccess callback
 
 ### List Page (`app/(defaults)/guides/page.tsx`)
 
 - ✅ Updated imports
-- ✅ Changed interface field `profile_picture_url` → `profile_picture_path`
+- ✅ Changed interface field `profile_picture_url` → `profile_picture_url`
 - ✅ Updated datatable render to use `getServiceProfilePictureUrlWithFallback`
 - ✅ Added storage cleanup to deleteGuide function
 - ✅ Added storage cleanup to bulkDelete function
@@ -64,7 +64,7 @@
 ### Explore Page (`app/(defaults)/explore/page.tsx`)
 
 - ⏳ Update service cards to show profile pictures
-- Use: `getServiceProfilePictureUrlWithFallback(service.profile_picture_path, serviceType)`
+- Use: `getServiceProfilePictureUrlWithFallback(service.profile_picture_url, serviceType)`
 
 ### Trip Planner (`components/dashboards/trip-planner-dashboard.tsx`)
 
@@ -116,16 +116,16 @@ const [profilePicturePath, setProfilePicturePath] = useState<string | null>(null
 import { getServiceProfilePictureUrlWithFallback, deleteServiceFolder } from '@/utils/service-profile-picture';
 
 // Interface - change field name
-profile_picture_path?: string | null; // was profile_picture_url
+profile_picture_url?: string | null; // was profile_picture_url
 
 // Datatable column
 {
     accessor: 'profile_picture',
     title: t('profile_picture'),
-    render: ({ profile_picture_path, name }) => (
+    render: ({ profile_picture_url, name }) => (
         <div className="flex items-center justify-center">
             <img
-                src={getServiceProfilePictureUrlWithFallback(profile_picture_path, 'guides')}
+                src={getServiceProfilePictureUrlWithFallback(profile_picture_url, 'guides')}
                 alt={name}
                 className="h-10 w-10 rounded-full object-cover border-2 border-gray-200"
             />
@@ -144,7 +144,7 @@ await deleteServiceFolder('guides', serviceId);
 import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
 // Display
-<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_path, 'guides')} alt={service.name} className="w-40 h-40 rounded-2xl object-cover shadow-lg" />;
+<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_url, 'guides')} alt={service.name} className="w-40 h-40 rounded-2xl object-cover shadow-lg" />;
 ```
 
 ### 4. Service Cards (Explore, Trip Planner)
@@ -154,7 +154,7 @@ import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile
 import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
 // In card
-<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_path, serviceType)} alt={service.name} className="w-16 h-16 rounded-full object-cover" />;
+<img src={getServiceProfilePictureUrlWithFallback(service.profile_picture_url, serviceType)} alt={service.name} className="w-16 h-16 rounded-full object-cover" />;
 ```
 
 ## 🎯 Service Type Mapping
@@ -170,7 +170,7 @@ import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile
 
 ## 📋 Checklist per Service
 
-- [ ] Update interface: `profile_picture_url` → `profile_picture_path`
+- [ ] Update interface: `profile_picture_url` → `profile_picture_url`
 - [ ] Update imports: Use new component and utilities
 - [ ] Edit page: Add ServiceProfilePictureUpload
 - [ ] List page: Update datatable column
