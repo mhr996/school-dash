@@ -43,6 +43,8 @@ interface ServiceItem {
     zone?: string;
     properties?: Array<{ value: string; icon: string | null }>;
     suitableFor?: string[];
+    requirements?: string[];
+    pricing?: { student?: number; crew?: number } | null;
     rating?: number;
     // Sub-service specific fields
     isSubService?: boolean;
@@ -70,6 +72,7 @@ export default function ExplorePage() {
     const [availableProperties, setAvailableProperties] = useState<Array<{ value: string; icon: string | null }>>([]);
     const [selectedSuitableFor, setSelectedSuitableFor] = useState<string[]>([]);
     const [availableSuitableFor, setAvailableSuitableFor] = useState<string[]>([]);
+    const [showFilters, setShowFilters] = useState(false);
 
     const categories = [
         { id: 'all' as ServiceCategory, label: t('all_services'), icon: IconStar, color: 'from-blue-500 to-blue-600', count: 0 },
@@ -166,6 +169,7 @@ export default function ExplorePage() {
                     zone: d.zone_id ? zoneMap.get(d.zone_id) : undefined,
                     properties: Array.isArray(d.properties_details) ? d.properties_details.map((p: any) => ({ value: p.value, icon: p.icon })) : [],
                     suitableFor: Array.isArray(d.suitable_for_details) ? d.suitable_for_details.map((s: any) => s.value) : [],
+                    requirements: Array.isArray(d.requirements) ? d.requirements : [],
                     pricing: d.pricing,
                 })) || []),
                 ...(guides?.map((g) => ({
@@ -513,10 +517,36 @@ export default function ExplorePage() {
                     </div>
                 </motion.div>
 
+                {/* Mobile Filter Button */}
+                <div className="lg:hidden mb-6">
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                            />
+                        </svg>
+                        <span>{showFilters ? t('hide_filters') : t('show_filters')}</span>
+                        <span className="ml-auto px-3 py-1 bg-white/20 rounded-full text-sm">{selectedZones.length + selectedProperties.length + selectedSuitableFor.length || 0}</span>
+                    </motion.button>
+                </div>
+
                 {/* Main Layout: Sidebar + Content */}
                 <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Sidebar Filters */}
-                    <motion.aside initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="w-full lg:w-80 space-y-6">
+                    {/* Sidebar Filters - Hidden on mobile unless showFilters is true */}
+                    <motion.aside
+                        initial={{ x: -50, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.3 }}
+                        className={`w-full lg:w-80 space-y-6 ${showFilters ? 'block' : 'hidden lg:block'}`}
+                    >
                         {/* Price Range Filter */}
                         <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-lg">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -718,7 +748,7 @@ export default function ExplorePage() {
                                 initial={{ opacity: 0, scale: 1 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ delay: 0.3 }}
-                                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                                className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
                             >
                                 {filteredServices.map((service, index) => {
                                     const Icon = getCategoryIcon(service.category);
@@ -729,7 +759,6 @@ export default function ExplorePage() {
                                             initial={{ opacity: 0, y: 20 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ delay: index * 0.05 }}
-                                            whileHover={{ y: -10, scale: 1.02 }}
                                             className="group bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 dark:border-slate-700"
                                         >
                                             {/* Service Image or Icon */}
@@ -748,6 +777,22 @@ export default function ExplorePage() {
                                                         {service.type}
                                                     </span>
                                                 </div>
+                                                {/* Price Badge */}
+                                                {(service.price || service.pricing?.student || service.dailyRate) && (
+                                                    <div className="absolute bottom-3 right-3">
+                                                        <div className="px-3 py-2 bg-emerald-500/75 backdrop-blur-md rounded-lg shadow-lg border border-white/20">
+                                                            <div className="text-lg font-black text-white drop-shadow-sm leading-none">
+                                                                {service.price
+                                                                    ? `₪${service.price}`
+                                                                    : service.pricing?.student
+                                                                      ? `₪${service.pricing.student}`
+                                                                      : service.dailyRate
+                                                                        ? `₪${service.dailyRate}`
+                                                                        : ''}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             {/* Service Details */}
@@ -778,23 +823,71 @@ export default function ExplorePage() {
                                                         </div>
                                                     )}
 
-                                                    {(service.price || service.dailyRate) && (
-                                                        <div className="flex items-center gap-2 text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                                            <span>{service.price ? `₪${service.price}` : service.dailyRate ? `₪${service.dailyRate}/${t('day')}` : ''}</span>
+                                                    {/* Requirements Section - For Destinations */}
+                                                    {service.category === 'destinations' && service.requirements && service.requirements.length > 0 && (
+                                                        <div className="mb-2 relative group/requirements">
+                                                            <div className="flex flex-wrap gap-1.5">
+                                                                {service.requirements.slice(0, 2).map((req: string, idx: number) => (
+                                                                    <span
+                                                                        key={idx}
+                                                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 text-orange-700 dark:text-orange-300 rounded-md text-[10px] font-medium border border-orange-200/50 dark:border-orange-700/30"
+                                                                    >
+                                                                        <svg className="h-2.5 w-2.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                                        </svg>
+                                                                        <span className="line-clamp-1">{t(req)}</span>
+                                                                    </span>
+                                                                ))}
+                                                                {service.requirements.length > 2 && (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-md text-[10px] font-bold shadow-sm">
+                                                                        +{service.requirements.length - 2}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Tooltip - shows all requirements on hover */}
+                                                            {service.requirements.length > 2 && (
+                                                                <div className="absolute left-0 right-0 bottom-full mb-2 opacity-0 invisible group-hover/requirements:opacity-100 group-hover/requirements:visible transition-all duration-200 pointer-events-none z-[100]">
+                                                                    <div className="bg-gradient-to-br from-gray-900 to-gray-800 text-white text-xs rounded-lg shadow-2xl p-3 border border-gray-700 max-w-xs">
+                                                                        <div className="font-semibold mb-2 text-orange-400">{t('all_requirements')}:</div>
+                                                                        <ul className="space-y-1">
+                                                                            {service.requirements.map((req: string, idx: number) => (
+                                                                                <li key={idx} className="flex items-start gap-2">
+                                                                                    <svg
+                                                                                        className="h-3.5 w-3.5 flex-shrink-0 text-orange-400 mt-0.5"
+                                                                                        fill="none"
+                                                                                        stroke="currentColor"
+                                                                                        viewBox="0 0 24 24"
+                                                                                    >
+                                                                                        <path
+                                                                                            strokeLinecap="round"
+                                                                                            strokeLinejoin="round"
+                                                                                            strokeWidth="2"
+                                                                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                                                                                        />
+                                                                                    </svg>
+                                                                                    <span className="leading-tight break-words">{t(req)}</span>
+                                                                                </li>
+                                                                            ))}
+                                                                        </ul>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                <div className="flex flex-col gap-2 mt-4">
+                                                {/* Action Buttons */}
+                                                <div className="flex flex-col gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-slate-700">
                                                     <button
                                                         onClick={() => openServiceDetails(service)}
-                                                        className="w-full py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform group-hover:scale-105"
+                                                        className="w-full py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform"
                                                     >
                                                         {t('view_details')}
                                                     </button>
                                                     <button
                                                         onClick={(e) => handleBookNow(service, e)}
-                                                        className="w-full py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform group-hover:scale-105"
+                                                        className="w-full py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 transition-all duration-300 transform"
                                                     >
                                                         {t('book_now')}
                                                     </button>
@@ -979,6 +1072,26 @@ export default function ExplorePage() {
                                                                 <img src="/assets/images/img-placeholder-fallback.webp" alt={prop.value} className="w-4 h-4 object-contain" />
                                                             )}
                                                             {prop.value.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Requirements - For Destinations */}
+                                        {selectedService.requirements && selectedService.requirements.length > 0 && (
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('requirements')}</h3>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedService.requirements.map((req: string) => (
+                                                        <span
+                                                            key={req}
+                                                            className="px-3 py-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg text-sm font-medium flex items-center gap-2"
+                                                        >
+                                                            <svg className="h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                            </svg>
+                                                            {t(req)}
                                                         </span>
                                                     ))}
                                                 </div>

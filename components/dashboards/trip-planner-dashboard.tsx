@@ -2740,7 +2740,7 @@ export default function TripPlannerDashboard() {
                                                                             initial={{ opacity: 0, height: 0 }}
                                                                             animate={{ opacity: 1, height: 'auto' }}
                                                                             exit={{ opacity: 0, height: 0 }}
-                                                                            className="grid grid-cols-4 gap-2 px-3"
+                                                                            className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
                                                                         >
                                                                             {[
                                                                                 { value: 'hourly', label: t('hourly'), rate: paramedic.hourly_rate },
@@ -2842,7 +2842,7 @@ export default function TripPlannerDashboard() {
                                                                             initial={{ opacity: 0, height: 0 }}
                                                                             animate={{ opacity: 1, height: 'auto' }}
                                                                             exit={{ opacity: 0, height: 0 }}
-                                                                            className="grid grid-cols-4 gap-2 px-3"
+                                                                            className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
                                                                         >
                                                                             {[
                                                                                 { value: 'hourly', label: t('hourly'), rate: guide.hourly_rate },
@@ -2944,7 +2944,7 @@ export default function TripPlannerDashboard() {
                                                                             initial={{ opacity: 0, height: 0 }}
                                                                             animate={{ opacity: 1, height: 'auto' }}
                                                                             exit={{ opacity: 0, height: 0 }}
-                                                                            className="grid grid-cols-4 gap-2 px-3"
+                                                                            className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
                                                                         >
                                                                             {[
                                                                                 { value: 'hourly', label: t('hourly'), rate: security.hourly_rate },
@@ -3641,7 +3641,7 @@ export default function TripPlannerDashboard() {
                                                                     initial={{ opacity: 0, height: 0 }}
                                                                     animate={{ opacity: 1, height: 'auto' }}
                                                                     exit={{ opacity: 0, height: 0 }}
-                                                                    className="grid grid-cols-4 gap-2 px-3"
+                                                                    className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
                                                                 >
                                                                     {[
                                                                         { value: 'hourly', label: t('hourly'), rate: paramedic.hourly_rate },
@@ -3733,7 +3733,7 @@ export default function TripPlannerDashboard() {
                                                                     initial={{ opacity: 0, height: 0 }}
                                                                     animate={{ opacity: 1, height: 'auto' }}
                                                                     exit={{ opacity: 0, height: 0 }}
-                                                                    className="grid grid-cols-4 gap-2 px-3"
+                                                                    className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
                                                                 >
                                                                     {[
                                                                         { value: 'hourly', label: t('hourly'), rate: guide.hourly_rate },
@@ -3825,7 +3825,7 @@ export default function TripPlannerDashboard() {
                                                                     initial={{ opacity: 0, height: 0 }}
                                                                     animate={{ opacity: 1, height: 'auto' }}
                                                                     exit={{ opacity: 0, height: 0 }}
-                                                                    className="grid grid-cols-4 gap-2 px-3"
+                                                                    className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
                                                                 >
                                                                     {[
                                                                         { value: 'hourly', label: t('hourly'), rate: security.hourly_rate },
