@@ -2040,5 +2040,13 @@
     "last_payout": "תשלום אחרון",
     "company_settings_description": "נהל את הגדרות החברה, פרטי יצירת קשר ומידע עסקי",
     "enter_company_address": "הכנס כתובת חברה",
-    "enter_tax_number": "הכנס מספר מס"
+    "enter_tax_number": "הכנס מספר מס",
+    "select_booking_mode": "בחר אופן הזמנה",
+    "basic_access": "גישה בסיסית",
+    "basic_access_description": "הזמן יעד בלבד ללא שירותים נוספים. מושלם לביקורים פשוטים.",
+    "with_services": "עם שירותים",
+    "with_services_description": "חבילת טיול מלאה עם כל השירותים הנדרשים.",
+    "base_pricing": "תמחור בסיס",
+    "base_price_only": "מחיר בסיס בלבד",
+    "booking_mode_note": "אתה יכול לבחור את אופן ההזמנה המתאים ביותר לדרישות הטיול שלך"
 }

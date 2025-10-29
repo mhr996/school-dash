@@ -2024,5 +2024,13 @@
     "payouts_will_appear_here": "Payouts will appear here once created",
     "balance_overview": "Balance Overview",
     "services_and_business": "Services & Business Information",
-    "last_payout": "Last Payout"
+    "last_payout": "Last Payout",
+    "select_booking_mode": "Select Booking Mode",
+    "basic_access": "Basic Access",
+    "basic_access_description": "Book destination only without additional services. Perfect for simple visits.",
+    "with_services": "With Services",
+    "with_services_description": "Complete trip package with all required services included.",
+    "base_pricing": "Base Pricing",
+    "base_price_only": "Base Price Only",
+    "booking_mode_note": "You can choose the booking mode that best fits your trip requirements"
 }

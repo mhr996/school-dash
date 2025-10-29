@@ -23,6 +23,7 @@ import IconCar from '@/components/icon/icon-car';
 import IconBook from '@/components/icon/icon-book';
 import IconPlayCircle from '@/components/icon/icon-play-circle';
 import IconSearch from '@/components/icon/icon-search';
+import BookingModeModal from '@/components/modals/booking-mode-modal';
 
 type ServiceCategory = 'all' | 'destinations' | 'guides' | 'paramedics' | 'security' | 'entertainment' | 'travel' | 'education';
 
@@ -73,6 +74,8 @@ export default function ExplorePage() {
     const [selectedSuitableFor, setSelectedSuitableFor] = useState<string[]>([]);
     const [availableSuitableFor, setAvailableSuitableFor] = useState<string[]>([]);
     const [showFilters, setShowFilters] = useState(false);
+    const [showBookingModeModal, setShowBookingModeModal] = useState(false);
+    const [pendingDestination, setPendingDestination] = useState<ServiceItem | null>(null);
 
     const categories = [
         { id: 'all' as ServiceCategory, label: t('all_services'), icon: IconStar, color: 'from-blue-500 to-blue-600', count: 0 },
@@ -380,6 +383,14 @@ export default function ExplorePage() {
     const handleBookNow = (service: ServiceItem, e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent opening the modal
 
+        // For destinations, show booking mode modal first
+        if (service.category === 'destinations') {
+            setPendingDestination(service);
+            setShowBookingModeModal(true);
+            return;
+        }
+
+        // For other services, proceed with direct booking
         // Map service category to booking type and service type
         const categoryToBookingType: { [key: string]: string } = {
             destinations: 'full_trip',
@@ -406,7 +417,6 @@ export default function ExplorePage() {
         // Build URL with parameters
         const params = new URLSearchParams({
             bookingType,
-            ...(service.category === 'destinations' && { destinationId: service.id }),
             ...(serviceType && {
                 serviceType,
                 // If it's a sub-service, use the parent service ID
@@ -414,6 +424,18 @@ export default function ExplorePage() {
                 // Add sub-service ID if applicable
                 ...(service.isSubService && { subServiceId: service.id }),
             }),
+        });
+
+        router.push(`/?${params.toString()}`);
+    };
+
+    const handleBookingModeSelection = (mode: 'destination_only' | 'with_services') => {
+        if (!pendingDestination) return;
+
+        // Build URL with parameters including the booking mode
+        const params = new URLSearchParams({
+            bookingType: mode,
+            destinationId: pendingDestination.id,
         });
 
         router.push(`/?${params.toString()}`);
@@ -1142,6 +1164,20 @@ export default function ExplorePage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Booking Mode Selection Modal */}
+            <BookingModeModal
+                isOpen={showBookingModeModal}
+                onClose={() => {
+                    setShowBookingModeModal(false);
+                    setPendingDestination(null);
+                }}
+                destinationName={pendingDestination?.name || ''}
+                basePrice={pendingDestination?.pricing || null}
+                requirements={pendingDestination?.requirements || []}
+                onSelectMode={handleBookingModeSelection}
+                t={t}
+            />
         </div>
     );
 }

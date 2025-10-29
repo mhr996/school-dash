@@ -2278,5 +2278,13 @@
     "total_earned": "إجمالي المكتسب",
     "error_loading_balance_data": "خطأ في تحميل بيانات الرصيد",
     "user_account_details": "تفاصيل حساب المستخدم",
-    "last_payout": "آخر دفع"
+    "last_payout": "آخر دفع",
+    "select_booking_mode": "اختر طريقة الحجز",
+    "basic_access": "وصول أساسي",
+    "basic_access_description": "احجز الوجهة فقط بدون خدمات إضافية. مثالي للزيارات البسيطة.",
+    "with_services": "مع الخدمات",
+    "with_services_description": "باقة رحلة كاملة مع جميع الخدمات المطلوبة.",
+    "base_pricing": "التسعير الأساسي",
+    "base_price_only": "السعر الأساسي فقط",
+    "booking_mode_note": "يمكنك اختيار طريقة الحجز التي تناسب متطلبات رحلتك"
 }

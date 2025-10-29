@@ -34,6 +34,7 @@ import IconCaretDown from '@/components/icon/icon-caret-down';
 import IconShoppingBag from '@/components/icon/icon-shopping-bag';
 import IconPlayCircle from '@/components/icon/icon-play-circle';
 import DestinationDetailsModal from '@/components/modals/destination-details-modal';
+import BookingModeModal from '@/components/modals/booking-mode-modal';
 import TabbedDestinationsSection from '@/components/dashboards/tabbed-destinations-section';
 import CustomSelect from '@/components/elements/custom-select';
 import { calculateBookingPrice, getServiceRate, type ServiceSelection, type RateType } from '@/utils/pricing';
@@ -136,7 +137,7 @@ type EducationSubService = {
 };
 
 // Booking types
-type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'education_only' | 'transportation_only';
+type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'education_only' | 'transportation_only' | 'destination_only';
 
 type BookingTypeConfig = {
     id: BookingType;
@@ -226,6 +227,8 @@ export default function TripPlannerDashboard() {
     // Modal state
     const [selectedDestination, setSelectedDestination] = useState<Destination | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [showBookingModeModal, setShowBookingModeModal] = useState(false);
+    const [pendingDestination, setPendingDestination] = useState<Destination | null>(null);
 
     // Requirements selection state
     const [showRequirementsSection, setShowRequirementsSection] = useState(false);
@@ -411,8 +414,8 @@ export default function TripPlannerDashboard() {
             // Set booking type
             setSelectedBookingType(bookingType as BookingType);
 
-            // If destination booking, load and select destination
-            if (destinationId && bookingType === 'full_trip') {
+            // If destination booking (full_trip or destination_only), load and select destination
+            if (destinationId && (bookingType === 'full_trip' || bookingType === 'destination_only')) {
                 try {
                     const { data: destination, error } = await supabase
                         .from('destinations_with_details')
@@ -422,7 +425,19 @@ export default function TripPlannerDashboard() {
 
                     if (!error && destination) {
                         setSelectedForPlanning(destination);
-                        setShowRequirementsSection(true);
+
+                        // For destination_only, hide requirements section and calculate base price
+                        if (bookingType === 'destination_only') {
+                            setShowRequirementsSection(false);
+                            if (destination.pricing) {
+                                const basePrice = calculateDestinationOnlyPrice(destination);
+                                setTotalPrice(basePrice);
+                            }
+                        } else {
+                            // For full_trip, show requirements section
+                            setShowRequirementsSection(true);
+                        }
+
                         // Set view to service-booking - this will trigger loadRequirementsData() via useEffect
                         setCurrentView('service-booking');
 
@@ -804,17 +819,50 @@ export default function TripPlannerDashboard() {
     };
 
     const handleSelectForPlanning = (destination: Destination) => {
-        setSelectedForPlanning(destination);
+        // Show booking mode selection modal
+        setPendingDestination(destination);
+        setShowBookingModeModal(true);
+    };
+
+    const handleBookingModeSelection = (mode: 'destination_only' | 'with_services') => {
+        if (!pendingDestination) return;
+
+        setSelectedForPlanning(pendingDestination);
+        // Both modes now use the unified requirements section
         setShowRequirementsSection(true);
+        setSelectedBookingType(mode === 'destination_only' ? 'destination_only' : 'full_trip');
         setSelectedRequirements([]);
-        setTotalPrice(0);
-        if (paramedics.length === 0) {
+
+        // Switch to service-booking view
+        setCurrentView('service-booking');
+
+        // Calculate initial price for destination_only
+        if (mode === 'destination_only' && pendingDestination.pricing) {
+            const basePrice = calculateDestinationOnlyPrice(pendingDestination);
+            setTotalPrice(basePrice);
+        } else {
+            setTotalPrice(0);
+        }
+
+        if (mode === 'with_services' && paramedics.length === 0) {
             loadRequirementsData();
         }
-        // Scroll to requirements section
+
+        setPendingDestination(null);
+
+        // Scroll to trip details section for both modes
         setTimeout(() => {
-            document.getElementById('requirements-section')?.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('trip-details-section')?.scrollIntoView({ behavior: 'smooth' });
         }, 100);
+    };
+
+    const calculateDestinationOnlyPrice = (destination: Destination): number => {
+        if (!destination.pricing) return 0;
+
+        const studentPrice = (destination.pricing.student || 0) * (numberOfStudents || 0);
+        const crewPrice = (destination.pricing.crew || 0) * (numberOfCrew || 0);
+
+        return studentPrice + crewPrice;
     };
 
     const calculateTotalPrice = (requirements: RequirementSelection[]) => {
@@ -1168,8 +1216,8 @@ export default function TripPlannerDashboard() {
             errors.push(t('trip_date'));
         }
 
-        // 2. Validate number of students/crew - ONLY for full_trip booking type
-        if (selectedBookingType === 'full_trip') {
+        // 2. Validate number of students/crew - ONLY for full_trip and destination_only booking types
+        if (selectedBookingType === 'full_trip' || selectedBookingType === 'destination_only') {
             if (!numberOfStudents || numberOfStudents <= 0) {
                 errors.push(t('number_of_students'));
             }
@@ -1188,10 +1236,12 @@ export default function TripPlannerDashboard() {
             }
         }
 
-        // 4. Validate required services
-        const validation = validateRequiredServices();
-        if (!validation.isValid) {
-            errors.push(...validation.missingServices);
+        // 4. Validate required services - Skip for destination_only
+        if (selectedBookingType !== 'destination_only') {
+            const validation = validateRequiredServices();
+            if (!validation.isValid) {
+                errors.push(...validation.missingServices);
+            }
         }
 
         return {
@@ -1256,6 +1306,7 @@ export default function TripPlannerDashboard() {
                     entertainment_only: 'EN',
                     transportation_only: 'TR',
                     education_only: 'ED',
+                    destination_only: 'DO',
                 };
                 return prefixMap[type] || 'BK';
             };
@@ -1363,6 +1414,11 @@ export default function TripPlannerDashboard() {
 
     // Helper function to determine if a service type should be shown based on booking type
     const shouldShowServiceType = (serviceType: string) => {
+        // For destination_only bookings, hide all service types
+        if (selectedBookingType === 'destination_only') {
+            return false;
+        }
+
         // For full_trip bookings with a selected destination, check destination requirements
         if (selectedBookingType === 'full_trip' && selectedForPlanning?.requirements) {
             return selectedForPlanning.requirements.includes(serviceType);
@@ -1391,9 +1447,16 @@ export default function TripPlannerDashboard() {
     };
 
     useEffect(() => {
-        const newTotal = calculateTotalPrice(selectedRequirements);
-        setTotalPrice(newTotal);
-    }, [selectedRequirements, paramedics, guides, securityCompanies, entertainmentCompanies, travelCompanies, numberOfStudents, numberOfCrew, selectedForPlanning]);
+        // For destination_only bookings, calculate price from destination pricing
+        if (selectedBookingType === 'destination_only' && selectedForPlanning) {
+            const basePrice = calculateDestinationOnlyPrice(selectedForPlanning);
+            setTotalPrice(basePrice);
+        } else {
+            // For other booking types, calculate from selected services
+            const newTotal = calculateTotalPrice(selectedRequirements);
+            setTotalPrice(newTotal);
+        }
+    }, [selectedRequirements, paramedics, guides, securityCompanies, entertainmentCompanies, travelCompanies, numberOfStudents, numberOfCrew, selectedForPlanning, selectedBookingType]);
 
     const togglePropertyFilter = (property: string) => {
         setSelectedProperties((prev) => (prev.includes(property) ? prev.filter((p) => p !== property) : [...prev, property]));
@@ -1445,6 +1508,7 @@ export default function TripPlannerDashboard() {
             color: 'from-red-500 to-red-600',
             onClick: () => {
                 setSelectedBookingType('paramedics_only');
+                setShowRequirementsSection(true);
                 setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
@@ -1457,6 +1521,7 @@ export default function TripPlannerDashboard() {
             color: 'from-green-500 to-green-600',
             onClick: () => {
                 setSelectedBookingType('guides_only');
+                setShowRequirementsSection(true);
                 setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
@@ -1469,6 +1534,7 @@ export default function TripPlannerDashboard() {
             color: 'from-yellow-500 to-yellow-600',
             onClick: () => {
                 setSelectedBookingType('security_only');
+                setShowRequirementsSection(true);
                 setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
@@ -1481,6 +1547,7 @@ export default function TripPlannerDashboard() {
             color: 'from-purple-500 to-purple-600',
             onClick: () => {
                 setSelectedBookingType('entertainment_only');
+                setShowRequirementsSection(true);
                 setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
@@ -1493,6 +1560,7 @@ export default function TripPlannerDashboard() {
             color: 'from-orange-500 to-orange-600',
             onClick: () => {
                 setSelectedBookingType('education_only');
+                setShowRequirementsSection(true);
                 setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
@@ -1505,6 +1573,7 @@ export default function TripPlannerDashboard() {
             color: 'from-indigo-500 to-indigo-600',
             onClick: () => {
                 setSelectedBookingType('transportation_only');
+                setShowRequirementsSection(true);
                 setCurrentView('service-booking');
                 setShowTripDropdown(false);
             },
@@ -2507,7 +2576,6 @@ export default function TripPlannerDashboard() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
             {/* Service Booking View */}
             <AnimatePresence mode="wait">
                 {currentView === 'service-booking' && (
@@ -2563,8 +2631,8 @@ export default function TripPlannerDashboard() {
                             </p>
                         </motion.div>
 
-                        {/* Service Selection Section */}
-                        {!showRequirementsSection && (
+                        {/* Service Selection Section - Only for service-only bookings (no destination) */}
+                        {!showRequirementsSection && !selectedForPlanning && (
                             <motion.div
                                 initial={{ y: 30, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
@@ -3268,10 +3336,9 @@ export default function TripPlannerDashboard() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {/* Requirements Selection Section */}
+            {/* Requirements Selection Section - Universal booking form for ALL booking types */}
             <AnimatePresence>
-                {showRequirementsSection && (
+                {(showRequirementsSection || selectedBookingType) && (
                     <motion.div
                         id="requirements-section"
                         initial={{ opacity: 0, y: 50 }}
@@ -3284,7 +3351,9 @@ export default function TripPlannerDashboard() {
                         <div className="relative bg-gradient-to-r from-blue-600/80 to-purple-600/80 backdrop-blur-md p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white mb-2">{selectedForPlanning ? t('plan_your_trip') : t('book_services')}</h2>
+                                    <h2 className="text-2xl font-bold text-white mb-2">
+                                        {selectedBookingType === 'destination_only' ? t('basic_access') : selectedForPlanning ? t('plan_your_trip') : t('book_services')}
+                                    </h2>
                                     {selectedForPlanning ? (
                                         <p className="text-blue-100">
                                             {t('selected_destination')}: <span className="font-semibold">{selectedForPlanning.name}</span>
@@ -3311,8 +3380,8 @@ export default function TripPlannerDashboard() {
                                 </motion.button>
                             </div>
 
-                            {/* Required Services Indicator */}
-                            {selectedForPlanning?.requirements && selectedForPlanning?.requirements?.length > 0 ? (
+                            {/* Required Services Indicator - only for with_services mode */}
+                            {selectedBookingType !== 'destination_only' && selectedForPlanning?.requirements && selectedForPlanning?.requirements?.length > 0 ? (
                                 <div className="mt-4">
                                     <p className="text-sm text-blue-100 mb-2">{t('required_services')}:</p>
                                     <div className="flex flex-wrap gap-2">
@@ -3498,530 +3567,539 @@ export default function TripPlannerDashboard() {
                             </motion.div>
                         )}
 
-                        {/* Trip Details Section (Students, Crew, Buses) */}
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.3 }}
-                            className="relative bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-slate-800/30 dark:via-slate-800/20 dark:to-transparent backdrop-blur-xl border-y border-white/20 dark:border-slate-700/30 shadow-inner"
-                        >
-                            <div className="px-6 py-6">
-                                <div className="max-w-4xl">
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {/* Number of Students */}
-                                        <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                                                    <IconUsersGroup className="h-4 w-4 text-white" />
-                                                </div>
-                                                {t('number_of_students')} <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={numberOfStudents}
-                                                onChange={(e) => setNumberOfStudents(parseInt(e.target.value) || 0)}
-                                                placeholder="0"
-                                                className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-blue-500/30 dark:focus:ring-blue-400/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
-                                            />
-                                        </div>
-
-                                        {/* Number of Crew */}
-                                        <div className="space-y-2">
-                                            <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
-                                                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                                                    <IconUser className="h-4 w-4 text-white" />
-                                                </div>
-                                                {t('number_of_crew')} <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="number"
-                                                min="0"
-                                                value={numberOfCrew}
-                                                onChange={(e) => setNumberOfCrew(parseInt(e.target.value) || 0)}
-                                                placeholder="0"
-                                                className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-purple-500/30 dark:focus:ring-purple-400/30 focus:border-purple-500 dark:focus:border-purple-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Summary Info */}
-                                    {((numberOfStudents || 0) > 0 || (numberOfCrew || 0) > 0 || (numberOfBuses || 0) > 0) && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.95 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            className="mt-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-400/10 dark:to-purple-400/10 rounded-xl border border-blue-300/30 dark:border-blue-600/30"
-                                        >
-                                            <div className="flex flex-wrap items-center gap-4 text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-gray-600 dark:text-gray-400">{t('total_participants')}:</span>
-                                                    <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{(numberOfStudents || 0) + (numberOfCrew || 0)}</span>
-                                                </div>
+                        {/* Trip Details Section (Students, Crew, Buses) - Only for destination bookings */}
+                        {(selectedBookingType === 'full_trip' || selectedBookingType === 'destination_only') && (
+                            <motion.div
+                                id="trip-details-section"
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.3 }}
+                                className="relative bg-gradient-to-br from-white/10 via-white/5 to-transparent dark:from-slate-800/30 dark:via-slate-800/20 dark:to-transparent backdrop-blur-xl border-y border-white/20 dark:border-slate-700/30 shadow-inner"
+                            >
+                                <div className="px-6 py-6">
+                                    <div className="max-w-4xl">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            {/* Number of Students */}
+                                            <div className="space-y-2">
+                                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
+                                                        <IconUsersGroup className="h-4 w-4 text-white" />
+                                                    </div>
+                                                    {t('number_of_students')} <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    id="number-of-students"
+                                                    type="number"
+                                                    min="0"
+                                                    value={numberOfStudents}
+                                                    onChange={(e) => setNumberOfStudents(parseInt(e.target.value) || 0)}
+                                                    placeholder="0"
+                                                    className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-blue-500/30 dark:focus:ring-blue-400/30 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
+                                                />
                                             </div>
-                                        </motion.div>
-                                    )}
+
+                                            {/* Number of Crew */}
+                                            <div className="space-y-2">
+                                                <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
+                                                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                                                        <IconUser className="h-4 w-4 text-white" />
+                                                    </div>
+                                                    {t('number_of_crew')} <span className="text-red-500">*</span>
+                                                </label>
+                                                <input
+                                                    id="number-of-crew"
+                                                    type="number"
+                                                    min="0"
+                                                    value={numberOfCrew}
+                                                    onChange={(e) => setNumberOfCrew(parseInt(e.target.value) || 0)}
+                                                    placeholder="0"
+                                                    className="w-full px-4 py-3 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-2 border-gray-300/50 dark:border-slate-600/50 rounded-xl focus:ring-4 focus:ring-purple-500/30 dark:focus:ring-purple-400/30 focus:border-purple-500 dark:focus:border-purple-400 transition-all duration-300 text-gray-900 dark:text-white font-medium shadow-sm hover:shadow-md"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Summary Info */}
+                                        {((numberOfStudents || 0) > 0 || (numberOfCrew || 0) > 0 || (numberOfBuses || 0) > 0) && (
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.95 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="mt-4 p-4 bg-gradient-to-r from-blue-500/10 to-purple-500/10 dark:from-blue-400/10 dark:to-purple-400/10 rounded-xl border border-blue-300/30 dark:border-blue-600/30"
+                                            >
+                                                <div className="flex flex-wrap items-center gap-4 text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-600 dark:text-gray-400">{t('total_participants')}:</span>
+                                                        <span className="font-bold text-blue-600 dark:text-blue-400 text-lg">{(numberOfStudents || 0) + (numberOfCrew || 0)}</span>
+                                                    </div>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        </motion.div>
+                            </motion.div>
+                        )}
 
                         {/* Content */}
                         <div className="p-6">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                {/* Left Column - Services Selection */}
-                                <div className="space-y-6">
-                                    {/* Show message if no requirements for full trip mode */}
-                                    {selectedForPlanning && (!selectedForPlanning.requirements || selectedForPlanning.requirements.length === 0) && (
-                                        <div className="text-center py-8">
-                                            <div className="bg-blue-50/50 dark:bg-blue-900/20 backdrop-blur-sm rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/40">
-                                                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                    </svg>
-                                                </div>
-                                                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">{t('no_specific_requirements')}</h3>
-                                                <p className="text-blue-700 dark:text-blue-300 text-sm">{t('destination_no_requirements_message')}</p>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Paramedics */}
-                                    {shouldShowServiceType('paramedics') && paramedics.length > 0 && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                        >
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-red-500 rounded-lg flex items-center justify-center">
-                                                    <IconHeart className="w-4 h-4 text-white" />
-                                                </div>
-                                                {t('paramedics')}
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {paramedics.map((paramedic) => {
-                                                    const selected = isSelected('paramedics', paramedic.id);
-                                                    const selectedReq = selectedRequirements.find((req) => req.type === 'paramedics' && req.id === paramedic.id);
-
-                                                    return (
-                                                        <div key={paramedic.id} className="space-y-2">
-                                                            <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
-                                                                {/* Profile Picture */}
-                                                                <div className="flex-shrink-0">
-                                                                    {paramedic.profile_picture_url ? (
-                                                                        <img
-                                                                            src={getServiceProfileUrl(paramedic.profile_picture_url)}
-                                                                            alt={paramedic.name}
-                                                                            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                                                                            <IconHeart className="w-5 h-5 text-red-500" />
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="font-medium text-gray-900 dark:text-white truncate">{paramedic.name}</p>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                                        {paramedic.hourly_rate}₪/hr • {paramedic.daily_rate}₪/day
-                                                                    </p>
-                                                                </div>
-                                                                <button
-                                                                    onClick={() => selectParamedic(paramedic)}
-                                                                    className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 flex-shrink-0 ${
-                                                                        selected ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-                                                                    }`}
-                                                                >
-                                                                    {selected ? t('selected') : t('select')}
-                                                                </button>
-                                                            </div>
-
-                                                            {/* Rate Selection Buttons */}
-                                                            {selected && (
-                                                                <motion.div
-                                                                    initial={{ opacity: 0, height: 0 }}
-                                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                                    exit={{ opacity: 0, height: 0 }}
-                                                                    className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
-                                                                >
-                                                                    {[
-                                                                        { value: 'hourly', label: t('hourly'), rate: paramedic.hourly_rate },
-                                                                        { value: 'daily', label: t('daily'), rate: paramedic.daily_rate },
-                                                                        { value: 'regional', label: t('regional'), rate: Math.round(paramedic.daily_rate * 1.5) },
-                                                                        { value: 'overnight', label: t('overnight'), rate: paramedic.daily_rate * 2 },
-                                                                    ].map((rateOption) => (
-                                                                        <button
-                                                                            key={rateOption.value}
-                                                                            onClick={() => {
-                                                                                const reqIndex = selectedRequirements.findIndex((r) => r.type === 'paramedics' && r.id === paramedic.id);
-                                                                                if (reqIndex !== -1) {
-                                                                                    updateRequirementRateType(reqIndex, rateOption.value as any);
-                                                                                }
-                                                                            }}
-                                                                            className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                                                                selectedReq?.rate_type === rateOption.value
-                                                                                    ? 'bg-red-500 text-white shadow-md'
-                                                                                    : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
-                                                                            }`}
-                                                                        >
-                                                                            <div className="font-semibold">{rateOption.label}</div>
-                                                                            <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
-                                                                        </button>
-                                                                    ))}
-                                                                </motion.div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </motion.div>
-                                    )}
-
-                                    {/* Guides */}
-                                    {shouldShowServiceType('guides') && guides.length > 0 && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.1 }}
-                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                        >
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
-                                                    <IconUser className="w-4 h-4 text-white" />
-                                                </div>
-                                                {t('guides')}
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {guides.map((guide) => {
-                                                    const selected = isSelected('guides', guide.id);
-                                                    const selectedReq = selectedRequirements.find((req) => req.type === 'guides' && req.id === guide.id);
-
-                                                    return (
-                                                        <div key={guide.id} className="space-y-2">
-                                                            <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
-                                                                <div className="flex-shrink-0">
-                                                                    {guide.profile_picture_url ? (
-                                                                        <img
-                                                                            src={getServiceProfileUrl(guide.profile_picture_url)}
-                                                                            alt={guide.name}
-                                                                            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                                                                            <IconUsers className="w-5 h-5 text-green-500" />
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="font-medium text-gray-900 dark:text-white truncate">{guide.name}</p>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                                                                        {guide.hourly_rate}₪/hr • {guide.daily_rate}₪/day
-                                                                    </p>
-                                                                </div>
-                                                                <button
-                                                                    onClick={() => selectGuide(guide)}
-                                                                    className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                        selected ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
-                                                                    }`}
-                                                                >
-                                                                    {selected ? t('selected') : t('select')}
-                                                                </button>
-                                                            </div>
-
-                                                            {/* Rate Selection Buttons */}
-                                                            {selected && (
-                                                                <motion.div
-                                                                    initial={{ opacity: 0, height: 0 }}
-                                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                                    exit={{ opacity: 0, height: 0 }}
-                                                                    className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
-                                                                >
-                                                                    {[
-                                                                        { value: 'hourly', label: t('hourly'), rate: guide.hourly_rate },
-                                                                        { value: 'daily', label: t('daily'), rate: guide.daily_rate },
-                                                                        { value: 'regional', label: t('regional'), rate: Math.round(guide.daily_rate * 1.5) },
-                                                                        { value: 'overnight', label: t('overnight'), rate: guide.daily_rate * 2 },
-                                                                    ].map((rateOption) => (
-                                                                        <button
-                                                                            key={rateOption.value}
-                                                                            onClick={() => {
-                                                                                const reqIndex = selectedRequirements.findIndex((r) => r.type === 'guides' && r.id === guide.id);
-                                                                                if (reqIndex !== -1) {
-                                                                                    updateRequirementRateType(reqIndex, rateOption.value as any);
-                                                                                }
-                                                                            }}
-                                                                            className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                                                                selectedReq?.rate_type === rateOption.value
-                                                                                    ? 'bg-green-500 text-white shadow-md'
-                                                                                    : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
-                                                                            }`}
-                                                                        >
-                                                                            <div className="font-semibold">{rateOption.label}</div>
-                                                                            <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
-                                                                        </button>
-                                                                    ))}
-                                                                </motion.div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </motion.div>
-                                    )}
-
-                                    {/* Security Companies */}
-                                    {shouldShowServiceType('security_companies') && securityCompanies.length > 0 && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.2 }}
-                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                        >
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-orange-500 rounded-lg flex items-center justify-center">
-                                                    <IconLock className="w-4 h-4 text-white" />
-                                                </div>
-                                                {t('security')}
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {securityCompanies.map((security) => {
-                                                    const selected = isSelected('security_companies', security.id);
-                                                    const selectedReq = selectedRequirements.find((req) => req.type === 'security_companies' && req.id === security.id);
-
-                                                    return (
-                                                        <div key={security.id} className="space-y-2">
-                                                            <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
-                                                                <div className="flex-shrink-0">
-                                                                    {security.profile_picture_url ? (
-                                                                        <img
-                                                                            src={getServiceProfileUrl(security.profile_picture_url)}
-                                                                            alt={security.name}
-                                                                            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                                                            <IconLock className="w-5 h-5 text-yellow-500" />
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="font-medium text-gray-900 dark:text-white truncate">{security.name}</p>
-                                                                    <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                                                                        {security.hourly_rate}₪/hr • {security.daily_rate}₪/day
-                                                                    </p>
-                                                                </div>
-                                                                <button
-                                                                    onClick={() => selectSecurity(security)}
-                                                                    className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                        selected ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'
-                                                                    }`}
-                                                                >
-                                                                    {selected ? t('selected') : t('select')}
-                                                                </button>
-                                                            </div>
-
-                                                            {/* Rate Selection Buttons */}
-                                                            {selected && (
-                                                                <motion.div
-                                                                    initial={{ opacity: 0, height: 0 }}
-                                                                    animate={{ opacity: 1, height: 'auto' }}
-                                                                    exit={{ opacity: 0, height: 0 }}
-                                                                    className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
-                                                                >
-                                                                    {[
-                                                                        { value: 'hourly', label: t('hourly'), rate: security.hourly_rate },
-                                                                        { value: 'daily', label: t('daily'), rate: security.daily_rate },
-                                                                        { value: 'regional', label: t('regional'), rate: Math.round(security.daily_rate * 1.5) },
-                                                                        { value: 'overnight', label: t('overnight'), rate: security.daily_rate * 2 },
-                                                                    ].map((rateOption) => (
-                                                                        <button
-                                                                            key={rateOption.value}
-                                                                            onClick={() => {
-                                                                                const reqIndex = selectedRequirements.findIndex((r) => r.type === 'security_companies' && r.id === security.id);
-                                                                                if (reqIndex !== -1) {
-                                                                                    updateRequirementRateType(reqIndex, rateOption.value as any);
-                                                                                }
-                                                                            }}
-                                                                            className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                                                                                selectedReq?.rate_type === rateOption.value
-                                                                                    ? 'bg-yellow-500 text-white shadow-md'
-                                                                                    : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
-                                                                            }`}
-                                                                        >
-                                                                            <div className="font-semibold">{rateOption.label}</div>
-                                                                            <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
-                                                                        </button>
-                                                                    ))}
-                                                                </motion.div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </motion.div>
-                                    )}
-
-                                    {/* Entertainment Sub-Services */}
-                                    {shouldShowServiceType('external_entertainment_companies') && entertainmentSubServices.length > 0 && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.3 }}
-                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                        >
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
-                                                    <IconStar className="w-4 h-4 text-white" />
-                                                </div>
-                                                {t('entertainment')}
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {entertainmentSubServices.map((subService) => (
-                                                    <div
-                                                        key={subService.id}
-                                                        className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
-                                                    >
-                                                        <div className="flex-shrink-0">
-                                                            {subService.icon_path ? (
-                                                                <img
-                                                                    src={getSubServiceIconUrl('entertainment_company_services', subService.icon_path) || ''}
-                                                                    alt={subService.service_label}
-                                                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                                                                    <IconPlayCircle className="w-5 h-5 text-purple-500" />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-gray-900 dark:text-white truncate">{subService.service_label}</p>
-                                                            <p className="text-xs text-purple-600 dark:text-purple-400 truncate">
-                                                                {t('provider')}: {subService.entertainment_company?.name || 'Unknown'}
-                                                            </p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300 truncate">₪{subService.service_price}</p>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => selectEntertainment(subService)}
-                                                            className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                isSelected('external_entertainment_companies', subService.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-purple-500 hover:bg-purple-600'
-                                                            }`}
-                                                        >
-                                                            {isSelected('external_entertainment_companies', subService.id) ? t('selected') : t('select')}
-                                                        </button>
+                                {/* Left Column - Services Selection (only for with_services mode) */}
+                                {selectedBookingType !== 'destination_only' && (
+                                    <div className="space-y-6">
+                                        {/* Show message if no requirements for full trip mode */}
+                                        {selectedForPlanning && (!selectedForPlanning.requirements || selectedForPlanning.requirements.length === 0) && (
+                                            <div className="text-center py-8">
+                                                <div className="bg-blue-50/50 dark:bg-blue-900/20 backdrop-blur-sm rounded-xl p-6 border border-blue-200/50 dark:border-blue-700/40">
+                                                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </motion.div>
-                                    )}
-
-                                    {/* Education Sub-Services */}
-                                    {shouldShowServiceType('education_programs') && educationSubServices.length > 0 && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.35 }}
-                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                        >
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center">
-                                                    <IconBook className="w-4 h-4 text-white" />
+                                                    <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-2">{t('no_specific_requirements')}</h3>
+                                                    <p className="text-blue-700 dark:text-blue-300 text-sm">{t('destination_no_requirements_message')}</p>
                                                 </div>
-                                                {t('education_programs')}
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {educationSubServices.map((subService) => (
-                                                    <div
-                                                        key={subService.id}
-                                                        className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
-                                                    >
-                                                        <div className="flex-shrink-0">
-                                                            {subService.icon_path ? (
-                                                                <img
-                                                                    src={getSubServiceIconUrl('education_program_services', subService.icon_path) || ''}
-                                                                    alt={subService.service_label}
-                                                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                                                    <IconBook className="w-5 h-5 text-emerald-500" />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-gray-900 dark:text-white truncate">{subService.service_label}</p>
-                                                            <p className="text-xs text-emerald-600 dark:text-emerald-400 truncate">
-                                                                {t('provider')}: {subService.education_program?.name || 'Unknown'}
-                                                            </p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300 truncate">₪{subService.service_price}</p>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => selectEducation(subService)}
-                                                            className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                isSelected('education_programs', subService.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-emerald-500 hover:bg-emerald-600'
-                                                            }`}
-                                                        >
-                                                            {isSelected('education_programs', subService.id) ? t('selected') : t('select')}
-                                                        </button>
-                                                    </div>
-                                                ))}
                                             </div>
-                                        </motion.div>
-                                    )}
+                                        )}
 
-                                    {/* Travel Companies */}
-                                    {shouldShowServiceType('travel_companies') && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: 0.4 }}
-                                            className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
-                                        >
-                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                                                <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
-                                                    <IconCar className="w-4 h-4 text-white" />
-                                                </div>
-                                                {t('travel_companies')}
-                                            </h3>
-                                            <div className="space-y-3">
-                                                {travelCompanies.map((travelCompany) => (
-                                                    <div
-                                                        key={travelCompany.id}
-                                                        className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
-                                                    >
-                                                        <div className="flex-shrink-0">
-                                                            {travelCompany.profile_picture_url ? (
-                                                                <img
-                                                                    src={getServiceProfileUrl(travelCompany.profile_picture_url)}
-                                                                    alt={travelCompany.name}
-                                                                    className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                                                    <IconCar className="w-5 h-5 text-blue-500" />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-gray-900 dark:text-white truncate">{travelCompany.name}</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                                                                {travelCompany.pricing_data?.default_price ? `${travelCompany.pricing_data.default_price}/day` : 'Contact for pricing'}
-                                                            </p>
-                                                            {travelCompany.phone && <p className="text-xs text-blue-600 dark:text-blue-400 truncate">{travelCompany.phone}</p>}
-                                                        </div>
-                                                        <button
-                                                            onClick={() => selectTravelCompany(travelCompany)}
-                                                            className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
-                                                                isSelected('travel_companies', travelCompany.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
-                                                            }`}
-                                                        >
-                                                            {isSelected('travel_companies', travelCompany.id) ? t('selected') : t('select')}
-                                                        </button>
+                                        {/* Paramedics */}
+                                        {shouldShowServiceType('paramedics') && paramedics.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-red-500 rounded-lg flex items-center justify-center">
+                                                        <IconHeart className="w-4 h-4 text-white" />
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </div>
+                                                    {t('paramedics')}
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {paramedics.map((paramedic) => {
+                                                        const selected = isSelected('paramedics', paramedic.id);
+                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'paramedics' && req.id === paramedic.id);
+
+                                                        return (
+                                                            <div key={paramedic.id} className="space-y-2">
+                                                                <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                    {/* Profile Picture */}
+                                                                    <div className="flex-shrink-0">
+                                                                        {paramedic.profile_picture_url ? (
+                                                                            <img
+                                                                                src={getServiceProfileUrl(paramedic.profile_picture_url)}
+                                                                                alt={paramedic.name}
+                                                                                className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                                                                <IconHeart className="w-5 h-5 text-red-500" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="font-medium text-gray-900 dark:text-white truncate">{paramedic.name}</p>
+                                                                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                                                                            {paramedic.hourly_rate}₪/hr • {paramedic.daily_rate}₪/day
+                                                                        </p>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => selectParamedic(paramedic)}
+                                                                        className={`px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 flex-shrink-0 ${
+                                                                            selected ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                                                                        }`}
+                                                                    >
+                                                                        {selected ? t('selected') : t('select')}
+                                                                    </button>
+                                                                </div>
+
+                                                                {/* Rate Selection Buttons */}
+                                                                {selected && (
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, height: 0 }}
+                                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                                        exit={{ opacity: 0, height: 0 }}
+                                                                        className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
+                                                                    >
+                                                                        {[
+                                                                            { value: 'hourly', label: t('hourly'), rate: paramedic.hourly_rate },
+                                                                            { value: 'daily', label: t('daily'), rate: paramedic.daily_rate },
+                                                                            { value: 'regional', label: t('regional'), rate: Math.round(paramedic.daily_rate * 1.5) },
+                                                                            { value: 'overnight', label: t('overnight'), rate: paramedic.daily_rate * 2 },
+                                                                        ].map((rateOption) => (
+                                                                            <button
+                                                                                key={rateOption.value}
+                                                                                onClick={() => {
+                                                                                    const reqIndex = selectedRequirements.findIndex((r) => r.type === 'paramedics' && r.id === paramedic.id);
+                                                                                    if (reqIndex !== -1) {
+                                                                                        updateRequirementRateType(reqIndex, rateOption.value as any);
+                                                                                    }
+                                                                                }}
+                                                                                className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                    selectedReq?.rate_type === rateOption.value
+                                                                                        ? 'bg-red-500 text-white shadow-md'
+                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
+                                                                                }`}
+                                                                            >
+                                                                                <div className="font-semibold">{rateOption.label}</div>
+                                                                                <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Guides */}
+                                        {shouldShowServiceType('guides') && guides.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.1 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                                                        <IconUser className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('guides')}
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {guides.map((guide) => {
+                                                        const selected = isSelected('guides', guide.id);
+                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'guides' && req.id === guide.id);
+
+                                                        return (
+                                                            <div key={guide.id} className="space-y-2">
+                                                                <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                    <div className="flex-shrink-0">
+                                                                        {guide.profile_picture_url ? (
+                                                                            <img
+                                                                                src={getServiceProfileUrl(guide.profile_picture_url)}
+                                                                                alt={guide.name}
+                                                                                className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                                                                <IconUsers className="w-5 h-5 text-green-500" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="font-medium text-gray-900 dark:text-white truncate">{guide.name}</p>
+                                                                        <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                                                                            {guide.hourly_rate}₪/hr • {guide.daily_rate}₪/day
+                                                                        </p>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => selectGuide(guide)}
+                                                                        className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                            selected ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
+                                                                        }`}
+                                                                    >
+                                                                        {selected ? t('selected') : t('select')}
+                                                                    </button>
+                                                                </div>
+
+                                                                {/* Rate Selection Buttons */}
+                                                                {selected && (
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, height: 0 }}
+                                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                                        exit={{ opacity: 0, height: 0 }}
+                                                                        className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
+                                                                    >
+                                                                        {[
+                                                                            { value: 'hourly', label: t('hourly'), rate: guide.hourly_rate },
+                                                                            { value: 'daily', label: t('daily'), rate: guide.daily_rate },
+                                                                            { value: 'regional', label: t('regional'), rate: Math.round(guide.daily_rate * 1.5) },
+                                                                            { value: 'overnight', label: t('overnight'), rate: guide.daily_rate * 2 },
+                                                                        ].map((rateOption) => (
+                                                                            <button
+                                                                                key={rateOption.value}
+                                                                                onClick={() => {
+                                                                                    const reqIndex = selectedRequirements.findIndex((r) => r.type === 'guides' && r.id === guide.id);
+                                                                                    if (reqIndex !== -1) {
+                                                                                        updateRequirementRateType(reqIndex, rateOption.value as any);
+                                                                                    }
+                                                                                }}
+                                                                                className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                    selectedReq?.rate_type === rateOption.value
+                                                                                        ? 'bg-green-500 text-white shadow-md'
+                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
+                                                                                }`}
+                                                                            >
+                                                                                <div className="font-semibold">{rateOption.label}</div>
+                                                                                <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Security Companies */}
+                                        {shouldShowServiceType('security_companies') && securityCompanies.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.2 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-orange-500 rounded-lg flex items-center justify-center">
+                                                        <IconLock className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('security')}
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {securityCompanies.map((security) => {
+                                                        const selected = isSelected('security_companies', security.id);
+                                                        const selectedReq = selectedRequirements.find((req) => req.type === 'security_companies' && req.id === security.id);
+
+                                                        return (
+                                                            <div key={security.id} className="space-y-2">
+                                                                <div className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40">
+                                                                    <div className="flex-shrink-0">
+                                                                        {security.profile_picture_url ? (
+                                                                            <img
+                                                                                src={getServiceProfileUrl(security.profile_picture_url)}
+                                                                                alt={security.name}
+                                                                                className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                            />
+                                                                        ) : (
+                                                                            <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                                                                                <IconLock className="w-5 h-5 text-yellow-500" />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="font-medium text-gray-900 dark:text-white truncate">{security.name}</p>
+                                                                        <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                                                                            {security.hourly_rate}₪/hr • {security.daily_rate}₪/day
+                                                                        </p>
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={() => selectSecurity(security)}
+                                                                        className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                            selected ? 'bg-green-500 hover:bg-green-600' : 'bg-orange-500 hover:bg-orange-600'
+                                                                        }`}
+                                                                    >
+                                                                        {selected ? t('selected') : t('select')}
+                                                                    </button>
+                                                                </div>
+
+                                                                {/* Rate Selection Buttons */}
+                                                                {selected && (
+                                                                    <motion.div
+                                                                        initial={{ opacity: 0, height: 0 }}
+                                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                                        exit={{ opacity: 0, height: 0 }}
+                                                                        className="grid grid-cols-2 md:grid-cols-4 gap-2 px-3"
+                                                                    >
+                                                                        {[
+                                                                            { value: 'hourly', label: t('hourly'), rate: security.hourly_rate },
+                                                                            { value: 'daily', label: t('daily'), rate: security.daily_rate },
+                                                                            { value: 'regional', label: t('regional'), rate: Math.round(security.daily_rate * 1.5) },
+                                                                            { value: 'overnight', label: t('overnight'), rate: security.daily_rate * 2 },
+                                                                        ].map((rateOption) => (
+                                                                            <button
+                                                                                key={rateOption.value}
+                                                                                onClick={() => {
+                                                                                    const reqIndex = selectedRequirements.findIndex((r) => r.type === 'security_companies' && r.id === security.id);
+                                                                                    if (reqIndex !== -1) {
+                                                                                        updateRequirementRateType(reqIndex, rateOption.value as any);
+                                                                                    }
+                                                                                }}
+                                                                                className={`p-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                                                                    selectedReq?.rate_type === rateOption.value
+                                                                                        ? 'bg-yellow-500 text-white shadow-md'
+                                                                                        : 'bg-white/50 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-slate-700/80'
+                                                                                }`}
+                                                                            >
+                                                                                <div className="font-semibold">{rateOption.label}</div>
+                                                                                <div className="text-[10px] mt-0.5">₪{rateOption.rate}</div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </motion.div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Entertainment Sub-Services */}
+                                        {shouldShowServiceType('external_entertainment_companies') && entertainmentSubServices.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.3 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
+                                                        <IconStar className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('entertainment')}
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {entertainmentSubServices.map((subService) => (
+                                                        <div
+                                                            key={subService.id}
+                                                            className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
+                                                        >
+                                                            <div className="flex-shrink-0">
+                                                                {subService.icon_path ? (
+                                                                    <img
+                                                                        src={getSubServiceIconUrl('entertainment_company_services', subService.icon_path) || ''}
+                                                                        alt={subService.service_label}
+                                                                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                                                        <IconPlayCircle className="w-5 h-5 text-purple-500" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-900 dark:text-white truncate">{subService.service_label}</p>
+                                                                <p className="text-xs text-purple-600 dark:text-purple-400 truncate">
+                                                                    {t('provider')}: {subService.entertainment_company?.name || 'Unknown'}
+                                                                </p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">₪{subService.service_price}</p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => selectEntertainment(subService)}
+                                                                className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                    isSelected('external_entertainment_companies', subService.id)
+                                                                        ? 'bg-green-500 hover:bg-green-600'
+                                                                        : 'bg-purple-500 hover:bg-purple-600'
+                                                                }`}
+                                                            >
+                                                                {isSelected('external_entertainment_companies', subService.id) ? t('selected') : t('select')}
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Education Sub-Services */}
+                                        {shouldShowServiceType('education_programs') && educationSubServices.length > 0 && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.35 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-emerald-500 rounded-lg flex items-center justify-center">
+                                                        <IconBook className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('education_programs')}
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {educationSubServices.map((subService) => (
+                                                        <div
+                                                            key={subService.id}
+                                                            className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
+                                                        >
+                                                            <div className="flex-shrink-0">
+                                                                {subService.icon_path ? (
+                                                                    <img
+                                                                        src={getSubServiceIconUrl('education_program_services', subService.icon_path) || ''}
+                                                                        alt={subService.service_label}
+                                                                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                                                        <IconBook className="w-5 h-5 text-emerald-500" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-900 dark:text-white truncate">{subService.service_label}</p>
+                                                                <p className="text-xs text-emerald-600 dark:text-emerald-400 truncate">
+                                                                    {t('provider')}: {subService.education_program?.name || 'Unknown'}
+                                                                </p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">₪{subService.service_price}</p>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => selectEducation(subService)}
+                                                                className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                    isSelected('education_programs', subService.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-emerald-500 hover:bg-emerald-600'
+                                                                }`}
+                                                            >
+                                                                {isSelected('education_programs', subService.id) ? t('selected') : t('select')}
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+
+                                        {/* Travel Companies */}
+                                        {shouldShowServiceType('travel_companies') && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: 0.4 }}
+                                                className="bg-white/10 dark:bg-slate-800/20 backdrop-blur-sm rounded-xl p-4 border border-white/30 dark:border-slate-700/40"
+                                            >
+                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-blue-500 rounded-lg flex items-center justify-center">
+                                                        <IconCar className="w-4 h-4 text-white" />
+                                                    </div>
+                                                    {t('travel_companies')}
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {travelCompanies.map((travelCompany) => (
+                                                        <div
+                                                            key={travelCompany.id}
+                                                            className="flex items-center gap-3 p-3 bg-white/20 dark:bg-slate-800/20 backdrop-blur-sm rounded-lg border border-white/30 dark:border-slate-700/40"
+                                                        >
+                                                            <div className="flex-shrink-0">
+                                                                {travelCompany.profile_picture_url ? (
+                                                                    <img
+                                                                        src={getServiceProfileUrl(travelCompany.profile_picture_url)}
+                                                                        alt={travelCompany.name}
+                                                                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-slate-600"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                                                        <IconCar className="w-5 h-5 text-blue-500" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-900 dark:text-white truncate">{travelCompany.name}</p>
+                                                                <p className="text-sm text-gray-600 dark:text-gray-300 truncate">
+                                                                    {travelCompany.pricing_data?.default_price ? `${travelCompany.pricing_data.default_price}/day` : 'Contact for pricing'}
+                                                                </p>
+                                                                {travelCompany.phone && <p className="text-xs text-blue-600 dark:text-blue-400 truncate">{travelCompany.phone}</p>}
+                                                            </div>
+                                                            <button
+                                                                onClick={() => selectTravelCompany(travelCompany)}
+                                                                className={`flex-shrink-0 px-3 py-1 text-white text-sm rounded-lg transition-colors duration-200 ${
+                                                                    isSelected('travel_companies', travelCompany.id) ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'
+                                                                }`}
+                                                            >
+                                                                {isSelected('travel_companies', travelCompany.id) ? t('selected') : t('select')}
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </div>
+                                )}
 
                                 {/* Right Column - Price Summary & Selection */}
                                 <div className="space-y-6">
@@ -4131,10 +4209,20 @@ export default function TripPlannerDashboard() {
                     </motion.div>
                 )}
             </AnimatePresence>
-
             {/* Destination Details Modal */}
-            <DestinationDetailsModal destination={selectedDestination} zones={zones} isOpen={isModalOpen} onClose={closeDestinationModal} />
-
+            <DestinationDetailsModal destination={selectedDestination} zones={zones} isOpen={isModalOpen} onClose={closeDestinationModal} /> {/* Booking Mode Selection Modal */}
+            <BookingModeModal
+                isOpen={showBookingModeModal}
+                onClose={() => {
+                    setShowBookingModeModal(false);
+                    setPendingDestination(null);
+                }}
+                destinationName={pendingDestination?.name || ''}
+                basePrice={pendingDestination?.pricing || null}
+                requirements={pendingDestination?.requirements || []}
+                onSelectMode={handleBookingModeSelection}
+                t={t}
+            />
             {/* Checkout Modal */}
             <AnimatePresence>
                 {showCheckoutModal && (
