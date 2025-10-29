@@ -11,6 +11,7 @@ import IconCalendar from '@/components/icon/icon-calendar';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
 import EntertainmentCompanyTabs from '@/components/entertainment/entertainment-company-tabs';
+import RatingsDisplay from '@/components/ratings/ratings-display';
 
 import { getTranslation } from '@/i18n';
 
@@ -187,6 +188,11 @@ const EntertainmentCompanyPreview = () => {
                     {/* Balance Section */}
                     <div>
                         <ServiceBalanceTab serviceType="external_entertainment_companies" serviceId={company.id} />
+                    </div>
+
+                    {/* Ratings Section */}
+                    <div className="panel">
+                        <RatingsDisplay serviceType="external_entertainment_companies" serviceId={company.id} t={t} />
                     </div>
                 </div>
 

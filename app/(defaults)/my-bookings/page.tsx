@@ -26,10 +26,11 @@ import IconX from '@/components/icon/icon-x';
 import IconCheck from '@/components/icon/icon-check';
 import IconBuilding from '@/components/icon/icon-building';
 import { BookingPDFGenerator } from '@/utils/booking-pdf-generator';
+import RatingModal from '@/components/modals/rating-modal';
 
 type BookingStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'active' | 'inactive';
 type PaymentStatus = 'pending' | 'deposit_paid' | 'fully_paid' | 'cancelled' | 'paid';
-type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'education_only' | 'transportation_only';
+type BookingType = 'full_trip' | 'guides_only' | 'paramedics_only' | 'security_only' | 'entertainment_only' | 'education_only' | 'transportation_only' | 'destination_only';
 
 interface Booking {
     id: string;
@@ -111,6 +112,13 @@ const getBookingTypeConfigs = (t: any) => ({
         bgColor: 'bg-indigo-50',
         borderColor: 'border-indigo-200',
     },
+    destination_only: {
+        title: t('destination_only'),
+        icon: IconMapPin,
+        color: 'text-pink-600',
+        bgColor: 'bg-pink-50',
+        borderColor: 'border-pink-200',
+    },
 });
 
 const statusColors = {
@@ -145,6 +153,9 @@ export default function MyBookingsPage() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+    const [bookingToRate, setBookingToRate] = useState<Booking | null>(null);
+    const [bookingRatings, setBookingRatings] = useState<Record<string, boolean>>({});
 
     // Fetch user and bookings together
     useEffect(() => {
@@ -318,6 +329,46 @@ export default function MyBookingsPage() {
 
             return sortOrder === 'asc' ? comparison : -comparison;
         });
+
+    // Check if booking can be rated (trip_date has passed and status is confirmed)
+    const canRateBooking = (booking: Booking) => {
+        const tripDate = new Date(booking.trip_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        return tripDate < today && booking.status === 'confirmed';
+    };
+
+    // Check if ratings exist for a booking
+    useEffect(() => {
+        const checkRatings = async () => {
+            if (bookings.length === 0) return;
+
+            const bookingIds = bookings.map((b) => b.id);
+            const { data: ratings } = await supabase.from('ratings').select('booking_id').in('booking_id', bookingIds);
+
+            const ratingsMap: Record<string, boolean> = {};
+            ratings?.forEach((r) => {
+                ratingsMap[r.booking_id] = true;
+            });
+
+            setBookingRatings(ratingsMap);
+        };
+
+        checkRatings();
+    }, [bookings]);
+
+    const handleOpenRatingModal = (booking: Booking) => {
+        setBookingToRate(booking);
+        setIsRatingModalOpen(true);
+    };
+
+    const handleRatingSuccess = () => {
+        // Refresh bookings to update rating status
+        fetchBookings();
+        setIsRatingModalOpen(false);
+        setBookingToRate(null);
+    };
 
     const handleDownloadPDF = async (booking: Booking) => {
         try {
@@ -853,6 +904,22 @@ export default function MyBookingsPage() {
                                                         <IconEye className="w-4 h-4" />
                                                         {t('view_details')}
                                                     </button>
+
+                                                    {/* Rate Booking Button - Only show for past confirmed bookings */}
+                                                    {canRateBooking(booking) && (
+                                                        <button
+                                                            onClick={() => handleOpenRatingModal(booking)}
+                                                            className={`px-6 py-3 font-semibold rounded-xl shadow-lg transition-all flex items-center gap-2 transform hover:scale-105 ${
+                                                                bookingRatings[booking.id]
+                                                                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-green-500/30 hover:shadow-xl hover:shadow-green-500/40'
+                                                                    : 'bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-yellow-500/30 hover:shadow-xl hover:shadow-yellow-500/40'
+                                                            }`}
+                                                        >
+                                                            <IconStar className={`w-4 h-4 ${bookingRatings[booking.id] ? 'fill-white' : ''}`} />
+                                                            {bookingRatings[booking.id] ? t('view_ratings') : t('rate_booking')}
+                                                        </button>
+                                                    )}
+
                                                     <button
                                                         onClick={() => handleDownloadPDF(booking)}
                                                         disabled={downloadingPDF === booking.id}
@@ -1131,6 +1198,9 @@ export default function MyBookingsPage() {
                         </>
                     )}
                 </AnimatePresence>
+
+                {/* Rating Modal */}
+                <RatingModal isOpen={isRatingModalOpen} onClose={() => setIsRatingModalOpen(false)} booking={bookingToRate} onSubmitSuccess={handleRatingSuccess} t={t} />
             </div>
         </div>
     );

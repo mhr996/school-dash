@@ -12,6 +12,7 @@ import IconUser from '@/components/icon/icon-user';
 import IconEye from '@/components/icon/icon-eye';
 import IconX from '@/components/icon/icon-x';
 import { getPublicUrlFromPath } from '@/utils/file-upload';
+import RatingsDisplay from '@/components/ratings/ratings-display';
 
 type Destination = {
     id: string;
@@ -331,6 +332,11 @@ export default function PreviewDestinationPage({ params }: { params: { id: strin
                                 </div>
                             </div>
                         )}
+
+                        {/* Ratings Section */}
+                        <div className="panel">
+                            <RatingsDisplay serviceType="destinations" serviceId={params.id} t={t} />
+                        </div>
                     </div>
 
                     {/* Sidebar */}

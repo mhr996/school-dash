@@ -18,6 +18,7 @@ import IconCalendar from '@/components/icon/icon-calendar';
 import IconClipboardText from '@/components/icon/icon-clipboard-text';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
+import RatingsDisplay from '@/components/ratings/ratings-display';
 import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 
 import { getTranslation } from '@/i18n';
@@ -276,6 +277,11 @@ const SecurityCompanyPreview = () => {
                     {/* Balance Section */}
                     <div>
                         <ServiceBalanceTab serviceType="security_companies" serviceId={company.id} />
+                    </div>
+
+                    {/* Ratings Section */}
+                    <div className="panel">
+                        <RatingsDisplay serviceType="security_companies" serviceId={company.id} t={t} />
                     </div>
                 </div>
 

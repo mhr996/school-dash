@@ -14,6 +14,7 @@ import { getTranslation } from '@/i18n';
 import Link from 'next/link';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
+import RatingsDisplay from '@/components/ratings/ratings-display';
 import { getServiceProfilePictureUrlWithFallback } from '@/utils/service-profile-picture';
 import Image from 'next/image';
 
@@ -414,6 +415,11 @@ const PreviewTravelCompany = ({ params }: { params: { id: string } }) => {
                 {/* Balance Section */}
                 <div>
                     <ServiceBalanceTab serviceType="travel_companies" serviceId={travelCompany.id} />
+                </div>
+
+                {/* Ratings Section */}
+                <div className="panel">
+                    <RatingsDisplay serviceType="travel_companies" serviceId={travelCompany.id} t={t} />
                 </div>
             </div>
         </div>

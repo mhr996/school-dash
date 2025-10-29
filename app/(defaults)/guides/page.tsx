@@ -5,6 +5,7 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconUser from '@/components/icon/icon-user';
 import IconSearch from '@/components/icon/icon-search';
+import IconStar from '@/components/icon/icon-star';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
 import Link from 'next/link';
@@ -33,6 +34,8 @@ interface Guide {
     notes?: string;
     balance?: number;
     profile_picture_url?: string | null;
+    average_rating?: number;
+    total_ratings?: number;
 }
 
 const GuidesList = () => {
@@ -72,18 +75,28 @@ const GuidesList = () => {
 
                 if (error) throw error;
 
-                // Fetch balances for all guides
-                const guidesWithBalance = await Promise.all(
+                // Fetch balances and ratings for all guides
+                const guidesWithBalanceAndRatings = await Promise.all(
                     (data as Guide[]).map(async (guide) => {
+                        // Fetch balance
                         const balanceData = await calculateServiceProviderBalance('guides', guide.id);
+
+                        // Fetch ratings
+                        const { data: ratingsData } = await supabase.from('ratings').select('rating').eq('service_type', 'guides').eq('service_id', guide.id);
+
+                        const totalRatings = ratingsData?.length || 0;
+                        const averageRating = ratingsData && ratingsData.length > 0 ? ratingsData.reduce((sum, r) => sum + r.rating, 0) / ratingsData.length : 0;
+
                         return {
                             ...guide,
                             balance: balanceData?.netBalance || 0,
+                            average_rating: averageRating,
+                            total_ratings: totalRatings,
                         };
                     }),
                 );
 
-                setItems(guidesWithBalance);
+                setItems(guidesWithBalanceAndRatings);
             } catch (error) {
                 console.error('Error fetching guides:', error);
                 setAlert({ visible: true, message: t('error_loading_data'), type: 'danger' });
@@ -304,6 +317,26 @@ const GuidesList = () => {
                                     <span className={balance && balance > 0 ? 'text-green-600' : balance && balance < 0 ? 'text-red-600' : 'text-gray-500'}>
                                         ₪{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                     </span>
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'average_rating',
+                            title: t('rating'),
+                            sortable: true,
+                            render: ({ average_rating, total_ratings }) => (
+                                <div className="flex items-center gap-2">
+                                    {total_ratings && total_ratings > 0 ? (
+                                        <>
+                                            <div className="flex items-center gap-1">
+                                                <IconStar className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                                <span className="font-semibold text-gray-900 dark:text-white">{average_rating?.toFixed(1)}</span>
+                                            </div>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">({total_ratings})</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-xs text-gray-400">{t('no_ratings')}</span>
+                                    )}
                                 </div>
                             ),
                         },

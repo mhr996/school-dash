@@ -27,6 +27,8 @@ interface EntertainmentCompany {
     price?: number;
     status?: string;
     balance?: number;
+    average_rating?: number;
+    total_ratings?: number;
 }
 
 // Helper function to get proper image URL
@@ -89,13 +91,22 @@ const EntertainmentCompaniesList = () => {
 
                 if (error) throw error;
 
-                // Fetch balances for all entertainment companies
+                // Fetch balances and ratings for all entertainment companies
                 const companiesWithBalance = await Promise.all(
                     (data || []).map(async (company) => {
                         const balanceData = await calculateServiceProviderBalance('external_entertainment_companies', company.id);
+
+                        // Fetch ratings for this entertainment company
+                        const { data: ratingsData } = await supabase.from('ratings').select('rating').eq('service_type', 'external_entertainment_companies').eq('service_id', company.id);
+
+                        const totalRatings = ratingsData?.length || 0;
+                        const averageRating = ratingsData && ratingsData.length > 0 ? ratingsData.reduce((sum, r) => sum + r.rating, 0) / ratingsData.length : 0;
+
                         return {
                             ...company,
                             balance: balanceData?.netBalance || 0,
+                            average_rating: averageRating,
+                            total_ratings: totalRatings,
                         };
                     }),
                 );
@@ -321,6 +332,24 @@ const EntertainmentCompaniesList = () => {
                                     <span className={balance && balance > 0 ? 'text-green-600' : balance && balance < 0 ? 'text-red-600' : 'text-gray-500'}>
                                         ₪{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                     </span>
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'average_rating',
+                            title: t('rating'),
+                            sortable: true,
+                            render: ({ average_rating, total_ratings }) => (
+                                <div className="flex items-center gap-1">
+                                    {total_ratings && total_ratings > 0 ? (
+                                        <>
+                                            <IconStar className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                            <span className="font-semibold">{average_rating?.toFixed(1)}</span>
+                                            <span className="text-gray-500 text-xs">({total_ratings})</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">{t('no_ratings')}</span>
+                                    )}
                                 </div>
                             ),
                         },

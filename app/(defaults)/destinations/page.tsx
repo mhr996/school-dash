@@ -12,6 +12,7 @@ import IconEye from '@/components/icon/icon-eye';
 import IconEdit from '@/components/icon/icon-edit';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconSearch from '@/components/icon/icon-search';
+import IconStar from '@/components/icon/icon-star';
 import ConfirmModal from '@/components/modals/confirm-modal';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 
@@ -23,6 +24,8 @@ type Destination = {
     address: string | null;
     zone_id: string | null;
     thumbnail_path: string | null;
+    average_rating?: number;
+    total_ratings?: number;
 };
 
 export default function DestinationsPage() {
@@ -59,7 +62,24 @@ export default function DestinationsPage() {
                 ]);
                 if (e1) throw e1;
                 if (e2) throw e2;
-                setItems((dests || []) as Destination[]);
+
+                // Fetch ratings for all destinations
+                const destinationsWithRatings = await Promise.all(
+                    (dests || []).map(async (dest) => {
+                        const { data: ratingsData } = await supabase.from('ratings').select('rating').eq('service_type', 'destinations').eq('destination_id', dest.id);
+
+                        const totalRatings = ratingsData?.length || 0;
+                        const averageRating = totalRatings > 0 && ratingsData ? ratingsData.reduce((sum, r) => sum + r.rating, 0) / totalRatings : 0;
+
+                        return {
+                            ...dest,
+                            average_rating: averageRating,
+                            total_ratings: totalRatings,
+                        };
+                    }),
+                );
+
+                setItems(destinationsWithRatings as Destination[]);
                 const map: Record<string, string> = {};
                 (zones || []).forEach((z: any) => (map[(z.id as string) || ''] = (z.name as string) || ''));
                 setZonesMap(map);
@@ -180,6 +200,24 @@ export default function DestinationsPage() {
                         { accessor: 'phone', title: t('phone'), sortable: true, render: ({ phone }) => <span dir="ltr">{phone || '-'}</span> },
                         { accessor: 'address', title: t('address'), sortable: true, render: ({ address }) => address || '-' },
                         { accessor: 'zone_id', title: t('zone'), sortable: true, render: ({ zone_id }) => zoneName(zone_id) },
+                        {
+                            accessor: 'average_rating',
+                            title: t('rating'),
+                            sortable: true,
+                            render: ({ average_rating, total_ratings }) => (
+                                <div className="flex items-center gap-1">
+                                    {total_ratings && total_ratings > 0 ? (
+                                        <>
+                                            <IconStar className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                            <span className="font-semibold">{average_rating?.toFixed(1)}</span>
+                                            <span className="text-gray-500 text-xs">({total_ratings})</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">{t('no_ratings')}</span>
+                                    )}
+                                </div>
+                            ),
+                        },
                         {
                             accessor: 'actions',
                             title: t('actions'),

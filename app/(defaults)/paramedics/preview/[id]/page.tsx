@@ -16,6 +16,7 @@ import IconClipboardText from '@/components/icon/icon-clipboard-text';
 import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
+import RatingsDisplay from '@/components/ratings/ratings-display';
 
 import { getTranslation } from '@/i18n';
 import { getServiceProfileUrl } from '@/utils/service-profile-upload';
@@ -271,6 +272,11 @@ const ParamedicPreview = () => {
                     {/* Balance Section */}
                     <div>
                         <ServiceBalanceTab serviceType="paramedics" serviceId={paramedic.id} />
+                    </div>
+
+                    {/* Ratings Section */}
+                    <div className="panel">
+                        <RatingsDisplay serviceType="paramedics" serviceId={paramedic.id} t={t} />
                     </div>
                 </div>
 

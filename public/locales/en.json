@@ -2032,5 +2032,9 @@
     "with_services_description": "Complete trip package with all required services included.",
     "base_pricing": "Base Pricing",
     "base_price_only": "Base Price Only",
-    "booking_mode_note": "You can choose the booking mode that best fits your trip requirements"
+    "booking_mode_note": "You can choose the booking mode that best fits your trip requirements",
+    "rating": "Rating",
+    "no_ratings": "No ratings",
+    "rate_booking": "Rate Booking",
+    "view_ratings": "View Ratings"
 }

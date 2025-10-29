@@ -16,6 +16,7 @@ import IconClipboardText from '@/components/icon/icon-clipboard-text';
 import IconShekelSign from '@/components/icon/icon-shekel-sign';
 import { Alert } from '@/components/elements/alerts/elements-alerts-default';
 import ServiceBalanceTab from '@/components/service-balance/service-balance-tab';
+import RatingsDisplay from '@/components/ratings/ratings-display';
 
 import { getTranslation } from '@/i18n';
 import { getServiceProfileUrl } from '@/utils/service-profile-upload';
@@ -270,6 +271,11 @@ const GuidePreview = () => {
                     {/* Balance Section */}
                     <div>
                         <ServiceBalanceTab serviceType="guides" serviceId={guide.id} />
+                    </div>
+
+                    {/* Ratings Section */}
+                    <div className="panel">
+                        <RatingsDisplay serviceType="guides" serviceId={guide.id} t={t} />
                     </div>
                 </div>
 

@@ -5,6 +5,7 @@ import IconPlus from '@/components/icon/icon-plus';
 import IconTrashLines from '@/components/icon/icon-trash-lines';
 import IconLock from '@/components/icon/icon-lock';
 import IconSearch from '@/components/icon/icon-search';
+import IconStar from '@/components/icon/icon-star';
 import { sortBy } from 'lodash';
 import { DataTableSortStatus, DataTable } from 'mantine-datatable';
 import Link from 'next/link';
@@ -33,6 +34,8 @@ interface SecurityCompany {
     notes?: string;
     balance?: number;
     profile_picture_url?: string | null;
+    average_rating?: number;
+    total_ratings?: number;
 }
 
 const SecurityCompaniesList = () => {
@@ -72,13 +75,22 @@ const SecurityCompaniesList = () => {
 
                 if (error) throw error;
 
-                // Fetch balances for all security companies
+                // Fetch balances and ratings for all security companies
                 const companiesWithBalance = await Promise.all(
                     (data as SecurityCompany[]).map(async (company) => {
                         const balanceData = await calculateServiceProviderBalance('security_companies', company.id);
+
+                        // Fetch ratings for this security company
+                        const { data: ratingsData } = await supabase.from('ratings').select('rating').eq('service_type', 'security_companies').eq('service_id', company.id);
+
+                        const totalRatings = ratingsData?.length || 0;
+                        const averageRating = ratingsData && ratingsData.length > 0 ? ratingsData.reduce((sum, r) => sum + r.rating, 0) / ratingsData.length : 0;
+
                         return {
                             ...company,
                             balance: balanceData?.netBalance || 0,
+                            average_rating: averageRating,
+                            total_ratings: totalRatings,
                         };
                     }),
                 );
@@ -315,6 +327,24 @@ const SecurityCompaniesList = () => {
                                     <span className={balance && balance > 0 ? 'text-green-600' : balance && balance < 0 ? 'text-red-600' : 'text-gray-500'}>
                                         ₪{balance?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
                                     </span>
+                                </div>
+                            ),
+                        },
+                        {
+                            accessor: 'average_rating',
+                            title: t('rating'),
+                            sortable: true,
+                            render: ({ average_rating, total_ratings }) => (
+                                <div className="flex items-center gap-1">
+                                    {total_ratings && total_ratings > 0 ? (
+                                        <>
+                                            <IconStar className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                            <span className="font-semibold">{average_rating?.toFixed(1)}</span>
+                                            <span className="text-gray-500 text-xs">({total_ratings})</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-gray-400 text-xs">{t('no_ratings')}</span>
+                                    )}
                                 </div>
                             ),
                         },
