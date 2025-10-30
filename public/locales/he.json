@@ -2052,5 +2052,8 @@
     "rating": "דירוג",
     "no_ratings": "אין דירוגים",
     "rate_booking": "דרג הזמנה",
-    "view_ratings": "צפה בדירוגים"
+    "view_ratings": "צפה בדירוגים",
+    "company_details": "פרטי החברה",
+    "no_pricing_data_available": "אין נתוני תמחור זמינים",
+    "edit_company_to_add_pricing": "ערוך חברה זו להוספת מידע תמחור"
 }

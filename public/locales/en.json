@@ -2036,5 +2036,8 @@
     "rating": "Rating",
     "no_ratings": "No ratings",
     "rate_booking": "Rate Booking",
-    "view_ratings": "View Ratings"
+    "view_ratings": "View Ratings",
+    "company_details": "Company Details",
+    "no_pricing_data_available": "No pricing data available",
+    "edit_company_to_add_pricing": "Edit this company to add pricing information"
 }

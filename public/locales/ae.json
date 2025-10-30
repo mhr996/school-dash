@@ -2290,5 +2290,8 @@
     "rating": "التقييم",
     "no_ratings": "لا توجد تقييمات",
     "rate_booking": "قيّم الحجز",
-    "view_ratings": "عرض التقييمات"
+    "view_ratings": "عرض التقييمات",
+    "company_details": "تفاصيل الشركة",
+    "no_pricing_data_available": "لا توجد بيانات تسعير متاحة",
+    "edit_company_to_add_pricing": "قم بتحرير هذه الشركة لإضافة معلومات التسعير"
 }
