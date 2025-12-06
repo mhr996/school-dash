@@ -6,24 +6,24 @@ import he from './public/locales/he.json';
 
 const langObj: any = { en, ae, he };
 
+// Get language - returns default on server during SSR
 const getLang = () => {
-    let lang = null;
     if (typeof window !== 'undefined') {
         const cookies = new cookieObj(null, { path: '/' });
-        lang = cookies.get('i18nextLng');
+        let lang = cookies.get('i18nextLng');
 
         // If no language cookie is set, set Hebrew as default
         if (!lang) {
             cookies.set('i18nextLng', 'he');
             lang = 'he';
         }
-    } else {
-        const cookies = cookieObj.cookies();
-        lang = cookies.get('i18nextLng')?.value;
+        return lang;
     }
-    return lang;
+    // Return default for server-side (will be hydrated on client)
+    return 'he';
 };
 
+// Synchronous version for client components
 export const getTranslation = () => {
     const lang = getLang();
     const defaultLang = 'he'; // Set Hebrew as default
@@ -42,8 +42,10 @@ export const getTranslation = () => {
     const i18n = {
         language: currentLang,
         changeLanguage: (lang: string) => {
-            const cookies = new cookieObj(null, { path: '/' });
-            cookies.set('i18nextLng', lang);
+            if (typeof window !== 'undefined') {
+                const cookies = new cookieObj(null, { path: '/' });
+                cookies.set('i18nextLng', lang);
+            }
         },
     };
 
